@@ -100,18 +100,6 @@ with check (exists (
     and m.congregacion_id in (select mis_congregaciones())
 ));
 
-drop policy if exists amigos_notas_scope on amigos_notas;
-create policy amigos_notas_scope on amigos_notas
-for all to authenticated
-using (exists (
-  select 1 from amigos a
-  where a.id = amigos_notas.amigo_id
-))
-with check (exists (
-  select 1 from amigos a
-  where a.id = amigos_notas.amigo_id
-));
-
 -- Impide que un registro mezcle congregación, módulo, actividad, zona o persona.
 create or replace function validar_registro_actividad()
 returns trigger

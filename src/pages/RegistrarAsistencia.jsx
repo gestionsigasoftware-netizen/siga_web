@@ -25,27 +25,38 @@ export default function RegistrarAsistencia() {
   const [motivoCaptura, setMotivoCaptura] = useState('')
   const [canCapture, setCanCapture] = useState(false)
   const [loadingPermission, setLoadingPermission] = useState(true)
+  const [loadingData, setLoadingData] = useState(true)
   const [registros, setRegistros] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [ok, setOk] = useState(false)
 
   useEffect(() => {
-    if (!congregacionId) { setLoadingPermission(false); return }
-    supabase.from('modulos').select('id, nombre_modulo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true)
-      .then(({ data }) => setModulos(data ?? []))
-    supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden')
-      .then(({ data }) => setCategorias(data ?? []))
-    supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).eq('estado_membresia', 'activo')
-      .then(({ data }) => setResponsables(data ?? []))
+    if (!congregacionId) { setLoadingPermission(false); setLoadingData(false); return }
+    setLoadingData(true)
+    setLoadingPermission(true)
     Promise.all([
+      supabase.from('modulos').select('id, nombre_modulo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true),
+      supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
+      supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).eq('estado_membresia', 'activo'),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
-    ]).then(([capture, admin]) => {
+      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').order('fecha', { ascending: false }).limit(10),
+    ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, registrosResult]) => {
+      const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, registrosResult].find((result) => result.error)
+      if (failed) setError('No se pudo cargar toda la información. Verifica la conexión con Supabase.')
+      setModulos(modulosResult.data ?? [])
+      setCategorias(categoriasResult.data ?? [])
+      setResponsables(responsablesResult.data ?? [])
+      setRegistros(registrosResult.data ?? [])
       setCanCapture(Boolean(capture.data || admin.data))
       setLoadingPermission(false)
+      setLoadingData(false)
+    }).catch(() => {
+      setError('No se pudo cargar la información de asistencia.')
+      setLoadingPermission(false)
+      setLoadingData(false)
     })
-    loadRegistros()
   }, [congregacionId])
 
   useEffect(() => {
@@ -69,6 +80,8 @@ export default function RegistrarAsistencia() {
   function actualizarConteo(catId, valor) {
     setConteos((prev) => ({ ...prev, [catId]: parseInt(valor, 10) || 0 }))
   }
+
+  const totalPreview = Object.values(conteos).reduce((total, value) => total + value, 0)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -107,33 +120,36 @@ export default function RegistrarAsistencia() {
     setTimeout(() => setOk(false), 3000)
   }
 
-  if (loadingRol || loadingPermission) return <div className="module-loading" role="status"><span className="loading-dot" />Verificando permisos...</div>
+  if (loadingRol || loadingPermission || loadingData) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando corrección de asistencia...</div>
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-medium">Corrección / contingencia de asistencia</h1>
-        <p className="text-sm text-secondary mt-0.5">La PWA es el canal principal. Usa esta pantalla solo para corregir o registrar una actividad cuando la captura móvil no estuvo disponible.</p>
+        <p className="text-sm text-secondary mt-0.5">La aplicación móvil (PWA) es el canal principal. Usa esta pantalla solo para corregir un registro cuando la captura móvil no estuvo disponible.</p>
       </div>
 
       {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Tu perfil no tiene permiso para registrar correcciones de asistencia.</p>}
 
       <form onSubmit={handleSubmit} className="card p-5 max-w-lg flex flex-col gap-3.5">
         <label className="text-sm text-secondary">Fecha de la actividad<input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-field mt-1" /></label>
+        {modulos.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">No hay módulos activos configurados para esta congregación.</p>}
+        {categorias.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">No hay categorías demográficas configuradas para capturar asistencia.</p>}
+
         <div>
           <label className="text-sm text-secondary block mb-1">Módulo</label>
           <select value={moduloId} onChange={(e) => setModuloId(e.target.value)} className="input-field" required>
-            <option value="">Seleccionar...</option>
+            <option value="">Selecciona un módulo</option>
             {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre_modulo}</option>)}
           </select>
         </div>
 
-        {modulos.find((modulo) => modulo.id === moduloId)?.requiere_zona && <div><label className="text-sm text-secondary block mb-1">Barrio o zona</label><select required value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="input-field"><option value="">Seleccionar zona...</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></div>}
+        {modulos.find((modulo) => modulo.id === moduloId)?.requiere_zona && <div><label className="text-sm text-secondary block mb-1">Barrio o zona</label><select required value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="input-field"><option value="">Selecciona una zona</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></div>}
 
         <div>
           <label className="text-sm text-secondary block mb-1">Tipo de actividad</label>
           <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="input-field" required disabled={!moduloId}>
-            <option value="">Seleccionar...</option>
+            <option value="">Selecciona una actividad</option>
             {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}{t.caracter ? ` — ${t.caracter}` : ''}</option>)}
           </select>
         </div>
@@ -141,7 +157,7 @@ export default function RegistrarAsistencia() {
         <div>
           <label className="text-sm text-secondary block mb-1">Responsable de tomar asistencia</label>
           <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field" required>
-            <option value="">Seleccionar...</option>
+            <option value="">Selecciona un responsable</option>
             {responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
           </select>
         </div>
@@ -165,14 +181,19 @@ export default function RegistrarAsistencia() {
 
         <div>
           <label className="text-sm text-secondary block mb-1">Motivo de corrección o contingencia</label>
-          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La PWA no estuvo disponible o se corrigió un dato enviado" />
+          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La aplicación móvil no estuvo disponible o se corrigió un dato enviado" />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
-        {ok && <p className="text-sm text-success">Asistencia registrada.</p>}
+        {ok && <p className="text-sm text-success">Corrección guardada.</p>}
+
+        <div className="flex items-center justify-between gap-3 rounded-card border border-accent/20 bg-accent-bg px-3 py-2.5">
+          <div><p className="text-[10px] uppercase tracking-[0.14em] text-accent-dark">Total a registrar</p><p className="text-xs text-secondary mt-0.5">Suma de las categorías ingresadas</p></div>
+          <strong className="text-2xl text-accent-dark">{totalPreview}</strong>
+        </div>
 
         <button type="submit" disabled={saving || !canCapture} className="btn-primary justify-center">
-          {saving ? 'Guardando...' : 'Guardar asistencia'}
+          {saving ? 'Guardando...' : 'Guardar corrección'}
         </button>
       </form>
 

@@ -1,8 +1,12 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { BarChart3, Download, HeartHandshake, Plus, Search, UsersRound } from 'lucide-react'
+import { Bar, Doughnut } from 'react-chartjs-2'
+import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip)
 
 const STATES = { activo: 'Activo', apartado: 'Apartado', trasladado: 'Trasladado', inactivo: 'Inactivo', fallecido: 'Fallecido' }
 const FAMILY_RELATIONSHIPS = { cabeza: 'Cabeza de familia', padre: 'Padre', madre: 'Madre', hijo: 'Hijo/a', conyuge: 'Cónyuge', hermano: 'Hermano/a', abuelo: 'Abuelo/a', nieto: 'Nieto/a', otro: 'Otro' }
@@ -12,8 +16,17 @@ const EMPTY_PERSON = { nombres: '', apellidos: '', telefono: '', estado_membresi
 function withRequestTimeout(request, milliseconds = 12000) {
   return Promise.race([
     request,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Verifica la conexión con Supabase y sus políticas RLS.')), milliseconds)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Intenta nuevamente.')), milliseconds)),
   ])
+}
+
+function calcularEdad(fechaNacimiento, hoy = new Date()) {
+  if (!fechaNacimiento) return null
+  const nacimiento = new Date(`${fechaNacimiento}T00:00:00`)
+  let edad = hoy.getFullYear() - nacimiento.getFullYear()
+  const noHaCumplido = hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate())
+  if (noHaCumplido) edad -= 1
+  return edad >= 0 && edad < 110 ? edad : null
 }
 
 function PersonFormDetailed(props) {
@@ -31,11 +44,72 @@ function PersonFormEditor({ form, setForm, families, committees, cargoHistory, s
     return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><label className="text-sm">Estado<select className="input-field mt-1.5" value={form.estado_membresia} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value, parentesco_familiar: event.target.value ? form.parentesco_familiar : '' })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="text-sm">Parentesco familiar<select className="input-field mt-1.5" value={form.parentesco_familiar || ''} onChange={(event) => setForm({ ...form, parentesco_familiar: event.target.value })} disabled={!form.familia_id}><option value="">Seleccionar...</option>{Object.entries(FAMILY_RELATIONSHIPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado</label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="text-sm sm:col-span-2">Observaciones pastorales<textarea className="input-field mt-1.5 min-h-24" value={form.observaciones_pastorales || ''} onChange={(event) => setForm({ ...form, observaciones_pastorales: event.target.value })} /></label></div>{editing && <div className="mt-5 border-t border-border pt-4"><p className="text-sm font-medium">Participación y responsabilidades</p>{memberships.length ? <p className="text-xs text-secondary mt-2">{memberships.join(' · ')}</p> : <p className="text-xs text-muted mt-2">Sin participación en comités.</p>}{cargos.length > 0 && <p className="text-xs text-secondary mt-2">Cargos históricos: {cargos.join(', ')}</p>}</div>}<button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div>
 }
 
+const INSIGHT_COLORS = ['#2a78d6', '#e06b35', '#008300', '#9a6bce', '#d03b3b']
+const INSIGHT_CHART_OPTIONS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111820', padding: 10 } }, scales: { y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(82,81,78,0.1)' }, ticks: { color: '#898781', font: { size: 10 } } }, x: { border: { display: false }, grid: { display: false }, ticks: { color: '#898781', font: { size: 10 } } } } }
+
+function FeligresiaInsights({ people, families, committees, cargoHistory, followups, alerts }) {
+  const [statusFilter, setStatusFilter] = useState('todos')
+  const [ageFilter, setAgeFilter] = useState('todas')
+  const [historyMonths, setHistoryMonths] = useState('12')
+  const today = new Date()
+  const todayKey = today.toISOString().slice(0, 10)
+  const filteredPeople = people.filter((person) => {
+    const age = calcularEdad(person.fecha_nacimiento, today)
+    const matchesStatus = statusFilter === 'todos' || person.estado_membresia === statusFilter
+    const matchesAge = ageFilter === 'todas' || (age !== null && ((ageFilter === '0-12' && age <= 12) || (ageFilter === '13-17' && age >= 13 && age <= 17) || (ageFilter === '18-29' && age >= 18 && age <= 29) || (ageFilter === '30-59' && age >= 30 && age <= 59) || (ageFilter === '60+' && age >= 60)))
+    return matchesStatus && matchesAge
+  })
+  const total = filteredPeople.length
+  const active = filteredPeople.filter((person) => person.estado_membresia === 'activo').length
+  const baptized = filteredPeople.filter((person) => person.bautizado).length
+  const withFamily = filteredPeople.filter((person) => person.familia_id).length
+  const activePeople = filteredPeople.filter((person) => person.estado_membresia === 'activo')
+  const withoutAttendance = activePeople.filter((person) => !person.fecha_ultima_asistencia || person.fecha_ultima_asistencia < new Date(today.getTime() - 90 * 86400000).toISOString().slice(0, 10)).length
+  const pending = followups.filter((item) => item.estado === 'pendiente').length
+  const overdue = followups.filter((item) => item.estado === 'pendiente' && item.proxima_fecha && item.proxima_fecha < todayKey).length
+  const activeMemberships = committees.filter((committee) => committee.activo).flatMap((committee) => committee.membresias_comite ?? []).filter((member) => !member.fecha_fin && filteredPeople.some((person) => person.id === member.persona_id))
+  const committeePeople = new Set(activeMemberships.map((member) => member.persona_id)).size
+  const activeCharges = cargoHistory.filter((item) => !item.fecha_fin && filteredPeople.some((person) => person.id === item.persona_id)).length
+  const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()).toISOString().slice(0, 10)
+  const newPeople = filteredPeople.filter((person) => person.fecha_ingreso && person.fecha_ingreso >= yearAgo).length
+  const ages = filteredPeople.map((person) => calcularEdad(person.fecha_nacimiento, today)).filter((age) => age !== null)
+  const ageGroups = [['0-12', 0], ['13-17', 0], ['18-29', 0], ['30-59', 0], ['60+', 0]]
+  ages.forEach((age) => { const index = age <= 12 ? 0 : age <= 17 ? 1 : age <= 29 ? 2 : age <= 59 ? 3 : 4; ageGroups[index][1] += 1 })
+  const statuses = Object.entries(STATES).map(([key, label]) => ({ label, value: filteredPeople.filter((person) => person.estado_membresia === key).length }))
+  const followupStatuses = [['Pendientes', followups.filter((item) => item.estado === 'pendiente').length], ['Completados', followups.filter((item) => item.estado === 'completado').length], ['Cancelados', followups.filter((item) => item.estado === 'cancelado').length]]
+  const familySizes = families.map((family) => filteredPeople.filter((person) => person.familia_id === family.id).length).filter((size) => size > 0)
+  const averageFamilySize = familySizes.length ? (familySizes.reduce((sum, size) => sum + size, 0) / familySizes.length).toFixed(1) : '0.0'
+  const activeAlerts = alerts.filter((alert) => alert.estado !== 'atendida')
+  const months = Number(historyMonths)
+  const admissionsHistory = Array.from({ length: months }, (_, index) => {
+    const start = new Date(today.getFullYear(), today.getMonth() - months + index + 1, 1)
+    const end = new Date(today.getFullYear(), today.getMonth() - months + index + 2, 1)
+    return { label: start.toLocaleDateString('es-CO', { month: 'short', year: months > 12 ? '2-digit' : undefined }), total: filteredPeople.filter((person) => person.fecha_ingreso && person.fecha_ingreso >= start.toISOString().slice(0, 10) && person.fecha_ingreso < end.toISOString().slice(0, 10)).length }
+  })
+  const chartOptions = { ...INSIGHT_CHART_OPTIONS, scales: { ...INSIGHT_CHART_OPTIONS.scales, y: { ...INSIGHT_CHART_OPTIONS.scales.y, ticks: { ...INSIGHT_CHART_OPTIONS.scales.y.ticks, precision: 0 } } } }
+  const insight = overdue > 0 ? `${overdue} seguimiento${overdue === 1 ? '' : 's'} está${overdue === 1 ? '' : 'n'} vencido${overdue === 1 ? '' : 's'}: prioriza la agenda pastoral.` : withoutAttendance > 0 ? `${withoutAttendance} persona${withoutAttendance === 1 ? '' : 's'} activa${withoutAttendance === 1 ? '' : 's'} no tiene asistencia reciente. Conviene activar contacto y actualizar su ficha.` : activeAlerts.length > 0 ? `${activeAlerts.length} alerta${activeAlerts.length === 1 ? '' : 's'} pastoral${activeAlerts.length === 1 ? '' : 'es'} requiere${activeAlerts.length === 1 ? '' : 'n'} revisión.` : newPeople > 0 ? `${newPeople} persona${newPeople === 1 ? '' : 's'} ingresó${newPeople === 1 ? '' : 'aron'} en los últimos 12 meses. Revisa su integración y bautismo.` : 'La información está al día. Mantén la rutina de seguimiento y actualización del censo.'
+  const doughnutData = { labels: ['Bautizados', 'No bautizados'], datasets: [{ data: [baptized, Math.max(total - baptized, 0)], backgroundColor: ['#008300', '#d9e0e8'], borderWidth: 0 }] }
+  const statusData = { labels: statuses.map((item) => item.label), datasets: [{ label: 'Personas', data: statuses.map((item) => item.value), backgroundColor: INSIGHT_COLORS, borderRadius: 4, barThickness: 18 }] }
+  const ageData = { labels: ageGroups.map(([label]) => label), datasets: [{ label: 'Personas', data: ageGroups.map(([, value]) => value), backgroundColor: '#2a78d6', borderRadius: 4, barThickness: 20 }] }
+  const followupData = { labels: followupStatuses.map(([label]) => label), datasets: [{ label: 'Seguimientos', data: followupStatuses.map(([, value]) => value), backgroundColor: ['#e06b35', '#008300', '#9a6bce'], borderRadius: 4, barThickness: 20 }] }
+  const admissionsData = { labels: admissionsHistory.map((item) => item.label), datasets: [{ label: 'Nuevos ingresos', data: admissionsHistory.map((item) => item.total), backgroundColor: '#2a78d6', borderRadius: 4, barThickness: months > 24 ? 10 : 18 }] }
+
+  return <section className="flex flex-col gap-4">
+    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-[0.16em] text-accent">Inteligencia de gestión</p><h2 className="font-medium mt-1">Lectura para tomar decisiones</h2><p className="text-sm text-secondary mt-1">Indicadores construidos con el censo completo, no solo con la página visible.</p></div><div className="flex flex-wrap gap-2"><select aria-label="Filtrar dashboard por estado" className="input-field text-xs" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label="Filtrar dashboard por edad" className="input-field text-xs" value={ageFilter} onChange={(event) => setAgeFilter(event.target.value)}><option value="todas">Todas las edades</option>{ageGroups.map(([label]) => <option key={label} value={label}>{label} años</option>)}</select></div></div>
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Metric label="Personas en censo" value={total} accent /><Metric label="Tasa de actividad" value={`${total ? Math.round(active / total * 100) : 0}%`} /><Metric label="Cobertura familiar" value={`${total ? Math.round(withFamily / total * 100) : 0}%`} /><Metric label="Ingresos últimos 12 meses" value={newPeople} /><Metric label="Alertas activas" value={activeAlerts.length} /></div>
+    <p className={`text-sm rounded p-3 ${overdue > 0 || withoutAttendance > 0 ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{insight}</p>
+    <div className="grid lg:grid-cols-3 gap-4"><div className="card p-5"><h3 className="font-medium">Estado del censo</h3><p className="text-xs text-secondary mt-1">Distribución por estado de membresía.</p><div className="h-56 mt-4"><Bar data={statusData} options={chartOptions} /></div></div><div className="card p-5"><h3 className="font-medium">Bautismo</h3><p className="text-xs text-secondary mt-1">Nivel de consolidación espiritual.</p><div className="h-56 mt-4"><Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: '#52514e', padding: 14, font: { size: 11 } } } } }} /></div></div><div className="card p-5"><h3 className="font-medium">Rangos de edad</h3><p className="text-xs text-secondary mt-1">Personas con fecha de nacimiento registrada.</p><div className="h-56 mt-4"><Bar data={ageData} options={chartOptions} /></div></div></div>
+    <div className="card p-5"><div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 className="font-medium">Evolución de ingresos</h3><p className="text-xs text-secondary mt-1">Nuevas personas registradas en el periodo seleccionado.</p></div><select aria-label="Periodo de evolución de ingresos" className="input-field text-xs" value={historyMonths} onChange={(event) => setHistoryMonths(event.target.value)}><option value="12">Últimos 12 meses</option><option value="24">Últimos 24 meses</option><option value="60">Últimos 5 años</option></select></div><div className="h-56 mt-4"><Bar data={admissionsData} options={chartOptions} /></div></div>
+    <div className="grid lg:grid-cols-2 gap-4"><div className="card p-5"><h3 className="font-medium">Seguimiento pastoral</h3><p className="text-xs text-secondary mt-1">Carga de trabajo y resultado de acompañamientos.</p><div className="h-52 mt-4"><Bar data={followupData} options={chartOptions} /></div><p className="summary-insight mt-3">{pending} pendientes · {overdue} vencidos · {followups.length} registros totales.</p></div><div className="card p-5"><h3 className="font-medium">Capacidad de organización</h3><p className="text-xs text-secondary mt-1">Participación en comités y cargos vigentes.</p><div className="grid grid-cols-3 gap-3 mt-6"><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Comités activos</p><p className="text-2xl font-semibold mt-1">{committees.filter((committee) => committee.activo).length}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Personas en comités</p><p className="text-2xl font-semibold mt-1">{committeePeople}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Cargos vigentes</p><p className="text-2xl font-semibold mt-1">{activeCharges}</p></div></div><p className="summary-insight mt-5">Hay {families.length} familias registradas, con un promedio de {averageFamilySize} integrante{averageFamilySize === '1.0' ? '' : 's'} por familia.</p>{cargoHistory.filter((item) => !item.fecha_fin).slice(0, 5).map((item) => { const person = people.find((candidate) => candidate.id === item.persona_id); return <p key={item.id} className="text-xs text-muted mt-2">{item.nombre_cargo} · {person ? `${person.nombres} ${person.apellidos}` : 'Persona'}</p> })}</div></div>
+  </section>
+}
+
 export default function FeligresiaAdmin() {
   const location = useLocation()
   const { rolPrincipal } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
   const [people, setPeople] = useState([])
+  const [analyticsPeople, setAnalyticsPeople] = useState([])
   const [families, setFamilies] = useState([])
   const [committees, setCommittees] = useState([])
   const [cargoHistory, setCargoHistory] = useState([])
@@ -74,8 +148,9 @@ export default function FeligresiaAdmin() {
     if (status !== 'todos') peopleQuery = peopleQuery.eq('estado_membresia', status)
     if (deferredSearch.trim()) peopleQuery = peopleQuery.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     peopleQuery = peopleQuery.order('nombres').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
-    const [peopleResult, familyResult, committeeResult, cargoResult, followupResult, summaryResult, alertsResult] = await Promise.all([
+    const [peopleResult, analyticsPeopleResult, familyResult, committeeResult, cargoResult, followupResult, summaryResult, alertsResult] = await Promise.all([
       peopleQuery,
+      supabase.from('personas').select('id, nombres, apellidos, estado_membresia, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),
       supabase.from('familias').select('id, nombre_familia, direccion, telefono').eq('congregacion_id', congregacionId).order('nombre_familia'),
       supabase.from('comites').select('id, nombre, activo, membresias_comite(id, persona_id, cargo, fecha_inicio, fecha_fin)').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('historial_cargos').select('id, persona_id, nombre_cargo, area, fecha_inicio, fecha_fin, observaciones').order('fecha_inicio', { ascending: false }),
@@ -83,8 +158,9 @@ export default function FeligresiaAdmin() {
       supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', congregacionId).maybeSingle(),
       supabase.from('vw_alertas_pastorales').select('*').order('mes', { ascending: false }),
     ])
-    if (peopleResult.error || familyResult.error || committeeResult.error || cargoResult.error || followupResult.error || summaryResult.error || alertsResult.error) setError('No se pudo cargar toda la feligresía. Verifica Supabase y que feligresia.sql esté actualizado.')
+    if (peopleResult.error || analyticsPeopleResult.error || familyResult.error || committeeResult.error || cargoResult.error || followupResult.error || summaryResult.error || alertsResult.error) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
     setPeople(peopleResult.data ?? [])
+    setAnalyticsPeople(analyticsPeopleResult.data ?? [])
     setPeopleTotal(peopleResult.count ?? 0)
     setFamilies(familyResult.data ?? [])
     setCommittees(committeeResult.data ?? [])
@@ -165,7 +241,7 @@ export default function FeligresiaAdmin() {
       const message = result.error.code === '42501'
         ? 'No tienes permisos para modificar esta congregación.'
         : result.error.code === 'PGRST204'
-          ? 'Faltan columnas de Feligresía en Supabase. Ejecuta feligresia.sql y vuelve a intentarlo.'
+          ? 'Faltan datos de configuración para mostrar esta sección. Contacta al administrador.'
           : `No se pudo guardar la ficha: ${result.error.message}`
       setError(message)
       return
@@ -448,9 +524,6 @@ export default function FeligresiaAdmin() {
   const baptized = summary?.bautizados ?? 0
   const apart = summary?.apartados ?? 0
   const familiesWithPeople = summary?.familias_asociadas ?? 0
-  const history = Array.from({ length: 6 }, (_, index) => { const month = new Date(); month.setMonth(month.getMonth() - 5 + index); return { label: month.toLocaleDateString('es-CO', { month: 'short' }), total: people.filter((person) => person.fecha_ingreso && new Date(person.fecha_ingreso) <= month).length } })
-  const maxHistory = Math.max(...history.map((item) => item.total), 1)
-
   function startNewPerson() { setSelected(null); setForm(EMPTY_PERSON); setShowForm(true) }
   function editPerson(person) { setSelected(person); setForm({ ...EMPTY_PERSON, ...person, fecha_bautismo: person.fecha_bautismo || '', fecha_ingreso: person.fecha_ingreso || '', fecha_ultima_asistencia: person.fecha_ultima_asistencia || '', familia_id: person.familia_id || '' }); setShowForm(true) }
 
@@ -468,7 +541,7 @@ export default function FeligresiaAdmin() {
     {tab === 'personas' && <section className="card overflow-hidden"><div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3"><div className="flex items-center gap-2 flex-1"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar personas" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar persona..." value={search} onChange={(event) => setSearch(event.target.value)} /></div><select aria-label="Filtrar estado" className="input-field sm:max-w-[180px]" value={status} onChange={(event) => setStatus(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>{filtered.length ? <div className="divide-y divide-border">{filtered.map((person) => <button key={person.id} onClick={() => editPerson(person)} className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface-1"><div><p className="text-sm font-medium">{person.nombres} {person.apellidos}</p><p className="text-xs text-secondary mt-1">{person.bautizado ? 'Bautizado' : 'No bautizado'}{person.familias?.nombre_familia ? ` · ${person.familias.nombre_familia}` : ''}{person.fecha_ultima_asistencia ? ` · Última asistencia: ${person.fecha_ultima_asistencia}` : ''}</p></div><span className="text-xs px-2 py-1 rounded bg-surface-1">{STATES[person.estado_membresia]}</span></button>)}</div> : <Empty text="No hay personas con estos filtros." />}<div className="flex items-center justify-between border-t border-border p-3 text-xs text-secondary"><span>{peopleTotal} personas encontradas</span><div className="flex items-center gap-2"><button type="button" disabled={peoplePage === 0 || loading} onClick={() => setPeoplePage((page) => page - 1)} className="btn-secondary px-3">Anterior</button><span>Página {peoplePage + 1} de {totalPages}</span><button type="button" disabled={peoplePage + 1 >= totalPages || loading} onClick={() => setPeoplePage((page) => page + 1)} className="btn-secondary px-3">Siguiente</button></div></div></section>}
     {tab === 'familias' && <section className="flex flex-col gap-4"><form onSubmit={saveFamily} className="card p-4 grid sm:grid-cols-[1.2fr_1fr_0.8fr_auto] gap-2"><input required className="input-field" placeholder="Nombre de la nueva familia" value={familyName} onChange={(event) => setFamilyName(event.target.value)} /><input className="input-field" placeholder="Dirección" value={familyAddress} onChange={(event) => setFamilyAddress(event.target.value)} /><input className="input-field" placeholder="Teléfono" value={familyPhone} onChange={(event) => setFamilyPhone(event.target.value)} /><button disabled={saving} className="btn-primary whitespace-nowrap"><Plus className="w-4 h-4" /> Crear familia</button></form><div className="grid md:grid-cols-2 gap-4">{families.map((family) => <div key={family.id} className="card p-5"><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{family.nombre_familia}</h2><button type="button" className="text-xs text-accent" onClick={() => renameFamily(family)}>Editar nombre</button></div>{(family.direccion || family.telefono) && <p className="text-xs text-secondary mt-2">{family.direccion || 'Sin dirección'}{family.telefono ? ` · ${family.telefono}` : ''}</p>}<p className="text-sm text-secondary mt-1">{people.filter((person) => person.familia_id === family.id).length} integrantes asociados</p>{people.filter((person) => person.familia_id === family.id).map((person) => <p key={person.id} className="text-xs text-muted mt-2">{person.nombres} {person.apellidos}</p>)}</div>)}</div>{families.length === 0 && <Empty text="Aún no hay familias registradas." />}</section>}
     {tab === 'comites' && <section className="flex flex-col gap-4"><form onSubmit={saveCommittee} className="card p-4 flex gap-2"><input required className="input-field" placeholder="Nombre de la nueva junta o comité" value={committeeName} onChange={(event) => setCommitteeName(event.target.value)} /><button disabled={saving} className="btn-primary whitespace-nowrap"><Plus className="w-4 h-4" /> Crear comité</button></form><form onSubmit={assignCommittee} className="card p-4 grid sm:grid-cols-3 gap-2"><select required name="comite_id" className="input-field"><option value="">Comité...</option>{committees.filter((committee) => committee.activo).map((committee) => <option key={committee.id} value={committee.id}>{committee.nombre}</option>)}</select><select required name="persona_id" className="input-field"><option value="">Integrante...</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex gap-2"><select required name="cargo" className="input-field" value={committeeRole} onChange={(event) => setCommitteeRole(event.target.value)}><option value="">Cargo...</option>{Object.entries(COMMITTEE_ROLES).map(([key, label]) => <option key={key} value={label}>{label}</option>)}</select><button disabled={saving} className="btn-secondary px-3" title="Asignar integrante"><Plus className="w-4 h-4" /></button></div></form><div className="grid md:grid-cols-2 gap-4">{committees.map((committee) => <div key={committee.id} className={`card p-5 ${!committee.activo ? 'opacity-60' : ''}`}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{committee.nombre}</h2><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => renameCommittee(committee)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => deactivateCommittee(committee)}>{committee.activo ? 'Desactivar' : 'Reactivar'}</button></div></div><p className="text-sm text-secondary mt-1">{committee.membresias_comite?.filter((member) => !member.fecha_fin).length ?? 0} integrantes activos</p><div className="flex flex-col gap-2 mt-4">{Object.values(COMMITTEE_ROLES).map((role) => { const members = (committee.membresias_comite ?? []).filter((member) => !member.fecha_fin && (member.cargo || 'Sin cargo') === role); return members.length ? <div key={role}><p className="text-xs font-medium text-secondary">{role}{role === 'Vocal' && members.length > 1 ? ` (${members.length})` : ''}</p>{members.map((member) => <div key={member.id} className="flex items-center justify-between gap-2 mt-1"><span className="text-xs bg-surface-1 rounded px-2 py-1">{people.find((person) => person.id === member.persona_id)?.nombres || 'Integrante'} {people.find((person) => person.id === member.persona_id)?.apellidos || ''}</span><button type="button" className="text-xs text-danger" onClick={() => removeCommitteeMember(member)}>Retirar</button></div>)}</div> : null })}</div></div>)}</div>{committees.length === 0 && <Empty text="Aún no hay comités registrados." />}</section>}
-    {tab === 'historial' && <section className="grid lg:grid-cols-2 gap-4"><div className="card p-5"><h2 className="font-medium">Evolución del censo</h2><p className="text-sm text-secondary mt-1 mb-6">Crecimiento acumulado según fechas de ingreso.</p><div className="h-56 flex items-end gap-3 border-b border-l border-border px-4">{history.map((item) => <div key={item.label} className="flex-1 flex flex-col items-center justify-end gap-2 h-full"><span className="text-xs text-muted">{item.total}</span><div className="w-full max-w-12 bg-accent rounded-t" style={{ height: `${Math.max(4, item.total / maxHistory * 75)}%` }} /><span className="text-xs text-muted">{item.label}</span></div>)}</div></div><div className="card p-5"><h2 className="font-medium">Historial de cargos</h2><p className="text-sm text-secondary mt-1 mb-4">Responsabilidades registradas por persona.</p>{cargoHistory.length ? <div className="flex flex-col divide-y divide-border">{cargoHistory.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{people.find((person) => person.id === item.persona_id)?.nombres || 'Persona'} {people.find((person) => person.id === item.persona_id)?.apellidos || ''}</p><p className="text-xs text-secondary mt-1">{item.nombre_cargo}{item.area ? ` · ${item.area}` : ''}</p><p className="text-xs text-muted mt-1">Desde {item.fecha_inicio}{item.fecha_fin ? ` hasta ${item.fecha_fin}` : ' · Actual'}</p></div>)}</div> : <Empty text="Aún no hay cargos históricos registrados." />}</div></section>}
+    {tab === 'historial' && <FeligresiaInsights people={analyticsPeople} families={families} committees={committees} cargoHistory={cargoHistory} followups={pastoralFollowups} alerts={pastoralAlerts} />}
     {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} pastoralFollowups={pastoralFollowups} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} />}
     {dialog && <AdminDialog dialog={dialog} saving={saving} error={error} close={() => setDialog(null)} />}
   </div>
@@ -506,7 +579,7 @@ function CargoPanel({ person, cargos, saving, onSubmit, onEdit, embedded = false
 }
 function Metric({ label, value, accent }) {
   return (
-    <div className={`summary-card stat-tile ${accent ? 'bg-accent-bg' : 'bg-surface-1'}`}>
+    <div className={`summary-card summary-card-${accent ? 'default' : 'muted'} stat-tile`}>
       <div className="flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.16em] text-secondary">{label}</p><span className={`summary-marker ${accent ? 'bg-accent' : 'bg-muted'}`} aria-hidden="true" /></div>
       <p className="text-3xl font-semibold tracking-tight mt-3">{value}</p>
     </div>

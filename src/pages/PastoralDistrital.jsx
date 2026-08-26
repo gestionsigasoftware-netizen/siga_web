@@ -133,7 +133,7 @@ export default function PastoralDistrital() {
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
-      setError('No se pudo cargar la gestión pastoral distrital. Verifica que pastoral_distrital.sql esté ejecutado.')
+      setError('No se pudo cargar la gestión pastoral distrital. Intenta nuevamente o contacta al administrador.')
     }
 
     setPastors(pastorResult.data ?? [])
@@ -328,7 +328,7 @@ export default function PastoralDistrital() {
   }
 
   if (roleLoading || loading) {
-    return <p className="text-sm text-muted">Cargando gestión pastoral distrital...</p>
+    return <div className="module-loading" role="status"><span className="loading-dot" />Cargando gestión pastoral distrital...</div>
   }
 
   if (!isDistrictLeader) {
@@ -353,7 +353,7 @@ export default function PastoralDistrital() {
             <Users className="w-4 h-4" />
           </div>
           <p className="mt-3 text-2xl font-semibold">{stats.totalPastors}</p>
-          <p className="text-sm text-secondary mt-1">Pastoreado registrado</p>
+          <p className="text-sm text-secondary mt-1">Pastores registrados</p>
         </div>
 
         <div className="stat-tile">
@@ -362,7 +362,7 @@ export default function PastoralDistrital() {
             <UserRoundCheck className="w-4 h-4" />
           </div>
           <p className="mt-3 text-2xl font-semibold">{stats.activePastorCount}</p>
-          <p className="text-sm text-secondary mt-1">Asignados vigente</p>
+          <p className="text-sm text-secondary mt-1">Asignaciones vigentes</p>
         </div>
 
         <div className="stat-tile">

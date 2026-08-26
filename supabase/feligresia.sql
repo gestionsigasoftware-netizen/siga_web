@@ -243,6 +243,30 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
+drop policy if exists amigos_write on amigos;
+create policy amigos_write on amigos for all to authenticated
+using (
+  puede_administrar_feligresia(congregacion_id)
+  or tengo_acceso_zona(zona_id)
+)
+with check (
+  puede_administrar_feligresia(congregacion_id)
+  or tengo_acceso_zona(zona_id)
+);
+
+drop policy if exists amigos_notas_scope on amigos_notas;
+create policy amigos_notas_scope on amigos_notas for all to authenticated
+using (exists (
+  select 1 from amigos a
+  where a.id = amigos_notas.amigo_id
+    and (puede_administrar_feligresia(a.congregacion_id) or tengo_acceso_zona(a.zona_id))
+))
+with check (exists (
+  select 1 from amigos a
+  where a.id = amigos_notas.amigo_id
+    and (puede_administrar_feligresia(a.congregacion_id) or tengo_acceso_zona(a.zona_id))
+));
+
 create or replace function puede_gestionar_comite(p_comite_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (

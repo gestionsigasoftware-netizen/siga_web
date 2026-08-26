@@ -9,16 +9,27 @@ const ICONS = { info: Info, success: Check, warning: CircleAlert, danger: Circle
 export default function NotificationCenter() {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
+  const [preferences, setPreferences] = useState({ recibir_notificaciones: true, recibir_alertas: true })
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return undefined
     let active = true
-    supabase.from('notificaciones').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false }).limit(20).then(({ data }) => {
-      if (active) setNotifications(data ?? [])
+    Promise.all([
+      supabase.from('notificaciones').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas').eq('usuario_id', user.id).maybeSingle(),
+    ]).then(([notificationResult, preferenceResult]) => {
+      if (!active) return
+      if (preferenceResult.data) setPreferences(preferenceResult.data)
+      const currentPreferences = preferenceResult.data ?? preferences
+      setNotifications((notificationResult.data ?? []).filter((notification) => currentPreferences.recibir_notificaciones || ['warning', 'danger'].includes(notification.tipo) && currentPreferences.recibir_alertas))
     })
     const channel = supabase.channel(`notificaciones-${user.id}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${user.id}` }, (payload) => {
-      setNotifications((current) => [payload.new, ...current].slice(0, 20))
+      setPreferences((currentPreferences) => {
+        const isAlert = ['warning', 'danger'].includes(payload.new.tipo)
+        if (currentPreferences.recibir_notificaciones || (isAlert && currentPreferences.recibir_alertas)) setNotifications((current) => [payload.new, ...current].slice(0, 20))
+        return currentPreferences
+      })
     }).subscribe()
     return () => { active = false; supabase.removeChannel(channel) }
   }, [user])

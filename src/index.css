@@ -45,6 +45,25 @@
   .summary-card {
     position: relative;
     overflow: hidden;
+    color: #1c1f24;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(238, 246, 253, 0.92)) !important;
+    border-color: rgba(42, 120, 214, 0.2);
+    box-shadow: 0 14px 30px rgba(21, 27, 34, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .summary-card-success {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(237, 249, 242, 0.94)) !important;
+    border-color: rgba(0, 131, 0, 0.2);
+  }
+
+  .summary-card-danger {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 242, 242, 0.94)) !important;
+    border-color: rgba(208, 59, 59, 0.22);
+  }
+
+  .summary-card-muted {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 248, 0.94)) !important;
+    border-color: rgba(82, 81, 78, 0.16);
   }
 
   .summary-card::before {
@@ -52,7 +71,8 @@
     position: absolute;
     inset: 0 auto 0 0;
     width: 3px;
-    background: #2a78d6;
+    background: linear-gradient(#71b3f7, #2a78d6);
+    box-shadow: 0 0 12px rgba(42, 120, 214, 0.7);
   }
 
   .summary-card::after {
@@ -63,7 +83,8 @@
     right: -54px;
     bottom: -58px;
     border-radius: 999px;
-    background: rgba(42, 120, 214, 0.08);
+    background: rgba(113, 179, 247, 0.11);
+    box-shadow: 0 0 34px rgba(42, 120, 214, 0.2);
     pointer-events: none;
   }
 
@@ -72,12 +93,94 @@
     box-shadow: 0 0 0 4px rgba(42, 120, 214, 0.1);
   }
 
+  .summary-card-success::before { background: linear-gradient(#74d99d, #008300); }
+  .summary-card-danger::before { background: linear-gradient(#f18a8a, #d03b3b); }
+  .summary-card-muted::before { background: linear-gradient(#9da6b0, #5e6873); }
+
+  .summary-card .text-ink { color: #1c1f24; }
+  .summary-card .text-accent-dark { color: #0c447c; }
+  .summary-card .text-success { color: #008300; }
+  .summary-card .text-danger { color: #d03b3b; }
+
+  .chart-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(238, 246, 253, 0.78));
+  }
+
+  .chart-live-dot {
+    @apply w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-1;
+    box-shadow: 0 0 0 4px rgba(42, 120, 214, 0.1), 0 0 12px rgba(42, 120, 214, 0.36);
+  }
+
+  .chart-highlight {
+    @apply text-[10px] uppercase tracking-[0.12em] text-accent bg-accent-bg rounded-full px-2.5 py-1.5 whitespace-nowrap;
+  }
+
+  .alert-item {
+    @apply border border-border rounded-card p-4 bg-surface-1;
+    border-left: 3px solid #e0a3a3;
+  }
+
+  .alert-item-high {
+    border-left-color: #d03b3b;
+    background: linear-gradient(135deg, rgba(252, 235, 235, 0.82), rgba(255, 255, 255, 0.7));
+  }
+
+  .alert-priority {
+    @apply text-[10px] uppercase tracking-[0.12em] text-warning bg-warning-bg rounded-full px-2 py-1;
+  }
+
+  .alert-priority-high {
+    @apply text-danger bg-danger-bg;
+  }
+
+  .audit-badge {
+    @apply inline-flex items-center rounded-full bg-accent-bg px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-accent-dark;
+  }
+
+  .audit-action {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.1em];
+  }
+
+  .audit-action-insert { @apply bg-success-bg text-success; }
+  .audit-action-update { @apply bg-warning-bg text-warning; }
+  .audit-action-delete { @apply bg-danger-bg text-danger; }
+
+  .module-item {
+    @apply flex items-center rounded-card border border-border bg-surface-1 p-3 transition-all;
+  }
+
+  .module-item:hover { @apply border-accent shadow-[0_8px_18px_rgba(42,120,214,0.06)]; }
+  .module-item-active { @apply border-accent bg-accent-bg shadow-[0_8px_18px_rgba(42,120,214,0.08)]; }
+
+  .activity-item {
+    @apply flex items-center justify-between gap-3 rounded-card border border-border bg-surface-1 p-3;
+  }
+
+  .modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4; }
+  .modal-panel { @apply w-full max-w-md rounded-card bg-surface-2 p-6 shadow-xl; }
+
   .summary-marker.bg-danger {
     box-shadow: 0 0 0 4px rgba(208, 59, 59, 0.12);
   }
 
   .summary-marker.bg-success {
     box-shadow: 0 0 0 4px rgba(0, 131, 0, 0.12);
+  }
+
+  .summary-chart {
+    @apply h-12 mt-4;
+  }
+
+  .summary-chart svg {
+    @apply w-full h-full overflow-visible;
+    filter: drop-shadow(0 0 5px rgba(42, 120, 214, 0.3));
+  }
+
+  .summary-card-success .summary-chart svg { filter: drop-shadow(0 0 5px rgba(0, 131, 0, 0.3)); }
+  .summary-card-danger .summary-chart svg { filter: drop-shadow(0 0 5px rgba(208, 59, 59, 0.3)); }
+
+  .summary-insight {
+    @apply text-[11px] text-secondary mt-3 leading-4;
   }
 
   .eyebrow {

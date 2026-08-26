@@ -17,11 +17,11 @@ export default function MainLayout() {
           <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-3 py-3.5">
             <div>
               <p className="eyebrow">Panel de control</p>
-              <p className="text-sm text-secondary">SIGA · Sistema Integrado</p>
+              <p className="text-sm text-secondary">Panel de gestión pastoral</p>
             </div>
 
             <div className="toolbar">
-              <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary">
+              <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary">
                 <Bell className="w-4 h-4" />
                 <span>Notificaciones</span>
               </div>

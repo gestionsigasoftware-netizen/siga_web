@@ -7,19 +7,23 @@ const ESTADO_TONO = {
   activa: 'bg-success-bg text-success',
   suspendida: 'bg-danger-bg text-danger',
 }
+const ESTADO_LABEL = { pendiente_aprobacion: 'Pendiente de aprobación', activa: 'Activa', suspendida: 'Suspendida' }
 
 export default function Aprobaciones() {
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(null)
+  const [error, setError] = useState(null)
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase
+    setError(null)
+    const { data, error: loadError } = await supabase
       .from('congregaciones')
       .select('id, nombre, pastor_nombre, estado, distritos(nombre), created_at')
       .order('created_at', { ascending: false })
     setCongregaciones(data ?? [])
+    if (loadError) setError('No se pudieron cargar las congregaciones.')
     setLoading(false)
   }
 
@@ -27,22 +31,24 @@ export default function Aprobaciones() {
 
   async function actualizarEstado(id, estado) {
     setBusy(id)
-    await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString() }).eq('id', id)
+    const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString() }).eq('id', id)
     setBusy(null)
+    if (updateError) { setError('No se pudo actualizar el estado de la congregación.'); return }
     load()
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="page-shell">
       <div>
-        <h1 className="text-xl font-medium">Aprobación de congregaciones</h1>
+        <p className="eyebrow">Control administrativo</p><h1 className="section-title">Aprobación de congregaciones</h1>
         <p className="text-sm text-secondary mt-0.5">Una congregación registrada no puede usar el sistema hasta ser aprobada aquí.</p>
       </div>
 
-      {loading && <Loader2 className="w-5 h-5 animate-spin text-accent" />}
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+      {loading && <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>}
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm border-collapse">
+        <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm border-collapse">
           <thead>
             <tr className="text-muted text-left bg-surface-1">
               <th className="font-normal py-2.5 px-4">Congregación</th>
@@ -59,7 +65,7 @@ export default function Aprobaciones() {
                 <td className="py-2.5 px-4 text-secondary">{c.pastor_nombre}</td>
                 <td className="py-2.5 px-4 text-secondary">{c.distritos?.nombre}</td>
                 <td className="py-2.5 px-4">
-                  <span className={`text-xs px-2 py-1 rounded ${ESTADO_TONO[c.estado]}`}>{c.estado.replace('_', ' ')}</span>
+                  <span className={`text-xs px-2 py-1 rounded ${ESTADO_TONO[c.estado]}`}>{ESTADO_LABEL[c.estado] || c.estado}</span>
                 </td>
                 <td className="py-2.5 px-4 text-right">
                   {c.estado === 'pendiente_aprobacion' && (
@@ -86,7 +92,7 @@ export default function Aprobaciones() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   )

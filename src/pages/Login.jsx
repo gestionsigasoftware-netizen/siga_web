@@ -76,13 +76,12 @@ export default function Login() {
             </div>
             <div className="mt-28 max-w-md">
               <p className="text-sm uppercase tracking-[0.18em] text-white/60">Gestión pastoral inteligente</p>
-              <h2 className="mt-4 text-5xl font-semibold leading-[1.05]">Los datos también cuidan a la comunidad.</h2>
-              <p className="mt-6 text-base leading-7 text-white/70">Una visión clara de cada congregación, desde la captura en campo hasta las decisiones que fortalecen el trabajo pastoral.</p>
+              <h2 className="mt-4 text-5xl font-semibold leading-[1.05]">Decisiones pastorales con información clara.</h2>
             </div>
           </div>
           <div className="relative flex items-end justify-between gap-8">
             <div className="flex flex-col gap-3 text-sm text-white/70">
-              {['Asistencia en tiempo real', 'Seguimiento de amigos', 'Lectura nacional y distrital'].map((item) => (
+              {['Asistencia desde la aplicación móvil', 'Ruta de integración', 'Lectura nacional y distrital'].map((item) => (
                 <span key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#8fca68]" />{item}</span>
               ))}
             </div>
@@ -136,7 +135,7 @@ export default function Login() {
             <div className="flex items-center gap-2 mt-8 text-xs text-muted">
               <ShieldCheck className="w-4 h-4 text-success" /> Tu información se mantiene protegida.
             </div>
-            <p className="text-xs text-muted mt-12">Sistema Integrado de Gestión y Analítica Pastoral · IPUC</p>
+            <p className="text-xs text-muted mt-12">IPUC · Gestión pastoral</p>
           </div>
         </section>
       </div>

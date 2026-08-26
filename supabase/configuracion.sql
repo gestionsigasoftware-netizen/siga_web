@@ -42,6 +42,7 @@ with check (
     select r.congregacion_id from roles_sistema r
     where r.persona_id = mi_persona_id()
       and r.nivel = 'local'
+      and coalesce(r.rol_local, 'pastor') = 'pastor'
       and r.fecha_fin is null
   )
 );
@@ -54,6 +55,7 @@ using (
     select r.congregacion_id from roles_sistema r
     where r.persona_id = mi_persona_id()
       and r.nivel = 'local'
+      and coalesce(r.rol_local, 'pastor') = 'pastor'
       and r.fecha_fin is null
   )
 )
@@ -62,6 +64,7 @@ with check (
     select r.congregacion_id from roles_sistema r
     where r.persona_id = mi_persona_id()
       and r.nivel = 'local'
+      and coalesce(r.rol_local, 'pastor') = 'pastor'
       and r.fecha_fin is null
   )
 );
@@ -77,3 +80,61 @@ drop trigger if exists preferencias_usuario_updated_at on preferencias_usuario;
 create trigger preferencias_usuario_updated_at
 before update on preferencias_usuario
 for each row execute function actualizar_preferencias_usuario();
+
+-- Los catálogos de la congregación solo los administra el pastor local.
+drop policy if exists modulos_read on modulos;
+create policy modulos_read on modulos for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+drop policy if exists modulos_scope on modulos;
+create policy modulos_scope on modulos
+for all to authenticated
+using (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = modulos.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+))
+with check (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = modulos.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+));
+
+drop policy if exists categorias_demograficas_scope on categorias_demograficas;
+drop policy if exists categorias_demograficas_read on categorias_demograficas;
+create policy categorias_demograficas_read on categorias_demograficas for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy categorias_demograficas_scope on categorias_demograficas
+for all to authenticated
+using (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = categorias_demograficas.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+))
+with check (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = categorias_demograficas.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+));
+
+drop policy if exists etapas_seguimiento_scope on etapas_seguimiento;
+drop policy if exists etapas_seguimiento_read on etapas_seguimiento;
+create policy etapas_seguimiento_read on etapas_seguimiento for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy etapas_seguimiento_scope on etapas_seguimiento
+for all to authenticated
+using (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = etapas_seguimiento.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+))
+with check (congregacion_id in (select mis_congregaciones()) and exists (
+  select 1 from roles_sistema r where r.persona_id = mi_persona_id()
+    and r.congregacion_id = etapas_seguimiento.congregacion_id
+    and r.nivel = 'local' and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+));

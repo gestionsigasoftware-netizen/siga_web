@@ -46,7 +46,7 @@ export default function Personas() {
         </div>
         <button onClick={() => setMostrarForm(!mostrarForm)} className="btn-primary">
           <Plus className="w-4 h-4" />
-          Nueva persona
+          Registrar persona
         </button>
       </header>
 
@@ -56,7 +56,7 @@ export default function Personas() {
           <p className="mt-3 text-2xl font-semibold">{personas.length}</p>
         </div>
         <div className="stat-tile">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Buscados</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Coincidencias</p>
           <p className="mt-3 text-2xl font-semibold">{filtradas.length}</p>
         </div>
         <div className="stat-tile">
