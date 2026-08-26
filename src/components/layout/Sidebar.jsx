@@ -33,29 +33,41 @@ export default function Sidebar() {
   ].filter((i) => i.show)
 
   return (
-    <aside className="w-full md:w-[220px] flex-shrink-0 bg-surface-1 border-b md:border-b-0 md:border-r border-border md:h-screen md:fixed md:left-0 md:top-0 flex flex-col p-3">
-      <div className="flex items-center gap-2 px-2 pb-4">
-        <div className="w-7 h-7 rounded bg-ink text-white flex items-center justify-center text-xs font-medium">S</div>
-        <span className="font-medium">SIGA</span>
+    <aside className="sidebar-shell w-full md:w-[248px] flex-shrink-0 md:h-screen md:fixed md:left-0 md:top-0 flex flex-col p-3 md:p-4">
+      <div className="flex items-center gap-3 px-2 pb-5 pt-1">
+        <div className="sidebar-mark w-10 h-10 rounded-xl text-white flex items-center justify-center text-sm font-semibold">S</div>
+        <div>
+          <div className="text-sm font-semibold tracking-wide text-white">SIGA</div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">Sistema integrado</div>
+        </div>
       </div>
+
       {rolPrincipal && (
-        <p className="text-xs text-muted px-2 pb-4">
-          {NIVEL_LABEL[nivel]}
-          {rolPrincipal.congregaciones?.nombre && ` — ${rolPrincipal.congregaciones.nombre}`}
-          {rolPrincipal.distritos?.nombre && ` — ${rolPrincipal.distritos.nombre}`}
-        </p>
+        <div className="sidebar-profile mb-5 rounded-xl px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Tu acceso</p>
+            <span className="sidebar-status" aria-hidden="true" />
+          </div>
+          <p className="mt-1.5 text-sm font-medium text-white">{NIVEL_LABEL[nivel]}</p>
+          <p className="text-xs text-white/55 truncate">
+            {rolPrincipal.congregaciones?.nombre || rolPrincipal.distritos?.nombre || 'Acceso general'}
+          </p>
+        </div>
       )}
 
-      <nav className="flex flex-row flex-wrap md:flex-col gap-1">
+      <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
+      <nav className="flex flex-row flex-wrap md:flex-col gap-1.5 md:overflow-y-auto">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end className={({ isActive }) => `navbtn ${isActive ? 'navbtn-active' : ''}`}>
-            <Icon className="w-[17px] h-[17px]" /> {label}
+            <Icon className="w-[17px] h-[17px]" />
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
 
-      <button onClick={signOut} className="navbtn md:mt-auto">
-        <LogOut className="w-[17px] h-[17px]" /> Cerrar sesión
+      <button onClick={signOut} className="navbtn sidebar-signout md:mt-auto mt-4">
+        <LogOut className="w-[17px] h-[17px]" />
+        <span>Cerrar sesión</span>
       </button>
     </aside>
   )

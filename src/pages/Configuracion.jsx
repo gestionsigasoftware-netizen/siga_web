@@ -96,9 +96,10 @@ export default function Configuracion() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="page-shell">
       <div>
-        <h1 className="text-xl font-medium">Configuración</h1>
+        <p className="eyebrow">Administración local</p>
+        <h1 className="section-title">Configuración</h1>
         <p className="text-sm text-secondary mt-0.5">
           Catálogos propios de tu congregación — cada congregación de la IPUC configura los suyos de forma independiente.
         </p>
@@ -114,7 +115,7 @@ export default function Configuracion() {
         <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button>{notice && <p role="status" className="text-sm text-success">{notice}</p>}</div>
       </form>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" />
         <ListaCatalogo titulo="Módulos (Ujieres, Evangelismo...)" items={modulos} onAdd={agregarModulo} onRemove={quitarModulo} placeholder="Ej. Misión Juvenil" />
         <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" />

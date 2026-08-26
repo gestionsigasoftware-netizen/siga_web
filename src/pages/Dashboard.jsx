@@ -18,19 +18,23 @@ const NIVEL_TITULO = {
 function StatTile({ label, value, tone = 'default' }) {
   const bg = { default: 'bg-surface-1', danger: 'bg-danger-bg', success: 'bg-success-bg' }[tone]
   const text = { default: 'text-ink', danger: 'text-danger', success: 'text-success' }[tone]
+  const marker = { default: 'bg-accent', danger: 'bg-danger', success: 'bg-success' }[tone]
   return (
-    <div className={`${bg} rounded p-4`}>
-      <p className={`text-sm ${tone === 'default' ? 'text-secondary' : text} mb-1.5`}>{label}</p>
-      <p className={`text-2xl font-medium ${text}`}>{value}</p>
+    <div className={`summary-card stat-tile ${bg}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-[10px] uppercase tracking-[0.16em] ${tone === 'default' ? 'text-secondary' : text}`}>{label}</p>
+        <span className={`summary-marker ${marker}`} aria-hidden="true" />
+      </div>
+      <p className={`text-3xl font-semibold tracking-tight mt-3 ${text}`}>{value}</p>
     </div>
   )
 }
 
 function QuickAction({ to, icon: Icon, title, description }) {
   return (
-    <Link to={to} className="group flex items-center justify-between border border-border bg-surface-2 rounded p-4 hover:border-accent hover:shadow-sm transition-all">
+    <Link to={to} className="group flex items-center justify-between border border-border bg-surface-2 rounded-card p-4 hover:border-accent hover:shadow-[0_12px_28px_rgba(42,120,214,0.08)] transition-all">
       <span className="flex items-center gap-3">
-        <span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><Icon className="w-[18px] h-[18px]" /></span>
+        <span className="w-10 h-10 rounded-xl bg-accent-bg text-accent flex items-center justify-center"><Icon className="w-[18px] h-[18px]" /></span>
         <span>
           <span className="block text-sm font-medium">{title}</span>
           <span className="block text-xs text-secondary mt-0.5">{description}</span>
@@ -93,7 +97,7 @@ export default function Dashboard() {
     setHandledAlerts((current) => [...current, alert.id])
   }
 
-  if (loadingRol) return <div className="h-64 flex items-center justify-center text-sm text-muted">Cargando tu espacio...</div>
+  if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
 
   const hasData = Boolean(tendencia?.length)
   const nombreCongregacion = rolPrincipal?.congregaciones?.nombre

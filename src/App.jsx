@@ -1,27 +1,29 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import RegistrarAsistencia from './pages/RegistrarAsistencia'
-import Amigos from './pages/Amigos'
-import Aprobaciones from './pages/Aprobaciones'
-import Configuracion from './pages/Configuracion'
-import Personas from './pages/Personas'
-import Modulos from './pages/Modulos'
-import Reportes from './pages/Reportes'
-import Perfil from './pages/Perfil'
-import ConfiguracionSistema from './pages/ConfiguracionSistema'
-import Feligresia from './pages/FeligresiaAdmin'
-import AuditoriaFeligresia from './pages/AuditoriaFeligresia'
-import EquipoCongregacion from './pages/EquipoCongregacion'
-import PastoralDistrital from './pages/PastoralDistrital'
+
+const Login = lazy(() => import('./pages/Login'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const RegistrarAsistencia = lazy(() => import('./pages/RegistrarAsistencia'))
+const Amigos = lazy(() => import('./pages/Amigos'))
+const Aprobaciones = lazy(() => import('./pages/Aprobaciones'))
+const Configuracion = lazy(() => import('./pages/Configuracion'))
+const Personas = lazy(() => import('./pages/Personas'))
+const Modulos = lazy(() => import('./pages/Modulos'))
+const Reportes = lazy(() => import('./pages/Reportes'))
+const Perfil = lazy(() => import('./pages/Perfil'))
+const ConfiguracionSistema = lazy(() => import('./pages/ConfiguracionSistema'))
+const Feligresia = lazy(() => import('./pages/FeligresiaAdmin'))
+const AuditoriaFeligresia = lazy(() => import('./pages/AuditoriaFeligresia'))
+const EquipoCongregacion = lazy(() => import('./pages/EquipoCongregacion'))
+const PastoralDistrital = lazy(() => import('./pages/PastoralDistrital'))
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-secondary">Cargando...</div>}><Login /></Suspense>} />
 
         <Route
           element={

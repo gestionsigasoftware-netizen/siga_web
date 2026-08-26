@@ -6,7 +6,9 @@ import { useMiRol } from '../hooks/useMiRol'
 const ESTADOS = { activo: 'Activo', apartado: 'Apartado', trasladado: 'Trasladado', inactivo: 'Inactivo', fallecido: 'Fallecido' }
 
 function Metric({ label, value, tone = 'default' }) {
-  return <div className={`rounded p-4 ${tone === 'accent' ? 'bg-accent-bg' : 'bg-surface-1'}`}><p className="text-sm text-secondary">{label}</p><p className={`text-2xl font-semibold mt-2 ${tone === 'accent' ? 'text-accent-dark' : 'text-ink'}`}>{value}</p></div>
+  const text = tone === 'accent' ? 'text-accent-dark' : 'text-ink'
+  const marker = tone === 'accent' ? 'bg-accent' : 'bg-muted'
+  return <div className={`summary-card stat-tile ${tone === 'accent' ? 'bg-accent-bg' : 'bg-surface-1'}`}><div className="flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.16em] text-secondary">{label}</p><span className={`summary-marker ${marker}`} aria-hidden="true" /></div><p className={`text-3xl font-semibold tracking-tight mt-3 ${text}`}>{value}</p></div>
 }
 
 export default function Feligresia() {

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import { MapPinned, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
 const TONO_ETAPA = {
   0: 'bg-surface-1 text-secondary',
   1: 'bg-warning-bg text-warning',
-  2: 'bg-accent-bg text-accent-dark',
+  2: 'bg-accent-bg text-accent',
   3: 'bg-warning-bg text-warning',
   4: 'bg-success-bg text-success',
 }
@@ -37,36 +38,64 @@ export default function Amigos() {
   const filtrados = filtro === 'todos' ? amigos : amigos.filter((a) => a.etapa_id === filtro)
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-xl font-medium">Amigos en ruta de seguimiento</h1>
-        <p className="text-sm text-secondary mt-0.5">Visible solo para el líder de cada zona, el pastor y el admin local.</p>
-      </div>
+    <div className="page-shell">
+      <header>
+        <p className="eyebrow">Seguimiento</p>
+        <h1 className="section-title">Amigos en ruta</h1>
+        <p className="text-sm text-secondary mt-1">Visible solo para el líder de cada zona, el pastor y el admin local.</p>
+      </header>
+
+      <section className="grid sm:grid-cols-3 gap-3">
+        <div className="stat-tile">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Total</p>
+          <p className="mt-3 text-2xl font-semibold">{amigos.length}</p>
+        </div>
+        <div className="stat-tile">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Etapas</p>
+          <p className="mt-3 text-2xl font-semibold">{etapas.length}</p>
+        </div>
+        <div className="stat-tile">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">En filtro</p>
+          <p className="mt-3 text-2xl font-semibold">{filtrados.length}</p>
+        </div>
+      </section>
 
       <div className="flex gap-2 flex-wrap">
-        <button onClick={() => setFiltro('todos')} className={`text-xs px-3 py-1.5 rounded border ${filtro === 'todos' ? 'bg-surface-1 border-border' : 'border-border bg-transparent'}`}>Todos</button>
+        <button onClick={() => setFiltro('todos')} className={`text-xs px-3 py-1.5 rounded-full border ${filtro === 'todos' ? 'bg-accent-bg text-accent border-accent/20' : 'border-border bg-transparent text-secondary'}`}>
+          Todos
+        </button>
         {etapas.map((e) => (
-          <button key={e.id} onClick={() => setFiltro(e.id)} className={`text-xs px-3 py-1.5 rounded border ${filtro === e.id ? 'bg-surface-1 border-border' : 'border-border bg-transparent'}`}>
+          <button key={e.id} onClick={() => setFiltro(e.id)} className={`text-xs px-3 py-1.5 rounded-full border ${filtro === e.id ? 'bg-accent-bg text-accent border-accent/20' : 'border-border bg-transparent text-secondary'}`}>
             {e.nombre}
           </button>
         ))}
       </div>
 
-      {loading && <p className="text-sm text-muted">Cargando...</p>}
+      {loading && <p className="text-sm text-muted bg-surface-1 rounded p-3">Cargando...</p>}
+
       {!loading && filtrados.length === 0 && (
-        <p className="text-sm text-muted">
-          Sin registros en esta etapa. Los datos de esta pantalla se filtran automáticamente por RLS —
-          solo ves los amigos de las zonas donde tienes asignación activa (o toda la congregación si eres admin local).
-        </p>
+        <div className="card p-6 text-sm text-secondary">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPinned className="w-4 h-4 text-accent" />
+            <span>Sin registros en esta etapa.</span>
+          </div>
+          <p>Los datos de esta pantalla se filtran automáticamente por RLS y solo muestran los amigos de las zonas donde tienes asignación activa.</p>
+        </div>
       )}
-      <div className="flex flex-col gap-2">
+
+      <div className="flex flex-col gap-3">
         {filtrados.map((a) => (
-          <div key={a.id} className="flex justify-between items-center border border-border rounded p-3">
-            <div>
-              <p className="font-medium text-sm">{a.nombres}</p>
-              <p className="text-xs text-secondary">{a.sector}</p>
+          <div key={a.id} className="card p-4 flex justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-surface-1 border border-border flex items-center justify-center">
+                <Users className="w-4 h-4 text-accent" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{a.nombres}</p>
+                <p className="text-xs text-secondary">{a.sector || 'Sin sector Asignado'}</p>
+              </div>
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded ${TONO_ETAPA[a.etapas_seguimiento?.orden % 5] ?? TONO_ETAPA[0]}`}>
+            <span className={`text-[10px] uppercase tracking-[0.14em] px-2.5 py-1.5 rounded-full ${TONO_ETAPA[a.etapas_seguimiento?.orden % 5] ?? TONO_ETAPA[0]}`}>
               {a.etapas_seguimiento?.nombre ?? 'Sin etapa'}
             </span>
           </div>

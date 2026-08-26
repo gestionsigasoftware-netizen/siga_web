@@ -3,19 +3,193 @@
 @tailwind utilities;
 
 @layer base {
-  body { font-family: 'Inter', system-ui, sans-serif; }
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f4f1eb;
+    color: #1c1f24;
+  }
+
   ::selection { background: #d9eafb; color: #0b0b0b; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: theme('colors.surface'); }
-  ::-webkit-scrollbar-thumb { background: theme('colors.border'); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: #f4f1eb; }
+  ::-webkit-scrollbar-thumb { background: #d3d7d9; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #b8bec4; }
 }
 
 @layer components {
-  .card { @apply bg-surface-2 border border-border rounded-card shadow-[0_8px_24px_rgba(21,27,34,0.04)]; }
-  .stat-tile { @apply bg-surface-1 rounded p-4; }
-  .btn-primary { @apply bg-ink text-white px-4 py-2.5 rounded text-sm font-medium hover:opacity-90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all inline-flex items-center gap-2 disabled:opacity-50; }
-  .btn-secondary { @apply bg-transparent border border-border text-ink px-4 py-2.5 rounded text-sm font-medium hover:bg-surface-1 hover:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all inline-flex items-center gap-2; }
-  .input-field { @apply w-full bg-surface-2 border border-border rounded py-2 px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all; }
-  .navbtn { @apply flex items-center gap-3 px-3 py-2 rounded text-sm text-secondary hover:bg-surface-1 hover:text-ink transition-colors; }
-  .navbtn-active { @apply bg-surface-1 text-ink font-medium; }
+  .card {
+    @apply bg-surface-2/90 border border-border rounded-card shadow-[0_12px_30px_rgba(21,27,34,0.055)];
+    backdrop-filter: blur(8px);
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .surface-panel {
+    @apply bg-surface-1 border border-border rounded-card;
+  }
+
+  .stat-tile {
+    @apply bg-surface-1/90 border border-border rounded-card p-4 shadow-[0_10px_24px_rgba(21,27,34,0.045)];
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .stat-tile:hover {
+    border-color: rgba(42, 120, 214, 0.28);
+    box-shadow: 0 14px 28px rgba(21, 27, 34, 0.07);
+    transform: translateY(-1px);
+  }
+
+  .summary-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: #2a78d6;
+  }
+
+  .summary-card::after {
+    content: '';
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    right: -54px;
+    bottom: -58px;
+    border-radius: 999px;
+    background: rgba(42, 120, 214, 0.08);
+    pointer-events: none;
+  }
+
+  .summary-marker {
+    @apply w-2 h-2 rounded-full;
+    box-shadow: 0 0 0 4px rgba(42, 120, 214, 0.1);
+  }
+
+  .summary-marker.bg-danger {
+    box-shadow: 0 0 0 4px rgba(208, 59, 59, 0.12);
+  }
+
+  .summary-marker.bg-success {
+    box-shadow: 0 0 0 4px rgba(0, 131, 0, 0.12);
+  }
+
+  .eyebrow {
+    @apply text-[10px] uppercase tracking-[0.18em] text-accent font-medium;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-ink;
+  }
+
+  .btn-primary {
+    @apply bg-ink text-white px-4 py-2.5 rounded text-sm font-medium hover:opacity-90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-border text-ink px-4 py-2.5 rounded text-sm font-medium hover:bg-surface-1 hover:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all inline-flex items-center justify-center gap-2;
+  }
+
+  .input-field {
+    @apply w-full bg-surface-2 border border-border rounded py-2 px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all;
+  }
+
+  .navbtn {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-secondary hover:bg-surface-1 hover:text-ink transition-colors border border-transparent;
+  }
+
+  .navbtn-active {
+    @apply bg-accent-bg text-accent border-accent/20 font-medium shadow-[inset_0_0_0_1px_rgba(42,120,214,0.1)];
+  }
+
+  .sidebar-shell {
+    background:
+      radial-gradient(circle at 92% 4%, rgba(42, 120, 214, 0.28), transparent 30%),
+      linear-gradient(160deg, #0b0b0b 0%, #111820 58%, #0b0b0b 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 12px 0 34px rgba(11, 11, 11, 0.14);
+  }
+
+  .sidebar-mark {
+    background: linear-gradient(145deg, #4b98eb, #2a78d6 65%, #15529a);
+    box-shadow: 0 8px 20px rgba(42, 120, 214, 0.36);
+  }
+
+  .sidebar-profile {
+    background: linear-gradient(135deg, rgba(42, 120, 214, 0.2), rgba(255, 255, 255, 0.055));
+    border: 1px solid rgba(113, 179, 247, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 24px rgba(5, 12, 20, 0.14);
+  }
+
+  .sidebar-status {
+    @apply w-1.5 h-1.5 rounded-full bg-success;
+    box-shadow: 0 0 0 3px rgba(0, 131, 0, 0.15);
+  }
+
+  .sidebar-nav-label {
+    @apply text-[10px] uppercase tracking-[0.18em] font-medium;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .sidebar-shell .navbtn {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .sidebar-shell .navbtn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-shell .navbtn-active {
+    color: #ffffff;
+    background: linear-gradient(90deg, rgba(42, 120, 214, 0.3), rgba(42, 120, 214, 0.12));
+    border-color: rgba(113, 179, 247, 0.3);
+    box-shadow: inset 3px 0 0 #71b3f7, 0 8px 18px rgba(5, 12, 20, 0.2);
+  }
+
+  .sidebar-signout {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .sidebar-signout:hover {
+    background: rgba(208, 59, 59, 0.16) !important;
+    color: #ffffff !important;
+    border-color: rgba(208, 59, 59, 0.3);
+  }
+
+  .app-main {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(235, 241, 247, 0.72)),
+      #f4f1eb;
+  }
+
+  .main-header {
+    background: rgba(252, 252, 251, 0.78);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 8px 22px rgba(21, 27, 34, 0.035);
+  }
+
+  .module-loading {
+    @apply min-h-64 flex items-center justify-center gap-2 text-sm text-secondary;
+  }
+
+  .loading-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-accent;
+    animation: loading-pulse 900ms ease-in-out infinite;
+  }
+
+  @keyframes loading-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  .page-shell { @apply flex flex-col gap-6; }
+  .toolbar { @apply flex flex-wrap items-center gap-2; }
 }

@@ -38,8 +38,8 @@ export default function Modulos() {
     load()
   }
 
-  return <div className="flex flex-col gap-6">
-    <div><p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Estructura operativa</p><h1 className="text-2xl font-semibold">Módulos y actividades</h1><p className="text-sm text-secondary mt-1">Configura cómo se captura la información de tu congregación.</p></div>
+  return <div className="page-shell">
+    <div><p className="eyebrow">Estructura operativa</p><h1 className="section-title">Módulos y actividades</h1><p className="text-sm text-secondary mt-1">Configura cómo se captura la información de tu congregación.</p></div>
     {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
     <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-4">
       <section className="card p-5"><div className="flex justify-between items-center mb-4"><div><h2 className="font-medium">Módulos activos</h2><p className="text-xs text-secondary mt-1">Ujieres, Evangelismo y más.</p></div><Layers3 className="w-5 h-5 text-accent" /></div>

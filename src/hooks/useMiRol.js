@@ -5,15 +5,47 @@ import { useAuth } from './useAuth'
 // Resuelve el nivel MÁS ALTO de la persona (super_admin > nacional > distrital > local)
 // y su alcance — esto decide qué ve el sidebar y qué pantallas están disponibles.
 const PRIORIDAD = { super_admin: 0, nacional: 1, distrital: 2, local: 3 }
+const rolesCache = new Map()
+const rolesRequests = new Map()
 
 export function useMiRol() {
   const { user } = useAuth()
-  const [roles, setRoles] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [roles, setRoles] = useState(() => user ? rolesCache.get(user.id) ?? [] : [])
+  const [loading, setLoading] = useState(() => Boolean(user) && !rolesCache.has(user.id))
 
   useEffect(() => {
-    if (!user) { setLoading(false); return }
-    getMisRoles().then(({ data }) => { setRoles(data); setLoading(false) })
+    let active = true
+    if (!user) {
+      setRoles([])
+      setLoading(false)
+      return () => { active = false }
+    }
+
+    const cachedRoles = rolesCache.get(user.id)
+    if (cachedRoles) {
+      setRoles(cachedRoles)
+      setLoading(false)
+      return () => { active = false }
+    }
+
+    setLoading(true)
+    let request = rolesRequests.get(user.id)
+    if (!request) {
+      request = getMisRoles().then(({ data }) => {
+        const loadedRoles = data ?? []
+        rolesCache.set(user.id, loadedRoles)
+        return loadedRoles
+      }).finally(() => rolesRequests.delete(user.id))
+      rolesRequests.set(user.id, request)
+    }
+
+    request.then((loadedRoles) => {
+      if (!active) return
+      setRoles(loadedRoles)
+      setLoading(false)
+    })
+
+    return () => { active = false }
   }, [user])
 
   const rolPrincipal = [...roles].sort((a, b) => PRIORIDAD[a.nivel] - PRIORIDAD[b.nivel])[0] ?? null

@@ -7,7 +7,7 @@ function withRequestTimeout(request, milliseconds = 12000) {
 }
 
 export default function RegistrarAsistencia() {
-  const { rolPrincipal } = useMiRol()
+  const { rolPrincipal, loading: loadingRol } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
 
   const [modulos, setModulos] = useState([])
@@ -24,13 +24,14 @@ export default function RegistrarAsistencia() {
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
   const [motivoCaptura, setMotivoCaptura] = useState('')
   const [canCapture, setCanCapture] = useState(false)
+  const [loadingPermission, setLoadingPermission] = useState(true)
   const [registros, setRegistros] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [ok, setOk] = useState(false)
 
   useEffect(() => {
-    if (!congregacionId) return
+    if (!congregacionId) { setLoadingPermission(false); return }
     supabase.from('modulos').select('id, nombre_modulo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true)
       .then(({ data }) => setModulos(data ?? []))
     supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden')
@@ -40,7 +41,10 @@ export default function RegistrarAsistencia() {
     Promise.all([
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
-    ]).then(([capture, admin]) => setCanCapture(Boolean(capture.data || admin.data)))
+    ]).then(([capture, admin]) => {
+      setCanCapture(Boolean(capture.data || admin.data))
+      setLoadingPermission(false)
+    })
     loadRegistros()
   }, [congregacionId])
 
@@ -102,6 +106,8 @@ export default function RegistrarAsistencia() {
     loadRegistros()
     setTimeout(() => setOk(false), 3000)
   }
+
+  if (loadingRol || loadingPermission) return <div className="module-loading" role="status"><span className="loading-dot" />Verificando permisos...</div>
 
   return (
     <div className="flex flex-col gap-6">
