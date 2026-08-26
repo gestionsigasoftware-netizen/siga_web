@@ -237,7 +237,7 @@ returns boolean language sql stable security definer set search_path = public as
       and r.nivel = 'local'
       and r.congregacion_id = p_congregacion_id
       and r.fecha_fin is null
-      and coalesce(r.rol_local, 'pastor') in ('pastor', 'secretario')
+      and (coalesce(r.rol_local, 'pastor') = 'pastor' or tiene_permiso(p_congregacion_id, 'feligresia.editar'))
   );
 $$;
 
@@ -250,7 +250,7 @@ returns boolean language sql stable security definer set search_path = public as
       and r.persona_id = mi_persona_id()
       and r.nivel = 'local'
       and r.fecha_fin is null
-      and coalesce(r.rol_local, 'pastor') in ('pastor', 'secretario')
+      and coalesce(r.rol_local, 'pastor') = 'pastor'
   ) or exists (
     select 1 from membresias_comite mc
     join comites c on c.id = mc.comite_id

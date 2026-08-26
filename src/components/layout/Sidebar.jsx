@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ClipboardPlus, Users, CheckSquare, Settings, LogOut, UserRound, Layers3, FileBarChart2, HeartHandshake, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, ClipboardPlus, Users, CheckSquare, Settings, LogOut, UserRound, Layers3, FileBarChart2, HeartHandshake, ClipboardList, UserPlus } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useMiRol } from '../../hooks/useMiRol'
 
@@ -21,6 +21,7 @@ export default function Sidebar() {
     { to: '/', label: 'Resumen', icon: LayoutDashboard, show: true },
     { to: '/registrar', label: 'Registrar asistencia', icon: ClipboardPlus, show: nivel === 'local' },
     { to: '/feligresia', label: 'Feligresía', icon: HeartHandshake, show: nivel === 'local' },
+    { to: '/equipo-congregacion', label: 'Equipo de trabajo', icon: UserPlus, show: puedeConfigurar },
     { to: '/auditoria-feligresia', label: 'Auditoría', icon: ClipboardList, show: nivel !== 'local' || rolLocal === 'pastor' },
     { to: '/modulos', label: 'Módulos y actividades', icon: Layers3, show: nivel === 'local' },
     { to: '/amigos', label: 'Amigos en ruta', icon: Users, show: nivel === 'local' },
