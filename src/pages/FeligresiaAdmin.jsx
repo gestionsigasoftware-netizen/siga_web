@@ -63,6 +63,7 @@ export default function FeligresiaAdmin() {
   const [dialog, setDialog] = useState(null)
   const [importRows, setImportRows] = useState([])
   const [importError, setImportError] = useState(null)
+  const [importRowErrors, setImportRowErrors] = useState([])
   const deferredSearch = useDeferredValue(search)
 
   async function load() {
@@ -371,6 +372,7 @@ export default function FeligresiaAdmin() {
     event.target.value = ''
     if (!file) return
     setImportError(null)
+    setImportRowErrors([])
     try {
       const { default: ExcelJS } = await import('exceljs')
       const workbook = new ExcelJS.Workbook()
@@ -388,19 +390,37 @@ export default function FeligresiaAdmin() {
       const invalid = parsed.find((row) => !row.nombres || !row.apellidos || !Object.prototype.hasOwnProperty.call(STATES, row.estado_membresia))
       if (invalid) throw new Error(`La fila ${invalid.row} requiere nombres, apellidos y un estado válido.`)
       if (!parsed.length) throw new Error('El archivo no contiene filas para importar.')
-      setImportRows(parsed)
+      const existingResult = await withRequestTimeout(supabase.from('personas').select('id, nombres, apellidos, telefono, familia_id').eq('congregacion_id', congregacionId))
+      if (existingResult.error) throw new Error(`No se pudo comparar el archivo con el censo: ${existingResult.error.message}`)
+      const normalizePhone = (value) => String(value ?? '').replace(/\D/g, '')
+      const normalizeName = (value) => normalize(value).replace(/\s+/g, ' ')
+      const findMatch = (row) => existingResult.data.find((person) => (normalizePhone(row.telefono) && normalizePhone(row.telefono) === normalizePhone(person.telefono)) || normalizeName(`${row.nombres} ${row.apellidos}`) === normalizeName(`${person.nombres} ${person.apellidos}`))
+      setImportRows(parsed.map((row) => ({ ...row, match: findMatch(row), operation: findMatch(row) ? 'actualizar' : 'insertar' })))
     } catch (error) { setImportRows([]); setImportError(error.message || 'No se pudo leer el archivo.') }
   }
 
   async function importPeople() {
     if (!importRows.length) return
     setSaving(true); setImportError(null)
+    setImportRowErrors([])
     const familyByName = new Map(families.map((family) => [family.nombre_familia.trim().toLowerCase(), family.id]))
-    const payload = importRows.map((row) => ({ nombres: row.nombres, apellidos: row.apellidos, telefono: row.telefono || null, estado_membresia: row.estado_membresia, bautizado: row.bautizado, fecha_bautismo: row.bautizado ? row.fecha_bautismo : null, fecha_ingreso: row.fecha_ingreso, fecha_ultima_asistencia: row.fecha_ultima_asistencia, familia_id: row.familia ? familyByName.get(row.familia.toLowerCase()) || null : null, parentesco_familiar: row.parentesco_familiar || null, congregacion_id: congregacionId }))
-    const result = await supabase.from('personas').insert(payload)
+    const errors = []
+    let inserted = 0
+    let updated = 0
+    for (const row of importRows) {
+      const payload = { nombres: row.nombres, apellidos: row.apellidos, telefono: row.telefono || null, estado_membresia: row.estado_membresia, bautizado: row.bautizado, fecha_bautismo: row.bautizado ? row.fecha_bautismo : null, fecha_ingreso: row.fecha_ingreso, fecha_ultima_asistencia: row.fecha_ultima_asistencia, familia_id: row.familia ? familyByName.get(row.familia.toLowerCase()) || null : null, parentesco_familiar: row.parentesco_familiar || null, congregacion_id: congregacionId }
+      try {
+        const result = row.match
+          ? await withRequestTimeout(supabase.from('personas').update(payload).eq('id', row.match.id).eq('congregacion_id', congregacionId))
+          : await withRequestTimeout(supabase.from('personas').insert(payload))
+        if (result.error) errors.push(`Fila ${row.row}: ${result.error.message}`)
+        else if (row.match) updated += 1
+        else inserted += 1
+      } catch (requestError) { errors.push(`Fila ${row.row}: ${requestError.message}`) }
+    }
     setSaving(false)
-    if (result.error) { setImportError(`No se pudo importar el censo: ${result.error.message}`); return }
-    setImportRows([]); setNotice(`${payload.length} personas importadas correctamente.`); load()
+    if (errors.length) { setImportRowErrors(errors); setImportError('Algunas filas no pudieron procesarse.'); load(); return }
+    setImportRows([]); setNotice(`${inserted} personas nuevas y ${updated} actualizadas.`); load()
   }
 
   const filtered = people.filter((person) => (status === 'todos' || person.estado_membresia === status) && `${person.nombres} ${person.apellidos}`.toLowerCase().includes(deferredSearch.toLowerCase()))
@@ -418,8 +438,8 @@ export default function FeligresiaAdmin() {
   return <div className="flex flex-col gap-6">
     {loading && <p role="status" className="text-sm text-muted bg-surface-1 rounded p-3">Cargando información de feligresía...</p>}
     <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Administración local</p><h1 className="text-2xl font-semibold">Feligresía</h1><p className="text-sm text-secondary mt-1">Censo, familias, comités y seguimiento pastoral.</p></div><div className="flex flex-wrap gap-2"><label className="btn-secondary cursor-pointer" title="Importar CSV o Excel"><Download className="w-4 h-4" /> Importar<input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} /></label><button onClick={exportPeople} className="btn-secondary" title="Exportar censo"><Download className="w-4 h-4" /> Exportar CSV</button><button onClick={startNewPerson} className="btn-primary"><Plus className="w-4 h-4" /> Registrar persona</button></div></header>
-    {importError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{importError}</p>}
-    {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}
+    {importError && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3"><p>{importError}</p>{importRowErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{importRowErrors.map((message) => <li key={message}>{message}</li>)}</ul>}</div>}
+    {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Operación</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className={`py-2 pr-3 ${row.operation === 'actualizar' ? 'text-accent' : 'text-success'}`}>{row.operation}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3"><Metric label="Personas activas" value={active} accent /><Metric label="Bautizados" value={baptized} /><Metric label="Apartados" value={apart} /><Metric label="Familias asociadas" value={familiesWithPeople} /></div>
     <nav className="flex gap-1 border-b border-border overflow-x-auto">{[['personas', 'Población', UsersRound], ['familias', 'Familias', HeartHandshake], ['comites', 'Comités', HeartHandshake], ['seguimiento', 'Seguimiento pastoral', HeartHandshake], ['historial', 'Evolución', BarChart3]].map(([key, label, Icon]) => <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? 'border-accent text-accent' : 'border-transparent text-secondary'}`}><Icon className="w-4 h-4" />{label}</button>)}</nav>
     {error && !showForm && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}

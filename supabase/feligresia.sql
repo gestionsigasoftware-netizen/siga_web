@@ -21,6 +21,11 @@ create table if not exists familias (
 
 alter table personas add column if not exists familia_id uuid references familias(id) on delete set null;
 alter table personas add column if not exists parentesco_familiar text;
+alter table roles_sistema add column if not exists rol_local text;
+do $$ begin
+  alter table roles_sistema add constraint roles_sistema_rol_local_check check (rol_local in ('pastor', 'secretario', 'lider_comite', 'solo_lectura'));
+exception when duplicate_object then null;
+end $$;
 
 create or replace function validar_familia_de_persona()
 returns trigger language plpgsql as $$
@@ -224,46 +229,124 @@ alter table seguimientos_pastorales enable row level security;
 alter table estados_alerta_pastoral enable row level security;
 alter table auditoria_feligresia enable row level security;
 
+create or replace function puede_administrar_feligresia(p_congregacion_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from roles_sistema r
+    where r.persona_id = mi_persona_id()
+      and r.nivel = 'local'
+      and r.congregacion_id = p_congregacion_id
+      and r.fecha_fin is null
+      and coalesce(r.rol_local, 'pastor') in ('pastor', 'secretario')
+  );
+$$;
+
+create or replace function puede_gestionar_comite(p_comite_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from comites c
+    join roles_sistema r on r.congregacion_id = c.congregacion_id
+    where c.id = p_comite_id
+      and r.persona_id = mi_persona_id()
+      and r.nivel = 'local'
+      and r.fecha_fin is null
+      and coalesce(r.rol_local, 'pastor') in ('pastor', 'secretario')
+  ) or exists (
+    select 1 from membresias_comite mc
+    join comites c on c.id = mc.comite_id
+    join personas p on p.id = mc.persona_id
+    join roles_sistema r on r.persona_id = p.id and r.congregacion_id = c.congregacion_id
+    where mc.comite_id = p_comite_id
+      and mc.fecha_fin is null
+      and lower(coalesce(mc.cargo, '')) in ('presidente', 'presidenta')
+      and r.persona_id = mi_persona_id()
+      and r.nivel = 'local'
+      and r.rol_local = 'lider_comite'
+      and r.fecha_fin is null
+  );
+$$;
+
+drop policy if exists personas_scope on personas;
+drop policy if exists personas_feligresia_read on personas;
+drop policy if exists personas_feligresia_write on personas;
+create policy personas_feligresia_read on personas for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy personas_feligresia_write on personas for all to authenticated
+using (puede_administrar_feligresia(congregacion_id))
+with check (puede_administrar_feligresia(congregacion_id));
+
 drop policy if exists familias_scope on familias;
-create policy familias_scope on familias for all to authenticated
+drop policy if exists familias_read on familias;
+drop policy if exists familias_write on familias;
+create policy familias_read on familias for select to authenticated
 using (congregacion_id in (select mis_congregaciones()))
-with check (congregacion_id in (select mis_congregaciones()));
+;
+create policy familias_write on familias for all to authenticated
+using (puede_administrar_feligresia(congregacion_id))
+with check (puede_administrar_feligresia(congregacion_id));
 
 drop policy if exists comites_scope on comites;
-create policy comites_scope on comites for all to authenticated
+drop policy if exists comites_read on comites;
+drop policy if exists comites_write on comites;
+create policy comites_read on comites for select to authenticated
 using (congregacion_id in (select mis_congregaciones()))
-with check (congregacion_id in (select mis_congregaciones()));
+;
+create policy comites_write on comites for all to authenticated
+using (puede_administrar_feligresia(congregacion_id))
+with check (puede_administrar_feligresia(congregacion_id));
 
 drop policy if exists membresias_comite_scope on membresias_comite;
-create policy membresias_comite_scope on membresias_comite for all to authenticated
+drop policy if exists membresias_comite_read on membresias_comite;
+drop policy if exists membresias_comite_write on membresias_comite;
+create policy membresias_comite_read on membresias_comite for select to authenticated
 using (exists (
   select 1 from comites c join personas p on p.congregacion_id = c.congregacion_id
   where c.id = membresias_comite.comite_id and p.id = membresias_comite.persona_id
     and c.congregacion_id in (select mis_congregaciones())
+ ));
+create policy membresias_comite_write on membresias_comite for all to authenticated
+using (exists (
+  select 1 from comites c join personas p on p.congregacion_id = c.congregacion_id
+  where c.id = membresias_comite.comite_id and p.id = membresias_comite.persona_id
+    and c.congregacion_id in (select mis_congregaciones())
+    and puede_gestionar_comite(c.id)
 ))
 with check (exists (
   select 1 from comites c join personas p on p.congregacion_id = c.congregacion_id
   where c.id = membresias_comite.comite_id and p.id = membresias_comite.persona_id
     and c.congregacion_id in (select mis_congregaciones())
+    and puede_gestionar_comite(c.id)
 ));
 
 drop policy if exists historial_cargos_scope on historial_cargos;
-create policy historial_cargos_scope on historial_cargos for all to authenticated
-using (exists (select 1 from personas p where p.id = historial_cargos.persona_id and p.congregacion_id in (select mis_congregaciones())))
-with check (exists (select 1 from personas p where p.id = historial_cargos.persona_id and p.congregacion_id in (select mis_congregaciones())));
+drop policy if exists historial_cargos_read on historial_cargos;
+drop policy if exists historial_cargos_write on historial_cargos;
+create policy historial_cargos_read on historial_cargos for select to authenticated
+using (exists (select 1 from personas p where p.id = historial_cargos.persona_id and p.congregacion_id in (select mis_congregaciones())));
+create policy historial_cargos_write on historial_cargos for all to authenticated
+using (exists (select 1 from personas p where p.id = historial_cargos.persona_id and p.congregacion_id in (select mis_congregaciones()) and puede_administrar_feligresia(p.congregacion_id)))
+with check (exists (select 1 from personas p where p.id = historial_cargos.persona_id and p.congregacion_id in (select mis_congregaciones()) and puede_administrar_feligresia(p.congregacion_id)));
 
 drop policy if exists seguimientos_pastorales_scope on seguimientos_pastorales;
-create policy seguimientos_pastorales_scope on seguimientos_pastorales for all to authenticated
-using (congregacion_id in (select mis_congregaciones()))
+drop policy if exists seguimientos_pastorales_read on seguimientos_pastorales;
+drop policy if exists seguimientos_pastorales_write on seguimientos_pastorales;
+create policy seguimientos_pastorales_read on seguimientos_pastorales for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy seguimientos_pastorales_write on seguimientos_pastorales for all to authenticated
+using (puede_administrar_feligresia(congregacion_id))
 with check (
-  congregacion_id in (select mis_congregaciones())
+  puede_administrar_feligresia(congregacion_id)
   and exists (select 1 from personas p where p.id = seguimientos_pastorales.persona_id and p.congregacion_id = seguimientos_pastorales.congregacion_id)
 );
 
 drop policy if exists estados_alerta_pastoral_scope on estados_alerta_pastoral;
-create policy estados_alerta_pastoral_scope on estados_alerta_pastoral for all to authenticated
-using (congregacion_id in (select mis_congregaciones()))
-with check (congregacion_id in (select mis_congregaciones()));
+drop policy if exists estados_alerta_pastoral_read on estados_alerta_pastoral;
+drop policy if exists estados_alerta_pastoral_write on estados_alerta_pastoral;
+create policy estados_alerta_pastoral_read on estados_alerta_pastoral for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy estados_alerta_pastoral_write on estados_alerta_pastoral for all to authenticated
+using (puede_administrar_feligresia(congregacion_id))
+with check (puede_administrar_feligresia(congregacion_id));
 
 drop policy if exists auditoria_feligresia_read on auditoria_feligresia;
 create policy auditoria_feligresia_read on auditoria_feligresia for select to authenticated

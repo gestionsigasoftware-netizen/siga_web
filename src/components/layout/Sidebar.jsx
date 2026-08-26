@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ClipboardPlus, Users, CheckSquare, Settings, LogOut, UserRound, Layers3, FileBarChart2, HeartHandshake } from 'lucide-react'
+import { LayoutDashboard, ClipboardPlus, Users, CheckSquare, Settings, LogOut, UserRound, Layers3, FileBarChart2, HeartHandshake, ClipboardList } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useMiRol } from '../../hooks/useMiRol'
 
@@ -14,16 +14,19 @@ export default function Sidebar() {
   const { signOut } = useAuth()
   const { rolPrincipal } = useMiRol()
   const nivel = rolPrincipal?.nivel
+  const rolLocal = rolPrincipal?.rol_local || 'pastor'
+  const puedeConfigurar = nivel === 'local' && rolLocal === 'pastor'
 
   const items = [
     { to: '/', label: 'Resumen', icon: LayoutDashboard, show: true },
     { to: '/registrar', label: 'Registrar asistencia', icon: ClipboardPlus, show: nivel === 'local' },
     { to: '/feligresia', label: 'Feligresía', icon: HeartHandshake, show: nivel === 'local' },
+    { to: '/auditoria-feligresia', label: 'Auditoría', icon: ClipboardList, show: nivel !== 'local' || rolLocal === 'pastor' },
     { to: '/modulos', label: 'Módulos y actividades', icon: Layers3, show: nivel === 'local' },
     { to: '/amigos', label: 'Amigos en ruta', icon: Users, show: nivel === 'local' },
     { to: '/reportes', label: 'Reportes', icon: FileBarChart2, show: true },
     { to: '/aprobaciones', label: 'Aprobaciones', icon: CheckSquare, show: nivel === 'distrital' || nivel === 'nacional' || nivel === 'super_admin' },
-    { to: '/configuracion', label: 'Configuración', icon: Settings, show: nivel === 'local' },
+    { to: '/configuracion', label: 'Configuración', icon: Settings, show: puedeConfigurar },
     { to: '/configuracion-sistema', label: 'Preferencias', icon: Settings, show: true },
   ].filter((i) => i.show)
 
