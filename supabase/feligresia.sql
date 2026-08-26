@@ -80,9 +80,18 @@ create table if not exists seguimientos_pastorales (
   accion text not null,
   notas text,
   fecha date not null default current_date,
+  proxima_fecha date,
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'completado', 'cancelado')),
   usuario_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+alter table seguimientos_pastorales add column if not exists proxima_fecha date;
+alter table seguimientos_pastorales add column if not exists estado text not null default 'pendiente';
+do $$ begin
+  alter table seguimientos_pastorales add constraint seguimientos_pastorales_estado_check check (estado in ('pendiente', 'completado', 'cancelado'));
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists estados_alerta_pastoral (
   clave text primary key,
@@ -263,6 +272,7 @@ using (congregacion_id in (select mis_congregaciones()));
 create index if not exists personas_feligresia_estado_idx on personas (congregacion_id, estado_membresia, bautizado);
 create index if not exists personas_familia_idx on personas (familia_id);
 create index if not exists seguimientos_pastorales_persona_fecha_idx on seguimientos_pastorales (persona_id, fecha desc);
+create index if not exists seguimientos_pastorales_agenda_idx on seguimientos_pastorales (congregacion_id, estado, proxima_fecha);
 
 create or replace view vw_resumen_feligresia as
 select

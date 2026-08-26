@@ -38,7 +38,7 @@ create view vw_alertas_pastorales as
 with alertas_asistencia as (
   select
     gen_random_uuid() as id,
-    'asistencia:' || categoria_id || ':' || to_char(mes, 'YYYY-MM') as clave,
+    congregacion_id || ':asistencia:' || categoria_id || ':' || to_char(mes, 'YYYY-MM') as clave,
     congregacion_id,
     'asistencia'::text as tipo,
     'media'::text as prioridad,
@@ -63,23 +63,23 @@ with alertas_asistencia as (
   where total_mes_anterior is not null and total < total_mes_anterior
     and (total_mes_anterior - total)::numeric / nullif(total_mes_anterior, 0) >= coalesce((select cc.umbral_alerta / 100 from configuracion_congregacion cc where cc.congregacion_id = comparado.congregacion_id), 0.15)
 ), alertas_ficha as (
-  select gen_random_uuid() as id,
-    case when p.familia_id is null then 'familia:' when not p.bautizado then 'bautismo:' else 'asistencia_persona:' end || p.id || ':' || to_char(current_date, 'YYYY-MM') as clave,
-    p.congregacion_id,
-    case when p.familia_id is null then 'familia' when not p.bautizado then 'bautismo' else 'asistencia_persona' end as tipo,
-    case when p.familia_id is null or p.fecha_ultima_asistencia is null then 'alta' else 'media' end as prioridad,
-    p.id as persona_id,
-    p.familia_id,
-    null::uuid as comite_id,
-    case when p.familia_id is null then 'Persona sin familia registrada' when not p.bautizado then 'Persona pendiente de bautismo' else 'Persona sin asistencia reciente' end as titulo,
-    p.nombres || ' ' || p.apellidos || case when p.familia_id is null then ' no tiene una familia asociada.' when not p.bautizado then ' figura como no bautizada.' else ' no registra asistencia en los últimos 90 días.' end as detalle,
-    current_date::timestamp as mes
-  from personas p
-  where p.estado_membresia = 'activo'
-    and (p.familia_id is null or not p.bautizado or p.fecha_ultima_asistencia is null or p.fecha_ultima_asistencia < current_date - 90)
+  select gen_random_uuid() as id, p.congregacion_id || ':familia:' || p.id || ':' || to_char(current_date, 'YYYY-MM') as clave, p.congregacion_id,
+    'familia'::text as tipo, 'alta'::text as prioridad, p.id as persona_id, p.familia_id, null::uuid as comite_id,
+    'Persona sin familia registrada' as titulo, p.nombres || ' ' || p.apellidos || ' no tiene una familia asociada.' as detalle, current_date::timestamp as mes
+  from personas p where p.estado_membresia = 'activo' and p.familia_id is null
+  union all
+  select gen_random_uuid(), p.congregacion_id || ':bautismo:' || p.id || ':' || to_char(current_date, 'YYYY-MM'), p.congregacion_id,
+    'bautismo', 'media', p.id, p.familia_id, null::uuid,
+    'Persona pendiente de bautismo', p.nombres || ' ' || p.apellidos || ' figura como no bautizada.', current_date::timestamp
+  from personas p where p.estado_membresia = 'activo' and not p.bautizado
+  union all
+  select gen_random_uuid(), p.congregacion_id || ':asistencia_persona:' || p.id || ':' || to_char(current_date, 'YYYY-MM'), p.congregacion_id,
+    'asistencia_persona', 'alta', p.id, p.familia_id, null::uuid,
+    'Persona sin asistencia reciente', p.nombres || ' ' || p.apellidos || ' no registra asistencia en los últimos 90 días.', current_date::timestamp
+  from personas p where p.estado_membresia = 'activo' and (p.fecha_ultima_asistencia is null or p.fecha_ultima_asistencia < current_date - 90)
 ), alertas_comites as (
   select gen_random_uuid() as id,
-    'comite:' || c.id as clave,
+    c.congregacion_id || ':comite:' || c.id as clave,
     c.congregacion_id,
     'comite'::text as tipo,
     'media'::text as prioridad,
@@ -101,6 +101,8 @@ from (
   union all
   select * from alertas_comites
 ) alertas
-left join estados_alerta_pastoral estados on estados.clave = alertas.clave
+left join estados_alerta_pastoral estados on estados.congregacion_id = alertas.congregacion_id
+  and (estados.clave = alertas.clave
+    or estados.clave = substring(alertas.clave from position(':' in alertas.clave) + 1))
 where estados.estado is distinct from 'atendida'
 order by alertas.mes desc;
