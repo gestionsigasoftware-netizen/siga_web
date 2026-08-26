@@ -172,7 +172,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="grid md:grid-cols-4 gap-3">
-            <QuickAction to="/registrar" icon={ClipboardPlus} title="Registrar asistencia" description="Captura una nueva actividad" />
+            <QuickAction to="/registrar" icon={ClipboardPlus} title="Corrección / contingencia" description="Completa un registro excepcional" />
             <QuickAction to="/amigos" icon={Users} title="Ver amigos" description="Continúa el seguimiento" />
             <QuickAction to="/feligresia" icon={Users} title="Abrir feligresía" description="Consulta el censo pastoral" />
             <QuickAction to="/feligresia?tab=seguimiento" icon={TrendingDown} title="Seguimiento pastoral" description="Revisa la agenda pendiente" />

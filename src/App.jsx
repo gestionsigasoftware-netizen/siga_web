@@ -15,6 +15,7 @@ import ConfiguracionSistema from './pages/ConfiguracionSistema'
 import Feligresia from './pages/FeligresiaAdmin'
 import AuditoriaFeligresia from './pages/AuditoriaFeligresia'
 import EquipoCongregacion from './pages/EquipoCongregacion'
+import PastoralDistrital from './pages/PastoralDistrital'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/feligresia" element={<Feligresia />} />
           <Route path="/auditoria-feligresia" element={<AuditoriaFeligresia />} />
           <Route path="/equipo-congregacion" element={<EquipoCongregacion />} />
+          <Route path="/pastoral-distrital" element={<PastoralDistrital />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/reportes" element={<Reportes />} />

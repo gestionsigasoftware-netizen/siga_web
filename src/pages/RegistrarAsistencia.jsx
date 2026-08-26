@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
+function withRequestTimeout(request, milliseconds = 12000) {
+  return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Verifica la conexión con Supabase.')), milliseconds))])
+}
+
 export default function RegistrarAsistencia() {
   const { rolPrincipal } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
@@ -10,11 +14,16 @@ export default function RegistrarAsistencia() {
   const [moduloId, setModuloId] = useState('')
   const [tipos, setTipos] = useState([])
   const [tipoId, setTipoId] = useState('')
+  const [zonas, setZonas] = useState([])
+  const [zonaId, setZonaId] = useState('')
   const [categorias, setCategorias] = useState([])
   const [conteos, setConteos] = useState({})
   const [responsables, setResponsables] = useState([])
   const [responsableId, setResponsableId] = useState('')
   const [novedades, setNovedades] = useState('')
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [motivoCaptura, setMotivoCaptura] = useState('')
+  const [canCapture, setCanCapture] = useState(false)
   const [registros, setRegistros] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -26,8 +35,12 @@ export default function RegistrarAsistencia() {
       .then(({ data }) => setModulos(data ?? []))
     supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden')
       .then(({ data }) => setCategorias(data ?? []))
-    supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId)
+    supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).eq('estado_membresia', 'activo')
       .then(({ data }) => setResponsables(data ?? []))
+    Promise.all([
+      supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
+      supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
+    ]).then(([capture, admin]) => setCanCapture(Boolean(capture.data || admin.data)))
     loadRegistros()
   }, [congregacionId])
 
@@ -35,12 +48,15 @@ export default function RegistrarAsistencia() {
     if (!moduloId) { setTipos([]); return }
     supabase.from('tipos_actividad').select('id, nombre, caracter').eq('modulo_id', moduloId).eq('activo', true)
       .then(({ data }) => setTipos(data ?? []))
+      supabase.from('zonas').select('id, nombre').eq('modulo_id', moduloId).order('nombre')
+        .then(({ data }) => setZonas(data ?? []))
+      setZonaId('')
   }, [moduloId])
 
   async function loadRegistros() {
     const { data } = await supabase
       .from('registros_actividad')
-      .select('id, fecha, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)')
+      .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)')
       .order('fecha', { ascending: false })
       .limit(10)
     setRegistros(data ?? [])
@@ -53,24 +69,36 @@ export default function RegistrarAsistencia() {
   async function handleSubmit(e) {
     e.preventDefault()
     const total = Object.values(conteos).reduce((a, b) => a + b, 0)
+    const modulo = modulos.find((item) => item.id === moduloId)
     if (!responsableId || total <= 0) { setError('Elige un responsable e ingresa al menos un asistente.'); return }
+    if (modulo?.requiere_zona && !zonaId) { setError('Selecciona el barrio o zona de la actividad.'); return }
+    const duplicate = registros.some((registro) => registro.fecha === fecha && registro.modulo_id === moduloId && registro.tipo_actividad_id === tipoId && (registro.zona_id || null) === (zonaId || null))
+    if (duplicate && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) return
     setError(null)
     setSaving(true)
 
-    const { error } = await supabase.from('registros_actividad').insert({
-      congregacion_id: congregacionId,
-      modulo_id: moduloId,
-      tipo_actividad_id: tipoId,
-      responsable_persona_id: responsableId,
-      novedades,
-      desglose: conteos,
-    })
-
+    let result
+    try {
+      result = await withRequestTimeout(supabase.from('registros_actividad').insert({
+        congregacion_id: congregacionId,
+        modulo_id: moduloId,
+        tipo_actividad_id: tipoId,
+        zona_id: zonaId || null,
+        responsable_persona_id: responsableId,
+        fecha,
+        novedades,
+        origen_captura: 'web',
+        motivo_captura: motivoCaptura,
+        desglose: conteos,
+      }))
+    } catch (requestError) { setSaving(false); setError(requestError.message); return }
     setSaving(false)
+    const { error } = result
     if (error) { setError('No se pudo guardar: ' + error.message); return }
     setOk(true)
     setConteos({})
     setNovedades('')
+    setMotivoCaptura('')
     loadRegistros()
     setTimeout(() => setOk(false), 3000)
   }
@@ -78,11 +106,14 @@ export default function RegistrarAsistencia() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-medium">Registrar asistencia</h1>
-        <p className="text-sm text-secondary mt-0.5">Funciona igual para cualquier módulo — Ujieres, Evangelismo, Misión Juvenil, Apartados.</p>
+        <h1 className="text-xl font-medium">Corrección / contingencia de asistencia</h1>
+        <p className="text-sm text-secondary mt-0.5">La PWA es el canal principal. Usa esta pantalla solo para corregir o registrar una actividad cuando la captura móvil no estuvo disponible.</p>
       </div>
 
+      {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Tu perfil no tiene permiso para registrar correcciones de asistencia.</p>}
+
       <form onSubmit={handleSubmit} className="card p-5 max-w-lg flex flex-col gap-3.5">
+        <label className="text-sm text-secondary">Fecha de la actividad<input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-field mt-1" /></label>
         <div>
           <label className="text-sm text-secondary block mb-1">Módulo</label>
           <select value={moduloId} onChange={(e) => setModuloId(e.target.value)} className="input-field" required>
@@ -90,6 +121,8 @@ export default function RegistrarAsistencia() {
             {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre_modulo}</option>)}
           </select>
         </div>
+
+        {modulos.find((modulo) => modulo.id === moduloId)?.requiere_zona && <div><label className="text-sm text-secondary block mb-1">Barrio o zona</label><select required value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="input-field"><option value="">Seleccionar zona...</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></div>}
 
         <div>
           <label className="text-sm text-secondary block mb-1">Tipo de actividad</label>
@@ -124,10 +157,15 @@ export default function RegistrarAsistencia() {
           <textarea value={novedades} onChange={(e) => setNovedades(e.target.value)} className="input-field" rows={2} placeholder="Sin novedades" />
         </div>
 
+        <div>
+          <label className="text-sm text-secondary block mb-1">Motivo de corrección o contingencia</label>
+          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La PWA no estuvo disponible o se corrigió un dato enviado" />
+        </div>
+
         {error && <p className="text-sm text-danger">{error}</p>}
         {ok && <p className="text-sm text-success">Asistencia registrada.</p>}
 
-        <button type="submit" disabled={saving} className="btn-primary justify-center">
+        <button type="submit" disabled={saving || !canCapture} className="btn-primary justify-center">
           {saving ? 'Guardando...' : 'Guardar asistencia'}
         </button>
       </form>
