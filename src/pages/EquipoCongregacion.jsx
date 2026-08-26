@@ -22,10 +22,18 @@ export default function EquipoCongregacion() {
     const [peopleResult, profilesResult, assignmentsResult] = await Promise.all([
       supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).order('nombres'),
       supabase.from('perfiles_acceso').select('id, codigo, nombre, descripcion').order('nombre'),
-      supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio, personas(nombres, apellidos), perfiles_acceso(nombre)').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
+      supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
     ])
-    if (peopleResult.error || profilesResult.error || assignmentsResult.error) setMessage({ type: 'error', text: 'No se pudo cargar el equipo de trabajo.' })
-    setPeople(peopleResult.data ?? []); setProfiles(profilesResult.data ?? []); setAssignments(assignmentsResult.data ?? []); setLoading(false)
+    const failed = [peopleResult, profilesResult, assignmentsResult].find((result) => result.error)
+    if (failed) setMessage({ type: 'error', text: `No se pudo cargar el equipo de trabajo: ${failed.error.message}` })
+    const loadedPeople = peopleResult.data ?? []
+    const loadedProfiles = profilesResult.data ?? []
+    const peopleById = new Map(loadedPeople.map((person) => [person.id, person]))
+    const profilesById = new Map(loadedProfiles.map((profile) => [profile.id, profile]))
+    setPeople(loadedPeople)
+    setProfiles(loadedProfiles)
+    setAssignments((assignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id), perfiles_acceso: profilesById.get(assignment.perfil_id) })))
+    setLoading(false)
   }
 
   useEffect(() => { load() }, [congregacionId])

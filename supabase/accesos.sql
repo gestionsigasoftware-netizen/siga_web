@@ -29,6 +29,38 @@ create table if not exists asignaciones_acceso (
   unique (persona_id, congregacion_id, perfil_id, fecha_inicio)
 );
 
+create or replace function validar_asignacion_acceso()
+returns trigger language plpgsql as $$
+begin
+  if not exists (
+    select 1 from personas p
+    where p.id = new.persona_id and p.congregacion_id = new.congregacion_id
+  ) then
+    raise exception 'La persona debe pertenecer a la congregación del perfil';
+  end if;
+  if not exists (
+    select 1 from perfiles_acceso p where p.id = new.perfil_id and p.sistema
+  ) then
+    raise exception 'El perfil de acceso no es válido';
+  end if;
+  if new.fecha_fin is null and exists (
+    select 1 from asignaciones_acceso a
+    where a.persona_id = new.persona_id
+      and a.congregacion_id = new.congregacion_id
+      and a.perfil_id = new.perfil_id
+      and a.fecha_fin is null
+      and a.id <> new.id
+  ) then
+    raise exception 'La persona ya tiene este perfil activo en la congregación';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists asignaciones_acceso_integridad on asignaciones_acceso;
+create trigger asignaciones_acceso_integridad before insert or update on asignaciones_acceso
+for each row execute function validar_asignacion_acceso();
+
 insert into perfiles_acceso (codigo, nombre, descripcion)
 values
   ('pastor', 'Acceso total', 'Administra la congregacion y sus equipos.'),
@@ -103,3 +135,6 @@ $$;
 
 create index if not exists asignaciones_acceso_congregacion_idx on asignaciones_acceso (congregacion_id, fecha_fin);
 create index if not exists asignaciones_acceso_persona_idx on asignaciones_acceso (persona_id, fecha_fin);
+create unique index if not exists asignaciones_acceso_activas_unicas_idx
+  on asignaciones_acceso (persona_id, congregacion_id, perfil_id)
+  where fecha_fin is null;

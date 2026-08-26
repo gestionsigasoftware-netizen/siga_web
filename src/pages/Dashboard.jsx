@@ -49,6 +49,8 @@ export default function Dashboard() {
   const [categorias, setCategorias] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [handledAlerts, setHandledAlerts] = useState([])
+  const [alertasTotal, setAlertasTotal] = useState(0)
+  const [resumenFeligresia, setResumenFeligresia] = useState(null)
 
   useEffect(() => {
     if (!rolPrincipal) return
@@ -60,14 +62,20 @@ export default function Dashboard() {
       const { data, error: tendenciaError } = await supabase.from('vw_tendencia_categoria').select('*').order('mes_orden')
       setTendencia(data)
 
-      const { data: alertasData } = await supabase.from('vw_alertas_pastorales').select('*').limit(5)
+      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }] = await Promise.all([
+        supabase.from('vw_alertas_pastorales').select('*').limit(5),
+        supabase.from('vw_alertas_pastorales').select('clave', { count: 'exact', head: true }),
+        rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      ])
       setAlertas(alertasData ?? [])
+      setAlertasTotal(alertasCount ?? 0)
+      setResumenFeligresia(feligresiaData)
 
       const [{ data: registrosData, error: registrosError }, { data: categoriasData, error: categoriasError }] = await Promise.all([
         supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, modulos(nombre_modulo)').order('fecha', { ascending: false }).limit(500),
         supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
       ])
-      if (tendenciaError || registrosError || categoriasError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (tendenciaError || alertasError || alertasCountError || feligresiaError || registrosError || categoriasError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       setRegistros(registrosData ?? [])
       setCategorias(categoriasData ?? [])
     }
@@ -131,7 +139,7 @@ export default function Dashboard() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <StatTile label="Asistentes este mes" value={registros.length ? asistentesMes : '—'} />
-        <StatTile label="Alertas activas" value={pendingAlerts.length} tone={pendingAlerts.length > 0 ? 'danger' : 'default'} />
+        <StatTile label="Alertas activas" value={alertasTotal || pendingAlerts.length} tone={alertasTotal > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} />
         <StatTile label="Promedio por actividad" value={registros.length ? promedioMes : '—'} tone="success" />
       </div>
 
@@ -163,11 +171,21 @@ export default function Dashboard() {
               <p className="text-sm text-secondary mt-1">Las tareas que más vas a usar en tu congregación.</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-3">
+          <div className="grid md:grid-cols-4 gap-3">
             <QuickAction to="/registrar" icon={ClipboardPlus} title="Registrar asistencia" description="Captura una nueva actividad" />
             <QuickAction to="/amigos" icon={Users} title="Ver amigos" description="Continúa el seguimiento" />
-            <QuickAction to="/configuracion" icon={Settings2} title="Configurar" description="Edita tus catálogos" />
+            <QuickAction to="/feligresia" icon={Users} title="Abrir feligresía" description="Consulta el censo pastoral" />
+            <QuickAction to="/feligresia?tab=seguimiento" icon={TrendingDown} title="Seguimiento pastoral" description="Revisa la agenda pendiente" />
           </div>
+        </section>
+      )}
+
+      {rolPrincipal?.nivel === 'local' && resumenFeligresia && (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
+          <StatTile label="Bautizados" value={resumenFeligresia.bautizados} />
+          <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
+          <StatTile label="Apartados" value={resumenFeligresia.apartados} />
         </section>
       )}
 

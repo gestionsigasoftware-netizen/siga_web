@@ -160,6 +160,8 @@ drop trigger if exists seguimientos_pastorales_auditoria on seguimientos_pastora
 create trigger seguimientos_pastorales_auditoria after insert or update or delete on seguimientos_pastorales for each row execute function registrar_auditoria_feligresia();
 drop trigger if exists estados_alerta_pastoral_auditoria on estados_alerta_pastoral;
 create trigger estados_alerta_pastoral_auditoria after insert or update or delete on estados_alerta_pastoral for each row execute function registrar_auditoria_feligresia();
+drop trigger if exists asignaciones_acceso_auditoria on asignaciones_acceso;
+create trigger asignaciones_acceso_auditoria after insert or update or delete on asignaciones_acceso for each row execute function registrar_auditoria_feligresia();
 
 create or replace function validar_nombre_familia_unico()
 returns trigger language plpgsql as $$

@@ -103,6 +103,8 @@ export default function FeligresiaAdmin() {
   useEffect(() => { setPeoplePage(0) }, [status, search])
 
   useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get('tab')
+    if (['personas', 'familias', 'comites', 'seguimiento', 'historial'].includes(requestedTab)) setTab(requestedTab)
     const personId = new URLSearchParams(location.search).get('persona')
     const person = people.find((item) => item.id === personId)
     if (person) editPerson(person)
