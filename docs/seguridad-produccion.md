@@ -46,6 +46,8 @@ Ejecutar `supabase/seguridad_produccion.sql` despues de las migraciones base. Es
 - Todo bucket con documentos sensibles debe ser privado y usar URLs firmadas.
 - No registrar contrasenas, tokens ni datos personales innecesarios en logs.
 - Aplicar el principio de minimo privilegio a perfiles y funciones RPC.
+- Mantener `capturado_por` para auditoria, sin exponerlo en las estadisticas
+	de usuarios moviles.
 
 ## Prueba minima de aislamiento
 

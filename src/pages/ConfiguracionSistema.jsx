@@ -91,7 +91,7 @@ export default function ConfiguracionSistema() {
           <StatusCard icon={Globe2} title="Idioma y región" description="El idioma de la interfaz es Español. El formato de fecha elegido se muestra aquí." value={preferences.formato_fecha === 'MM/DD/AAAA' ? 'Español · MM/DD' : 'Español · DD/MM'} />
           <StatusCard icon={Bell} title="Notificaciones" description="Resumen de las preferencias que acabas de configurar." value={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'Preferencias activas' : 'Todas desactivadas'} tone={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'success' : 'muted'} />
           <StatusCard icon={LockKeyhole} title="Seguridad" description="Tu acceso está protegido por autenticación y políticas de sesión." value="Política activa" />
-          <StatusCard icon={Database} title="Sincronización" description="La aplicación móvil (PWA) envía los registros cuando recupera la conexión." value="Conexión verificada" />
+          <StatusCard icon={Database} title="Sincronización" description="La aplicación móvil envía los registros cuando recupera la conexión." value="Conexión verificada" />
         </div>
       </section>
     </div>

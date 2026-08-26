@@ -13,7 +13,8 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [newPassword, setNewPassword] = useState('')
-  const [isRecovery, setIsRecovery] = useState(() => new URLSearchParams(window.location.search).has('reset'))
+  const [isInvitation] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite' || new URLSearchParams(window.location.search).get('type') === 'invite')
+  const [isRecovery, setIsRecovery] = useState(() => new URLSearchParams(window.location.search).has('reset') || new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite')
   const passwordRules = [
     { label: '8 caracteres como mínimo', valid: newPassword.length >= 8 },
     { label: 'Una letra mayúscula', valid: /[A-Z]/.test(newPassword) },
@@ -59,8 +60,12 @@ export default function Login() {
     const { error: updateError } = await updatePassword(newPassword)
     setLoading(false)
     if (updateError) { setError('No se pudo actualizar la contraseña. Solicita un enlace nuevo.'); return }
-    setIsRecovery(false)
     setNewPassword('')
+    if (isInvitation) {
+      navigate('/')
+      return
+    }
+    setIsRecovery(false)
     setNotice('Contraseña actualizada. Ya puedes ingresar con tu nueva contraseña.')
   }
 
@@ -96,9 +101,9 @@ export default function Login() {
               <span className="font-semibold tracking-wide">SIGA</span>
             </div>
             <div className="mb-8">
-              <p className="text-sm font-medium text-accent mb-3">{isRecovery ? 'Nueva contraseña' : 'Bienvenido de nuevo'}</p>
-              <h1 className="text-3xl font-semibold tracking-tight">{isRecovery ? 'Actualiza tu acceso' : 'Entra a tu espacio SIGA'}</h1>
-              <p className="text-sm text-secondary mt-3 leading-6">{isRecovery ? 'Crea una nueva contraseña para volver a entrar a tu espacio de trabajo.' : 'Administra la información de tu congregación con una mirada clara y oportuna.'}</p>
+              <p className="text-sm font-medium text-accent mb-3">{isRecovery ? (isInvitation ? 'Invitación a SIGA' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>
+              <h1 className="text-3xl font-semibold tracking-tight">{isRecovery ? (isInvitation ? 'Crea tu contraseña' : 'Actualiza tu acceso') : 'Entra a tu espacio SIGA'}</h1>
+              <p className="text-sm text-secondary mt-3 leading-6">{isRecovery ? (isInvitation ? 'Define una contraseña segura para activar tu acceso a SIGA.' : 'Crea una nueva contraseña para volver a entrar a tu espacio de trabajo.') : 'Administra la información de tu congregación con una mirada clara y oportuna.'}</p>
             </div>
 
             {isRecovery ? <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
@@ -106,7 +111,7 @@ export default function Login() {
               <div aria-live="polite" className="rounded bg-surface-1 p-3"><p className="text-xs font-medium text-secondary mb-2">Requisitos de seguridad</p><div className="grid gap-1.5">{passwordRules.map((rule) => <p key={rule.label} className={`text-xs ${rule.valid ? 'text-success' : 'text-muted'}`}>{rule.valid ? '✓' : '○'} {rule.label}</p>)}</div></div>
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
               {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
-              <button type="submit" disabled={loading || !validNewPassword} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Actualizar contraseña'}</button>
+              <button type="submit" disabled={loading || !validNewPassword} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isInvitation ? 'Activar acceso' : 'Actualizar contraseña'}</button>
               <Link to="/login" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver al inicio de sesión</Link>
             </form> : <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>

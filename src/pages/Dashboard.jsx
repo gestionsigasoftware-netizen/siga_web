@@ -428,7 +428,7 @@ export default function Dashboard() {
           <div className="w-11 h-11 rounded bg-success-bg text-success flex items-center justify-center flex-shrink-0"><Database className="w-5 h-5" /></div>
           <div>
             <h2 className="font-medium">Tu panel está listo para recibir datos</h2>
-            <p className="text-sm text-secondary mt-1 leading-6">Cuando la aplicación móvil (PWA) registre actividades, aquí aparecerán las tendencias y alertas pastorales. Las métricas se mantienen vacías hasta tener información real.</p>
+            <p className="text-sm text-secondary mt-1 leading-6">Cuando la aplicación móvil registre actividades, aquí aparecerán las tendencias y alertas pastorales. Las métricas se mantienen vacías hasta tener información real.</p>
           </div>
         </section>
       )}

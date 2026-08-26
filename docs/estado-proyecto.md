@@ -22,7 +22,8 @@ Ultima validacion conocida:
 - Dashboard inicial para usuarios autenticados.
 - Sidebar responsive con menu por rol y scroll interno.
 - Centro de notificaciones.
-- Configuracion personal y de congregacion.
+- Preferencias personales: notificaciones, alertas y formato regional de fecha.
+- Configuracion de congregacion y catalogos operativos.
 
 ### Acceso y administracion
 
@@ -45,9 +46,14 @@ Ultima validacion conocida:
 ### Captura y analitica
 
 - Motor generico de registros de actividad.
+- Catalogo de modulos y tipos de actividad administrable por el pastor local.
+- Actividades personalizadas conservando el nombre real del culto.
 - Correccion o contingencia desde la web con motivo obligatorio.
 - Dashboard, reportes, filtros, graficos y exportacion existente.
-- La PWA movil queda preparada para alimentar `registros_actividad`, pero esta fuera del alcance actual.
+- Funcion SQL `resumen_asistencia_movil` para resumen agregado por fecha,
+	protegida por acceso activo a la congregacion.
+- La PWA movil queda preparada para alimentar `registros_actividad`, pero esta
+	fuera del alcance actual.
 
 ### Evangelismo
 
@@ -82,7 +88,10 @@ Ultima validacion conocida:
 - `supabase/configuracion.sql`
 - `supabase/feligresia.sql`
 - `supabase/asistencia_web.sql`
+- `supabase/evangelismo.sql`
 - `supabase/mision_juvenil.sql`
+- `supabase/actividad_personalizada.sql`
+- `supabase/estadisticas_movil.sql`
 - `supabase/seguridad_produccion.sql`
 
 El estado de ejecucion de cada migracion debe confirmarse en el SQL Editor del proyecto Supabase. `mision_juvenil.sql` fue ejecutada segun el estado de trabajo actual; `seguridad_produccion.sql` debe ejecutarse antes de produccion si aun no se ha aplicado.

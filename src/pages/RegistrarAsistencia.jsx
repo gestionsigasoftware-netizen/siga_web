@@ -126,7 +126,7 @@ export default function RegistrarAsistencia() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-medium">Corrección / contingencia de asistencia</h1>
-        <p className="text-sm text-secondary mt-0.5">La aplicación móvil (PWA) es el canal principal. Usa esta pantalla solo para corregir un registro cuando la captura móvil no estuvo disponible.</p>
+        <p className="text-sm text-secondary mt-0.5">La aplicación móvil es el canal principal. Usa esta pantalla solo para corregir un registro cuando la captura móvil no estuvo disponible.</p>
       </div>
 
       {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Tu perfil no tiene permiso para registrar correcciones de asistencia.</p>}

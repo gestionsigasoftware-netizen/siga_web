@@ -21,18 +21,50 @@ La aplicacion local se abre normalmente en `http://localhost:5173`.
 Ejecutar en el SQL Editor de Supabase y revisar cada resultado:
 
 1. `supabase/schema.sql`
-2. `supabase/vistas_dashboard.sql`
+2. `supabase/migracion_produccion.sql`
 3. `supabase/accesos.sql`
 4. `supabase/pastoral_distrital.sql`
 5. `supabase/feligresia.sql`
-6. `supabase/notificaciones.sql`
-7. `supabase/configuracion.sql`
-8. `supabase/asistencia_web.sql`
-9. `supabase/migracion_produccion.sql`
-10. `supabase/mision_juvenil.sql`
-11. `supabase/seguridad_produccion.sql`
+6. `supabase/vistas_dashboard.sql`
+7. `supabase/notificaciones.sql`
+8. `supabase/configuracion.sql`
+9. `supabase/evangelismo.sql`
+10. `supabase/asistencia_web.sql`
+11. `supabase/mision_juvenil.sql`
+12. `supabase/actividad_personalizada.sql`
+13. `supabase/estadisticas_movil.sql`
+14. `supabase/seguridad_produccion.sql`
 
-Si una migracion ya fue ejecutada, verificar si es repetible antes de volver a correrla. Hacer backup o confirmar PITR antes de aplicar cambios en datos reales.
+`actividad_personalizada.sql` y `estadisticas_movil.sql` son migraciones de
+compatibilidad con la captura movil y dependen de las tablas base y de acceso.
+`seguridad_produccion.sql` debe ser la ultima migracion de endurecimiento.
+Si una migracion ya fue ejecutada, verificar si es repetible antes de volver a
+correrla. Hacer backup o confirmar PITR antes de aplicar cambios en datos reales.
+
+## Invitacion de usuarios
+
+El alta de usuarios se realiza desde Equipo de trabajo. La Edge Function
+`supabase/functions/invitar-usuario/index.ts` valida la sesion y el permiso
+`usuarios.administrar`, invita el correo desde Supabase Auth, vincula
+`personas.auth_user_id` y crea la asignacion de perfil.
+
+Desplegarla con Supabase CLI desde la raiz del proyecto:
+
+```bash
+supabase functions deploy invitar-usuario
+```
+
+La funcion necesita `SUPABASE_SERVICE_ROLE_KEY` en los secretos del proyecto
+Supabase. Esta clave nunca debe agregarse al archivo `.env` de Vite ni al
+frontend. Configurar tambien `APP_ORIGIN` con el dominio real para restringir
+las solicitudes CORS.
+
+## Captura movil y auditoria
+
+La persona que captura no ve quien hizo otros registros, pero la base de
+datos conserva `capturado_por` para auditoria y administracion. La PWA puede
+usar cultos del catalogo o guardar un nombre personalizado en
+`registros_actividad.nombre_actividad`.
 
 ## Publicacion
 

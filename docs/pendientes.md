@@ -2,6 +2,11 @@
 
 ## Prioridad critica antes de produccion
 
+- Desplegar y probar la Edge Function de alta e invitacion de usuarios desde
+	SIGA: el administrador introduce nombre, correo y perfil; la funcion segura
+	invita la cuenta Auth, vincula `personas.auth_user_id` y activa el acceso.
+	No se aceptara como flujo de produccion crear usuarios manualmente en
+	Supabase.
 - Ejecutar y verificar `supabase/seguridad_produccion.sql`.
 - Confirmar RLS en todas las tablas y vistas expuestas.
 - Configurar HTTPS y dominio en el hosting.
@@ -29,8 +34,10 @@
 - Carga de documentos y certificados mediante Storage privado.
 - Exportacion PDF de reportes, si el negocio la requiere.
 - Registro publico controlado de nuevas congregaciones, si el negocio lo requiere.
-- UI para administrar tipos de actividad desde Configuracion.
-- Umbral de alertas configurable por congregacion.
+- La UI para administrar tipos de actividad ya esta disponible en Modulos y
+	actividades; queda pendiente ampliar la configuracion solo si el negocio lo requiere.
+- Integrar en la UI la configuracion del umbral de alertas y reglas de captura
+	ya soportadas por `configuracion_congregacion`, si el negocio las requiere.
 - PWA movil separada para captura offline y sincronizacion.
 
 ## Mantenimiento

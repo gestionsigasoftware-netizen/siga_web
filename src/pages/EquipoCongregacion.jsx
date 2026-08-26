@@ -9,9 +9,12 @@ export default function EquipoCongregacion() {
   const isPastor = rolPrincipal?.nivel === 'local' && (!rolPrincipal.rol_local || rolPrincipal.rol_local === 'pastor')
   const [people, setPeople] = useState([])
   const [profiles, setProfiles] = useState([])
+  const [modules, setModules] = useState([])
   const [assignments, setAssignments] = useState([])
   const [personId, setPersonId] = useState('')
   const [profileId, setProfileId] = useState('')
+  const [moduleId, setModuleId] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [busyAssignmentId, setBusyAssignmentId] = useState(null)
@@ -21,12 +24,13 @@ export default function EquipoCongregacion() {
   async function load() {
     if (!congregacionId) return
     setLoading(true)
-    const [peopleResult, profilesResult, assignmentsResult] = await Promise.all([
-      supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).order('nombres'),
+    const [peopleResult, profilesResult, modulesResult, assignmentsResult] = await Promise.all([
+      supabase.from('personas').select('id, nombres, apellidos, auth_user_id').eq('congregacion_id', congregacionId).order('nombres'),
       supabase.from('perfiles_acceso').select('id, codigo, nombre, descripcion').order('nombre'),
+      supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId).eq('activo', true).order('created_at'),
       supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
     ])
-    const failed = [peopleResult, profilesResult, assignmentsResult].find((result) => result.error)
+    const failed = [peopleResult, profilesResult, modulesResult, assignmentsResult].find((result) => result.error)
     if (failed) setMessage({ type: 'error', text: `No se pudo cargar el equipo de trabajo: ${failed.error.message}` })
     const loadedPeople = peopleResult.data ?? []
     const loadedProfiles = profilesResult.data ?? []
@@ -34,6 +38,7 @@ export default function EquipoCongregacion() {
     const profilesById = new Map(loadedProfiles.map((profile) => [profile.id, profile]))
     setPeople(loadedPeople)
     setProfiles(loadedProfiles)
+    setModules(modulesResult.data ?? [])
     setAssignments((assignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id), perfiles_acceso: profilesById.get(assignment.perfil_id) })))
     setLoading(false)
   }
@@ -44,28 +49,95 @@ export default function EquipoCongregacion() {
   const filteredPeople = people.filter((person) => `${person.nombres} ${person.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase()))
   const peopleWithProfiles = new Set(assignments.map((assignment) => assignment.persona_id)).size
 
-  async function assignProfile(event) {
+  async function inviteUser(event) {
     event.preventDefault()
-    if (!personId || !profileId) return
-    if (assignedProfileKeys.has(`${personId}:${profileId}`)) { setMessage({ type: 'error', text: 'Esta persona ya tiene ese perfil activo.' }); return }
-    setSaving(true); setMessage(null)
-    const result = await supabase.from('asignaciones_acceso').insert({ persona_id: personId, congregacion_id: congregacionId, perfil_id: profileId })
+    if (!personId || !email.trim() || (!profileId && !moduleId)) {
+      setMessage({ type: 'error', text: 'Selecciona al menos un acceso: web o movil.' })
+      return
+    }
+    if (profileId && assignedProfileKeys.has(`${personId}:${profileId}`) && !moduleId) {
+      setMessage({ type: 'error', text: 'Esta persona ya tiene ese perfil activo.' })
+      return
+    }
+    setSaving(true)
+    setMessage(null)
+    const { data, error } = await supabase.functions.invoke('invitar-usuario', {
+      body: { personId, profileId, moduleId, congregacionId, email: email.trim() },
+    })
     setSaving(false)
-    if (result.error) { setMessage({ type: 'error', text: result.error.code === '23505' ? 'Esta persona ya tiene ese perfil activo.' : `No se pudo asignar el perfil: ${result.error.message}` }); return }
-    setPersonId(''); setProfileId(''); setMessage({ type: 'success', text: 'Perfil asignado correctamente.' }); load()
+    if (error) {
+      const functionUnavailable = error.message?.toLowerCase().includes('failed to send a request')
+      let serverMessage = ''
+      if (error.context) {
+        try {
+          const body = await error.context.json()
+          serverMessage = body?.error || ''
+        } catch { /* La respuesta puede no tener JSON. */ }
+      }
+      const rateLimited = `${serverMessage} ${error.message}`.toLowerCase().includes('rate limit')
+      setMessage({
+        type: 'error',
+        text: functionUnavailable
+          ? 'El servicio de invitaciones aun no esta activo. Despliega la Edge Function invitar-usuario en Supabase.'
+          : rateLimited
+            ? 'Supabase alcanzo el limite temporal de correos. Espera antes de volver a solicitar una invitacion; si la cuenta ya existe, usa sus credenciales o recupera la contrasena desde el login.'
+          : serverMessage || error.message || 'No se pudo enviar la invitacion.',
+      })
+      return
+    }
+    if (!data?.ok) {
+      setMessage({ type: 'error', text: 'La invitacion no pudo confirmarse.' })
+      return
+    }
+    setPersonId('')
+    setProfileId('')
+    setModuleId('')
+    setEmail('')
+    setMessage({
+      type: 'success',
+      text: data.invitationSent
+        ? 'Invitacion enviada. La persona recibira un enlace para crear su contrasena.'
+        : 'Cuenta existente vinculada. La persona puede ingresar con sus credenciales actuales.',
+    })
+    load()
   }
 
   async function endAssignment(assignment) {
-    if (!window.confirm(`¿Retirar el perfil de ${assignment.personas?.nombres || 'esta persona'}?`)) return
+    if (!window.confirm(`Retirar el perfil de ${assignment.personas?.nombres || 'esta persona'}?`)) return
     setBusyAssignmentId(assignment.id)
     const result = await supabase.from('asignaciones_acceso').update({ fecha_fin: new Date().toISOString().slice(0, 10) }).eq('id', assignment.id).eq('congregacion_id', congregacionId)
     setBusyAssignmentId(null)
     if (result.error) { setMessage({ type: 'error', text: 'No se pudo retirar el perfil.' }); return }
-    setMessage({ type: 'success', text: 'Perfil retirado. El historial se conserva.' }); load()
+    setMessage({ type: 'success', text: 'Perfil retirado. El historial se conserva.' })
+    load()
   }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando equipo de trabajo...</div>
-  if (!isPastor) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Solo el pastor puede administrar el equipo de la congregación.</p>
+  if (!isPastor) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Solo el pastor puede administrar el equipo de la congregacion.</p>
 
-  return <div className="page-shell"><header><p className="eyebrow">Administración local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Asigna perfiles de acceso sin crear nuevos niveles jerárquicos.</p></header>{message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm rounded p-3 ${message.type === 'error' ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{message.text}</p>}<section className="grid sm:grid-cols-3 gap-3"><div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Personas con acceso</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div><div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Perfiles activos</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Personas disponibles</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div></section><form onSubmit={assignProfile} className="card p-5 grid md:grid-cols-[1fr_1fr_auto] gap-3 items-end"><label className="text-sm">Persona<select required className="input-field mt-1.5" value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">Seleccionar persona...</option>{filteredPeople.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label><label className="text-sm">Perfil<select required className="input-field mt-1.5" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Seleccionar perfil...</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select></label><button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" /> {saving ? 'Asignando...' : 'Asignar perfil'}</button></form><section className="card overflow-hidden"><div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Perfiles activos</h2><p className="text-sm text-secondary mt-1">Personas con acceso adicional en esta congregación.</p></div><div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar integrantes del equipo" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar integrante..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div></div>{assignments.length ? <div className="divide-y divide-border">{assignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.perfiles_acceso?.nombre} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyAssignmentId)} onClick={() => endAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyAssignmentId === assignment.id ? 'Retirando...' : 'Retirar perfil'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aún no hay perfiles adicionales asignados.</p>}</section></div>
+  return (
+    <div className="page-shell">
+      <header><p className="eyebrow">Administracion local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra desde un solo lugar quienes pueden entrar a la web y quienes pueden capturar desde el movil.</p></header>
+      {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm rounded p-3 ${message.type === 'error' ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{message.text}</p>}
+      <section className="grid sm:grid-cols-3 gap-3">
+        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Personas con acceso</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div>
+        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Perfiles activos</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Personas disponibles</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div>
+      </section>
+      <section className="card p-5"><h2 className="font-medium">Agregar o actualizar acceso</h2><p className="text-sm text-secondary mt-1 mb-4">Primero selecciona la persona. Luego elige uno o ambos accesos: el perfil controla la web y el modulo controla el movil.</p>
+      <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
+        <label className="text-sm">Persona<select required className="input-field mt-1.5" value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">Seleccionar persona...</option>{filteredPeople.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}{person.auth_user_id ? ' (cuenta vinculada)' : ''}</option>)}</select></label>
+        <label className="text-sm">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+        <label className="text-sm">Acceso web <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Sin acceso web</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select></label>
+        <label className="text-sm">Acceso movil <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => setModuleId(event.target.value)}><option value="">Sin acceso movil</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>
+        <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? 'Enviando...' : 'Invitar usuario'}</button>
+      </form>
+      </section>
+      <p className="text-xs text-secondary">La persona recibira un enlace seguro para establecer su contrasena. No se crea ninguna contrasena desde SIGA.</p>
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Perfiles activos</h2><p className="text-sm text-secondary mt-1">Personas con acceso en esta congregacion.</p></div><div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar integrantes del equipo" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar integrante..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div></div>
+        {assignments.length ? <div className="divide-y divide-border">{assignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.perfiles_acceso?.nombre} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyAssignmentId)} onClick={() => endAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyAssignmentId === assignment.id ? 'Retirando...' : 'Retirar perfil'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay perfiles adicionales asignados.</p>}
+      </section>
+    </div>
+  )
 }
