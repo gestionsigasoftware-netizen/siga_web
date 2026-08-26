@@ -41,6 +41,15 @@ compatibilidad con la captura movil y dependen de las tablas base y de acceso.
 Si una migracion ya fue ejecutada, verificar si es repetible antes de volver a
 correrla. Hacer backup o confirmar PITR antes de aplicar cambios en datos reales.
 
+## Datos de demostracion
+
+Solo en una base de pruebas, ejecutar `supabase/seed_datos_prueba.sql` despues
+de las migraciones. El seed elimina primero sus filas marcadas y vuelve a
+generar datos para Feligresia, Reportes, Evangelismo, Mision Juvenil,
+actividades personalizadas, configuracion y notificaciones. Para retirarlos,
+usar `supabase/limpiar_datos_prueba.sql`; este limpiador no elimina las tablas,
+columnas ni politicas creadas por las migraciones.
+
 ## Invitacion de usuarios
 
 El alta de usuarios se realiza desde Equipo de trabajo. La Edge Function

@@ -54,6 +54,8 @@ Ultima validacion conocida:
 - Dashboard, reportes, filtros, graficos y exportacion existente.
 - Funcion SQL `resumen_asistencia_movil` para resumen agregado por fecha,
 	protegida por acceso activo a la congregacion.
+- Seed de datos de demostracion repetible para poblar los modulos web actuales
+	en una congregacion demo.
 - La PWA movil queda preparada para alimentar `registros_actividad`, pero esta
 	fuera del alcance actual.
 

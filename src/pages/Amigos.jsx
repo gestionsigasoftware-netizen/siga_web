@@ -35,6 +35,7 @@ const FRIEND_FIELDS =
   "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, categoria_asignada_id, created_at, etapas_seguimiento(nombre, orden), zonas(nombre)";
 
 export default function Amigos() {
+  const pageSize = 50;
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [etapas, setEtapas] = useState([]);
@@ -42,6 +43,8 @@ export default function Amigos() {
   const [metodologias, setMetodologias] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [amigos, setAmigos] = useState([]);
+  const [page, setPage] = useState(0);
+  const [totalAmigos, setTotalAmigos] = useState(0);
   const [filtro, setFiltro] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
   const [selected, setSelected] = useState(null);
@@ -87,11 +90,17 @@ export default function Amigos() {
           .eq("modulos.congregacion_id", congregacionId)
           .ilike("modulos.nombre_modulo", "Evangelismo")
           .order("nombre"),
-        supabase
-          .from("amigos")
-          .select(FRIEND_FIELDS)
-          .eq("congregacion_id", congregacionId)
-          .order("created_at", { ascending: false }),
+        (() => {
+          let query = supabase
+            .from("amigos")
+            .select(FRIEND_FIELDS, { count: "exact" })
+            .eq("congregacion_id", congregacionId)
+            .order("created_at", { ascending: false })
+            .range(page * pageSize, page * pageSize + pageSize - 1);
+          if (filtro !== "todos") query = query.eq("etapa_id", filtro);
+          if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,sector.ilike.%${busqueda.trim()}%,telefono.ilike.%${busqueda.trim()}%`);
+          return query;
+        })(),
       ]);
     if (
       stageResult.error ||
@@ -106,23 +115,20 @@ export default function Amigos() {
     setCategorias(categoryResult.data ?? []);
     setMetodologias(methodResult.data ?? []);
     setAmigos(friendResult.data ?? []);
+    setTotalAmigos(friendResult.count ?? 0);
     setLoading(false);
   }
 
   useEffect(() => {
     load();
-  }, [congregacionId]);
+  }, [congregacionId, page, filtro, busqueda]);
 
-  const filtrados = useMemo(
-    () =>
-      amigos.filter((friend) => {
-        const matchesStage = filtro === "todos" || friend.etapa_id === filtro;
-        const text =
-          `${friend.nombres} ${friend.sector || ""} ${friend.telefono || ""}`.toLowerCase();
-        return matchesStage && text.includes(busqueda.toLowerCase());
-      }),
-    [amigos, filtro, busqueda],
-  );
+  useEffect(() => {
+    setPage(0);
+  }, [filtro, busqueda]);
+
+  const totalPages = Math.max(1, Math.ceil(totalAmigos / pageSize));
+  const filtrados = useMemo(() => amigos, [amigos]);
   const converted = amigos.filter((friend) => friend.convertido).length;
   const active = amigos.length - converted;
 
@@ -516,6 +522,7 @@ export default function Amigos() {
           ))}
         </div>
       </div>
+      {totalAmigos > 0 && <div className="flex items-center justify-between gap-3 text-xs text-secondary"><span>Página {page + 1} de {totalPages} · {totalAmigos} amigos</span><div className="flex gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">Anterior</button><button type="button" disabled={page >= totalPages - 1 || loading} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">Siguiente</button></div></div>}
       <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
         <div>
           {filtrados.length === 0 ? (

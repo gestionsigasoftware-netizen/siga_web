@@ -4,10 +4,13 @@ import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
 export default function Personas() {
+  const pageSize = 50
   const { rolPrincipal } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
   const [personas, setPersonas] = useState([])
   const [busqueda, setBusqueda] = useState('')
+  const [page, setPage] = useState(0)
+  const [totalPersonas, setTotalPersonas] = useState(0)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState({ nombres: '', apellidos: '', telefono: '' })
   const [error, setError] = useState(null)
@@ -15,12 +18,16 @@ export default function Personas() {
 
   async function load() {
     if (!congregacionId) return
-    const { data, error: loadError } = await supabase.from('personas').select('id, nombres, apellidos, telefono, created_at').eq('congregacion_id', congregacionId).order('nombres')
+    let query = supabase.from('personas').select('id, nombres, apellidos, telefono, created_at', { count: 'exact' }).eq('congregacion_id', congregacionId).order('nombres').range(page * pageSize, page * pageSize + pageSize - 1)
+    if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,apellidos.ilike.%${busqueda.trim()}%`)
+    const { data, count, error: loadError } = await query
     if (loadError) setError('No se pudieron cargar las personas.')
     setPersonas(data ?? [])
+    setTotalPersonas(count ?? 0)
   }
 
-  useEffect(() => { load() }, [congregacionId])
+  useEffect(() => { load() }, [congregacionId, page, busqueda])
+  useEffect(() => { setPage(0) }, [busqueda])
 
   async function agregarPersona(event) {
     event.preventDefault()
@@ -34,7 +41,8 @@ export default function Personas() {
     load()
   }
 
-  const filtradas = personas.filter((persona) => `${persona.nombres} ${persona.apellidos}`.toLowerCase().includes(busqueda.toLowerCase()))
+  const totalPages = Math.max(1, Math.ceil(totalPersonas / pageSize))
+  const filtradas = personas
 
   return (
     <div className="page-shell">
@@ -53,11 +61,11 @@ export default function Personas() {
       <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Total</p>
-          <p className="mt-3 text-2xl font-semibold">{personas.length}</p>
+          <p className="mt-3 text-2xl font-semibold">{totalPersonas}</p>
         </div>
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Coincidencias</p>
-          <p className="mt-3 text-2xl font-semibold">{filtradas.length}</p>
+          <p className="mt-3 text-2xl font-semibold">{totalPersonas}</p>
         </div>
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Con teléfono</p>
@@ -93,7 +101,7 @@ export default function Personas() {
         <div className="p-4 border-b border-border flex items-center gap-2">
           <Search className="w-4 h-4 text-muted" />
           <input aria-label="Buscar personas" className="bg-transparent outline-none text-sm flex-1" placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-          <span className="text-xs text-muted">{filtradas.length} personas</span>
+          <span className="text-xs text-muted">{totalPersonas} personas</span>
         </div>
 
         {filtradas.length === 0 ? (
@@ -123,6 +131,7 @@ export default function Personas() {
           </div>
         )}
       </div>
+      {totalPersonas > 0 && <div className="flex items-center justify-between gap-3 text-xs text-secondary"><span>Página {page + 1} de {totalPages}</span><div className="flex gap-2"><button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">Anterior</button><button type="button" disabled={page >= totalPages - 1} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">Siguiente</button></div></div>}
     </div>
   )
 }
