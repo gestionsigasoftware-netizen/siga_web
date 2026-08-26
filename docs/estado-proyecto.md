@@ -24,6 +24,8 @@ Ultima validacion conocida:
 - Centro de notificaciones.
 - Preferencias personales: notificaciones, alertas y formato regional de fecha.
 - Configuracion de congregacion y catalogos operativos.
+- Edicion del nombre de la congregacion desde Configuracion local; el distrito
+	se muestra como referencia de solo lectura en el Sidebar.
 
 ### Acceso y administracion
 

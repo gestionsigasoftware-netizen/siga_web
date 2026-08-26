@@ -69,6 +69,20 @@ with check (
   )
 );
 
+drop policy if exists congregaciones_update_local_pastor on congregaciones;
+create policy congregaciones_update_local_pastor on congregaciones
+for update to authenticated
+using (exists (
+  select 1 from roles_sistema r
+  where r.persona_id = mi_persona_id()
+    and r.nivel = 'local'
+    and r.congregacion_id = congregaciones.id
+    and r.fecha_fin is null
+    and coalesce(r.rol_local, 'pastor') = 'pastor'
+))
+with check (id in (select mis_congregaciones()));
+
+
 create or replace function actualizar_preferencias_usuario()
 returns trigger language plpgsql as $$
 begin

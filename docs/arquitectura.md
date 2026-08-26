@@ -62,6 +62,10 @@ La aplicacion web funciona como administracion, analisis y contingencia. La capt
 - Preferencias: configuracion personal y parametros operativos de la
 	congregacion.
 
+La identidad visible de una congregacion se administra desde Configuracion
+local. El nombre del distrito se obtiene de la relacion `distritos` y se
+presenta como referencia de solo lectura.
+
 La pantalla web de correccion de asistencia es una contingencia autorizada,
 no el canal normal de captura. La PWA futura debe conservar el contrato de
 `registros_actividad`; la funcion `resumen_asistencia_movil` solo expone

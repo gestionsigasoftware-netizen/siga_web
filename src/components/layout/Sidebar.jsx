@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -31,11 +31,28 @@ const NIVEL_LABEL = {
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [organization, setOrganization] = useState(null);
   const { signOut } = useAuth();
   const { rolPrincipal } = useMiRol();
   const nivel = rolPrincipal?.nivel;
   const rolLocal = rolPrincipal?.rol_local || "pastor";
   const puedeConfigurar = nivel === "local" && rolLocal === "pastor";
+
+  useEffect(() => {
+    setOrganization({
+      congregation: rolPrincipal?.congregaciones?.nombre,
+      district: rolPrincipal?.congregaciones?.distritos?.nombre || rolPrincipal?.distritos?.nombre,
+    });
+  }, [rolPrincipal]);
+
+  useEffect(() => {
+    function updateOrganization(event) {
+      setOrganization(event.detail);
+    }
+
+    window.addEventListener("siga:organizacion-actualizada", updateOrganization);
+    return () => window.removeEventListener("siga:organizacion-actualizada", updateOrganization);
+  }, []);
 
   const items = [
     { to: "/", label: "Resumen", icon: LayoutDashboard, show: true },
@@ -160,16 +177,19 @@ export default function Sidebar() {
             <p className="mt-1.5 text-sm font-medium text-white">
               {NIVEL_LABEL[nivel]}
             </p>
-            <p className="text-xs text-white/55 truncate">
-              {rolPrincipal.congregaciones?.nombre ||
-                rolPrincipal.distritos?.nombre ||
-                "Acceso general"}
+            <p className="text-xs text-white/75 truncate">
+              {organization?.congregation || "Acceso general"}
             </p>
+            {organization?.district && (
+              <p className="text-[11px] text-white/45 truncate">
+                {organization.district}
+              </p>
+            )}
           </div>
         )}
 
         <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
-        <nav className="flex flex-row flex-wrap md:flex-col gap-1.5 md:flex-1 md:min-h-0 md:overflow-y-auto md:pr-1">
+        <nav className="flex flex-col gap-1.5 w-full max-h-[calc(100vh-220px)] overflow-y-auto overflow-x-hidden md:flex-1 md:min-h-0 md:max-h-none md:pr-1">
           {items.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}

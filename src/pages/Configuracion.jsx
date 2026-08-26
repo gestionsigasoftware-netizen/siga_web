@@ -41,6 +41,7 @@ export default function Configuracion() {
   const [categorias, setCategorias] = useState([])
   const [modulos, setModulos] = useState([])
   const [etapas, setEtapas] = useState([])
+  const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '' })
   const [preferencias, setPreferencias] = useState({ umbral_alerta: 15, modulo_predeterminado: '', exigir_responsable: true, exigir_novedades: false })
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -51,16 +52,18 @@ export default function Configuracion() {
     if (!congregacionId) { setLoading(false); return }
     setLoading(true)
     setError(null)
-    const [cat, mod, et] = await Promise.all([
+    const [cat, mod, et, congregation] = await Promise.all([
       supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
+      supabase.from('congregaciones').select('id, nombre, distrito_id, distritos(nombre)').eq('id', congregacionId).single(),
     ])
-    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : null
+    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : congregation.error ? 'la información de la congregación' : null
     if (failedCatalog) setError(`No se pudieron cargar las ${failedCatalog}. Intenta nuevamente.`)
     setCategorias(cat.data ?? [])
     setModulos((mod.data ?? []).map((item) => ({ ...item, nombre: item.nombre_modulo })))
     setEtapas(et.data ?? [])
+    if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '' })
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()
     if (configError) setError('No se pudieron cargar las preferencias de la congregación.')
     if (config) setPreferencias({ ...config, modulo_predeterminado: config.modulo_predeterminado ?? '' })
@@ -71,10 +74,17 @@ export default function Configuracion() {
     event.preventDefault()
     setSaving(true)
     setNotice(null)
+    const { data: congregation, error: congregationError } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
+    if (congregationError) { setSaving(false); setError(`No se pudo cargar la congregación: ${congregationError.message}`); return }
+    const { error: organizationError } = await supabase.from('congregaciones').update({ nombre: organizacion.nombre.trim() }).eq('id', congregacionId)
+    if (organizationError) { setSaving(false); setError(`No se pudo guardar el nombre de la congregación: ${organizationError.message}`); return }
     const { error } = await supabase.from('configuracion_congregacion').upsert({ ...preferencias, congregacion_id: congregacionId, modulo_predeterminado: preferencias.modulo_predeterminado || null })
     setSaving(false)
     if (error) setError(`No se pudo guardar la configuración: ${error.message}`)
-    else setNotice('Preferencias de la congregación guardadas.')
+    else {
+      window.dispatchEvent(new CustomEvent('siga:organizacion-actualizada', { detail: { congregation: organizacion.nombre.trim(), district: organizacion.distrito } }))
+      setNotice('Información y preferencias de la congregación guardadas.')
+    }
   }
 
   useEffect(() => { loadAll() }, [congregacionId])
@@ -128,6 +138,16 @@ export default function Configuracion() {
         </p>
       </div>
       {error && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={loadAll} className="btn-secondary text-xs">Reintentar</button></div>}
+
+      <form onSubmit={guardarPreferencias} className="card p-5 max-w-3xl">
+        <div className="mb-5"><h2 className="font-medium">Identidad de la congregación</h2><p className="text-sm text-secondary mt-1">Estos nombres aparecen en el encabezado del equipo de trabajo.</p></div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="text-sm">Nombre de la congregación<input required maxLength={120} className="input-field mt-1.5" value={organizacion.nombre} onChange={(e) => setOrganizacion({ ...organizacion, nombre: e.target.value })} /></label>
+          <label className="text-sm">Distrito<input readOnly className="input-field mt-1.5 opacity-75 cursor-default" value={organizacion.distrito} /></label>
+        </div>
+        <p className="text-xs text-muted mt-3">El distrito se muestra como referencia y se administra desde el nivel correspondiente.</p>
+        <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar información'}</button></div>
+      </form>
 
       <form onSubmit={guardarPreferencias} className="card p-5 max-w-3xl">
         <div className="mb-5"><h2 className="font-medium">Preferencias de la congregación</h2><p className="text-sm text-secondary mt-1">Define cómo se comportan las alertas y los registros de tu equipo.</p></div>
