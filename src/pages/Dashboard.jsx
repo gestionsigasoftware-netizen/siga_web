@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [registros, setRegistros] = useState([])
   const [categorias, setCategorias] = useState([])
   const [loadError, setLoadError] = useState(null)
+  const [handledAlerts, setHandledAlerts] = useState([])
 
   useEffect(() => {
     if (!rolPrincipal) return
@@ -73,6 +74,17 @@ export default function Dashboard() {
     load()
   }, [rolPrincipal])
 
+  async function handleAlert(alert) {
+    if (handledAlerts.includes(alert.id)) return
+    if (alert.persona_id) {
+      const followup = await supabase.from('seguimientos_pastorales').insert({ congregacion_id: alert.congregacion_id, persona_id: alert.persona_id, tipo_alerta: alert.tipo, accion: 'Alerta atendida', notas: alert.detalle })
+      if (followup.error) { setLoadError('No se pudo registrar el seguimiento de la alerta.'); return }
+    }
+    const result = await supabase.from('estados_alerta_pastoral').upsert({ clave: alert.clave, congregacion_id: alert.congregacion_id, estado: 'atendida', notas: alert.detalle }, { onConflict: 'clave' })
+    if (result.error) { setLoadError('El seguimiento se guardó, pero no se pudo cerrar la alerta.'); return }
+    setHandledAlerts((current) => [...current, alert.id])
+  }
+
   if (loadingRol) return <div className="h-64 flex items-center justify-center text-sm text-muted">Cargando tu espacio...</div>
 
   const hasData = Boolean(tendencia?.length)
@@ -96,6 +108,7 @@ export default function Dashboard() {
     return fecha >= inicioMesAnterior && fecha < finMesAnterior
   }).reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
   const variacion = mesAnterior ? Math.round(((asistentesMes - mesAnterior) / mesAnterior) * 100) : null
+  const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
 
   const chartData = {
     labels: tendencia?.map((t) => t.mes) ?? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
@@ -118,7 +131,7 @@ export default function Dashboard() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <StatTile label="Asistentes este mes" value={registros.length ? asistentesMes : '—'} />
-        <StatTile label="Alertas activas" value={alertas.length} tone={alertas.length > 0 ? 'danger' : 'default'} />
+        <StatTile label="Alertas activas" value={pendingAlerts.length} tone={pendingAlerts.length > 0 ? 'danger' : 'default'} />
         <StatTile label="Promedio por actividad" value={registros.length ? promedioMes : '—'} tone="success" />
       </div>
 
@@ -177,16 +190,16 @@ export default function Dashboard() {
 
       <div className="card p-5">
         <div className="flex justify-between items-center mb-4"><div><h3 className="font-medium">Alertas pastorales</h3><p className="text-xs text-secondary mt-1">Señales que requieren atención.</p></div>{ultimoRegistro && <span className="text-xs text-muted">Último registro: {ultimoRegistro.fecha}</span>}</div>
-        {alertas.length === 0 ? (
+        {alertas.filter((alerta) => !handledAlerts.includes(alerta.id)).length === 0 ? (
           <p className="text-sm text-muted">
             Sin alertas por ahora. Se alimentan de <code className="text-xs">vw_alertas_pastorales</code> (comparación
             mes contra mes por categoría, disparada cuando la caída supera el umbral configurado).
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {alertas.map((a) => (
+            {alertas.filter((alerta) => !handledAlerts.includes(alerta.id)).map((a) => (
               <div key={a.id} className="border-l-2 border-danger bg-danger-bg p-3 rounded-r">
-                <p className="text-sm font-medium text-danger">{a.titulo}</p>
+                <div className="flex items-start justify-between gap-3"><p className="text-sm font-medium text-danger">{a.titulo}</p><div className="flex gap-2 text-xs">{a.persona_id && <Link to={`/feligresia?persona=${a.persona_id}`} className="text-accent">Ver ficha</Link>}<button type="button" onClick={() => handleAlert(a)} className="text-danger">Atender</button></div></div>
                 <p className="text-xs text-secondary">{a.detalle}</p>
               </div>
             ))}
