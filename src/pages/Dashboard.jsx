@@ -23,6 +23,15 @@ const FRECUENCIAS = [
   ['semestral', 'Semestral'],
   ['anual', 'Anual'],
 ]
+const CATEGORIA_COLORS = [
+  ['#2a78d6', 'rgba(42,120,214,0.13)'],
+  ['#e06b35', 'rgba(224,107,53,0.1)'],
+  ['#008300', 'rgba(0,131,0,0.1)'],
+  ['#9a6bce', 'rgba(154,107,206,0.1)'],
+  ['#d03b3b', 'rgba(208,59,59,0.1)'],
+  ['#159a9c', 'rgba(21,154,156,0.1)'],
+  ['#c28a16', 'rgba(194,138,22,0.1)'],
+]
 
 function inicioSemanaISO(fecha) {
   const dia = fecha.getDay() || 7
@@ -136,6 +145,7 @@ export default function Dashboard() {
   const [alertas, setAlertas] = useState([])
   const [registros, setRegistros] = useState([])
   const [categorias, setCategorias] = useState([])
+  const [amigos, setAmigos] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [handledAlerts, setHandledAlerts] = useState([])
   const [handlingAlertId, setHandlingAlertId] = useState(null)
@@ -143,6 +153,9 @@ export default function Dashboard() {
   const [alertasTotal, setAlertasTotal] = useState(0)
   const [resumenFeligresia, setResumenFeligresia] = useState(null)
   const [frecuencia, setFrecuencia] = useState('mensual')
+  const [frecuenciaDetalle, setFrecuenciaDetalle] = useState('mensual')
+  const [aplicarFrecuenciaTodos, setAplicarFrecuenciaTodos] = useState(true)
+  const [categoriaSeleccionadaId, setCategoriaSeleccionadaId] = useState('general')
 
   useEffect(() => {
     if (!rolPrincipal) return
@@ -157,13 +170,15 @@ export default function Dashboard() {
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
 
-      const [{ data: registrosData, error: registrosError }, { data: categoriasData, error: categoriasError }] = await Promise.all([
+      const [{ data: registrosData, error: registrosError }, { data: categoriasData, error: categoriasError }, { data: amigosData, error: amigosError }] = await Promise.all([
         supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, modulos(nombre_modulo)').order('fecha', { ascending: false }).limit(500),
         supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
+        supabase.from('amigos').select('id, convertido, etapa_id, categoria_asignada_id, etapas_seguimiento(nombre, orden)').eq('congregacion_id', rolPrincipal.congregacion_id),
       ])
-      if (alertasError || alertasCountError || feligresiaError || registrosError || categoriasError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (alertasError || alertasCountError || feligresiaError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       setRegistros(registrosData ?? [])
       setCategorias(categoriasData ?? [])
+      setAmigos(amigosData ?? [])
     }
     load()
   }, [rolPrincipal])
@@ -192,11 +207,15 @@ export default function Dashboard() {
   const hasData = Boolean(registros.length)
   const nombreCongregacion = rolPrincipal?.congregaciones?.nombre
   const hoy = new Date()
-  const periodos = crearPeriodos(hoy, frecuencia)
-  const nombreFrecuencia = FRECUENCIA_LABELS[frecuencia].toLowerCase()
-  const nombrePeriodo = FRECUENCIA_PERIODOS[frecuencia]
+  const frecuenciaGraficos = frecuencia
+  const frecuenciaDetalleActiva = aplicarFrecuenciaTodos ? frecuencia : frecuenciaDetalle
+  const periodos = crearPeriodos(hoy, frecuenciaGraficos)
+  const periodosDetalle = crearPeriodos(hoy, frecuenciaDetalleActiva)
+  const nombreFrecuencia = FRECUENCIA_LABELS[frecuenciaGraficos].toLowerCase()
+  const nombreFrecuenciaDetalle = FRECUENCIA_LABELS[frecuenciaDetalleActiva].toLowerCase()
+  const nombrePeriodo = FRECUENCIA_PERIODOS[frecuenciaGraficos]
   const registrosPeriodo = registrosEnPeriodo(registros, periodos[periodos.length - 1])
-  const periodoAnterior = registrosEnPeriodo(registros, { inicio: desplazarPeriodo(periodos[periodos.length - 1].inicio, frecuencia, -1), fin: periodos[periodos.length - 1].inicio })
+  const registrosPeriodoDetalle = registrosEnPeriodo(registros, periodosDetalle[periodosDetalle.length - 1])
   const asistentesPeriodo = registrosPeriodo.reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
   const promedioPeriodo = registrosPeriodo.length ? Math.round(asistentesPeriodo / registrosPeriodo.length) : 0
   const asistenciaPorPeriodo = periodos.map((periodo) => {
@@ -213,15 +232,31 @@ export default function Dashboard() {
   })).sort((a, b) => b.total - a.total)
   const totalCategorias = categoriasConTotal.reduce((total, categoria) => total + categoria.total, 0)
   const categoriaPrincipal = categoriasConTotal[0]
-  const volumeCategories = categoriasConTotal.filter((categoria) => categoria.total > 0).slice(0, 4)
+  const anteriorTotal = registrosEnPeriodo(registros, { inicio: desplazarPeriodo(periodos[periodos.length - 1].inicio, frecuenciaGraficos, -1), fin: periodos[periodos.length - 1].inicio }).reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
+  const categoriaAmigos = categorias.find((categoria) => categoria.nombre.trim().toLowerCase() === 'amigos')
+  const categoriaSeleccionada = categorias.find((categoria) => categoria.id === categoriaSeleccionadaId)
+  const conteoCategoriaSeleccionada = categoriaSeleccionada
+    ? periodosDetalle.map((periodo) => registrosEnPeriodo(registros, periodo).reduce((total, registro) => total + Number(registro.desglose?.[categoriaSeleccionada.id] || 0), 0))
+    : periodosDetalle.map((periodo) => registrosEnPeriodo(registros, periodo).reduce((total, registro) => total + (registro.total_asistentes || 0), 0))
+  const conteoCategoriaActual = conteoCategoriaSeleccionada[conteoCategoriaSeleccionada.length - 1] || 0
+  const conteoCategoriaAnterior = categoriaSeleccionada
+    ? registrosEnPeriodo(registros, { inicio: desplazarPeriodo(periodosDetalle[periodosDetalle.length - 1].inicio, frecuenciaDetalleActiva, -1), fin: periodosDetalle[periodosDetalle.length - 1].inicio }).reduce((total, registro) => total + Number(registro.desglose?.[categoriaSeleccionada.id] || 0), 0)
+    : anteriorTotal
+  const variacionCategoria = conteoCategoriaAnterior ? Math.round(((conteoCategoriaActual - conteoCategoriaAnterior) / conteoCategoriaAnterior) * 100) : null
+  const asistenciaAmigos = asistenciaPorPeriodo.map((periodo) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoriaAmigos?.id] || 0), 0))
+  const totalAsistenciaAmigos = asistenciaAmigos.reduce((total, valor) => total + valor, 0)
+  const amigosConvertidos = amigos.filter((amigo) => amigo.convertido).length
+  const amigosEnRuta = amigos.length - amigosConvertidos
+  const amigosConCategoria = amigos.filter((amigo) => amigo.categoria_asignada_id).length
+  const volumeCategories = categoriasConTotal
   const volumeMonths = asistenciaPorPeriodo.map((periodo) => ({ label: periodo.label, records: periodo.registros }))
   const volumeChartData = {
     labels: volumeMonths.map((month) => month.label),
     datasets: volumeCategories.map((category, index) => ({
       label: category.nombre,
       data: volumeMonths.map((month) => month.records.reduce((total, registro) => total + Number(registro.desglose?.[category.id] || 0), 0)),
-      borderColor: ['#2a78d6', '#e06b35', '#008300', '#9a6bce'][index],
-      backgroundColor: ['rgba(42,120,214,0.1)', 'rgba(224,107,53,0.08)', 'rgba(0,131,0,0.08)', 'rgba(154,107,206,0.08)'][index],
+      borderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0],
+      backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][1],
       fill: true,
       tension: 0.42,
       pointRadius: 2,
@@ -238,7 +273,6 @@ export default function Dashboard() {
   const leadingShare = totalCategorias && categoriaPrincipal ? Math.round((categoriaPrincipal.total / totalCategorias) * 100) : 0
   const leadingTrend = volumeChartData.datasets[0]?.data
   const leadingChange = leadingTrend?.length > 1 && leadingTrend[0] ? Math.round(((leadingTrend[leadingTrend.length - 1] - leadingTrend[0]) / leadingTrend[0]) * 100) : null
-  const anteriorTotal = periodoAnterior.reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
   const variacion = anteriorTotal ? Math.round(((asistentesPeriodo - anteriorTotal) / anteriorTotal) * 100) : null
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
@@ -247,7 +281,7 @@ export default function Dashboard() {
   const chartData = {
     labels: asistenciaPorPeriodo.map((periodo) => periodo.label),
     datasets: [
-      ...categoriasConTotal.slice(0, 2).map((categoria, index) => ({ label: categoria.nombre, data: asistenciaPorPeriodo.map((periodo) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoria.id] || 0), 0)), borderColor: ['#2a78d6', '#e06b35'][index], backgroundColor: ['rgba(42,120,214,0.13)', 'rgba(224,107,53,0.1)'][index], fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: ['#2a78d6', '#e06b35'][index], borderWidth: 2.5 })),
+      ...categoriasConTotal.map((categoria, index) => ({ label: categoria.nombre, data: asistenciaPorPeriodo.map((periodo) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoria.id] || 0), 0)), borderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][1], fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], borderWidth: 2.5 })),
     ],
   }
 
@@ -297,12 +331,29 @@ export default function Dashboard() {
           <p className="eyebrow">Resumen</p>
           <h2 className="font-medium mt-1">Lectura de asistencia</h2>
         </div>
-        <label className="flex items-center gap-2 text-xs text-secondary">
-          <span>Frecuencia</span>
-          <select value={frecuencia} onChange={(event) => setFrecuencia(event.target.value)} className="input-field text-sm py-2">
-            {FRECUENCIAS.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-          </select>
-        </label>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Seleccionar frecuencia">
+          {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuencia(valor)} className={`text-xs px-3 py-2 rounded border ${frecuencia === valor ? 'bg-accent text-white border-accent' : 'border-border text-secondary hover:border-accent hover:text-accent'}`}>{etiqueta}</button>)}
+        </div>
+      </section>
+
+      <section className="card p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div><p className="eyebrow">Categoría seleccionada</p><h2 className="font-medium mt-1">Conteo para toma de decisiones</h2><p className="text-sm text-secondary mt-1">Selecciona una categoría para consultar el total de la {nombreFrecuenciaDetalle} elegido.</p></div>
+          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> Aplicar frecuencia a todos</label>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label="Seleccionar frecuencia de la categoría">
+          {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => aplicarFrecuenciaTodos ? setFrecuencia(valor) : setFrecuenciaDetalle(valor)} className={`text-xs px-2.5 py-1.5 rounded border ${frecuenciaDetalleActiva === valor ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{etiqueta}</button>)}
+        </div>
+        <div className="flex gap-2 flex-wrap mt-4" role="group" aria-label="Seleccionar categoría de asistencia">
+          <button type="button" onClick={() => setCategoriaSeleccionadaId('general')} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === 'general' ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>General</button>
+          {categorias.map((categoria) => <button type="button" key={categoria.id} onClick={() => setCategoriaSeleccionadaId(categoria.id)} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === categoria.id ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{categoria.nombre}</button>)}
+        </div>
+        <div className="grid sm:grid-cols-3 gap-4 mt-5">
+          <div><p className="text-xs text-muted">Asistentes {categoriaSeleccionada ? `de ${categoriaSeleccionada.nombre}` : 'totales'}</p><p className="text-3xl font-semibold mt-1">{conteoCategoriaActual}</p></div>
+          <div><p className="text-xs text-muted">Actividades del periodo</p><p className="text-3xl font-semibold mt-1">{registrosPeriodoDetalle.length}</p></div>
+          <div><p className="text-xs text-muted">Variación anterior</p><p className={`text-3xl font-semibold mt-1 ${variacionCategoria !== null && variacionCategoria < 0 ? 'text-danger' : 'text-success'}`}>{variacionCategoria === null ? '—' : `${variacionCategoria > 0 ? '+' : ''}${variacionCategoria}%`}</p></div>
+        </div>
+        <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || 'Asistencia total', data: conteoCategoriaSeleccionada, borderColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][0] : '#2a78d6', backgroundColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][1] : 'rgba(42,120,214,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
       </section>
 
       <div className="grid sm:grid-cols-3 gap-3">
@@ -331,6 +382,21 @@ export default function Dashboard() {
           <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">Composición</p><h2 className="font-medium mt-1">Dónde está el volumen</h2></div>{categoriaPrincipal && <span className="chart-highlight">{leadingShare}% líder</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="h-52"><Line data={volumeChartData} options={chartOptions} /></div><p className="summary-insight mt-3">{categoriaPrincipal.nombre} concentra {leadingShare}% de la asistencia registrada{leadingChange === null ? '.' : leadingChange >= 0 ? ` y creció ${leadingChange}% en las últimas seis ventanas.` : ` y bajó ${Math.abs(leadingChange)}% en las últimas seis ventanas.`}</p></> : <p className="text-sm text-muted py-10">Aún no hay desglose por categorías.</p>}</div>
         </section>
       )}
+
+      <section className="card p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div><p className="eyebrow">Amigos e integración</p><h2 className="font-medium mt-1">De la asistencia al acompañamiento</h2><p className="text-sm text-secondary mt-1">Separa lo que registra Ujieres de lo que gestiona la ruta pastoral.</p></div>
+          <Link to="/amigos" className="text-xs text-accent">Abrir ruta de amigos <ArrowRight className="inline w-3 h-3" /></Link>
+        </div>
+        <div className="grid sm:grid-cols-4 gap-4 mt-5">
+          <div><p className="text-xs text-muted">Asistencia “Amigos”</p><p className="text-2xl font-semibold mt-1">{categoriaAmigos ? totalAsistenciaAmigos : '—'}</p><p className="text-xs text-secondary mt-1">Suma del desglose de Ujieres</p></div>
+          <div><p className="text-xs text-muted">Amigos en ruta</p><p className="text-2xl font-semibold mt-1">{amigosEnRuta}</p><p className="text-xs text-secondary mt-1">Registros no convertidos</p></div>
+          <div><p className="text-xs text-muted">Convertidos</p><p className="text-2xl font-semibold mt-1 text-success">{amigosConvertidos}</p><p className="text-xs text-secondary mt-1">Marcados en la ruta</p></div>
+          <div><p className="text-xs text-muted">Con categoría asignada</p><p className="text-2xl font-semibold mt-1">{amigosConCategoria}</p><p className="text-xs text-secondary mt-1">Listos para integración</p></div>
+        </div>
+        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: 'rgba(224,107,53,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">No existe una categoría demográfica llamada “Amigos”. Ujieres no puede reflejar esa asistencia hasta que se cree en Configuración.</p>}
+        <p className="text-xs text-muted mt-4">Importante: esta asistencia es un total por categoría; no identifica cuál amigo asistió. Para medir conversión individual habría que registrar el amigo como persona o añadir un vínculo de asistencia por amigo.</p>
+      </section>
 
       {rolPrincipal?.nivel === 'local' && (
         <section>

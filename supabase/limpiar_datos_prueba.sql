@@ -1,0 +1,42 @@
+-- SIGA - Limpieza del seed de carga visual.
+-- SOLO elimina filas marcadas por seed_datos_prueba.sql en la congregacion demo.
+-- Ejecutar despues de terminar las pruebas.
+
+begin;
+
+do $$
+declare
+  v_congregacion_id uuid;
+begin
+  select id into v_congregacion_id
+  from congregaciones
+  where es_demo = true
+  order by created_at
+  limit 1;
+
+  if v_congregacion_id is null then
+    raise exception 'No existe una congregacion demo.';
+  end if;
+
+  delete from notificaciones where titulo like 'SIGA_PRUEBA_CARGA%';
+  delete from amigos_notas where amigo_id in (select id from amigos where congregacion_id = v_congregacion_id and nombres like 'Amigo Prueba % Carga');
+  delete from registros_actividad where congregacion_id = v_congregacion_id and novedades = 'SIGA_PRUEBA_CARGA';
+  delete from seguimientos_pastorales where congregacion_id = v_congregacion_id and notas = 'SIGA_PRUEBA_CARGA';
+  delete from historial_cargos where observaciones = 'SIGA_PRUEBA_CARGA' and persona_id in (select id from personas where congregacion_id = v_congregacion_id and observaciones_pastorales = 'SIGA_PRUEBA_CARGA');
+  delete from membresias_comite where comite_id in (select id from comites where congregacion_id = v_congregacion_id and descripcion = 'SIGA_PRUEBA_CARGA');
+  delete from amigos where congregacion_id = v_congregacion_id and nombres like 'Amigo Prueba % Carga';
+  delete from comites where congregacion_id = v_congregacion_id and descripcion = 'SIGA_PRUEBA_CARGA';
+  delete from zonas where congregacion_id = v_congregacion_id and nombre like 'SIGA_PRUEBA_CARGA%';
+  delete from personas where congregacion_id = v_congregacion_id and observaciones_pastorales = 'SIGA_PRUEBA_CARGA';
+  delete from familias where congregacion_id = v_congregacion_id and nombre_familia like 'SIGA_PRUEBA_CARGA%';
+
+  raise notice 'Datos de prueba eliminados de la congregacion demo.';
+end $$;
+
+commit;
+
+select 'personas' as entidad, count(*) as filas from personas where observaciones_pastorales = 'SIGA_PRUEBA_CARGA'
+union all select 'familias', count(*) from familias where nombre_familia like 'SIGA_PRUEBA_CARGA%'
+union all select 'comites', count(*) from comites where descripcion = 'SIGA_PRUEBA_CARGA'
+union all select 'seguimientos', count(*) from seguimientos_pastorales where notas = 'SIGA_PRUEBA_CARGA'
+union all select 'asistencias', count(*) from registros_actividad where novedades = 'SIGA_PRUEBA_CARGA';
