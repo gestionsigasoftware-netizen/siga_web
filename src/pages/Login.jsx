@@ -31,7 +31,7 @@ export default function Login() {
     const { error } = await signIn(email, password)
     setLoading(false)
     if (error) { setError('Usuario o contraseña incorrectos.'); return }
-    navigate('/')
+    navigate('/app')
   }
 
   async function handlePasswordRecovery() {
@@ -62,7 +62,7 @@ export default function Login() {
     if (updateError) { setError('No se pudo actualizar la contraseña. Solicita un enlace nuevo.'); return }
     setNewPassword('')
     if (isInvitation) {
-      navigate('/')
+      navigate('/app')
       return
     }
     setIsRecovery(false)
@@ -75,10 +75,10 @@ export default function Login() {
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
           <div className="relative">
-            <div className="flex items-center gap-3">
+            <Link to="/" className="inline-flex items-center gap-3" aria-label="Volver a la página principal de SIGA">
               <div className="w-10 h-10 rounded bg-white text-ink flex items-center justify-center font-semibold">S</div>
               <span className="text-lg font-semibold tracking-wide">SIGA</span>
-            </div>
+            </Link>
             <div className="mt-28 max-w-md">
               <p className="text-sm uppercase tracking-[0.18em] text-white/60">Gestión pastoral inteligente</p>
               <h2 className="mt-4 text-5xl font-semibold leading-[1.05]">Decisiones pastorales con información clara.</h2>
@@ -96,10 +96,10 @@ export default function Login() {
 
         <section className="flex items-center justify-center p-7 sm:p-12">
           <div className="w-full max-w-sm">
-            <div className="flex items-center gap-3 mb-14 lg:hidden">
+            <Link to="/" className="inline-flex items-center gap-3 mb-14 lg:hidden" aria-label="Volver a la página principal de SIGA">
               <div className="w-9 h-9 rounded bg-ink text-white flex items-center justify-center font-semibold">S</div>
               <span className="font-semibold tracking-wide">SIGA</span>
-            </div>
+            </Link>
             <div className="mb-8">
               <p className="text-sm font-medium text-accent mb-3">{isRecovery ? (isInvitation ? 'Invitación a SIGA' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>
               <h1 className="text-3xl font-semibold tracking-tight">{isRecovery ? (isInvitation ? 'Crea tu contraseña' : 'Actualiza tu acceso') : 'Entra a tu espacio SIGA'}</h1>
@@ -135,6 +135,7 @@ export default function Login() {
               <button type="submit" disabled={loading} className="btn-primary justify-center mt-2 py-3">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Ingresar a SIGA <ArrowUpRight className="w-4 h-4" /></>}
               </button>
+              <Link to="/" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver a la página principal</Link>
             </form>}
 
             <div className="flex items-center gap-2 mt-8 text-xs text-muted">

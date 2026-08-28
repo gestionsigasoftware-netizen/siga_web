@@ -24,6 +24,7 @@ export default function RegistrarAsistencia() {
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
   const [motivoCaptura, setMotivoCaptura] = useState('')
   const [canCapture, setCanCapture] = useState(false)
+  const [captureRules, setCaptureRules] = useState({ exigir_responsable: true, exigir_novedades: false })
   const [loadingPermission, setLoadingPermission] = useState(true)
   const [loadingData, setLoadingData] = useState(true)
   const [registros, setRegistros] = useState([])
@@ -41,13 +42,15 @@ export default function RegistrarAsistencia() {
       supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).eq('estado_membresia', 'activo'),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
+      supabase.from('configuracion_congregacion').select('exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle(),
       supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').order('fecha', { ascending: false }).limit(10),
-    ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, registrosResult]) => {
-      const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, registrosResult].find((result) => result.error)
+    ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult]) => {
+      const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult].find((result) => result.error)
       if (failed) setError('No se pudo cargar toda la información. Verifica la conexión con Supabase.')
       setModulos(modulosResult.data ?? [])
       setCategorias(categoriasResult.data ?? [])
       setResponsables(responsablesResult.data ?? [])
+      if (configResult.data) setCaptureRules(configResult.data)
       setRegistros(registrosResult.data ?? [])
       setCanCapture(Boolean(capture.data || admin.data))
       setLoadingPermission(false)
@@ -87,7 +90,8 @@ export default function RegistrarAsistencia() {
     e.preventDefault()
     const total = Object.values(conteos).reduce((a, b) => a + b, 0)
     const modulo = modulos.find((item) => item.id === moduloId)
-    if (!responsableId || total <= 0) { setError('Elige un responsable e ingresa al menos un asistente.'); return }
+    if ((captureRules.exigir_responsable && !responsableId) || total <= 0) { setError(`${captureRules.exigir_responsable ? 'Elige un responsable e ' : ''}ingresa al menos un asistente.`); return }
+    if (captureRules.exigir_novedades && !novedades.trim()) { setError('Escribe las novedades de la actividad según la configuración de la congregación.'); return }
     if (modulo?.requiere_zona && !zonaId) { setError('Selecciona el barrio o zona de la actividad.'); return }
     const duplicate = registros.some((registro) => registro.fecha === fecha && registro.modulo_id === moduloId && registro.tipo_actividad_id === tipoId && (registro.zona_id || null) === (zonaId || null))
     if (duplicate && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) return
@@ -155,8 +159,8 @@ export default function RegistrarAsistencia() {
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Responsable de tomar asistencia</label>
-          <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field" required>
+          <label className="text-sm text-secondary block mb-1">Responsable de tomar asistencia{captureRules.exigir_responsable ? '' : ' (opcional)'}</label>
+          <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field" required={captureRules.exigir_responsable}>
             <option value="">Selecciona un responsable</option>
             {responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
           </select>
@@ -175,8 +179,8 @@ export default function RegistrarAsistencia() {
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Novedades</label>
-          <textarea value={novedades} onChange={(e) => setNovedades(e.target.value)} className="input-field" rows={2} placeholder="Sin novedades" />
+          <label className="text-sm text-secondary block mb-1">Novedades{captureRules.exigir_novedades ? '' : ' (opcional)'}</label>
+          <textarea required={captureRules.exigir_novedades} value={novedades} onChange={(e) => setNovedades(e.target.value)} className="input-field" rows={2} placeholder="Sin novedades" />
         </div>
 
         <div>

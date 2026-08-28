@@ -1,0 +1,13 @@
+import { ArrowLeft, MailQuestion, ShieldCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+
+const questions = [
+  ['¿Cómo obtengo acceso?', 'SIGA es una aplicación privada. Solicita al pastor o administrador de tu congregación que cree tu acceso y te envíe la invitación.'],
+  ['¿Puedo registrarme sin invitación?', 'No. El registro abierto está desactivado para proteger la información de las congregaciones.'],
+  ['¿Qué hago si olvidé mi contraseña?', 'Usa la opción “¿Olvidaste tu contraseña?” en el inicio de sesión para recibir un enlace de recuperación.'],
+  ['¿Por qué no veo un módulo?', 'Los módulos dependen de tu congregación, nivel y permisos. Consulta al administrador si necesitas otro acceso.'],
+]
+
+export default function Ayuda() {
+  return <main className="min-h-screen bg-[#f4f1eb] text-ink px-5 sm:px-8 py-6"><div className="max-w-3xl mx-auto"><Link to="/" className="inline-flex items-center gap-2 text-sm text-secondary hover:text-ink"><ArrowLeft className="w-4 h-4" /> Inicio</Link><header className="mt-16"><p className="eyebrow">Centro de ayuda</p><h1 className="text-4xl font-semibold mt-3">Respuestas para empezar</h1><p className="text-secondary leading-7 mt-4 max-w-2xl">SIGA trabaja con accesos autorizados por cada congregación. Aquí encuentras las respuestas más comunes antes de entrar.</p></header><section className="mt-10 grid gap-3">{questions.map(([question, answer]) => <details key={question} className="border border-border rounded-card bg-surface-2 p-5 group"><summary className="font-medium cursor-pointer list-none flex justify-between gap-4">{question}<span className="text-accent group-open:rotate-45 transition-transform">+</span></summary><p className="text-sm text-secondary leading-6 mt-3 max-w-2xl">{answer}</p></details>)}</section><section id="acceso" className="mt-10 border border-accent/20 rounded-card bg-accent-bg p-6"><MailQuestion className="w-5 h-5 text-accent" /><h2 className="font-medium mt-4">¿Necesitas acceso?</h2><p className="text-sm text-secondary leading-6 mt-2">Contacta al responsable de SIGA en tu congregación. Él podrá registrarte, asignarte el perfil adecuado y enviarte la invitación.</p><p className="text-xs text-muted mt-4">No compartas contraseñas ni solicites que se creen usuarios desde cuentas de terceros.</p></section><div className="flex items-center gap-2 text-xs text-muted mt-10"><ShieldCheck className="w-4 h-4 text-success" /> Tu acceso depende de los permisos asignados a tu cuenta.</div></div></main>
+}

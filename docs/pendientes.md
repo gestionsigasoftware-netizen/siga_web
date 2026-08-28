@@ -28,6 +28,18 @@
 
 ## Mejoras funcionales pendientes
 
+### Comités y Feligresía
+
+- Completar búsqueda remota de personas para asignar integrantes de comités.
+- Completar formulario de comité con responsable, tipo, propósito,
+	observaciones y vigencias.
+- Crear UI para administrar catálogos de tipos y cargos normalizados.
+- Separar en RLS y UI los permisos específicos de comités.
+- Completar tabla accesible y filtros del historial de comités.
+- Ejecutar pruebas Supabase de concurrencia, fechas, reemplazos, aislamiento
+	entre congregaciones y perfiles.
+- Revisar cálculo de responsabilidades próximas a vencer.
+
 - Interfaz para registrar lecciones individuales de grupos en `mision_lecciones`.
 - Asistencia individual por estudiante en `mision_asistencia_estudiante`.
 - Registro y administracion de lideres de Mision Juvenil.
@@ -36,8 +48,8 @@
 - Registro publico controlado de nuevas congregaciones, si el negocio lo requiere.
 - La UI para administrar tipos de actividad ya esta disponible en Modulos y
 	actividades; queda pendiente ampliar la configuracion solo si el negocio lo requiere.
-- Integrar en la UI la configuracion del umbral de alertas y reglas de captura
-	ya soportadas por `configuracion_congregacion`, si el negocio las requiere.
+- Probar en Supabase el umbral de alertas y las reglas de captura configuradas
+	por congregacion, especialmente con perfiles estadisticas y consulta.
 - PWA movil separada para captura offline y sincronizacion.
 
 ## Mantenimiento

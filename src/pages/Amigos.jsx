@@ -30,9 +30,11 @@ const EMPTY_FORM = {
   etapa_id: "",
   zona_id: "",
   evangelismo_metodologia_id: "",
+  fecha_nacimiento: "",
+  estado_civil: "soltero",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, categoria_asignada_id, created_at, etapas_seguimiento(nombre, orden), zonas(nombre)";
+  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, created_at, etapas_seguimiento(nombre, orden), zonas(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -49,6 +51,7 @@ export default function Amigos() {
   const [busqueda, setBusqueda] = useState("");
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_FORM);
+  const [transferName, setTransferName] = useState({ nombres: "", apellidos: "" });
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [newNote, setNewNote] = useState("");
@@ -145,7 +148,11 @@ export default function Amigos() {
       etapa_id: friend.etapa_id || "",
       zona_id: friend.zona_id || "",
       evangelismo_metodologia_id: friend.evangelismo_metodologia_id || "",
+      fecha_nacimiento: friend.fecha_nacimiento || "",
+      estado_civil: friend.estado_civil || "soltero",
     });
+    const nameParts = (friend.nombres || "").trim().split(/\s+/);
+    setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
     setNotes([]);
     setNewNote("");
     setNotesLoading(true);
@@ -229,15 +236,17 @@ export default function Amigos() {
     });
   }
 
-  async function markConverted() {
+  async function markBaptized() {
     if (!selected) return;
+    if (selected.persona_id) {
+      setError("La persona ya está incorporada a Feligresía y no puede volver a estado en ruta desde aquí.");
+      return;
+    }
     setSaving(true);
     setError(null);
     const values = {
-      convertido: !selected.convertido,
-      categoria_asignada_id: selected.convertido
-        ? null
-        : selected.categoria_asignada_id || null,
+      estado_espiritual: selected.estado_espiritual === "bautizado" ? "en_ruta" : "bautizado",
+      convertido: selected.estado_espiritual === "bautizado" ? false : true,
     };
     const { error: updateError } = await supabase
       .from("amigos")
@@ -255,6 +264,31 @@ export default function Amigos() {
       ),
     );
     setSelected((current) => ({ ...current, ...values }));
+  }
+
+  async function incorporateIntoFeligresia() {
+    if (!selected || selected.estado_espiritual !== "bautizado") return;
+    if (!editForm.fecha_nacimiento) {
+      setError("Registra la fecha de nacimiento antes de incorporar a Feligresía.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const { data: personaId, error: transferError } = await supabase.rpc("incorporar_amigo_bautizado", {
+      p_amigo_id: selected.id,
+      p_nombres: transferName.nombres,
+      p_apellidos: transferName.apellidos,
+      p_fecha_nacimiento: editForm.fecha_nacimiento || null,
+      p_estado_civil: editForm.estado_civil || "soltero",
+      p_fecha_ingreso: new Date().toISOString().slice(0, 10),
+    });
+    setSaving(false);
+    if (transferError) {
+      setError(`No se pudo incorporar a Feligresía: ${transferError.message}`);
+      return;
+    }
+    setSelected((current) => ({ ...current, persona_id: personaId }));
+    setAmigos((current) => current.map((friend) => friend.id === selected.id ? { ...friend, persona_id: personaId } : friend));
   }
 
   async function removeFriend() {
@@ -718,6 +752,28 @@ export default function Amigos() {
               </button>
             </form>
             <div className="mt-4 grid gap-2">
+              <p className="text-xs text-secondary">Confirma cómo aparecerá la persona en el censo ministerial.</p>
+              <label className="text-sm">Nombres para Feligresía<input className="input-field mt-1.5" value={transferName.nombres} onChange={(event) => setTransferName({ ...transferName, nombres: event.target.value })} /></label>
+              <label className="text-sm">Apellidos para Feligresía<input className="input-field mt-1.5" value={transferName.apellidos} onChange={(event) => setTransferName({ ...transferName, apellidos: event.target.value })} /></label>
+              <label className="text-sm">
+                Fecha de nacimiento para Feligresía
+                <input
+                  type="date"
+                  className="input-field mt-1.5"
+                  value={editForm.fecha_nacimiento}
+                  onChange={(event) => setEditForm({ ...editForm, fecha_nacimiento: event.target.value })}
+                />
+              </label>
+              <label className="text-sm">
+                Estado civil para Feligresía
+                <select className="input-field mt-1.5" value={editForm.estado_civil} onChange={(event) => setEditForm({ ...editForm, estado_civil: event.target.value })}>
+                  <option value="soltero">Soltero/a</option>
+                  <option value="casado">Casado/a</option>
+                  <option value="union_libre">Unión libre</option>
+                  <option value="divorciado">Divorciado/a</option>
+                  <option value="viudo">Viudo/a</option>
+                </select>
+              </label>
               <label className="text-sm">
                 Categoría al convertir
                 <select
@@ -741,14 +797,19 @@ export default function Amigos() {
               <button
                 type="button"
                 disabled={saving}
-                onClick={markConverted}
+                onClick={markBaptized}
                 className="btn-secondary justify-center"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {selected.convertido
-                  ? "Reabrir seguimiento"
-                  : "Marcar como convertido"}
+                {selected.estado_espiritual === "bautizado"
+                  ? "Volver a estado en ruta"
+                  : "Marcar como bautizado"}
               </button>
+              {selected.estado_espiritual === "bautizado" && (
+                <button type="button" disabled={saving || Boolean(selected.persona_id)} onClick={incorporateIntoFeligresia} className="btn-primary justify-center">
+                  {selected.persona_id ? "Ya está en Feligresía" : "Incorporar a Feligresía"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={saving}

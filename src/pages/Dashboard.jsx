@@ -67,6 +67,15 @@ function etiquetaPeriodo(inicio, frecuencia) {
   return inicio.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })
 }
 
+function etiquetaRango(periodos) {
+  const inicio = periodos[0]?.inicio
+  const fin = periodos[periodos.length - 1]?.fin
+  if (!inicio || !fin) return ''
+  const ultimoDia = new Date(fin)
+  ultimoDia.setDate(ultimoDia.getDate() - 1)
+  return `${inicio.toLocaleDateString('es-CO')} - ${ultimoDia.toLocaleDateString('es-CO')}`
+}
+
 function crearPeriodos(fecha, frecuencia, cantidad = 6) {
   const periodoActual = inicioPeriodo(fecha, frecuencia)
   return Array.from({ length: cantidad }, (_, indice) => {
@@ -80,6 +89,10 @@ function registrosEnPeriodo(registros, periodo) {
     const fecha = new Date(`${registro.fecha}T00:00:00`)
     return fecha >= periodo.inicio && fecha < periodo.fin
   })
+}
+
+function cantidadRegistros(registros) {
+  return registros.reduce((total, registro) => total + Number(registro.registros || 1), 0)
 }
 
 const FRECUENCIA_LABELS = Object.fromEntries(FRECUENCIAS)
@@ -147,6 +160,9 @@ export default function Dashboard() {
   const [categorias, setCategorias] = useState([])
   const [amigos, setAmigos] = useState([])
   const [loadError, setLoadError] = useState(null)
+  const [loadingData, setLoadingData] = useState(true)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [canHandleAlerts, setCanHandleAlerts] = useState(false)
   const [handledAlerts, setHandledAlerts] = useState([])
   const [handlingAlertId, setHandlingAlertId] = useState(null)
   const [showAllAlerts, setShowAllAlerts] = useState(false)
@@ -159,29 +175,56 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!rolPrincipal) return
+    let active = true
     async function load() {
+      setLoadingData(true)
       setLoadError(null)
-      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }] = await Promise.all([
-        supabase.from('vw_alertas_pastorales').select('*'),
-        supabase.from('vw_alertas_pastorales').select('clave', { count: 'exact', head: true }),
+      const alertasQuery = supabase.from('vw_alertas_pastorales').select('*')
+      const alertasCountQuery = supabase.from('vw_alertas_pastorales').select('clave', { count: 'exact', head: true })
+      if (rolPrincipal.nivel === 'local') {
+        alertasQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
+        alertasCountQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
+      }
+      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }] = await Promise.all([
+        alertasQuery,
+        alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
       ])
+      if (!active) return
       setAlertas(alertasData ?? [])
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
+      setCanHandleAlerts(Boolean(permisoAlertas))
 
       const [{ data: registrosData, error: registrosError }, { data: categoriasData, error: categoriasError }, { data: amigosData, error: amigosError }] = await Promise.all([
-        supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, modulos(nombre_modulo)').order('fecha', { ascending: false }).limit(500),
+        (() => {
+          const desde = new Date()
+          desde.setFullYear(desde.getFullYear() - 6)
+          return supabase.rpc('resumen_dashboard', {
+            p_congregacion_id: rolPrincipal.nivel === 'local' ? rolPrincipal.congregacion_id : null,
+            p_desde: desde.toISOString().slice(0, 10),
+          }).then(({ data, error }) => ({
+            data: (data ?? []).map((registro) => ({ ...registro, id: registro.fecha })),
+            error,
+          }))
+        })(),
         supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
-        supabase.from('amigos').select('id, convertido, etapa_id, categoria_asignada_id, etapas_seguimiento(nombre, orden)').eq('congregacion_id', rolPrincipal.congregacion_id),
+        (() => {
+          const query = supabase.from('amigos').select('id, convertido, etapa_id, categoria_asignada_id, etapas_seguimiento(nombre, orden)')
+          return rolPrincipal.nivel === 'local' ? query.eq('congregacion_id', rolPrincipal.congregacion_id) : query
+        })(),
       ])
-      if (alertasError || alertasCountError || feligresiaError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (!active) return
+      if (alertasError || alertasCountError || feligresiaError || permisoError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       setRegistros(registrosData ?? [])
       setCategorias(categoriasData ?? [])
       setAmigos(amigosData ?? [])
+      setLoadingData(false)
     }
     load()
-  }, [rolPrincipal])
+    return () => { active = false }
+  }, [rolPrincipal, reloadToken])
 
   async function handleAlert(alert) {
     if (handledAlerts.includes(alert.id) || handlingAlertId) return
@@ -203,6 +246,7 @@ export default function Dashboard() {
   }
 
   if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
+  if (loadingData) return <div className="module-loading flex-col gap-3" role="status"><span className="loading-dot" /><span>Cargando indicadores del resumen...</span>{loadError && <><p role="alert" className="text-sm text-danger">{loadError}</p><button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs">Reintentar</button></>}</div>
 
   const hasData = Boolean(registros.length)
   const nombreCongregacion = rolPrincipal?.congregaciones?.nombre
@@ -217,11 +261,11 @@ export default function Dashboard() {
   const registrosPeriodo = registrosEnPeriodo(registros, periodos[periodos.length - 1])
   const registrosPeriodoDetalle = registrosEnPeriodo(registros, periodosDetalle[periodosDetalle.length - 1])
   const asistentesPeriodo = registrosPeriodo.reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
-  const promedioPeriodo = registrosPeriodo.length ? Math.round(asistentesPeriodo / registrosPeriodo.length) : 0
+  const promedioPeriodo = cantidadRegistros(registrosPeriodo) ? Math.round(asistentesPeriodo / cantidadRegistros(registrosPeriodo)) : 0
   const asistenciaPorPeriodo = periodos.map((periodo) => {
     const registrosDelPeriodo = registrosEnPeriodo(registros, periodo)
     const total = registrosDelPeriodo.reduce((suma, registro) => suma + (registro.total_asistentes || 0), 0)
-    return { ...periodo, total, count: registrosDelPeriodo.length, registros: registrosDelPeriodo }
+    return { ...periodo, total, count: cantidadRegistros(registrosDelPeriodo), registros: registrosDelPeriodo }
   })
   const attendanceSeries = asistenciaPorPeriodo.map((periodo) => periodo.total)
   const averageSeries = asistenciaPorPeriodo.map((periodo) => periodo.count ? Math.round(periodo.total / periodo.count) : 0)
@@ -274,6 +318,7 @@ export default function Dashboard() {
   const leadingTrend = volumeChartData.datasets[0]?.data
   const leadingChange = leadingTrend?.length > 1 && leadingTrend[0] ? Math.round(((leadingTrend[leadingTrend.length - 1] - leadingTrend[0]) / leadingTrend[0]) * 100) : null
   const variacion = anteriorTotal ? Math.round(((asistentesPeriodo - anteriorTotal) / anteriorTotal) * 100) : null
+  const variacionAbsoluta = asistentesPeriodo - anteriorTotal
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
   const activeAlertCount = Math.max(alertasTotal - handledAlerts.length, 0)
@@ -350,14 +395,14 @@ export default function Dashboard() {
         </div>
         <div className="grid sm:grid-cols-3 gap-4 mt-5">
           <div><p className="text-xs text-muted">Asistentes {categoriaSeleccionada ? `de ${categoriaSeleccionada.nombre}` : 'totales'}</p><p className="text-3xl font-semibold mt-1">{conteoCategoriaActual}</p></div>
-          <div><p className="text-xs text-muted">Actividades del periodo</p><p className="text-3xl font-semibold mt-1">{registrosPeriodoDetalle.length}</p></div>
+          <div><p className="text-xs text-muted">Actividades del periodo</p><p className="text-3xl font-semibold mt-1">{cantidadRegistros(registrosPeriodoDetalle)}</p></div>
           <div><p className="text-xs text-muted">Variación anterior</p><p className={`text-3xl font-semibold mt-1 ${variacionCategoria !== null && variacionCategoria < 0 ? 'text-danger' : 'text-success'}`}>{variacionCategoria === null ? '—' : `${variacionCategoria > 0 ? '+' : ''}${variacionCategoria}%`}</p></div>
         </div>
         <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || 'Asistencia total', data: conteoCategoriaSeleccionada, borderColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][0] : '#2a78d6', backgroundColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][1] : 'rgba(42,120,214,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
       </section>
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <StatTile label={`Asistentes del ${nombrePeriodo}`} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? `${registrosPeriodo.length} actividades alimentan este resultado.` : 'Esperando los primeros registros.'} />
+        <StatTile label={`Asistentes del ${nombrePeriodo}`} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? `${cantidadRegistros(registrosPeriodo)} actividades alimentan este resultado.` : 'Esperando los primeros registros.'} />
         <StatTile label="Alertas activas" value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? 'Hay señales que requieren atención.' : 'No hay asuntos pendientes hoy.'} />
         <StatTile label="Promedio por actividad" value={registros.length ? promedioPeriodo : '—'} tone="success" series={averageSeries} insight={variacion === null ? 'Aún no hay un periodo comparable.' : `${variacion >= 0 ? 'Crecimiento' : 'Descenso'} del ${Math.abs(variacion)}% frente al periodo anterior.`} />
       </div>
@@ -367,16 +412,16 @@ export default function Dashboard() {
       {hasData && (
         <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
           <div className="card chart-card p-5">
-            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">Ritmo de asistencia</p><h2 className="font-medium mt-1">Lectura del periodo</h2></div><BarChart3 className="w-5 h-5 text-accent" /></div>
+            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">Ritmo de asistencia</p><h2 className="font-medium mt-1">Lectura del periodo</h2><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos)}</p></div><BarChart3 className="w-5 h-5 text-accent" /></div>
             <div className="grid sm:grid-cols-3 gap-4">
-              <div><p className="text-xs text-muted">Actividades</p><p className="text-2xl font-semibold mt-1">{registrosPeriodo.length}</p></div>
-              <div><p className="text-xs text-muted">Asistentes</p><p className="text-2xl font-semibold mt-1">{asistentesPeriodo}</p></div>
+              <div><p className="text-xs text-muted">Actividades</p><p className="text-2xl font-semibold mt-1">{cantidadRegistros(registrosPeriodo)}</p></div>
+              <div><p className="text-xs text-muted">Asistencias registradas</p><p className="text-2xl font-semibold mt-1">{asistentesPeriodo}</p></div>
               <div><p className="text-xs text-muted">Variación {nombreFrecuencia}</p><p className={`text-2xl font-semibold mt-1 ${variacion !== null && variacion < 0 ? 'text-danger' : 'text-success'}`}>{variacion === null ? '—' : `${variacion > 0 ? '+' : ''}${variacion}%`}</p></div>
             </div>
             <div className="h-28 mt-5"><Line data={periodChartData} options={periodChartOptions} /></div>
             <div className={`mt-5 flex items-start gap-3 rounded p-3 ${variacion !== null && variacion < 0 ? 'bg-danger-bg' : 'bg-success-bg'}`}>
               {variacion !== null && variacion < 0 ? <TrendingDown className="w-4 h-4 text-danger mt-0.5" /> : <TrendingUp className="w-4 h-4 text-success mt-0.5" />}
-              <p className="text-sm text-secondary">{variacion === null ? 'Aún no hay un periodo anterior comparable. Sigue capturando datos para construir una señal confiable.' : variacion < 0 ? `La asistencia bajó ${Math.abs(variacion)}% frente al periodo anterior. Conviene revisar las actividades con menor participación.` : `La asistencia creció ${variacion}% frente al periodo anterior. Identifica qué actividad está impulsando este resultado.`}{ultimoRegistro && <span className="block text-xs text-muted mt-1">Último registro: {ultimoRegistro.fecha}</span>}</p>
+              <p className="text-sm text-secondary">{variacion === null ? 'Aún no hay un periodo anterior comparable. Sigue capturando datos para construir una señal confiable.' : variacion < 0 ? `La asistencia bajó ${Math.abs(variacion)}% (${Math.abs(variacionAbsoluta)} registros) frente al periodo anterior. Conviene revisar las actividades con menor participación.` : `La asistencia creció ${variacion}% (${variacionAbsoluta} registros) frente al periodo anterior. Identifica qué actividad está impulsando este resultado.`}{ultimoRegistro && <span className="block text-xs text-muted mt-1">Último registro: {ultimoRegistro.fecha}</span>}</p>
             </div>
           </div>
           <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">Composición</p><h2 className="font-medium mt-1">Dónde está el volumen</h2></div>{categoriaPrincipal && <span className="chart-highlight">{leadingShare}% líder</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="h-52"><Line data={volumeChartData} options={chartOptions} /></div><p className="summary-insight mt-3">{categoriaPrincipal.nombre} concentra {leadingShare}% de la asistencia registrada{leadingChange === null ? '.' : leadingChange >= 0 ? ` y creció ${leadingChange}% en las últimas seis ventanas.` : ` y bajó ${Math.abs(leadingChange)}% en las últimas seis ventanas.`}</p></> : <p className="text-sm text-muted py-10">Aún no hay desglose por categorías.</p>}</div>
@@ -435,6 +480,7 @@ export default function Dashboard() {
 
       <div className="card chart-card p-5">
         <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
+          <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
         <div style={{ height: 260 }}>
           <Line data={chartData} options={chartOptions} />
         </div>
@@ -444,13 +490,13 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-4"><div><h3 className="font-medium">Alertas pastorales</h3></div>{ultimoRegistro && <span className="text-xs text-muted">Último registro: {ultimoRegistro.fecha}</span>}</div>
         {pendingAlerts.length === 0 ? (
           <p className="text-sm text-muted">
-            Sin alertas por ahora. Se generan al comparar la asistencia mensual por categoría cuando la caída supera el umbral configurado.
+            Sin alertas por ahora. SIGA revisa tendencias de asistencia y condiciones pastorales del censo, como familias pendientes, bautismo, asistencia individual y comités sin integrantes.
           </p>
         ) : (
           <div className="flex flex-col gap-3">
             {visibleAlerts.map((a) => (
               <div key={a.id} className={`alert-item ${a.prioridad === 'alta' ? 'alert-item-high' : ''}`}>
-                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 mb-1"><span className={`alert-priority ${a.prioridad === 'alta' ? 'alert-priority-high' : ''}`}>{a.prioridad || 'media'}</span><span className="text-[10px] uppercase tracking-[0.12em] text-muted">{ALERT_TYPE_LABELS[a.tipo] || 'Seguimiento'}</span></div><p className="text-sm font-medium text-ink">{a.titulo}</p></div><div className="flex gap-3 text-xs flex-shrink-0">{a.persona_id && <Link to={`/feligresia?persona=${a.persona_id}`} className="text-accent">Ver ficha</Link>}<button type="button" disabled={Boolean(handlingAlertId)} onClick={() => handleAlert(a)} className="text-accent disabled:opacity-50">{handlingAlertId === a.id ? 'Guardando...' : 'Atender'}</button></div></div>
+                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 mb-1"><span className={`alert-priority ${a.prioridad === 'alta' ? 'alert-priority-high' : ''}`}>{a.prioridad || 'media'}</span><span className="text-[10px] uppercase tracking-[0.12em] text-muted">{ALERT_TYPE_LABELS[a.tipo] || 'Seguimiento'}</span></div><p className="text-sm font-medium text-ink">{a.titulo}</p></div><div className="flex gap-3 text-xs flex-shrink-0">{a.persona_id && <Link to={`/feligresia?persona=${a.persona_id}`} className="text-accent">Ver ficha</Link>}{canHandleAlerts && <button type="button" disabled={Boolean(handlingAlertId)} onClick={() => handleAlert(a)} className="text-accent disabled:opacity-50">{handlingAlertId === a.id ? 'Guardando...' : 'Atender'}</button>}</div></div>
                 <p className="text-xs text-secondary mt-1">{a.detalle}</p><p className="text-xs text-muted mt-2">Siguiente paso: {alertRecommendation(a)}</p>
               </div>
             ))}

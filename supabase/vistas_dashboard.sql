@@ -11,7 +11,7 @@
 
 -- Tendencia mensual de asistencia por categoría demográfica.
 -- Lee el jsonb `desglose` de registros_actividad y lo despliega por categoría.
-create or replace view vw_tendencia_categoria as
+create or replace view vw_tendencia_categoria with (security_invoker = true) as
 select
   to_char(ra.fecha, 'Mon') as mes,
   date_trunc('month', ra.fecha) as mes_orden,
@@ -34,7 +34,7 @@ order by date_trunc('month', ra.fecha);
 -- Se elimina la versión anterior porque CREATE OR REPLACE VIEW no permite
 -- cambiar nombres ni reordenar columnas existentes.
 drop view if exists vw_alertas_pastorales;
-create view vw_alertas_pastorales as
+create view vw_alertas_pastorales with (security_invoker = true) as
 with alertas_asistencia as (
   select
     gen_random_uuid() as id,
@@ -61,6 +61,7 @@ with alertas_asistencia as (
     ) mensual
   ) comparado
   where total_mes_anterior is not null and total < total_mes_anterior
+    and mes < date_trunc('month', current_date)
     and (total_mes_anterior - total)::numeric / nullif(total_mes_anterior, 0) >= coalesce((select cc.umbral_alerta / 100 from configuracion_congregacion cc where cc.congregacion_id = comparado.congregacion_id), 0.15)
 ), alertas_ficha as (
   select gen_random_uuid() as id, p.congregacion_id || ':familia:' || p.id || ':' || to_char(current_date, 'YYYY-MM') as clave, p.congregacion_id,
@@ -106,3 +107,6 @@ left join estados_alerta_pastoral estados on estados.congregacion_id = alertas.c
     or estados.clave = substring(alertas.clave from position(':' in alertas.clave) + 1))
 where estados.estado is distinct from 'atendida'
 order by alertas.mes desc;
+
+alter view vw_tendencia_categoria set (security_invoker = true);
+alter view vw_alertas_pastorales set (security_invoker = true);

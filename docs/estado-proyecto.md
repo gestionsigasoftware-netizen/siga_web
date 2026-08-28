@@ -54,6 +54,8 @@ Ultima validacion conocida:
 - Dashboard, reportes, filtros, graficos y exportacion existente.
 - Funcion SQL `resumen_asistencia_movil` para resumen agregado por fecha,
 	protegida por acceso activo a la congregacion.
+- Funcion SQL `resumen_dashboard` para evitar descargar historicos completos
+	al navegador y conservar conteos agregados por fecha.
 - Seed de datos de demostracion repetible para poblar los modulos web actuales
 	en una congregacion demo.
 - La PWA movil queda preparada para alimentar `registros_actividad`, pero esta
@@ -68,6 +70,16 @@ Ultima validacion conocida:
 - Alta y edicion de zonas con responsable.
 - Metodologias y relacion de amigos con metodologia.
 - Permisos `evangelismo.consultar`, `evangelismo.editar` y `evangelismo.registrar`.
+
+### Red de Familias / DEFAM
+
+- Ruta protegida `/red-familias` y entrada debajo de Feligresía.
+- Panorama de familias, acompañamientos abiertos, visitas pendientes y
+	actividades realizadas.
+- Tablas `red_familias_casos`, `red_familias_visitas` y
+	`red_familias_actividades` con RLS por congregación.
+- Permisos `red_familias.consultar` y `red_familias.editar`.
+- El módulo consume `familias` y `personas`; no duplica el censo.
 
 ### Mision Juvenil
 

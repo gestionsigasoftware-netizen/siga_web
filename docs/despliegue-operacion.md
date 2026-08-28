@@ -33,7 +33,9 @@ Ejecutar en el SQL Editor de Supabase y revisar cada resultado:
 11. `supabase/mision_juvenil.sql`
 12. `supabase/actividad_personalizada.sql`
 13. `supabase/estadisticas_movil.sql`
-14. `supabase/seguridad_produccion.sql`
+14. `supabase/dashboard_analytics.sql`
+15. `supabase/reportes_analytics.sql`
+16. `supabase/seguridad_produccion.sql`
 
 `actividad_personalizada.sql` y `estadisticas_movil.sql` son migraciones de
 compatibilidad con la captura movil y dependen de las tablas base y de acceso.

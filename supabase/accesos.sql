@@ -72,9 +72,9 @@ insert into permisos_perfil (perfil_id, permiso)
 select p.id, x.permiso
 from perfiles_acceso p
 cross join (values
-  ('pastor', 'feligresia.consultar'), ('pastor', 'feligresia.editar'), ('pastor', 'estadisticas.consultar'), ('pastor', 'estadisticas.registrar'), ('pastor', 'reportes.consultar'), ('pastor', 'usuarios.administrar'), ('pastor', 'configuracion.administrar'), ('pastor', 'auditoria.consultar'),
-  ('estadisticas', 'feligresia.consultar'), ('estadisticas', 'estadisticas.consultar'), ('estadisticas', 'estadisticas.registrar'), ('estadisticas', 'reportes.consultar'),
-  ('consulta', 'feligresia.consultar'), ('consulta', 'estadisticas.consultar'), ('consulta', 'reportes.consultar')
+  ('pastor', 'feligresia.consultar'), ('pastor', 'feligresia.editar'), ('pastor', 'red_familias.consultar'), ('pastor', 'red_familias.editar'), ('pastor', 'estadisticas.consultar'), ('pastor', 'estadisticas.registrar'), ('pastor', 'reportes.consultar'), ('pastor', 'usuarios.administrar'), ('pastor', 'configuracion.administrar'), ('pastor', 'auditoria.consultar'),
+  ('estadisticas', 'feligresia.consultar'), ('estadisticas', 'red_familias.consultar'), ('estadisticas', 'estadisticas.consultar'), ('estadisticas', 'estadisticas.registrar'), ('estadisticas', 'reportes.consultar'),
+  ('consulta', 'feligresia.consultar'), ('consulta', 'red_familias.consultar'), ('consulta', 'estadisticas.consultar'), ('consulta', 'reportes.consultar')
 ) as x(codigo, permiso)
 where p.codigo = x.codigo
 on conflict do nothing;
@@ -129,7 +129,7 @@ returns boolean language sql stable security definer set search_path = public as
       and r.congregacion_id = p_congregacion_id
       and r.fecha_fin is null
       and coalesce(r.rol_local, 'pastor') = 'pastor'
-      and p_permiso in ('feligresia.consultar', 'feligresia.editar', 'estadisticas.consultar', 'estadisticas.registrar', 'reportes.consultar', 'usuarios.administrar', 'configuracion.administrar', 'auditoria.consultar')
+      and p_permiso in ('feligresia.consultar', 'feligresia.editar', 'red_familias.consultar', 'red_familias.editar', 'estadisticas.consultar', 'estadisticas.registrar', 'reportes.consultar', 'usuarios.administrar', 'configuracion.administrar', 'auditoria.consultar')
   );
 $$;
 

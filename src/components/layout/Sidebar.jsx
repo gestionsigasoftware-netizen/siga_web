@@ -55,10 +55,16 @@ export default function Sidebar() {
   }, []);
 
   const items = [
-    { to: "/", label: "Resumen", icon: LayoutDashboard, show: true },
+    { to: "/app", label: "Resumen", icon: LayoutDashboard, show: true },
     {
       to: "/feligresia",
       label: "Feligresía",
+      icon: HeartHandshake,
+      show: nivel === "local",
+    },
+    {
+      to: "/red-familias",
+      label: "Red de Familias",
       icon: HeartHandshake,
       show: nivel === "local",
     },

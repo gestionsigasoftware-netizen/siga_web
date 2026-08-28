@@ -89,6 +89,7 @@ export default function MisionJuvenil() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [canEdit, setCanEdit] = useState(false);
   const [institutionForm, setInstitutionForm] = useState({
     nombre: "",
     tipo: "publica",
@@ -173,6 +174,10 @@ export default function MisionJuvenil() {
   useEffect(() => {
     load();
   }, [congregacionId, periodo]);
+  useEffect(() => {
+    if (!congregacionId) return;
+    supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "mision_juvenil.editar" }).then(({ data }) => setCanEdit(Boolean(data)));
+  }, [congregacionId]);
   const students = estudiantes.filter(
     (student) =>
       (institucionFiltro === "todos" ||
@@ -344,6 +349,7 @@ export default function MisionJuvenil() {
           {error}
         </p>
       )}
+      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Misión Juvenil.</p>}
       {notice && (
         <p
           role="status"
@@ -537,7 +543,7 @@ export default function MisionJuvenil() {
       <section className="grid lg:grid-cols-3 gap-4">
         <form
           onSubmit={createInstitution}
-          className="card p-5 flex flex-col gap-2"
+          className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}
         >
           <h2 className="font-medium">Nueva institución</h2>
           <input
@@ -621,7 +627,7 @@ export default function MisionJuvenil() {
             <Plus className="w-4 h-4" /> Registrar institución
           </button>
         </form>
-        <form onSubmit={createStudent} className="card p-5 flex flex-col gap-2">
+        <form onSubmit={createStudent} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
           <h2 className="font-medium">Nuevo estudiante</h2>
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -708,7 +714,7 @@ export default function MisionJuvenil() {
             <Plus className="w-4 h-4" /> Registrar estudiante
           </button>
         </form>
-        <form onSubmit={createGroup} className="card p-5 flex flex-col gap-2">
+        <form onSubmit={createGroup} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
           <h2 className="font-medium">Nuevo grupo REFAM</h2>
           <input
             required

@@ -9,7 +9,7 @@
 - Cliente de datos y autenticacion: `src/lib/supabase.js` y `src/hooks/useAuth.js`.
 - Resolucion de alcance y rol: `src/hooks/useMiRol.js`.
 
-La aplicacion es una SPA. La ruta `/login` es la primera vista para usuarios sin sesion. La ruta `/` muestra el Dashboard despues de autenticarse. No se requiere Home publico para el sistema administrativo.
+La aplicacion es una SPA. La ruta `/` muestra una entrada publica breve, `/login` es el acceso privado y `/app` muestra el Dashboard despues de autenticarse. `/ayuda` contiene respuestas de acceso y `/legal` contiene la base de privacidad y condiciones de uso. No existe registro publico libre.
 
 ## Backend
 
@@ -52,7 +52,10 @@ La aplicacion web funciona como administracion, analisis y contingencia. La capt
 
 ## Modulos
 
-- Feligresia: censo y acompañamiento local.
+- Feligresia: censo ministerial y acompañamiento local. `personas` representa
+	el recurso humano de la congregacion: niños, adolescentes, jovenes, adultos
+	y personas mayores. Familias, comites, cargos y seguimientos se relacionan
+	con este censo.
 - Evangelismo: trabajo territorial y conversiones.
 - Mision Juvenil: instituciones, estudiantes, grupos REFAM y progreso espiritual.
 - Estadisticas y Reportes: consulta de registros agregados.
@@ -72,3 +75,16 @@ no el canal normal de captura. La PWA futura debe conservar el contrato de
 resumenes agregados a usuarios con acceso activo a la congregacion.
 
 No duplicar estos flujos en nuevas pantallas sin revisar primero las implementaciones existentes.
+
+## Limite entre Feligresia y trabajo extramural
+
+Feligresia no registra Amigos en ruta, zonas, metodologias de Evangelismo ni
+asistencia agregada de los modulos. Esos datos permanecen en sus respectivos
+flujos. Un Amigo convertido puede incorporarse al censo mediante un proceso de
+alta definido por la congregacion; no se debe mezclar automaticamente ni
+duplicar la persona.
+
+La fecha de nacimiento permite caracterizar la poblacion por edad. El estado
+civil, parentesco y familia permiten observar estructura de hogares, viudez y
+divorcio. Son señales de acompañamiento pastoral, no diagnósticos automáticos
+de disfuncionalidad familiar.

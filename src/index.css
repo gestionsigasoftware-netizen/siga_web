@@ -9,7 +9,10 @@
 
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    background: #f4f1eb;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(42, 120, 214, 0.06), transparent 28%),
+      radial-gradient(circle at 100% 18%, rgba(0, 131, 0, 0.035), transparent 24%),
+      #f4f1eb;
     color: #1c1f24;
   }
 
@@ -22,17 +25,24 @@
 
 @layer components {
   .card {
-    @apply bg-surface-2/90 border border-border rounded-card shadow-[0_12px_30px_rgba(21,27,34,0.055)];
-    backdrop-filter: blur(8px);
-    transition: border-color 180ms ease, box-shadow 180ms ease;
+    @apply bg-surface-2/90 border border-border rounded-card shadow-[0_14px_34px_rgba(21,27,34,0.07)];
+    backdrop-filter: blur(10px);
+    box-shadow: 0 14px 34px rgba(21, 27, 34, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .card:hover {
+    border-color: rgba(42, 120, 214, 0.2);
+    box-shadow: 0 18px 42px rgba(21, 27, 34, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
   .surface-panel {
-    @apply bg-surface-1 border border-border rounded-card;
+    @apply bg-surface-1 border border-border rounded-card shadow-[0_8px_22px_rgba(21,27,34,0.045)];
   }
 
   .stat-tile {
-    @apply bg-surface-1/90 border border-border rounded-card p-4 shadow-[0_10px_24px_rgba(21,27,34,0.045)];
+    @apply bg-surface-1/90 border border-border rounded-card p-4 shadow-[0_12px_28px_rgba(21,27,34,0.06)];
+    box-shadow: 0 12px 28px rgba(21, 27, 34, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.72);
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
 
@@ -156,7 +166,18 @@
     @apply flex items-center justify-between gap-3 rounded-card border border-border bg-surface-1 p-3;
   }
 
-  .modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4; }
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background: rgba(11, 11, 11, 0.34);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+  }
+
+  .fixed.inset-0[class~="bg-ink/30"] {
+    background: rgba(11, 11, 11, 0.34);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+  }
   .modal-panel { @apply w-full max-w-md rounded-card bg-surface-2 p-6 shadow-xl; }
 
   .summary-marker.bg-danger {
@@ -193,14 +214,17 @@
 
   .btn-primary {
     @apply bg-ink text-white px-4 py-2.5 rounded text-sm font-medium hover:opacity-90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-50;
+    box-shadow: 0 8px 18px rgba(11, 11, 11, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .btn-secondary {
     @apply bg-transparent border border-border text-ink px-4 py-2.5 rounded text-sm font-medium hover:bg-surface-1 hover:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all inline-flex items-center justify-center gap-2;
+    box-shadow: 0 5px 14px rgba(21, 27, 34, 0.045);
   }
 
   .input-field {
     @apply w-full bg-surface-2 border border-border rounded py-2 px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all;
+    box-shadow: inset 0 1px 2px rgba(21, 27, 34, 0.035), 0 2px 8px rgba(21, 27, 34, 0.025);
   }
 
   .navbtn {
@@ -251,9 +275,9 @@
 
   .sidebar-shell .navbtn-active {
     color: #ffffff;
-    background: linear-gradient(90deg, rgba(42, 120, 214, 0.3), rgba(42, 120, 214, 0.12));
-    border-color: rgba(113, 179, 247, 0.3);
-    box-shadow: inset 3px 0 0 #71b3f7, 0 8px 18px rgba(5, 12, 20, 0.2);
+    background: linear-gradient(90deg, rgba(42, 120, 214, 0.34), rgba(42, 120, 214, 0.14));
+    border-color: rgba(113, 179, 247, 0.34);
+    box-shadow: 0 8px 20px rgba(5, 12, 20, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .sidebar-signout {
@@ -269,14 +293,15 @@
 
   .app-main {
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(235, 241, 247, 0.72)),
+      radial-gradient(circle at 88% 0%, rgba(42, 120, 214, 0.07), transparent 26%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(235, 241, 247, 0.76)),
       #f4f1eb;
   }
 
   .main-header {
-    background: rgba(252, 252, 251, 0.78);
+    background: rgba(252, 252, 251, 0.84);
     backdrop-filter: blur(14px);
-    box-shadow: 0 8px 22px rgba(21, 27, 34, 0.035);
+    box-shadow: 0 10px 28px rgba(21, 27, 34, 0.065), inset 0 -1px 0 rgba(255, 255, 255, 0.72);
   }
 
   .module-loading {
@@ -295,4 +320,7 @@
 
   .page-shell { @apply flex flex-col gap-6; }
   .toolbar { @apply flex flex-wrap items-center gap-2; }
+
+  .feligresia-read-only > section form { display: none; }
+
 }
