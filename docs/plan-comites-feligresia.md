@@ -269,8 +269,8 @@ hasta su validación en Supabase.
 
 - Completar la búsqueda remota de personas del censo para asignaciones; la
   interfaz actual carga una lista local.
-- Completar el formulario visible de alta de comité con responsable, tipo,
-  propósito, observaciones y todos los campos de vigencia.
+- Completar la edición avanzada del responsable y tipo desde el detalle del
+  comité.
 - Crear la interfaz de administración de tipos y cargos normalizados.
 - Mostrar y editar responsable y tipo en el detalle del comité.
 - Aplicar permisos específicos `comites.consultar`, `comites.editar`,

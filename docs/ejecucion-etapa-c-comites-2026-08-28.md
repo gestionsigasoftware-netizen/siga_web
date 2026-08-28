@@ -33,10 +33,8 @@ Las métricas distinguen cargos obligatorios cubiertos de integrantes totales. U
 	cargada por la pantalla; no es un buscador remoto.
 - El catálogo de tipos y cargos existe en SQL, pero no tiene todavía una
 	pantalla de administración.
-- El formulario de alta no expone aún responsable, tipo, propósito,
-	observaciones y todos los campos normalizados del comité.
-- El responsable del comité no se puede seleccionar ni editar completamente
-	desde la interfaz.
+- El responsable y los campos normalizados ya se pueden capturar en el nuevo
+	formulario de alta; falta completar su edición avanzada en el detalle.
 - Los permisos específicos de comités aún no están separados completamente
 	del permiso general de edición de Feligresía.
 - La tabla accesible alternativa para el análisis y los filtros propios del
@@ -45,6 +43,13 @@ Las métricas distinguen cargos obligatorios cubiertos de integrantes totales. U
 	aislamiento entre congregaciones, fechas superpuestas, reemplazos y perfiles.
 - El cálculo de responsabilidades próximas a vencer requiere una revisión de
 	datos para incluir registros con fecha de finalización dentro del periodo.
+
+## Seguimiento pastoral revisado
+
+- La agenda permite filtrar por pendiente, completado, cancelado o todos.
+- La agenda permite buscar por persona o acción.
+- La validación de fechas del próximo contacto existe en interfaz y SQL.
+- Las acciones de escritura se ocultan visualmente en modo de solo lectura.
 
 ## Pendiente fuera de esta etapa
 

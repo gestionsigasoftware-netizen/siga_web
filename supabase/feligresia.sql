@@ -207,6 +207,23 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+create or replace function validar_seguimiento_pastoral()
+returns trigger language plpgsql as $$
+begin
+  if new.proxima_fecha is not null and new.proxima_fecha < new.fecha then
+    raise exception 'La próxima fecha no puede ser anterior a la fecha del seguimiento';
+  end if;
+  if new.estado = 'pendiente' and new.proxima_fecha is null then
+    raise exception 'Un seguimiento pendiente debe tener próxima fecha';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists seguimientos_pastorales_integridad on seguimientos_pastorales;
+create trigger seguimientos_pastorales_integridad before insert or update on seguimientos_pastorales
+for each row execute function validar_seguimiento_pastoral();
+
 create table if not exists estados_alerta_pastoral (
   clave text primary key,
   congregacion_id uuid not null references congregaciones(id) on delete cascade,

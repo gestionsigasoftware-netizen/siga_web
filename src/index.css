@@ -322,5 +322,9 @@
   .toolbar { @apply flex flex-wrap items-center gap-2; }
 
   .feligresia-read-only > section form { display: none; }
+  section.flex.flex-col.gap-4 > form:has(input[placeholder*="junta"]) { display: none; }
+  .feligresia-read-only button.text-success,
+  .feligresia-read-only button.text-danger,
+  .feligresia-read-only .border-t.border-border button.text-accent:last-child { display: none; }
 
 }

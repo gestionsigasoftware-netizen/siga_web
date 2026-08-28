@@ -31,8 +31,8 @@
 ### Comités y Feligresía
 
 - Completar búsqueda remota de personas para asignar integrantes de comités.
-- Completar formulario de comité con responsable, tipo, propósito,
-	observaciones y vigencias.
+- Completar edición avanzada de responsable y tipo desde el detalle del
+	comité.
 - Crear UI para administrar catálogos de tipos y cargos normalizados.
 - Separar en RLS y UI los permisos específicos de comités.
 - Completar tabla accesible y filtros del historial de comités.
