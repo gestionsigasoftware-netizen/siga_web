@@ -45,8 +45,10 @@ export default function Amigos() {
   const [metodologias, setMetodologias] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [amigos, setAmigos] = useState([]);
+  const [analysisAmigos, setAnalysisAmigos] = useState([]);
   const [page, setPage] = useState(0);
   const [totalAmigos, setTotalAmigos] = useState(0);
+  const [totalConvertidos, setTotalConvertidos] = useState(0);
   const [filtro, setFiltro] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
   const [selected, setSelected] = useState(null);
@@ -54,12 +56,15 @@ export default function Amigos() {
   const [transferName, setTransferName] = useState({ nombres: "", apellidos: "" });
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
+  const [stageHistory, setStageHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [canEdit, setCanEdit] = useState(false);
   const notesRequest = useRef(0);
 
   async function load() {
@@ -70,7 +75,7 @@ export default function Amigos() {
     }
     setLoading(true);
     setError(null);
-    const [stageResult, zoneResult, categoryResult, methodResult, friendResult] =
+    const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult] =
       await Promise.all([
         supabase
           .from("etapas_seguimiento")
@@ -104,13 +109,17 @@ export default function Amigos() {
           if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,sector.ilike.%${busqueda.trim()}%,telefono.ilike.%${busqueda.trim()}%`);
           return query;
         })(),
+        supabase.from("amigos").select("id", { count: "exact", head: true }).eq("congregacion_id", congregacionId).eq("convertido", true),
+        supabase.from("amigos").select("id, etapa_id, zona_id, evangelismo_metodologia_id, convertido, fecha_primer_contacto").eq("congregacion_id", congregacionId),
       ]);
     if (
       stageResult.error ||
       zoneResult.error ||
       categoryResult.error ||
       methodResult.error ||
-      friendResult.error
+      friendResult.error ||
+      convertedResult.error
+      || analysisResult.error
     )
       setError("No se pudo cargar la ruta de seguimiento.");
     setEtapas(stageResult.data ?? []);
@@ -119,6 +128,8 @@ export default function Amigos() {
     setMetodologias(methodResult.data ?? []);
     setAmigos(friendResult.data ?? []);
     setTotalAmigos(friendResult.count ?? 0);
+    setTotalConvertidos(convertedResult.count ?? 0);
+    setAnalysisAmigos(analysisResult.data ?? []);
     setLoading(false);
   }
 
@@ -127,13 +138,19 @@ export default function Amigos() {
   }, [congregacionId, page, filtro, busqueda]);
 
   useEffect(() => {
+    if (!congregacionId) return;
+    const roleCanEdit = rolPrincipal?.nivel === "local" && rolPrincipal?.rol_local !== "solo_lectura";
+    supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "evangelismo.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
+  }, [congregacionId, rolPrincipal]);
+
+  useEffect(() => {
     setPage(0);
   }, [filtro, busqueda]);
 
   const totalPages = Math.max(1, Math.ceil(totalAmigos / pageSize));
   const filtrados = useMemo(() => amigos, [amigos]);
-  const converted = amigos.filter((friend) => friend.convertido).length;
-  const active = amigos.length - converted;
+  const converted = totalConvertidos;
+  const active = Math.max(totalAmigos - converted, 0);
 
   function selectFriend(friend) {
     notesRequest.current += 1;
@@ -154,8 +171,10 @@ export default function Amigos() {
     const nameParts = (friend.nombres || "").trim().split(/\s+/);
     setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
     setNotes([]);
+    setStageHistory([]);
     setNewNote("");
     setNotesLoading(true);
+    setHistoryLoading(true);
     setError(null);
     const requestId = notesRequest.current;
     supabase
@@ -169,10 +188,22 @@ export default function Amigos() {
         setNotes(data ?? []);
         setNotesLoading(false);
       });
+    supabase
+      .from("historial_amigos")
+      .select("id, etapa_anterior_id, etapa_nueva_id, observacion, usuario_id, creado_en, etapa_anterior:etapas_seguimiento!historial_amigos_etapa_anterior_id_fkey(nombre), etapa_nueva:etapas_seguimiento!historial_amigos_etapa_nueva_id_fkey(nombre)")
+      .eq("amigo_id", friend.id)
+      .order("creado_en", { ascending: false })
+      .then(({ data, error: historyError }) => {
+        if (requestId !== notesRequest.current) return;
+        if (historyError) setError("No se pudo cargar el historial de etapas.");
+        setStageHistory(data ?? []);
+        setHistoryLoading(false);
+      });
   }
 
   async function createFriend(event) {
     event.preventDefault();
+    if (!canEdit) { setError("Tu perfil solo permite consultar Amigos en ruta."); return; }
     setSaving(true);
     setError(null);
     const payload = {
@@ -203,6 +234,7 @@ export default function Amigos() {
 
   async function saveFriend(event) {
     event.preventDefault();
+    if (!canEdit) { setError("Tu perfil solo permite consultar Amigos en ruta."); return; }
     if (!selected) return;
     setSaving(true);
     setError(null);
@@ -238,6 +270,7 @@ export default function Amigos() {
 
   async function markBaptized() {
     if (!selected) return;
+    if (!canEdit) { setError("Tu perfil no permite modificar el estado espiritual."); return; }
     if (selected.persona_id) {
       setError("La persona ya está incorporada a Feligresía y no puede volver a estado en ruta desde aquí.");
       return;
@@ -268,6 +301,7 @@ export default function Amigos() {
 
   async function incorporateIntoFeligresia() {
     if (!selected || selected.estado_espiritual !== "bautizado") return;
+    if (!canEdit) { setError("Tu perfil no permite incorporar personas a Feligresía."); return; }
     if (!editForm.fecha_nacimiento) {
       setError("Registra la fecha de nacimiento antes de incorporar a Feligresía.");
       return;
@@ -292,6 +326,7 @@ export default function Amigos() {
   }
 
   async function removeFriend() {
+    if (!canEdit) { setError("Tu perfil no permite eliminar seguimientos."); return; }
     if (
       !selected ||
       !window.confirm(
@@ -318,6 +353,7 @@ export default function Amigos() {
 
   async function addNote(event) {
     event.preventDefault();
+    if (!canEdit) { setError("Tu perfil no permite registrar notas."); return; }
     if (!selected || !newNote.trim()) return;
     setSaving(true);
     const { data, error: noteError } = await supabase
@@ -347,7 +383,7 @@ export default function Amigos() {
     );
 
   return (
-    <div className="page-shell">
+    <div className={`page-shell ${canEdit ? "" : "amigos-read-only"}`}>
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Ruta de integración</p>
@@ -357,14 +393,14 @@ export default function Amigos() {
             integración.
           </p>
         </div>
-        <button
+        {canEdit && <button
           type="button"
           onClick={() => setShowForm((current) => !current)}
           className="btn-primary"
         >
           <Plus className="w-4 h-4" />
           {showForm ? "Cerrar registro" : "Registrar amigo"}
-        </button>
+        </button>}
       </header>
       {error && (
         <p
@@ -396,6 +432,7 @@ export default function Amigos() {
           <p className="text-2xl font-semibold mt-3">{etapas.length}</p>
         </div>
       </section>
+      <FriendInsights amigos={analysisAmigos} etapas={etapas} zonas={zonas} metodologias={metodologias} />
       {showForm && (
         <form
           onSubmit={createFriend}
@@ -861,9 +898,28 @@ export default function Amigos() {
                 )}
               </div>
             </div>
+            <FriendStageHistory history={stageHistory} loading={historyLoading} />
           </aside>
         )}
       </div>
     </div>
   );
+}
+
+function FriendStageHistory({ history, loading }) {
+  return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">Historial de etapas</h3><span className="text-[10px] text-muted">{history.length} cambios</span></div>{loading ? <p className="text-xs text-muted mt-3">Cargando historial...</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || 'Inicio'} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || 'Sin etapa'}</p><p className="text-[10px] text-muted mt-1">{new Date(item.creado_en).toLocaleString('es-CO')}{item.usuario_id ? ` · ${item.usuario_id}` : ''}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay cambios de etapa registrados.</p>}</section>
+}
+
+function FriendInsights({ amigos, etapas, zonas, metodologias }) {
+  const oldContactDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const withoutRecentContact = amigos.filter((friend) => !friend.convertido && friend.fecha_primer_contacto && friend.fecha_primer_contacto < oldContactDate).length
+  const countBy = (key, items) => items.map((item) => ({ ...item, total: amigos.filter((friend) => friend[key] === item.id && !friend.convertido).length })).filter((item) => item.total > 0).sort((left, right) => right.total - left.total)
+  const stageTotals = countBy('etapa_id', etapas)
+  const zoneTotals = countBy('zona_id', zonas)
+  const methodTotals = countBy('evangelismo_metodologia_id', metodologias)
+  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 30 días desde el primer contacto. Conviene revisar la agenda, disponibilidad y próximo paso.</p>}</section>
+}
+
+function InsightList({ title, items }) {
+  return <div><h3 className="text-sm font-medium">{title}</h3>{items.length ? items.slice(0, 5).map((item) => <div key={item.id} className="flex justify-between gap-3 text-xs text-secondary mt-2"><span>{item.nombre}</span><strong className="text-ink">{item.total}</strong></div>) : <p className="text-xs text-muted mt-2">Sin datos disponibles.</p>}</div>
 }

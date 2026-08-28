@@ -30,7 +30,43 @@ end $$;
 -- Vincula el seguimiento individual de Amigos a la zona y metodología de la PWA.
 alter table zonas add column if not exists lider_persona_id uuid references personas(id) on delete set null;
 alter table amigos add column if not exists evangelismo_metodologia_id uuid references tipos_actividad(id) on delete set null;
+
+create table if not exists historial_amigos (
+  id uuid primary key default gen_random_uuid(),
+  amigo_id uuid not null references amigos(id) on delete cascade,
+  congregacion_id uuid not null references congregaciones(id) on delete cascade,
+  etapa_anterior_id uuid references etapas_seguimiento(id) on delete set null,
+  etapa_nueva_id uuid references etapas_seguimiento(id) on delete set null,
+  observacion text,
+  usuario_id uuid references auth.users(id) on delete set null default auth.uid(),
+  creado_en timestamptz not null default now()
+);
+
+create or replace function registrar_cambio_etapa_amigo()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' or new.etapa_id is distinct from old.etapa_id then
+    insert into historial_amigos (amigo_id, congregacion_id, etapa_anterior_id, etapa_nueva_id)
+    values (new.id, new.congregacion_id, case when tg_op = 'INSERT' then null else old.etapa_id end, new.etapa_id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists amigos_historial_etapa on amigos;
+create trigger amigos_historial_etapa after insert or update of etapa_id on amigos
+for each row execute function registrar_cambio_etapa_amigo();
+
+alter table historial_amigos enable row level security;
+drop policy if exists historial_amigos_read on historial_amigos;
+drop policy if exists historial_amigos_write on historial_amigos;
+create policy historial_amigos_read on historial_amigos for select to authenticated
+using (congregacion_id in (select mis_congregaciones()));
+create policy historial_amigos_write on historial_amigos for insert to authenticated
+with check (congregacion_id in (select mis_congregaciones()));
+
 create index if not exists amigos_evangelismo_analisis_idx on amigos (congregacion_id, zona_id, convertido, evangelismo_metodologia_id);
+create index if not exists historial_amigos_amigo_fecha_idx on historial_amigos (amigo_id, creado_en desc);
 create index if not exists registros_evangelismo_analisis_idx on registros_actividad (congregacion_id, modulo_id, zona_id, tipo_actividad_id, fecha desc);
 
 comment on table registros_actividad is 'Fuente oficial de asistencia de PWA para Ujieres y Evangelismo; desglose contiene las categorias demograficas.';

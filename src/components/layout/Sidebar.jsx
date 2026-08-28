@@ -16,6 +16,8 @@ import {
   ArrowRightLeft,
   MapPinned,
   BookOpen,
+  Heart,
+  UsersRound,
   Menu,
   X,
 } from "lucide-react";
@@ -28,6 +30,15 @@ const NIVEL_LABEL = {
   distrital: "Nivel Distrital",
   local: "Congregación",
 };
+
+function FamilyNetworkIcon({ className }) {
+  return (
+    <span className={`relative inline-flex items-center justify-center ${className || ""}`} aria-hidden="true">
+      <Heart className="absolute inset-0 h-full w-full" strokeWidth={1.8} />
+      <UsersRound className="relative h-[58%] w-[58%]" strokeWidth={2.2} />
+    </span>
+  );
+}
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,7 +70,7 @@ export default function Sidebar() {
     {
       to: "/feligresia",
       label: "Feligresía",
-      icon: HeartHandshake,
+      icon: FamilyNetworkIcon,
       show: nivel === "local",
     },
     {

@@ -326,5 +326,6 @@
   .feligresia-read-only button.text-success,
   .feligresia-read-only button.text-danger,
   .feligresia-read-only .border-t.border-border button.text-accent:last-child { display: none; }
+  .amigos-read-only form { display: none; }
 
 }

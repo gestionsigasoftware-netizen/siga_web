@@ -40,6 +40,15 @@
 	entre congregaciones y perfiles.
 - Revisar cálculo de responsabilidades próximas a vencer.
 
+### Amigos en ruta
+
+- Crear insights sobre contacto reciente, sin inferencias negativas sobre las
+	personas.
+- Administrar etapas y zonas desde una interfaz autorizada.
+- Incorporar fecha de nacimiento y estado civil al alta y edición general.
+- Ejecutar pruebas Supabase de aislamiento por congregación y zona, permisos y
+	sincronización con Evangelismo/PWA.
+
 - Interfaz para registrar lecciones individuales de grupos en `mision_lecciones`.
 - Asistencia individual por estudiante en `mision_asistencia_estudiante`.
 - Registro y administracion de lideres de Mision Juvenil.
