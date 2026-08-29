@@ -439,7 +439,7 @@ export default function Dashboard() {
           <div><p className="text-xs text-muted">Convertidos</p><p className="text-2xl font-semibold mt-1 text-success">{amigosConvertidos}</p><p className="text-xs text-secondary mt-1">Marcados en la ruta</p></div>
           <div><p className="text-xs text-muted">Con categoría asignada</p><p className="text-2xl font-semibold mt-1">{amigosConCategoria}</p><p className="text-xs text-secondary mt-1">Listos para integración</p></div>
         </div>
-        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: 'rgba(224,107,53,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">No existe una categoría demográfica llamada “Amigos”. Ujieres no puede reflejar esa asistencia hasta que se cree en Configuración.</p>}
+        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: 'rgba(224,107,53,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">Aún no hay información de asistencia de Amigos para mostrar.</p>}
         <p className="text-xs text-muted mt-4">Importante: esta asistencia es un total por categoría; no identifica cuál amigo asistió. Para medir conversión individual habría que registrar el amigo como persona o añadir un vínculo de asistencia por amigo.</p>
       </section>
 
@@ -473,7 +473,7 @@ export default function Dashboard() {
           <div className="w-11 h-11 rounded bg-success-bg text-success flex items-center justify-center flex-shrink-0"><Database className="w-5 h-5" /></div>
           <div>
             <h2 className="font-medium">Tu panel está listo para recibir datos</h2>
-            <p className="text-sm text-secondary mt-1 leading-6">Cuando la aplicación móvil registre actividades, aquí aparecerán las tendencias y alertas pastorales. Las métricas se mantienen vacías hasta tener información real.</p>
+            <p className="text-sm text-secondary mt-1 leading-6">Cuando haya nuevas actividades registradas, aquí aparecerán las tendencias y alertas pastorales. Las métricas se mantienen vacías hasta tener información real.</p>
           </div>
         </section>
       )}

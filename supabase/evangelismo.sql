@@ -31,6 +31,23 @@ end $$;
 alter table zonas add column if not exists lider_persona_id uuid references personas(id) on delete set null;
 alter table amigos add column if not exists evangelismo_metodologia_id uuid references tipos_actividad(id) on delete set null;
 
+create or replace function impedir_reversion_amigo_incorporado()
+returns trigger language plpgsql as $$
+begin
+  if new.persona_id is not null and (new.estado_espiritual <> 'bautizado' or not new.convertido) then
+    raise exception 'Solo un amigo bautizado puede incorporarse a Feligresía';
+  end if;
+  if old.persona_id is not null and (new.persona_id is distinct from old.persona_id or new.estado_espiritual <> 'bautizado' or not new.convertido) then
+    raise exception 'Una persona incorporada a Feligresía no puede volver a estado en ruta';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists amigos_no_reversion_incorporado on amigos;
+create trigger amigos_no_reversion_incorporado before update on amigos
+for each row execute function impedir_reversion_amigo_incorporado();
+
 create table if not exists historial_amigos (
   id uuid primary key default gen_random_uuid(),
   amigo_id uuid not null references amigos(id) on delete cascade,

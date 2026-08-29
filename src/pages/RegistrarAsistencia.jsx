@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
 function withRequestTimeout(request, milliseconds = 12000) {
-  return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Verifica la conexión con Supabase.')), milliseconds))])
+  return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Intenta nuevamente.')), milliseconds))])
 }
 
 export default function RegistrarAsistencia() {
@@ -46,7 +46,7 @@ export default function RegistrarAsistencia() {
       supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').order('fecha', { ascending: false }).limit(10),
     ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult]) => {
       const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult].find((result) => result.error)
-      if (failed) setError('No se pudo cargar toda la información. Verifica la conexión con Supabase.')
+      if (failed) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
       setModulos(modulosResult.data ?? [])
       setCategorias(categoriasResult.data ?? [])
       setResponsables(responsablesResult.data ?? [])
@@ -112,10 +112,10 @@ export default function RegistrarAsistencia() {
         motivo_captura: motivoCaptura,
         desglose: conteos,
       }))
-    } catch (requestError) { setSaving(false); setError(requestError.message); return }
+    } catch (requestError) { setSaving(false); setError('No se pudo guardar la corrección. Intenta nuevamente.'); return }
     setSaving(false)
     const { error } = result
-    if (error) { setError('No se pudo guardar: ' + error.message); return }
+    if (error) { setError('No se pudo guardar la corrección. Intenta nuevamente.'); return }
     setOk(true)
     setConteos({})
     setNovedades('')
@@ -130,7 +130,7 @@ export default function RegistrarAsistencia() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-medium">Corrección / contingencia de asistencia</h1>
-        <p className="text-sm text-secondary mt-0.5">La aplicación móvil es el canal principal. Usa esta pantalla solo para corregir un registro cuando la captura móvil no estuvo disponible.</p>
+        <p className="text-sm text-secondary mt-0.5">Usa esta pantalla solo para corregir un registro cuando la captura habitual no estuvo disponible.</p>
       </div>
 
       {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Tu perfil no tiene permiso para registrar correcciones de asistencia.</p>}
@@ -185,7 +185,7 @@ export default function RegistrarAsistencia() {
 
         <div>
           <label className="text-sm text-secondary block mb-1">Motivo de corrección o contingencia</label>
-          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La aplicación móvil no estuvo disponible o se corrigió un dato enviado" />
+          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La captura habitual no estuvo disponible o se corrigió un dato enviado" />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}

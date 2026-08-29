@@ -56,8 +56,15 @@ La aplicacion web funciona como administracion, analisis y contingencia. La capt
 	el recurso humano de la congregacion: niños, adolescentes, jovenes, adultos
 	y personas mayores. Familias, comites, cargos y seguimientos se relacionan
 	con este censo.
-- Evangelismo: trabajo territorial y conversiones.
-- Mision Juvenil: instituciones, estudiantes, grupos REFAM y progreso espiritual.
+- Evangelismo: trabajo territorial, conversiones y Ruta Evangelística.
+- REFAM (Reunión Familiar y de Amistad) pertenece a Misiones/Evangelismo y
+	también puede desarrollarse en Misión Juvenil como estrategia evangelística
+	juvenil.
+- Mision Juvenil: instituciones, estudiantes, grupos juveniles, REFAM juvenil
+	y progreso espiritual.
+- La navegación visible agrupa estos flujos bajo **Misiones y Evangelismo**;
+	las rutas técnicas `/evangelismo`, `/amigos` y `/mision-juvenil` se conservan
+	para compatibilidad.
 - Estadisticas y Reportes: consulta de registros agregados.
 - Pastoral Distrital: gestion de pastores y destinos distritales.
 - Modulos y actividades: catalogos de captura por congregacion, administrados

@@ -54,7 +54,7 @@ export default function ReportesOptimizado() {
       supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
       supabase.from('congregaciones').select('id, nombre').order('nombre'),
     ])
-    if (summaryResult.error || detailResult.error || categoryResult.error || congregationResult.error) setError('No se pudo cargar el reporte. Revisa la conexión y la migración reportes_analytics.sql.')
+    if (summaryResult.error || detailResult.error || categoryResult.error || congregationResult.error) setError('No se pudo cargar el reporte. Intenta nuevamente o contacta al administrador.')
     setSummary(summaryResult.data ?? [])
     setDetail(detailResult.data ?? [])
     setDetailTotal(detailResult.count ?? 0)

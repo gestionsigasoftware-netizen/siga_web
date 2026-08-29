@@ -1,5 +1,5 @@
-import { Suspense } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Suspense, useEffect, useLayoutEffect, useRef } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import NotificationCenter from './NotificationCenter'
 import { Link } from 'react-router-dom'
@@ -8,6 +8,33 @@ import { useMiRol } from '../../hooks/useMiRol'
 
 export default function MainLayout() {
   const { loading: roleLoading } = useMiRol()
+  const location = useLocation()
+  const scrollPositions = useRef({})
+  const locationKey = `${location.pathname}${location.search}`
+
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual'
+    const savedPosition = scrollPositions.current[locationKey] || 0
+    const restorePosition = () => {
+      window.scrollTo(0, savedPosition)
+      document.documentElement.scrollTop = savedPosition
+    }
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        restorePosition()
+        setTimeout(restorePosition, 80)
+      })
+    })
+    const savePosition = () => {
+      scrollPositions.current[locationKey] = window.scrollY || document.documentElement.scrollTop
+    }
+    window.addEventListener('scroll', savePosition, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      savePosition()
+      window.removeEventListener('scroll', savePosition)
+    }
+  }, [locationKey])
 
   return (
     <div className="min-h-screen bg-surface">

@@ -162,7 +162,7 @@ export default function MisionJuvenil() {
     const failed = [i, s, g, r, p].find((item) => item.error);
     if (failed)
       setError(
-        "No se pudo cargar Misión Juvenil. Ejecuta supabase/mision_juvenil.sql y verifica los permisos.",
+        "No se pudo cargar Misión Juvenil. Intenta nuevamente o contacta al administrador.",
       );
     setInstituciones(i.data ?? []);
     setEstudiantes(s.data ?? []);
@@ -418,7 +418,7 @@ export default function MisionJuvenil() {
       </p>
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Asistencia de la aplicación móvil</p>
+          <p className="eyebrow">Actividad juvenil registrada</p>
           <h2 className="font-medium mt-1">Actividad juvenil</h2>
           <div className="h-56 mt-4">
             <Line

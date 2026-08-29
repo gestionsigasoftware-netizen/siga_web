@@ -29,13 +29,14 @@ Ejecutar en el SQL Editor de Supabase y revisar cada resultado:
 7. `supabase/notificaciones.sql`
 8. `supabase/configuracion.sql`
 9. `supabase/evangelismo.sql`
-10. `supabase/asistencia_web.sql`
-11. `supabase/mision_juvenil.sql`
-12. `supabase/actividad_personalizada.sql`
-13. `supabase/estadisticas_movil.sql`
-14. `supabase/dashboard_analytics.sql`
-15. `supabase/reportes_analytics.sql`
-16. `supabase/seguridad_produccion.sql`
+10. `supabase/ruta_evangelistica.sql`
+11. `supabase/asistencia_web.sql`
+12. `supabase/mision_juvenil.sql`
+13. `supabase/actividad_personalizada.sql`
+14. `supabase/estadisticas_movil.sql`
+15. `supabase/dashboard_analytics.sql`
+16. `supabase/reportes_analytics.sql`
+17. `supabase/seguridad_produccion.sql`
 
 `actividad_personalizada.sql` y `estadisticas_movil.sql` son migraciones de
 compatibilidad con la captura movil y dependen de las tablas base y de acceso.

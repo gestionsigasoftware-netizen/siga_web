@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
   MapPinned,
   Pencil,
   Plus,
@@ -10,6 +12,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 
@@ -38,6 +41,9 @@ const FRIEND_FIELDS =
 
 export default function Amigos() {
   const pageSize = 50;
+  const [searchParams] = useSearchParams();
+  const station = searchParams.get("station");
+  const isBis = station === "bis";
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [etapas, setEtapas] = useState([]);
@@ -65,6 +71,10 @@ export default function Amigos() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [canEdit, setCanEdit] = useState(false);
+  const [routeStations, setRouteStations] = useState([]);
+  const [routeProcess, setRouteProcess] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeStationId, setRouteStationId] = useState("");
   const notesRequest = useRef(0);
 
   async function load() {
@@ -175,6 +185,8 @@ export default function Amigos() {
     setNewNote("");
     setNotesLoading(true);
     setHistoryLoading(true);
+    setRouteLoading(true);
+    setRouteProcess(null);
     setError(null);
     const requestId = notesRequest.current;
     supabase
@@ -199,6 +211,83 @@ export default function Amigos() {
         setStageHistory(data ?? []);
         setHistoryLoading(false);
       });
+    supabase
+      .from("ruta_procesos")
+      .select("id, estado, fecha_inicio, fecha_cierre, resultado, estacion_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(id, codigo, nombre, orden)")
+      .eq("amigo_id", friend.id)
+      .in("estado", ["activo", "pausado"])
+      .order("fecha_inicio", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error: routeError }) => {
+        if (requestId !== notesRequest.current) return;
+        if (routeError) setError("No se pudo cargar la ruta actual.");
+        setRouteProcess(data ?? null);
+        setRouteStationId(data?.estacion_id || "");
+        setRouteLoading(false);
+      });
+  }
+
+  async function loadRouteStations() {
+    if (!congregacionId) return;
+    const { data, error: stationsError } = await supabase
+      .from("ruta_estaciones")
+      .select("id, codigo, nombre, orden")
+      .eq("congregacion_id", congregacionId)
+      .eq("activo", true)
+      .order("orden");
+    if (!stationsError) setRouteStations(data ?? []);
+  }
+
+  useEffect(() => {
+    loadRouteStations();
+  }, [congregacionId]);
+
+  async function moveRouteProcess(event) {
+    event.preventDefault();
+    if (!canEdit || !selected || !routeStationId) return;
+    setSaving(true);
+    setError(null);
+    const station = routeStations.find((item) => item.id === routeStationId);
+    if (!station) {
+      setSaving(false);
+      return;
+    }
+    if (routeProcess?.estacion_id === station.id) {
+      setError("Selecciona una estación diferente para avanzar la ruta.");
+      setSaving(false);
+      return;
+    }
+    if (routeProcess && station.orden !== (routeProcess.estacion?.orden || 0) + 1) {
+      setError("La ruta debe avanzar a la estación siguiente.");
+      setSaving(false);
+      return;
+    }
+    if (routeProcess) {
+      const closeResult = await supabase
+        .from("ruta_procesos")
+        .update({ estado: "completado", fecha_cierre: new Date().toISOString().slice(0, 10), estacion_siguiente_id: station.id })
+        .eq("id", routeProcess.id)
+        .eq("congregacion_id", congregacionId);
+      if (closeResult.error) {
+        setError("No se pudo cerrar la estación actual.");
+        setSaving(false);
+        return;
+      }
+    }
+    const nextResult = await supabase
+      .from("ruta_procesos")
+      .insert({ congregacion_id: congregacionId, estacion_id: station.id, amigo_id: selected.id, fecha_inicio: new Date().toISOString().slice(0, 10), estado: "activo" })
+      .select("id, estado, fecha_inicio, fecha_cierre, resultado, estacion_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(id, codigo, nombre, orden)")
+      .single();
+    if (nextResult.error) {
+      setError("No se pudo trasladar la persona a la nueva estación.");
+    } else {
+      setRouteProcess(nextResult.data);
+      setRouteStationId(nextResult.data.estacion_id);
+      setNotice(`La persona avanzó a ${station.nombre}.`);
+    }
+    setSaving(false);
   }
 
   async function createFriend(event) {
@@ -386,6 +475,10 @@ export default function Amigos() {
     <div className={`page-shell ${canEdit ? "" : "amigos-read-only"}`}>
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <Link to="/misiones-evangelismo" className="btn-secondary mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            Volver a Misiones y Evangelismo
+          </Link>
           <p className="eyebrow">Ruta de integración</p>
           <h1 className="section-title">Amigos en ruta</h1>
           <p className="text-sm text-secondary mt-1">
@@ -393,7 +486,7 @@ export default function Amigos() {
             integración.
           </p>
         </div>
-        {canEdit && <button
+        {canEdit && !isBis && <button
           type="button"
           onClick={() => setShowForm((current) => !current)}
           className="btn-primary"
@@ -402,6 +495,7 @@ export default function Amigos() {
           {showForm ? "Cerrar registro" : "Registrar amigo"}
         </button>}
       </header>
+      {isBis && <p className="text-sm text-secondary bg-accent-bg rounded p-3">BIS trabaja sobre amigos ya registrados en Uno Más. Selecciona una ficha para registrar bienvenida, seguimiento e integración; no crees un nuevo amigo desde esta estación.</p>}
       {error && (
         <p
           role="alert"
@@ -788,6 +882,36 @@ export default function Amigos() {
                 {saving ? "Guardando..." : "Guardar cambios"}
               </button>
             </form>
+              <section className="mt-5 border-t border-border pt-4">
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="w-4 h-4 text-accent" />
+                  <div>
+                    <p className="eyebrow">Ruta Evangelística</p>
+                    <h3 className="font-medium text-sm mt-1">Estación de acompañamiento</h3>
+                  </div>
+                </div>
+                {routeLoading ? (
+                  <p className="text-xs text-muted mt-3">Cargando estación...</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-secondary mt-3">
+                      {routeProcess ? `Estación actual: ${routeProcess.estacion?.nombre || "Sin nombre"}.` : "Esta persona todavía no tiene una estación iniciada."}
+                    </p>
+                    {canEdit && routeStations.length > 0 && (
+                      <form onSubmit={moveRouteProcess} className="grid gap-2 mt-3">
+                        <select className="input-field" value={routeStationId} onChange={(event) => setRouteStationId(event.target.value)}>
+                          <option value="">Selecciona una estación</option>
+                          {routeStations.filter((station) => routeProcess ? station.orden === (routeProcess.estacion?.orden || 0) + 1 : station.codigo === "uno_mas").map((station) => <option key={station.id} value={station.id}>{station.orden}. {station.nombre}</option>)}
+                        </select>
+                        <button type="submit" disabled={saving || !routeStationId} className="btn-secondary justify-center">
+                          <ArrowRight className="w-4 h-4" />
+                          {routeProcess ? "Trasladar a estación" : "Iniciar estación"}
+                        </button>
+                      </form>
+                    )}
+                  </>
+                )}
+              </section>
             <div className="mt-4 grid gap-2">
               <p className="text-xs text-secondary">Confirma cómo aparecerá la persona en el censo ministerial.</p>
               <label className="text-sm">Nombres para Feligresía<input className="input-field mt-1.5" value={transferName.nombres} onChange={(event) => setTransferName({ ...transferName, nombres: event.target.value })} /></label>
@@ -833,12 +957,14 @@ export default function Amigos() {
               </label>
               <button
                 type="button"
-                disabled={saving}
+                disabled={saving || Boolean(selected.persona_id)}
                 onClick={markBaptized}
                 className="btn-secondary justify-center"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {selected.estado_espiritual === "bautizado"
+                {selected.persona_id
+                  ? "Ya está en Feligresía"
+                  : selected.estado_espiritual === "bautizado"
                   ? "Volver a estado en ruta"
                   : "Marcar como bautizado"}
               </button>

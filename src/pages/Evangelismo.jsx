@@ -10,7 +10,7 @@ import {
   PointElement,
   Tooltip,
 } from "chart.js";
-import { ArrowRight, MapPinned, Plus, Target, UsersRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPinned, Plus, Target, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
@@ -152,7 +152,7 @@ export default function Evangelismo() {
         peopleResult.error
       )
         setError(
-          "No se pudo cargar Evangelismo. Verifica que hayas ejecutado supabase/evangelismo.sql y que la aplicación móvil tenga registros.",
+          "No se pudo cargar Evangelismo. Intenta nuevamente o contacta al administrador.",
         );
       const loadedModule = moduleResult.data;
       setModulo(loadedModule);
@@ -266,7 +266,7 @@ export default function Evangelismo() {
     ? `${liderZona.nombre} lidera con ${liderZona.conversiones} conversiones. Revisa qué metodología y responsable están activos allí para replicar esa estrategia.`
     : amigosEnRuta
       ? `Hay ${amigosEnRuta} personas en ruta sin conversión registrada en este filtro. Prioriza su seguimiento y verifica la continuidad de las visitas.`
-      : "La aplicación móvil ya aporta asistencia, pero aún faltan amigos vinculados a zonas y metodologías para medir receptividad y conversión.";
+      : "La asistencia está disponible, pero aún faltan amigos vinculados a zonas y metodologías para medir receptividad y conversión.";
   const alerts = [
     ...zonaRows.filter((row) => row.registros === 0).map((row) => ({ title: `${row.nombre} sin actividad`, detail: "No tiene capturas móviles en el periodo seleccionado.", tone: "danger" })),
     ...zonaRows.filter((row) => row.registros > 0 && row.asistencia / row.registros < 5).map((row) => ({ title: `${row.nombre} con baja asistencia`, detail: `Promedio de ${Math.round(row.asistencia / row.registros)} asistentes por captura.`, tone: "warning" })),
@@ -307,7 +307,7 @@ export default function Evangelismo() {
       setError(`No se pudo crear la metodología: ${result.error.message}`);
     else {
       setNotice(
-        "Metodología creada. La aplicación móvil podrá usarla en sus próximas capturas.",
+        "Metodología creada correctamente.",
       );
       setMetodoForm("");
       load();
@@ -332,11 +332,14 @@ export default function Evangelismo() {
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <Link to="/misiones-evangelismo" className="btn-secondary mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            Volver a Misiones y Evangelismo
+          </Link>
           <p className="eyebrow">Misión territorial</p>
           <h1 className="section-title">Evangelismo</h1>
           <p className="text-sm text-secondary mt-1">
-            La aplicación móvil alimenta este tablero con asistencia, zona, metodología y
-            responsable.
+            Consulta la actividad evangelística, sus zonas, metodologías y responsables.
           </p>
         </div>
         <div
@@ -417,7 +420,7 @@ export default function Evangelismo() {
       )}
       <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Datos recibidos de la aplicación móvil</p>
+          <p className="eyebrow">Actividad registrada</p>
           <h2 className="font-medium mt-1">Asistencia por captura</h2>
           <div className="h-56 mt-4">
             <Line
@@ -519,7 +522,7 @@ export default function Evangelismo() {
             <UsersRound className="w-5 h-5 text-accent" />
           </div>
           <p className="text-sm text-secondary mt-4">
-            La asistencia llega agregada desde la aplicación móvil. Para medir conversión
+            La asistencia se analiza junto con la ruta individual. Para medir conversión
             individual, vincula cada amigo a su barrio y metodología desde{" "}
             <Link to="/amigos" className="text-accent">
               Amigos en ruta <ArrowRight className="inline w-3 h-3" />
@@ -562,8 +565,7 @@ export default function Evangelismo() {
             />
           </div>
           <p className="text-xs text-secondary">
-            El responsable se asigna en Equipo de trabajo y la aplicación móvil enviará la
-            captura asociada a esta zona.
+            El responsable se asigna en Equipo de trabajo y la actividad quedará asociada a esta zona.
           </p>
           <button className="btn-primary justify-center">
             <Plus className="w-4 h-4" /> Crear cobertura
@@ -572,7 +574,7 @@ export default function Evangelismo() {
         <form onSubmit={createMethod} className="card p-5 flex flex-col gap-2">
           <h2 className="font-medium">Agregar metodología</h2>
           <p className="text-xs text-secondary">
-            Aparecerá como actividad de Evangelismo para la aplicación móvil.
+            Estará disponible como actividad de Evangelismo.
           </p>
           <input
             required

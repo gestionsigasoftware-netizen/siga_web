@@ -93,6 +93,15 @@ Ultima validacion conocida:
 - Ruta web y entrada en el Sidebar.
 - Tablas SQL para instituciones, estudiantes, grupos, lecciones, asistencia individual y lideres.
 
+### Ruta Evangelistica
+
+- Definidos los seis procesos institucionales: Metodos, Uno Mas, BIS, REFAM,
+	ESFOB/EFOB y Discipulado.
+- Preparada `supabase/ruta_evangelistica.sql` con catalogo de estaciones,
+	historial de procesos y tablas operativas especificas para cada estacion.
+- La migracion aun requiere aplicacion y pruebas en Supabase; las pantallas de
+	operacion, resultados y analitica de estas estaciones siguen pendientes.
+
 ## Migraciones existentes
 
 - `supabase/schema.sql`
@@ -106,6 +115,7 @@ Ultima validacion conocida:
 - `supabase/asistencia_web.sql`
 - `supabase/evangelismo.sql`
 - `supabase/mision_juvenil.sql`
+- `supabase/ruta_evangelistica.sql`
 - `supabase/actividad_personalizada.sql`
 - `supabase/estadisticas_movil.sql`
 - `supabase/seguridad_produccion.sql`

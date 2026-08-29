@@ -33,14 +33,14 @@ export default function AuditoriaFeligresia() {
       if (fromDate) query = query.gte('creado_en', `${fromDate}T00:00:00`)
       if (toDate) query = query.lte('creado_en', `${toDate}T23:59:59.999`)
       try {
-        const result = await Promise.race([query, new Promise((_, reject) => setTimeout(() => reject(new Error('La consulta tardó demasiado. Verifica Supabase y las políticas RLS.')), 12000))])
-        if (result.error) setError(result.error.code === '42P01' || result.error.code === 'PGRST205' ? 'La auditoría aún no está disponible. Contacta al administrador.' : `No se pudo cargar la auditoría: ${result.error.message}`)
+        const result = await Promise.race([query, new Promise((_, reject) => setTimeout(() => reject(new Error('La consulta tardó demasiado. Intenta nuevamente.')), 12000))])
+        if (result.error) setError(result.error.code === '42P01' || result.error.code === 'PGRST205' ? 'La auditoría aún no está disponible. Contacta al administrador.' : 'No se pudo cargar la auditoría. Intenta nuevamente.')
         setEntries(result.data ?? [])
         setTotal(result.count ?? 0)
       } catch (requestError) {
         setEntries([])
         setTotal(0)
-        setError(requestError.message || 'No se pudo cargar la auditoría.')
+        setError('No se pudo cargar la auditoría. Intenta nuevamente.')
       } finally { setLoading(false) }
     }
     load()

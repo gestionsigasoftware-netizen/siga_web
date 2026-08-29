@@ -49,6 +49,19 @@
 - Ejecutar pruebas Supabase de aislamiento por congregación y zona, permisos y
 	sincronización con Evangelismo/PWA.
 
+### Ruta Evangelística
+
+- Convertir la agrupación inicial de navegación en submódulos operativos
+	completos, después de definir datos y criterios institucionales.
+- Confirmar institucionalmente nombres, orden y criterios de salida de las
+	seis estaciones de la Ruta Evangelística.
+- Diseñar la separación entre estaciones de la ruta y estados resumidos de la
+	persona sin romper el contrato técnico actual de `Evangelismo`.
+- Definir procesos para Métodos, Uno Más, BIS, REFAM, ESFOB/EFOB y
+	Discipulado antes de renombrar el módulo visible como Misiones y Evangelismo.
+- Vincular formalmente Amigos con REFAM, ESFOB/EFOB y Discipulado sin duplicar
+	personas ni registros de la PWA.
+
 - Interfaz para registrar lecciones individuales de grupos en `mision_lecciones`.
 - Asistencia individual por estudiante en `mision_asistencia_estudiante`.
 - Registro y administracion de lideres de Mision Juvenil.

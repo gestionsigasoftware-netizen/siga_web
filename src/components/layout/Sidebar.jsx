@@ -3,7 +3,6 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardPlus,
-  Users,
   CheckSquare,
   Settings,
   LogOut,
@@ -14,10 +13,10 @@ import {
   ClipboardList,
   UserPlus,
   ArrowRightLeft,
-  MapPinned,
-  BookOpen,
   Heart,
   UsersRound,
+  BookOpen,
+  Compass,
   Menu,
   X,
 } from "lucide-react";
@@ -80,15 +79,15 @@ export default function Sidebar() {
       show: nivel === "local",
     },
     {
-      to: "/amigos",
-      label: "Amigos en ruta",
-      icon: Users,
+      to: "/misiones-evangelismo",
+      label: "Misiones y Evangelismo",
+      icon: Compass,
       show: nivel === "local",
     },
     {
-      to: "/evangelismo",
-      label: "Evangelismo",
-      icon: MapPinned,
+      to: "/amigos",
+      label: "Amigos en ruta",
+      icon: UsersRound,
       show: nivel === "local",
     },
     {

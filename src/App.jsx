@@ -11,7 +11,10 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const RegistrarAsistencia = lazy(() => import("./pages/RegistrarAsistencia"));
 const Amigos = lazy(() => import("./pages/Amigos"));
 const Evangelismo = lazy(() => import("./pages/Evangelismo"));
+const MisionesEvangelismo = lazy(() => import("./pages/MisionesEvangelismo"));
 const MisionJuvenil = lazy(() => import("./pages/MisionJuvenil"));
+const Esfob = lazy(() => import("./pages/Esfob"));
+const Discipulado = lazy(() => import("./pages/Discipulado"));
 const Aprobaciones = lazy(() => import("./pages/Aprobaciones"));
 const Configuracion = lazy(() => import("./pages/Configuracion"));
 const Personas = lazy(() => import("./pages/Personas"));
@@ -74,8 +77,11 @@ export default function App() {
           <Route path="/pastoral-distrital" element={<PastoralDistrital />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
+          <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />
           <Route path="/evangelismo" element={<Evangelismo />} />
           <Route path="/mision-juvenil" element={<MisionJuvenil />} />
+          <Route path="/esfob" element={<Esfob />} />
+          <Route path="/discipulado" element={<Discipulado />} />
           <Route path="/reportes" element={<Reportes />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route

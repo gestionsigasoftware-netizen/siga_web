@@ -40,12 +40,18 @@ returns boolean language sql stable security definer set search_path = public as
         'evangelismo.consultar', 'evangelismo.editar',
         'evangelismo.registrar', 'mision_juvenil.consultar',
         'mision_juvenil.editar', 'mision_juvenil.registrar'
+        , 'ruta_evangelistica.consultar', 'ruta_evangelistica.editar',
+        'ruta_evangelistica.registrar'
       )
   );
 $$;
 
 -- Reemplaza el acceso amplio de Mision Juvenil por permisos de negocio.
 drop policy if exists mision_instituciones_scope on mision_instituciones;
+drop policy if exists mision_instituciones_read on mision_instituciones;
+drop policy if exists mision_instituciones_write on mision_instituciones;
+drop policy if exists mision_instituciones_update on mision_instituciones;
+drop policy if exists mision_instituciones_delete on mision_instituciones;
 create policy mision_instituciones_read on mision_instituciones
 for select to authenticated
 using (congregacion_id in (select mis_congregaciones())
@@ -66,6 +72,10 @@ using (congregacion_id in (select mis_congregaciones())
   and tiene_permiso(congregacion_id, 'mision_juvenil.editar'));
 
 drop policy if exists mision_estudiantes_scope on mision_estudiantes;
+drop policy if exists mision_estudiantes_read on mision_estudiantes;
+drop policy if exists mision_estudiantes_write on mision_estudiantes;
+drop policy if exists mision_estudiantes_update on mision_estudiantes;
+drop policy if exists mision_estudiantes_delete on mision_estudiantes;
 create policy mision_estudiantes_read on mision_estudiantes
 for select to authenticated
 using (congregacion_id in (select mis_congregaciones())
@@ -86,6 +96,10 @@ using (congregacion_id in (select mis_congregaciones())
   and tiene_permiso(congregacion_id, 'mision_juvenil.editar'));
 
 drop policy if exists mision_grupos_scope on mision_grupos;
+drop policy if exists mision_grupos_read on mision_grupos;
+drop policy if exists mision_grupos_write on mision_grupos;
+drop policy if exists mision_grupos_update on mision_grupos;
+drop policy if exists mision_grupos_delete on mision_grupos;
 create policy mision_grupos_read on mision_grupos
 for select to authenticated
 using (congregacion_id in (select mis_congregaciones())
@@ -106,6 +120,8 @@ using (congregacion_id in (select mis_congregaciones())
   and tiene_permiso(congregacion_id, 'mision_juvenil.editar'));
 
 drop policy if exists mision_lideres_scope on mision_lideres;
+drop policy if exists mision_lideres_read on mision_lideres;
+drop policy if exists mision_lideres_write on mision_lideres;
 create policy mision_lideres_read on mision_lideres
 for select to authenticated
 using (congregacion_id in (select mis_congregaciones())
@@ -118,6 +134,8 @@ with check (congregacion_id in (select mis_congregaciones())
   and tiene_permiso(congregacion_id, 'mision_juvenil.editar'));
 
 drop policy if exists mision_lecciones_scope on mision_lecciones;
+drop policy if exists mision_lecciones_read on mision_lecciones;
+drop policy if exists mision_lecciones_write on mision_lecciones;
 create policy mision_lecciones_read on mision_lecciones
 for select to authenticated
 using (exists (select 1 from mision_grupos g
@@ -136,6 +154,8 @@ with check (exists (select 1 from mision_grupos g
     and tiene_permiso(g.congregacion_id, 'mision_juvenil.editar')));
 
 drop policy if exists mision_asistencia_scope on mision_asistencia_estudiante;
+drop policy if exists mision_asistencia_read on mision_asistencia_estudiante;
+drop policy if exists mision_asistencia_write on mision_asistencia_estudiante;
 create policy mision_asistencia_read on mision_asistencia_estudiante
 for select to authenticated
 using (exists (select 1 from mision_lecciones l

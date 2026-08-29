@@ -18,6 +18,7 @@ Estado: revisión inicial ejecutada
 
 - La UI consulta `evangelismo.editar` y considera roles locales operativos; los perfiles `solo_lectura` quedan en consulta.
 - Las operaciones de alta, edición, cambio de estado, incorporación, eliminación y notas verifican autorización antes de ejecutarse.
+- La incorporación a Feligresía exige estado espiritual `bautizado` en la RPC y en el trigger SQL; además, una persona ya incorporada no puede regresar a estado en ruta.
 - Los formularios de escritura se ocultan para perfiles de consulta.
 - Las métricas de acompañamiento y conversión usan conteos globales de Supabase y no solo la página visible.
 - La ficha muestra una cronología de etapas con fecha, usuario y etapa anterior/nueva.

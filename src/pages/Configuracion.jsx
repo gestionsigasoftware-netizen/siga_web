@@ -34,6 +34,11 @@ function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
   )
 }
 
+function ListaCargosComite({ items, onAdd, onRemove, busy }) {
+  const [form, setForm] = useState({ nombre: '', codigo: '' })
+  return <div className="card p-5"><h3 className="font-medium mb-3">Cargos de comité</h3><div className="flex flex-col gap-1.5 mb-3">{items.map((item) => <div key={item.id} className="flex justify-between items-center text-sm py-1.5 px-2.5 bg-surface-1 rounded"><span>{item.nombre} <small className="text-muted">({item.codigo})</small></span><button type="button" aria-label={`Eliminar ${item.nombre}`} title={`Eliminar ${item.nombre}`} disabled={busy} onClick={() => onRemove(item.id, item.nombre)} className="text-muted hover:text-danger disabled:opacity-50"><Trash2 className="w-[15px] h-[15px]" /></button></div>)}{items.length === 0 && <p className="text-xs text-muted">Sin cargos aún.</p>}</div><div className="grid grid-cols-2 gap-2"><input value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} placeholder="Nombre del cargo" className="input-field" /><input value={form.codigo} onChange={(event) => setForm({ ...form, codigo: event.target.value })} placeholder="Código" className="input-field" /></div><button type="button" disabled={busy} onClick={async () => { if (form.nombre.trim() && form.codigo.trim() && await onAdd(form)) setForm({ nombre: '', codigo: '' }) }} className="btn-secondary mt-2"><Plus className="w-4 h-4" /> Agregar cargo</button></div>
+}
+
 export default function Configuracion() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
@@ -41,6 +46,9 @@ export default function Configuracion() {
   const [categorias, setCategorias] = useState([])
   const [modulos, setModulos] = useState([])
   const [etapas, setEtapas] = useState([])
+  const [zonas, setZonas] = useState([])
+  const [tiposComite, setTiposComite] = useState([])
+  const [cargosComite, setCargosComite] = useState([])
   const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '' })
   const [preferencias, setPreferencias] = useState({ umbral_alerta: 15, modulo_predeterminado: '', exigir_responsable: true, exigir_novedades: false })
   const [saving, setSaving] = useState(false)
@@ -52,17 +60,23 @@ export default function Configuracion() {
     if (!congregacionId) { setLoading(false); return }
     setLoading(true)
     setError(null)
-    const [cat, mod, et, congregation] = await Promise.all([
+    const [cat, mod, et, congregation, zoneResult, typeResult, committeeCargoResult] = await Promise.all([
       supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('congregaciones').select('id, nombre, distrito_id, distritos(nombre)').eq('id', congregacionId).single(),
+      supabase.from('zonas').select('id, nombre').eq('congregacion_id', congregacionId).order('nombre'),
+      supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
+      supabase.from('cargos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
     ])
-    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : congregation.error ? 'la información de la congregación' : null
+    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : zoneResult.error ? 'zonas' : typeResult.error ? 'tipos de comité' : committeeCargoResult.error ? 'cargos de comité' : congregation.error ? 'la información de la congregación' : null
     if (failedCatalog) setError(`No se pudieron cargar las ${failedCatalog}. Intenta nuevamente.`)
     setCategorias(cat.data ?? [])
     setModulos((mod.data ?? []).map((item) => ({ ...item, nombre: item.nombre_modulo })))
     setEtapas(et.data ?? [])
+    setZonas(zoneResult.data ?? [])
+    setTiposComite(typeResult.data ?? [])
+    setCargosComite(committeeCargoResult.data ?? [])
     if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '' })
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()
     if (configError) setError('No se pudieron cargar las preferencias de la congregación.')
@@ -95,7 +109,7 @@ export default function Configuracion() {
     await loadAll(); return true
   }
   async function quitarCategoria(id, nombre) {
-    if (!window.confirm(`¿Eliminar la categoría ${nombre}? Si está usada en registros, la base de datos puede impedirlo.`)) return false
+    if (!window.confirm(`¿Eliminar la categoría ${nombre}? Si ya tiene información asociada, no podrá eliminarse.`)) return false
     const { error: deleteError } = await supabase.from('categorias_demograficas').delete().eq('id', id)
     if (deleteError) { setError(`No se pudo eliminar la categoría: ${deleteError.message}`); return false }
     await loadAll(); return true
@@ -119,11 +133,18 @@ export default function Configuracion() {
     await loadAll(); return true
   }
   async function quitarEtapa(id, nombre) {
-    if (!window.confirm(`¿Eliminar la etapa ${nombre}? Si tiene amigos asociados, la base de datos puede impedirlo.`)) return false
+    if (!window.confirm(`¿Eliminar la etapa ${nombre}? Si tiene amigos asociados, no podrá eliminarse.`)) return false
     const { error: deleteError } = await supabase.from('etapas_seguimiento').delete().eq('id', id)
     if (deleteError) { setError(`No se pudo eliminar la etapa: ${deleteError.message}`); return false }
     await loadAll(); return true
   }
+
+  async function agregarZona(nombre) { const { error: insertError } = await supabase.from('zonas').insert({ congregacion_id: congregacionId, nombre }); if (insertError) { setError(`No se pudo agregar la zona: ${insertError.message}`); return false } await loadAll(); return true }
+  async function quitarZona(id, nombre) { if (!window.confirm(`¿Eliminar la zona ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('zonas').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar la zona: ${deleteError.message}`); return false } await loadAll(); return true }
+  async function agregarTipoComite(nombre) { const codigo = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); const { error: insertError } = await supabase.from('tipos_comite').insert({ congregacion_id: congregacionId, nombre, codigo }); if (insertError) { setError(`No se pudo agregar el tipo: ${insertError.message}`); return false } await loadAll(); return true }
+  async function quitarTipoComite(id, nombre) { if (!window.confirm(`¿Eliminar el tipo ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('tipos_comite').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar el tipo: ${deleteError.message}`); return false } await loadAll(); return true }
+  async function agregarCargoComite(values) { const { error: insertError } = await supabase.from('cargos_comite').insert({ congregacion_id: congregacionId, nombre: values.nombre.trim(), codigo: values.codigo.trim() }); if (insertError) { setError(`No se pudo agregar el cargo: ${insertError.message}`); return false } await loadAll(); return true }
+  async function quitarCargoComite(id, nombre) { if (!window.confirm(`¿Eliminar el cargo ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('cargos_comite').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar el cargo: ${deleteError.message}`); return false } await loadAll(); return true }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando configuración...</div>
   if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar la configuración de la congregación.</div>
@@ -163,6 +184,9 @@ export default function Configuracion() {
         <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" busy={saving} />
         <ListaCatalogo titulo="Módulos (Ujieres, Evangelismo...)" items={modulos.filter((modulo) => modulo.activo !== false)} onAdd={agregarModulo} onRemove={quitarModulo} placeholder="Ej. Misión Juvenil" busy={saving} />
         <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" busy={saving} />
+        <ListaCatalogo titulo="Zonas de Evangelismo" items={zonas} onAdd={agregarZona} onRemove={quitarZona} placeholder="Ej. Barrio San Juan" busy={saving} />
+        <ListaCatalogo titulo="Tipos de comité" items={tiposComite} onAdd={agregarTipoComite} onRemove={quitarTipoComite} placeholder="Ej. Servicio" busy={saving} />
+        <ListaCargosComite items={cargosComite} onAdd={agregarCargoComite} onRemove={quitarCargoComite} busy={saving} />
       </div>
 
       <p className="text-xs text-muted">Los tipos de actividad se administran desde <strong className="text-secondary">Módulos y actividades</strong>, donde puedes crearlos, editarlos y activarlos o desactivarlos.</p>
