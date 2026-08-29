@@ -31,6 +31,10 @@ create index if not exists registros_actividad_origen_fecha_idx
 
 -- La consulta sigue visible según el alcance del rol; escribir requiere permiso.
 drop policy if exists registros_scope on registros_actividad;
+drop policy if exists registros_read_scope on registros_actividad;
+drop policy if exists registros_write_scope on registros_actividad;
+drop policy if exists registros_update_scope on registros_actividad;
+drop policy if exists registros_delete_scope on registros_actividad;
 create policy registros_read_scope on registros_actividad
 for select to authenticated
 using (congregacion_id in (select mis_congregaciones()));
@@ -39,18 +43,21 @@ create policy registros_write_scope on registros_actividad
 for insert to authenticated
 with check (
   congregacion_id in (select mis_congregaciones())
-  and tiene_permiso(congregacion_id, 'estadisticas.registrar')
+  and (tiene_permiso(congregacion_id, 'estadisticas.registrar')
+    or tiene_permiso(congregacion_id, 'feligresia.editar'))
 );
 
 create policy registros_update_scope on registros_actividad
 for update to authenticated
 using (
   congregacion_id in (select mis_congregaciones())
-  and tiene_permiso(congregacion_id, 'estadisticas.registrar')
+  and (tiene_permiso(congregacion_id, 'estadisticas.registrar')
+    or tiene_permiso(congregacion_id, 'feligresia.editar'))
 )
 with check (
   congregacion_id in (select mis_congregaciones())
-  and tiene_permiso(congregacion_id, 'estadisticas.registrar')
+  and (tiene_permiso(congregacion_id, 'estadisticas.registrar')
+    or tiene_permiso(congregacion_id, 'feligresia.editar'))
 );
 
 create policy registros_delete_scope on registros_actividad

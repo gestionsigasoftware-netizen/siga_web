@@ -25,6 +25,8 @@
 - Prueba funcional completa de Mision Juvenil con instituciones, estudiantes, grupos y filtros.
 - Validar los registros provenientes de la PWA cuando ese proyecto vuelva a entrar en alcance.
 - Documentar usuarios iniciales, responsables y procedimiento de baja de acceso.
+- Probar el ciclo completo de Equipo de trabajo con una persona sin cuenta, una
+	cuenta existente, perfil web, responsabilidad operativa y retiro de acceso.
 
 ## Mejoras funcionales pendientes
 
@@ -48,6 +50,15 @@
 - Incorporar fecha de nacimiento y estado civil al alta y edición general.
 - Ejecutar pruebas Supabase de aislamiento por congregación y zona, permisos y
 	sincronización con Evangelismo/PWA.
+
+### Corrección y contingencia de asistencia
+
+- Probar en Supabase el aislamiento entre congregaciones, los permisos de
+	`estadisticas.registrar` y `feligresia.editar`, la validación del motivo y la
+	confirmación de duplicados.
+- Añadir edición o eliminación controlada solo si el procedimiento operativo
+	de la congregación lo requiere; por ahora la pantalla conserva el registro
+	original y no expone acciones destructivas.
 
 ### Ruta Evangelística
 

@@ -57,19 +57,23 @@ const CHART_OPTIONS = {
     x: {
       border: { display: false },
       grid: { display: false },
-      ticks: { color: "#898781", maxRotation: 0 },
+      ticks: { color: "#898781", maxRotation: 0, autoSkip: false },
     },
   },
 };
 
-function Metric({ label, value, detail, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
-    <div className="stat-tile">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">
+    <div className="stat-tile h-full min-h-[220px] flex flex-col">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">
         {label}
       </p>
-      <p className={`text-2xl font-semibold mt-3 ${tone}`}>{value}</p>
-      {detail && <p className="text-xs text-muted mt-1">{detail}</p>}
+      <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
+      <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+      </div>
+      <p className="text-xs text-muted mt-1 min-h-[1rem]">{detail || " "}</p>
+      <p className="text-[11px] text-secondary leading-4 mt-2 min-h-[2rem]">{insight || " "}</p>
     </div>
   );
 }
@@ -118,7 +122,11 @@ export default function MisionJuvenil() {
   });
 
   async function load() {
-    if (!congregacionId) return;
+    if (!congregacionId) {
+      setLoading(false);
+      setError("Tu usuario no tiene una congregación local asignada.");
+      return;
+    }
     setLoading(true);
     setError(null);
     const start = new Date();
@@ -135,6 +143,7 @@ export default function MisionJuvenil() {
           "id, nombres, apellidos, institucion_id, grado_semestre, telefono, estado, tutor_persona_id, mision_instituciones(nombre)",
         )
         .eq("congregacion_id", congregacionId)
+        .order("nombres")
         .order("apellidos"),
       supabase
         .from("mision_grupos")
@@ -176,8 +185,9 @@ export default function MisionJuvenil() {
   }, [congregacionId, periodo]);
   useEffect(() => {
     if (!congregacionId) return;
-    supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "mision_juvenil.editar" }).then(({ data }) => setCanEdit(Boolean(data)));
-  }, [congregacionId]);
+    const roleCanEdit = rolPrincipal?.nivel === "local" && rolPrincipal?.rol_local !== "solo_lectura";
+    supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "mision_juvenil.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
+  }, [congregacionId, rolPrincipal]);
   const students = estudiantes.filter(
     (student) =>
       (institucionFiltro === "todos" ||
@@ -198,6 +208,12 @@ export default function MisionJuvenil() {
   const activeSympathizers = students.filter((student) =>
     ["simpatizante", "refam", "discipulado"].includes(student.estado),
   ).length;
+  const activeStudents = students.filter((student) => student.estado !== "inactivo").length;
+  const activeGroups = grupos.filter((group) => group.activo !== false).length;
+  const establishedInstitutions = instituciones.filter((institution) => institution.fase === 3).length;
+  const studentsPerGroup = activeGroups ? Math.round(students.length / activeGroups) : 0;
+  const baptismRate = activeStudents ? Math.round((baptized / activeStudents) * 100) : 0;
+  const attendanceRate = students.length ? Math.min(100, Math.round((average / students.length) * 100)) : 0;
   const institutionRows = instituciones
     .map((institution) => ({
       ...institution,
@@ -236,7 +252,7 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError(`No se pudo crear la institución: ${result.error.message}`);
+      setError("No se pudo registrar la institución. Intenta nuevamente o contacta al administrador.");
     else {
       setNotice("Institución registrada.");
       setInstitutionForm({
@@ -265,7 +281,7 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError(`No se pudo registrar el estudiante: ${result.error.message}`);
+      setError("No se pudo registrar el estudiante. Intenta nuevamente o contacta al administrador.");
     else {
       setNotice("Estudiante registrado.");
       setStudentForm({
@@ -294,7 +310,7 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError(`No se pudo crear el grupo: ${result.error.message}`);
+      setError("No se pudo registrar el grupo. Intenta nuevamente o contacta al administrador.");
     else {
       setNotice("Grupo juvenil registrado.");
       setGroupForm({
@@ -359,12 +375,12 @@ export default function MisionJuvenil() {
         </p>
       )}
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Metric label="Instituciones" value={instituciones.length} />
-        <Metric label="Simpatizantes activos" value={activeSympathizers} />
-        <Metric label="Grupos REFAM" value={grupos.length} />
-        <Metric label="Asistencia promedio" value={average} />
-        <Metric label="Bautizados" value={baptized} tone="text-success" />
-        <Metric label="Capturas móviles" value={registros.length} />
+        <Metric label="Instituciones" value={instituciones.length} progress={instituciones.length ? Math.round((establishedInstitutions / instituciones.length) * 100) : 0} detail={`${establishedInstitutions} con grupo establecido`} insight={instituciones.length ? "Fortalece las instituciones que aún están en contacto inicial." : "Registra la primera institución para iniciar el trabajo."} />
+        <Metric label="Estudiantes en proceso" value={activeSympathizers} progress={students.length ? Math.round((activeSympathizers / students.length) * 100) : 0} detail={`${activeSympathizers} de ${students.length} estudiantes`} insight={activeSympathizers ? "Revisa quién necesita avanzar a REFAM o discipulado." : "Aún no hay estudiantes en proceso activo."} />
+        <Metric label="Grupos REFAM" value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={`${studentsPerGroup} estudiantes por grupo`} insight={activeGroups ? "Comprueba que cada grupo tenga líder y continuidad de lecciones." : "Crea un grupo para organizar el acompañamiento."} />
+        <Metric label="Asistencia promedio" value={average} progress={attendanceRate} detail={`${registros.length} registros de actividad`} insight={average ? "Compara la asistencia con el número de estudiantes para detectar continuidad." : "Registra actividades para conocer la participación juvenil."} />
+        <Metric label="Bautizados" value={baptized} tone="text-success" progress={baptismRate} detail={`${baptismRate}% de estudiantes activos`} insight={baptized ? "Asegura la continuidad de cada bautizado hacia el discipulado." : "Acompaña el proceso espiritual y la preparación bautismal."} />
+        <Metric label="Registros de actividad" value={registros.length} progress={registros.length ? 100 : 0} detail={`${attendance} asistentes acumulados`} insight={registros.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay actividad registrada en el periodo."} />
       </section>
       <section className="card p-5">
         <div className="flex items-start gap-3 pb-4 border-b border-border">
@@ -461,6 +477,39 @@ export default function MisionJuvenil() {
               options={CHART_OPTIONS}
             />
           </div>
+        </div>
+      </section>
+      <section className="card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Detalle de estudiantes</p>
+            <h2 className="font-medium mt-1">Estudiantes por estado</h2>
+            <p className="text-xs text-secondary mt-1">Consulta los nombres que componen cada resultado del gráfico.</p>
+          </div>
+          <UsersRound className="w-5 h-5 text-accent" />
+        </div>
+        <div className="overflow-x-auto mt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted border-b border-border">
+                <th className="py-2">Estudiante</th>
+                <th className="py-2">Institución</th>
+                <th className="py-2">Grado / semestre</th>
+                <th className="py-2">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student) => (
+                <tr key={student.id} className="border-b border-border">
+                  <td className="py-2 font-medium">{student.nombres} {student.apellidos}</td>
+                  <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || "Sin institución"}</td>
+                  <td className="py-2 text-secondary">{student.grado_semestre || "Sin dato"}</td>
+                  <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{ESTADOS[student.estado] || student.estado}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!students.length && <p className="text-sm text-secondary py-6 text-center">No hay estudiantes para los filtros seleccionados.</p>}
         </div>
       </section>
       <section className="grid lg:grid-cols-2 gap-4">

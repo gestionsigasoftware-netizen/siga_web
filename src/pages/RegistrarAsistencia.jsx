@@ -43,7 +43,7 @@ export default function RegistrarAsistencia() {
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
       supabase.from('configuracion_congregacion').select('exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle(),
-      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').order('fecha', { ascending: false }).limit(10),
+      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }).limit(10),
     ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult]) => {
       const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult].find((result) => result.error)
       if (failed) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
@@ -75,6 +75,7 @@ export default function RegistrarAsistencia() {
     const { data } = await supabase
       .from('registros_actividad')
       .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)')
+      .eq('congregacion_id', congregacionId)
       .order('fecha', { ascending: false })
       .limit(10)
     setRegistros(data ?? [])

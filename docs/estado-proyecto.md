@@ -34,6 +34,11 @@ Ultima validacion conocida:
 - Perfiles `pastor`, `estadisticas` y `consulta`.
 - Asignacion de perfiles desde Equipo Congregacion.
 - Aprobaciones, auditoria y gestion pastoral distrital.
+- Equipo de trabajo permite seleccionar una persona, asignar perfiles de
+	acceso, agregar una responsabilidad operativa, enviar o vincular su cuenta y
+	retirar perfiles conservando el historial.
+- La pantalla limita los listados a la congregacion activa, evita asignaciones
+	duplicadas y comunica errores con mensajes orientados al usuario.
 
 ### Feligresia
 
@@ -60,6 +65,12 @@ Ultima validacion conocida:
 	en una congregacion demo.
 - La PWA movil queda preparada para alimentar `registros_actividad`, pero esta
 	fuera del alcance actual.
+- `RegistrarAsistencia.jsx` funciona exclusivamente como correccion o
+	contingencia: exige motivo, fecha, responsable cuando corresponde, zona para
+	modulos extramurales y confirma posibles duplicados.
+- Los registros recientes de correccion se consultan limitados a la
+	congregacion activa y sus politicas de escritura son coherentes con los
+	permisos de estadisticas y pastor.
 
 ### Evangelismo
 

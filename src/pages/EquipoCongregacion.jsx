@@ -22,7 +22,11 @@ export default function EquipoCongregacion() {
   const [message, setMessage] = useState(null)
 
   async function load() {
-    if (!congregacionId) return
+    if (!congregacionId) {
+      setLoading(false)
+      setMessage({ type: 'error', text: 'Tu usuario no tiene una congregación local asignada.' })
+      return
+    }
     setLoading(true)
     const [peopleResult, profilesResult, modulesResult, assignmentsResult] = await Promise.all([
       supabase.from('personas').select('id, nombres, apellidos, auth_user_id').eq('congregacion_id', congregacionId).order('nombres'),
@@ -31,7 +35,7 @@ export default function EquipoCongregacion() {
       supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
     ])
     const failed = [peopleResult, profilesResult, modulesResult, assignmentsResult].find((result) => result.error)
-    if (failed) setMessage({ type: 'error', text: `No se pudo cargar el equipo de trabajo: ${failed.error.message}` })
+    if (failed) setMessage({ type: 'error', text: 'No se pudo cargar el equipo de trabajo. Intenta nuevamente o contacta al administrador.' })
     const loadedPeople = peopleResult.data ?? []
     const loadedProfiles = profilesResult.data ?? []
     const peopleById = new Map(loadedPeople.map((person) => [person.id, person]))
@@ -52,7 +56,7 @@ export default function EquipoCongregacion() {
   async function inviteUser(event) {
     event.preventDefault()
     if (!personId || !email.trim() || (!profileId && !moduleId)) {
-      setMessage({ type: 'error', text: 'Selecciona al menos un acceso: web o movil.' })
+      setMessage({ type: 'error', text: 'Selecciona al menos un tipo de acceso.' })
       return
     }
     if (profileId && assignedProfileKeys.has(`${personId}:${profileId}`) && !moduleId) {
@@ -78,10 +82,10 @@ export default function EquipoCongregacion() {
       setMessage({
         type: 'error',
         text: functionUnavailable
-          ? 'El servicio de invitaciones aun no esta activo. Despliega la Edge Function invitar-usuario en Supabase.'
+          ? 'El servicio de invitaciones no está disponible. Contacta al administrador.'
           : rateLimited
-            ? 'Supabase alcanzo el limite temporal de correos. Espera antes de volver a solicitar una invitacion; si la cuenta ya existe, usa sus credenciales o recupera la contrasena desde el login.'
-          : serverMessage || error.message || 'No se pudo enviar la invitacion.',
+            ? 'Se alcanzó el límite temporal de invitaciones. Espera antes de volver a intentarlo.'
+          : 'No se pudo enviar la invitación. Intenta nuevamente o contacta al administrador.',
       })
       return
     }
@@ -117,19 +121,19 @@ export default function EquipoCongregacion() {
 
   return (
     <div className="page-shell">
-      <header><p className="eyebrow">Administracion local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra desde un solo lugar quienes pueden entrar a la web y quienes pueden capturar desde el movil.</p></header>
+      <header><p className="eyebrow">Administración local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra en un solo lugar quiénes pueden consultar SIGA y qué responsabilidades tienen asignadas.</p></header>
       {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm rounded p-3 ${message.type === 'error' ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{message.text}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Personas con acceso</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div>
         <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Perfiles activos</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Personas disponibles</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div>
       </section>
-      <section className="card p-5"><h2 className="font-medium">Agregar o actualizar acceso</h2><p className="text-sm text-secondary mt-1 mb-4">Primero selecciona la persona. Luego elige uno o ambos accesos: el perfil controla la web y el modulo controla el movil.</p>
+      <section className="card p-5"><h2 className="font-medium">Agregar o actualizar acceso</h2><p className="text-sm text-secondary mt-1 mb-4">Selecciona la persona y asígnale el perfil y las responsabilidades que necesita para realizar su trabajo.</p>
       <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
         <label className="text-sm">Persona<select required className="input-field mt-1.5" value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">Seleccionar persona...</option>{filteredPeople.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}{person.auth_user_id ? ' (cuenta vinculada)' : ''}</option>)}</select></label>
         <label className="text-sm">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
         <label className="text-sm">Acceso web <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Sin acceso web</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select></label>
-        <label className="text-sm">Acceso movil <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => setModuleId(event.target.value)}><option value="">Sin acceso movil</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>
+        <label className="text-sm">Responsabilidad operativa <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => setModuleId(event.target.value)}><option value="">Sin responsabilidad adicional</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>
         <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? 'Enviando...' : 'Invitar usuario'}</button>
       </form>
       </section>
