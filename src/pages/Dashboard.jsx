@@ -231,7 +231,7 @@ function DashboardDistrital({ rolPrincipal }) {
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGA · IPUC</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
           <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
           <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
         </div>
@@ -567,7 +567,7 @@ export default function Dashboard() {
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGA · IPUC'}</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGAP · IPUC'}</p>
           <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO[rolPrincipal?.nivel] ?? 'Tu espacio de gestión'}</h1>
           <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
         </div>
@@ -692,7 +692,7 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-4"><div><h3 className="font-medium">Alertas pastorales</h3></div>{ultimoRegistro && <span className="text-xs text-muted">Último registro: {ultimoRegistro.fecha}</span>}</div>
         {pendingAlerts.length === 0 ? (
           <p className="text-sm text-muted">
-            Sin alertas por ahora. SIGA revisa tendencias de asistencia y condiciones pastorales del censo, como familias pendientes, bautismo, asistencia individual y comités sin integrantes.
+            Sin alertas por ahora. SIGAP revisa tendencias de asistencia y condiciones pastorales del censo, como familias pendientes, bautismo, asistencia individual y comités sin integrantes.
           </p>
         ) : (
           <div className="flex flex-col gap-3">

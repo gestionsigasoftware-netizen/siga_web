@@ -20,7 +20,7 @@ export default function RoleChooser({ roles, onElegir }) {
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-6">
       <div className="max-w-lg w-full">
-        <p className="text-xs uppercase tracking-[0.16em] text-accent mb-2 text-center">SIGA</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-accent mb-2 text-center">SIGAP</p>
         <h1 className="text-2xl font-semibold text-center">¿Cómo quieres ingresar hoy?</h1>
         <p className="text-sm text-secondary mt-2 text-center">Tu cuenta tiene más de un rol activo. Elige con cuál quieres trabajar; puedes cambiarlo después desde el menú.</p>
 

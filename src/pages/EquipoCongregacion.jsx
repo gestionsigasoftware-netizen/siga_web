@@ -122,7 +122,7 @@ export default function EquipoCongregacion() {
 
   return (
     <div className="page-shell">
-      <header><p className="eyebrow">Administración local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra en un solo lugar quiénes pueden consultar SIGA y qué responsabilidades tienen asignadas.</p></header>
+      <header><p className="eyebrow">Administración local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra en un solo lugar quiénes pueden consultar SIGAP y qué responsabilidades tienen asignadas.</p></header>
       {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm rounded p-3 ${message.type === 'error' ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{message.text}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Personas con acceso</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div>
@@ -138,7 +138,7 @@ export default function EquipoCongregacion() {
         <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? 'Enviando...' : 'Invitar usuario'}</button>
       </form>
       </section>
-      <p className="text-xs text-secondary">La persona recibira un enlace seguro para establecer su contrasena. No se crea ninguna contrasena desde SIGA.</p>
+      <p className="text-xs text-secondary">La persona recibira un enlace seguro para establecer su contrasena. No se crea ninguna contrasena desde SIGAP.</p>
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Perfiles activos</h2><p className="text-sm text-secondary mt-1">Personas con acceso en esta congregacion.</p></div><div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar integrantes del equipo" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar integrante..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div></div>
         {assignments.length ? <div className="divide-y divide-border">{assignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.perfiles_acceso?.nombre} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyAssignmentId)} onClick={() => endAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyAssignmentId === assignment.id ? 'Retirando...' : 'Retirar perfil'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay perfiles adicionales asignados.</p>}

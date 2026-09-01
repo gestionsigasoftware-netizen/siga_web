@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "SIGA — Sistema Integrado de Gestión y Analítica Pastoral. SaaS multi-tenant IPUC nacional.",
+  "description": "SIGAP — Sistema Integrado de Gestión y Analítica Pastoral. SaaS multi-tenant IPUC nacional.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

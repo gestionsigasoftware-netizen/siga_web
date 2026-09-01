@@ -189,7 +189,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div className="text-sm font-semibold tracking-wide text-white">
-              SIGA
+              SIGAP
             </div>
             <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
               Sistema integrado

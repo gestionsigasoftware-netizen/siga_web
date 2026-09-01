@@ -15,9 +15,9 @@ export default function InicioPublico() {
   return (
     <main className="min-h-screen bg-[#f4f1eb] text-ink">
       <nav className="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-3" aria-label="Inicio de SIGA">
+        <Link to="/" className="flex items-center gap-3" aria-label="Inicio de SIGAP">
           <span className="w-10 h-10 rounded bg-ink text-white flex items-center justify-center font-semibold">S</span>
-          <span className="font-semibold tracking-wide">SIGA</span>
+          <span className="font-semibold tracking-wide">SIGAP</span>
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link to="/ayuda" className="text-secondary hover:text-ink">Ayuda</Link>
@@ -29,9 +29,9 @@ export default function InicioPublico() {
         <div>
           <p className="eyebrow">Gestión pastoral institucional</p>
           <h1 className="text-4xl sm:text-6xl font-semibold leading-[1.05] mt-4 max-w-2xl">La información correcta para acompañar mejor.</h1>
-          <p className="text-lg text-secondary leading-8 mt-6 max-w-xl">SIGA reúne la lectura de asistencia, feligresía, Evangelismo y Misión Juvenil en un espacio de trabajo claro para cada congregación.</p>
+          <p className="text-lg text-secondary leading-8 mt-6 max-w-xl">SIGAP reúne la lectura de asistencia, feligresía, Evangelismo y Misión Juvenil en un espacio de trabajo claro para cada congregación.</p>
           <div className="flex flex-col sm:flex-row gap-3 mt-8">
-            <Link to="/login" className="btn-primary py-3"><span>Entrar a SIGA</span><ArrowRight className="w-4 h-4" /></Link>
+            <Link to="/login" className="btn-primary py-3"><span>Entrar a SIGAP</span><ArrowRight className="w-4 h-4" /></Link>
             <Link to="/ayuda#acceso" className="btn-secondary py-3">Solicitar acceso</Link>
           </div>
           <p className="text-xs text-muted mt-5 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success" /> Acceso privado por invitación y perfil autorizado.</p>

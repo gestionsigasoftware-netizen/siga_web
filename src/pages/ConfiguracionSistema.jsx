@@ -71,7 +71,7 @@ export default function ConfiguracionSistema() {
       <div>
         <p className="eyebrow">Tu espacio personal</p>
         <h1 className="section-title">Preferencias</h1>
-        <p className="text-sm text-secondary mt-1">Configura cómo quieres recibir avisos y consultar la información de SIGA.</p>
+        <p className="text-sm text-secondary mt-1">Configura cómo quieres recibir avisos y consultar la información de SIGAP.</p>
       </div>
       {error && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={loadPreferences} className="btn-secondary text-xs self-start sm:self-auto">Reintentar</button></div>}
       <form onSubmit={savePreferences} className="card p-5 max-w-2xl">
@@ -89,7 +89,7 @@ export default function ConfiguracionSistema() {
         </div>
       </form>
       <section>
-        <div className="mb-4"><p className="eyebrow">Información del servicio</p><h2 className="font-medium mt-1">Estado del sistema</h2><p className="text-sm text-secondary mt-1">Consulta el contexto de tu cuenta y la conexión de SIGA.</p></div>
+        <div className="mb-4"><p className="eyebrow">Información del servicio</p><h2 className="font-medium mt-1">Estado del sistema</h2><p className="text-sm text-secondary mt-1">Consulta el contexto de tu cuenta y la conexión de SIGAP.</p></div>
         <div className="grid md:grid-cols-2 gap-4">
           <StatusCard icon={Globe2} title="Idioma y región" description="El idioma de la interfaz es Español. El formato de fecha elegido se muestra aquí." value={preferences.formato_fecha === 'MM/DD/AAAA' ? 'Español · MM/DD' : 'Español · DD/MM'} />
           <StatusCard icon={Bell} title="Notificaciones" description="Resumen de las preferencias que acabas de configurar." value={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'Preferencias activas' : 'Todas desactivadas'} tone={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'success' : 'muted'} />
