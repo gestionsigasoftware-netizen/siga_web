@@ -165,6 +165,22 @@ function DistritalStatTile({ label, value, tone = 'default' }) {
   )
 }
 
+const MADUREZ_LABELS_DASH = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local' }
+
+function InsightCard({ title, value, detail, insight, tone = 'default' }) {
+  const toneClass = { default: 'bg-accent-bg text-accent', danger: 'bg-danger-bg text-danger', success: 'bg-success-bg text-success', warning: 'bg-warning-bg text-warning' }[tone]
+  return (
+    <div className="card p-5">
+      <p className="text-xs uppercase tracking-[0.14em] text-secondary">{title}</p>
+      <div className="flex items-baseline gap-2 mt-2">
+        <p className="text-2xl font-semibold">{value}</p>
+        {detail && <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${toneClass}`}>{detail}</span>}
+      </div>
+      <p className="summary-insight mt-3">{insight}</p>
+    </div>
+  )
+}
+
 function DashboardDistrital({ rolPrincipal }) {
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -193,6 +209,23 @@ function DashboardDistrital({ rolPrincipal }) {
   const filas = [...congregaciones].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
   const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero} · ${distrito.nombre}` : distrito?.nombre || 'Panel distrital'
 
+  const sumar = (campo) => congregaciones.reduce((total, c) => total + Number(c[campo] || 0), 0)
+  const totalBautizados = sumar('bautizados')
+  const totalSellados = sumar('sellados')
+  const sinSellarPct = totalBautizados ? Math.round(((totalBautizados - totalSellados) / totalBautizados) * 100) : null
+  const totalEstudiosRefam = sumar('estudios_refam_3m')
+  const totalBautismos3m = sumar('bautismos_3m')
+  const eficaciaRefam = totalBautismos3m ? Math.round(totalEstudiosRefam / totalBautismos3m) : null
+  const totalUnoMas = sumar('funnel_uno_mas')
+  const totalRefamActivos = sumar('funnel_refam')
+  const totalBautizadosRuta = sumar('funnel_bautizados')
+  const conversionRefamPct = totalUnoMas ? Math.round((totalRefamActivos / totalUnoMas) * 100) : null
+  const totalAltas3m = sumar('altas_3m')
+  const totalBajas3m = sumar('bajas_3m')
+  const balanceMembresia = totalAltas3m - totalBajas3m
+  const congregacionesPorMadurez = congregaciones.reduce((mapa, c) => ({ ...mapa, [c.madurez]: (mapa[c.madurez] || 0) + 1 }), {})
+  const congregacionesConstituidas = congregacionesPorMadurez.iglesia_local || 0
+
   return (
     <div className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
@@ -213,6 +246,45 @@ function DashboardDistrital({ rolPrincipal }) {
         <DistritalStatTile label="Vacantes de pastor" value={vacantes} tone={vacantes > 0 ? 'danger' : 'default'} />
       </section>
 
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="eyebrow">Insights BI</p>
+            <h2 className="font-medium mt-1">Señales para decidir</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <InsightCard
+            title="Brecha de llenura"
+            value={sinSellarPct === null ? '—' : `${sinSellarPct}%`}
+            detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
+            tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
+            insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados en el distrito.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una vigilia o campamento distrital.' : '.'}`}
+          />
+          <InsightCard
+            title="Eficacia de REFAM"
+            value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
+            insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
+          />
+          <InsightCard
+            title="Embudo Uno Más → REFAM"
+            value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
+            insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron en el distrito.`}
+          />
+          <InsightCard
+            title="Movimiento de membresía (3 meses)"
+            value={balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia}
+            tone={balanceMembresia < 0 ? 'danger' : 'success'}
+            insight={`${totalAltas3m} altas y ${totalBajas3m} bajas en el distrito${balanceMembresia < 0 ? ' — las bajas superan las altas, conviene revisar traslados y disciplina.' : '.'}`}
+          />
+          <InsightCard
+            title="Madurez de la obra"
+            value={congregaciones.length ? `${Math.round((congregacionesConstituidas / congregaciones.length) * 100)}%` : '—'}
+            insight={congregaciones.length === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesPorMadurez.lugar_prediccion || 0} Lugar de Predicación, ${congregacionesPorMadurez.mision_nacional || 0} Misión Nacional.`}
+          />
+        </div>
+      </section>
+
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -223,6 +295,7 @@ function DashboardDistrital({ rolPrincipal }) {
             <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
             <option value="personas_activas">Ordenar por: personas activas</option>
             <option value="asistencia_ultimo_mes">Ordenar por: asistencia último mes</option>
+            <option value="bajas_3m">Ordenar por: bajas (3 meses)</option>
           </select>
         </div>
         {filas.length === 0 ? (
@@ -237,6 +310,8 @@ function DashboardDistrital({ rolPrincipal }) {
                   <th className="px-4 py-3">Pastor a cargo</th>
                   <th className="px-4 py-3">Personas activas</th>
                   <th className="px-4 py-3">Nuevas (3 meses)</th>
+                  <th className="px-4 py-3">Sellados</th>
+                  <th className="px-4 py-3">Madurez</th>
                   <th className="px-4 py-3">Asistencia último mes</th>
                   <th className="px-4 py-3">Estado</th>
                 </tr>
@@ -251,6 +326,8 @@ function DashboardDistrital({ rolPrincipal }) {
                       <td className="px-4 py-3 text-secondary">{c.pastor_nombre || 'Vacante'}</td>
                       <td className="px-4 py-3">{c.personas_activas}</td>
                       <td className={`px-4 py-3 ${Number(c.personas_nuevas_3m) > 0 ? 'text-success' : ''}`}>{c.personas_nuevas_3m}</td>
+                      <td className="px-4 py-3">{c.sellados}{c.bautizados > 0 && c.sellados < c.bautizados && <span className="ml-1.5 text-xs text-warning">({c.bautizados - c.sellados} sin sellar)</span>}</td>
+                      <td className="px-4 py-3 text-secondary">{MADUREZ_LABELS_DASH[c.madurez] || c.madurez}</td>
                       <td className="px-4 py-3">
                         {c.asistencia_ultimo_mes}
                         {variacionAsistencia !== null && (

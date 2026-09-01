@@ -21,6 +21,12 @@
 	`docs/nivel-distrital-consolidado-2026-08-31.md`. Pendiente: cargar el
 	listado real de los 36 distritos de la IPUC desde `/distritos`, y probar
 	esa pantalla con una cuenta nacional/super_admin real (no existe todavia).
+- Resuelto (2026-09-01): Fase 2 del BI de la IPUC — 5 insights en el
+	Dashboard distrital (brecha de llenura, eficacia REFAM, embudo Uno
+	Mas->REFAM, movimiento de membresia, madurez de la obra), cada uno con
+	numero + frase de interpretacion. Ver
+	`docs/bi-fase2-insights-2026-09-01.md`. Pendiente: Fase 3 (Escuela
+	Dominical/Damas Dorcas).
 - Resuelto (2026-09-01): Fase 1 del BI de la IPUC — sellados con el
 	Espiritu Santo, estudios REFAM individuales, madurez de sede, movimientos
 	de membresia estructurados y clasificacion poblacional de zonas. Ver
