@@ -65,6 +65,13 @@ export function useMiRol() {
     function actualizarRolActivo() {
       setRolActivoId(user ? leerRolActivoGuardado(user.id) : null)
     }
+    // Al montar (o cuando `user` pasa de null a resuelto, ej. tras una
+    // recarga completa de página) hay que releer el rol guardado: el
+    // useState inicial de rolActivoId solo se evalúa una vez, cuando `user`
+    // todavía es null mientras useAuth resuelve la sesión — sin este efecto,
+    // el rol activo guardado se pierde en cada recarga y cae siempre al de
+    // mayor prioridad (ej. vuelve a "distrital" aunque se eligió "local").
+    actualizarRolActivo()
     window.addEventListener('siga:rol-activo-cambiado', actualizarRolActivo)
     return () => window.removeEventListener('siga:rol-activo-cambiado', actualizarRolActivo)
   }, [user])
