@@ -11,10 +11,15 @@
 	`docs/censo-bautizados-sellados-2026-09-01.md`. De paso se corrigio un
 	bug real: el formulario "Registrar amigo" en Amigos.jsx siempre fallaba
 	por enviar fecha_nacimiento vacia a una columna date.
-	**Pendiente**: el usuario autorizo investigar la metodologia
-	estadistica real de la coordinacion nacional de la IPUC en internet
-	para alinear mejor las metricas del software - tarea de investigacion
-	separada, ofrecida como siguiente paso, no ejecutada todavia.
+	Resuelto (2026-09-01): investigacion de la metodologia/estructura real
+	de la IPUC hecha (ver `docs/investigacion-metodologia-ipuc-2026-09-01.md`).
+	No se encontro el formato exacto del informe estadistico interno (no
+	esta publicado, es documentacion interna de la organizacion) pero se
+	confirmo la jerarquia nacional/distrital/local, el escalafon ministerial
+	ya modelado en SIGAP, y una lista de comites/ministerios reales de la
+	IPUC que SIGAP todavia no cubre (Conquistadores Pentecostales, Musica,
+	Artistica, Obra Social, Educacion Teologica para membresia general) -
+	pendiente de decidir si se construyen a futuro.
 - Resuelto (2026-09-01): nuevo modulo Obra Carcelaria completo (asistencia
 	interna, delegados/INPEC, seguimiento familiar, reinsercion
 	post-penitenciaria cruzando congregaciones, catalogo de centros de
