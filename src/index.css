@@ -243,6 +243,12 @@
     box-shadow: 12px 0 34px rgba(11, 11, 11, 0.14);
   }
 
+  /* El scrollbar global es claro (para fondos claros); el Sidebar es oscuro,
+     así que sin esto la barra se ve como un bloque blanco pegado al menú. */
+  .sidebar-shell ::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-shell ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); }
+  .sidebar-shell ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
+
   .sidebar-mark {
     background: linear-gradient(145deg, #4b98eb, #2a78d6 65%, #15529a);
     box-shadow: 0 8px 20px rgba(42, 120, 214, 0.36);
