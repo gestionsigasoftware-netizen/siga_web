@@ -7,8 +7,11 @@ import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
 import { formatFecha } from '../lib/dateFormat'
+import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
+
+const dashboardCache = new Map()
 
 const NIVEL_TITULO = {
   super_admin: 'Panel — todas las congregaciones',
@@ -377,8 +380,21 @@ export default function Dashboard() {
   useEffect(() => {
     if (!rolPrincipal) return
     let active = true
+    const cacheKey = `${rolPrincipal.nivel}:${rolPrincipal.congregacion_id || 'all'}`
     async function load() {
-      setLoadingData(true)
+      const cached = reloadToken === 0 ? dashboardCache.get(cacheKey) : null
+      if (cached) {
+        setAlertas(cached.alertas)
+        setAlertasTotal(cached.alertasTotal)
+        setResumenFeligresia(cached.resumenFeligresia)
+        setCanHandleAlerts(cached.canHandleAlerts)
+        setRegistros(cached.registros)
+        setCategorias(cached.categorias)
+        setAmigos(cached.amigos)
+        setLoadingData(false)
+      } else {
+        setLoadingData(true)
+      }
       setLoadError(null)
       const alertasQuery = supabase.from('vw_alertas_pastorales').select('*')
       const alertasCountQuery = supabase.from('vw_alertas_pastorales').select('clave', { count: 'exact', head: true })
@@ -418,10 +434,22 @@ export default function Dashboard() {
       ])
       if (!active) return
       if (alertasError || alertasCountError || feligresiaError || permisoError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
-      setRegistros(registrosData ?? [])
-      setCategorias(categoriasData ?? [])
-      setAmigos(amigosData ?? [])
+      const nuevosRegistros = registrosData ?? []
+      const nuevasCategorias = categoriasData ?? []
+      const nuevosAmigos = amigosData ?? []
+      setRegistros(nuevosRegistros)
+      setCategorias(nuevasCategorias)
+      setAmigos(nuevosAmigos)
       setLoadingData(false)
+      dashboardCache.set(cacheKey, {
+        alertas: alertasData ?? [],
+        alertasTotal: alertasCount ?? 0,
+        resumenFeligresia: feligresiaData,
+        canHandleAlerts: Boolean(permisoAlertas),
+        registros: nuevosRegistros,
+        categorias: nuevasCategorias,
+        amigos: nuevosAmigos,
+      })
     }
     load()
     return () => { active = false }
@@ -448,7 +476,18 @@ export default function Dashboard() {
 
   if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
   if (rolPrincipal.nivel === 'distrital') return <DashboardDistrital rolPrincipal={rolPrincipal} />
-  if (loadingData) return <div className="module-loading flex-col gap-3" role="status"><span className="loading-dot" /><span>Cargando indicadores del resumen...</span>{loadError && <><p role="alert" className="text-sm text-danger">{loadError}</p><button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs">Reintentar</button></>}</div>
+  if (loadingData) return (
+    <div className="flex flex-col gap-6" role="status" aria-label="Cargando indicadores del resumen">
+      <div className="rounded-card bg-ink/90 p-7 sm:p-9 animate-pulse">
+        <div className="h-2.5 w-32 rounded bg-white/20" />
+        <div className="h-8 w-64 rounded bg-white/20 mt-4" />
+        <div className="h-3.5 w-96 max-w-full rounded bg-white/10 mt-4" />
+      </div>
+      {loadError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{loadError}<button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs ml-3">Reintentar</button></p>}
+      <div className="grid sm:grid-cols-3 gap-3"><SkeletonStatTiles count={3} /></div>
+      <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4"><SkeletonChart /><SkeletonChart /></div>
+    </div>
+  )
 
   const hasData = Boolean(registros.length)
   const nombreCongregacion = rolPrincipal?.congregaciones?.nombre

@@ -3,6 +3,9 @@ import { ArrowRight, BarChart3, CheckCircle2, Compass, GraduationCap, HeartHands
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { SkeletonCard, SkeletonStatTiles } from "../components/Skeleton";
+
+const metricsCache = new Map();
 
 const SUBMODULES = [
   {
@@ -87,7 +90,13 @@ export default function MisionesEvangelismo() {
         setLoading(false);
         return;
       }
-      setLoading(true);
+      const cached = metricsCache.get(congregacionId);
+      if (cached) {
+        setMetrics(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const [processResult, friendsResult, refamResult, esfobResult, discipuladoResult] = await Promise.all([
         supabase
@@ -125,7 +134,7 @@ export default function MisionesEvangelismo() {
         if (code) totals[code] = (totals[code] || 0) + 1;
         return totals;
       }, {});
-      setMetrics({
+      const newMetrics = {
         active: (processResult.data ?? []).filter((process) => process.estado === "activo").length,
         completed: (processResult.data ?? []).filter((process) => process.estado === "completado").length,
         friends: friendsResult.count ?? 0,
@@ -133,7 +142,9 @@ export default function MisionesEvangelismo() {
         esfobActive: esfobResult.count ?? 0,
         discipuladoActive: discipuladoResult.count ?? 0,
         stationCounts,
-      });
+      };
+      metricsCache.set(congregacionId, newMetrics);
+      setMetrics(newMetrics);
       setLoading(false);
     }
     loadMetrics();
@@ -168,10 +179,12 @@ export default function MisionesEvangelismo() {
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {roleLoading || loading ? (
-        <div className="module-loading" role="status">
-          <span className="loading-dot" />
-          Cargando lectura de la ruta...
-        </div>
+        <>
+          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Cargando indicadores de la ruta">
+            <SkeletonStatTiles count={6} />
+          </section>
+          <SkeletonCard lines={6} />
+        </>
       ) : (
         <>
           <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Indicadores de la ruta">

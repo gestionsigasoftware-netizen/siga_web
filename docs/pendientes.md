@@ -2,6 +2,12 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-08-31): cache de datos entre navegaciones + skeleton de
+	carga para los 3 modulos mas usados (Resumen/Dashboard rama local,
+	Feligresia, Misiones y Evangelismo). Ver
+	`docs/cache-skeleton-2026-08-31.md`. **Pendiente**: replicar el mismo
+	patron al resto de ~17 modulos del Sidebar y a la rama distrital del
+	Dashboard, que siguen con el "Cargando..." bloqueante de antes.
 - Resuelto (2026-08-31): `supabase/gestion_distrital_congregaciones.sql` ya
 	esta ejecutada y `invitar-usuario` ya fue redesplegada
 	(`npx supabase functions deploy invitar-usuario --project-ref

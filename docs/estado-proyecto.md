@@ -22,6 +22,9 @@ Ultima validacion conocida:
 - Dashboard inicial para usuarios autenticados.
 - Sidebar responsive con menu por rol y scroll interno.
 - Centro de notificaciones.
+- Cache de datos en memoria + skeleton screens al navegar entre modulos
+	(Resumen, Feligresia, Misiones y Evangelismo por ahora). Ver
+	`docs/cache-skeleton-2026-08-31.md`.
 - Preferencias personales: notificaciones, alertas y formato regional de
 	fecha; el formato de fecha ahora se aplica de verdad en toda la app
 	(auditoría, notificaciones, historial de comités y de Amigos, Dashboard),
