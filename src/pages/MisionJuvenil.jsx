@@ -146,7 +146,7 @@ export default function MisionJuvenil() {
       supabase
         .from("mision_estudiantes")
         .select(
-          "id, nombres, apellidos, institucion_id, grado_semestre, telefono, estado, tutor_persona_id, mision_instituciones(nombre)",
+          "id, nombres, apellidos, institucion_id, grado_semestre, telefono, estado, tutor_persona_id, bautizado, fecha_bautismo, sellado, fecha_sellado, mision_instituciones(nombre)",
         )
         .eq("congregacion_id", congregacionId)
         .order("nombres")
@@ -289,9 +289,8 @@ export default function MisionJuvenil() {
   const average = visibleRecords.length
     ? Math.round(attendance / visibleRecords.length)
     : 0;
-  const baptized = students.filter(
-    (student) => student.estado === "bautizado",
-  ).length;
+  const baptized = students.filter((student) => student.bautizado).length;
+  const sealed = students.filter((student) => student.sellado).length;
   const activeSympathizers = students.filter((student) =>
     ["simpatizante", "refam", "discipulado"].includes(student.estado),
   ).length;
@@ -355,6 +354,17 @@ export default function MisionJuvenil() {
       load();
     }
   }
+  async function marcarHitoEstudiante(student, campo, fechaCampo) {
+    if (!canEdit) return;
+    setSaving(true);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const result = await supabase.from("mision_estudiantes").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", student.id).eq("congregacion_id", congregacionId);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
+    setNotice("Ficha actualizada.");
+    load();
+  }
+
   async function createStudent(event) {
     event.preventDefault();
     setSaving(true);
@@ -467,6 +477,7 @@ export default function MisionJuvenil() {
         <Metric label="Grupos REFAM" value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={`${studentsPerGroup} estudiantes por grupo`} insight={activeGroups ? "Comprueba que cada grupo tenga líder y continuidad de lecciones." : "Crea un grupo para organizar el acompañamiento."} />
         <Metric label="Asistencia promedio" value={average} progress={attendanceRate} detail={`${registros.length} registros de actividad`} insight={average ? "Compara la asistencia con el número de estudiantes para detectar continuidad." : "Registra actividades para conocer la participación juvenil."} />
         <Metric label="Bautizados" value={baptized} tone="text-success" progress={baptismRate} detail={`${baptismRate}% de estudiantes activos`} insight={baptized ? "Asegura la continuidad de cada bautizado hacia el discipulado." : "Acompaña el proceso espiritual y la preparación bautismal."} />
+        <Metric label="Sellados" value={sealed} progress={activeStudents ? Math.round((sealed / activeStudents) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua, independiente del proceso REFAM." />
         <Metric label="Registros de actividad" value={registros.length} progress={registros.length ? 100 : 0} detail={`${attendance} asistentes acumulados`} insight={registros.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay actividad registrada en el periodo."} />
       </section>
       <section className="card p-5">
@@ -583,6 +594,7 @@ export default function MisionJuvenil() {
                 <th className="py-2">Institución</th>
                 <th className="py-2">Grado / semestre</th>
                 <th className="py-2">Estado</th>
+                <th className="py-2">Hitos</th>
               </tr>
             </thead>
             <tbody>
@@ -592,6 +604,14 @@ export default function MisionJuvenil() {
                   <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || "Sin institución"}</td>
                   <td className="py-2 text-secondary">{student.grado_semestre || "Sin dato"}</td>
                   <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{ESTADOS[student.estado] || student.estado}</span></td>
+                  <td className="py-2">
+                    <div className="flex gap-1.5 flex-wrap items-center">
+                      {student.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
+                      {student.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
+                      {canEdit && !student.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "bautizado", "fecha_bautismo")}>Marcar bautizado</button>}
+                      {canEdit && !student.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "sellado", "fecha_sellado")}>Marcar sellado</button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

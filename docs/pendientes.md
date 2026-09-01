@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-01): censo de bautizados y sellados con el Espiritu
+	Santo como hitos independientes en Escuela Dominical, Damas Dorcas,
+	Mision Juvenil y Amigos (Feligresia y Obra Carcelaria ya lo tenian);
+	bloqueo real (cliente + trigger de base de datos) de que solo personas
+	bautizadas pueden pertenecer a un comite, con sellado adicional
+	configurable por cargo. Ver
+	`docs/censo-bautizados-sellados-2026-09-01.md`. De paso se corrigio un
+	bug real: el formulario "Registrar amigo" en Amigos.jsx siempre fallaba
+	por enviar fecha_nacimiento vacia a una columna date.
+	**Pendiente**: el usuario autorizo investigar la metodologia
+	estadistica real de la coordinacion nacional de la IPUC en internet
+	para alinear mejor las metricas del software - tarea de investigacion
+	separada, ofrecida como siguiente paso, no ejecutada todavia.
 - Resuelto (2026-09-01): nuevo modulo Obra Carcelaria completo (asistencia
 	interna, delegados/INPEC, seguimiento familiar, reinsercion
 	post-penitenciaria cruzando congregaciones, catalogo de centros de

@@ -71,7 +71,7 @@ export default function DamasDorcas() {
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
     const [b, a, s, p] = await Promise.all([
-      supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
+      supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, bautizado, fecha_bautismo, sellado, fecha_sellado, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
       supabase.from("damas_dorcas_asistencia").select("id, actividad_id, beneficiaria_id, asistio, damas_dorcas_actividades!inner(congregacion_id, fecha)").eq("damas_dorcas_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
@@ -130,6 +130,17 @@ export default function DamasDorcas() {
     load();
   }
 
+  async function marcarHito(beneficiaria, campo, fechaCampo) {
+    if (!canEdit) return;
+    setSaving(true); setError(null);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const result = await supabase.from("damas_dorcas_beneficiarias").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", beneficiaria.id).eq("congregacion_id", congregacionId);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
+    setNotice("Ficha actualizada.");
+    load();
+  }
+
   useEffect(() => { load(); }, [congregacionId, periodo]);
   useEffect(() => {
     if (!congregacionId) return;
@@ -140,6 +151,8 @@ export default function DamasDorcas() {
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Damas Dorcas...</div>;
 
   const activas = beneficiarias.filter((item) => item.estado === "activa");
+  const bautizadas = activas.filter((item) => item.bautizado);
+  const selladas = activas.filter((item) => item.sellado);
   const actividadesUltimoMes = actividades.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
 
   // Tendencia: actividades por fecha en el periodo
@@ -204,6 +217,8 @@ export default function DamasDorcas() {
         <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sin seguimiento reciente" value={beneficiariasSinSeguimiento.length} tone={beneficiariasSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activas.length ? Math.round((beneficiariasSinSeguimiento.length / activas.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={beneficiariasSinSeguimiento.length > 0 ? "Revisa la lista y programa una visita." : "Todas las beneficiarias tienen seguimiento reciente."} />
         <Metric label="Tipo de trabajo líder" value={tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={`${tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} actividades`} insight="Compara con las demás modalidades para balancear el trabajo." />
+        <Metric label="Bautizadas" value={bautizadas.length} progress={activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0} detail={`${activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0}% de las activas`} insight="Bautizado y sellado son hitos independientes: compara con la métrica de selladas." />
+        <Metric label="Selladas" value={selladas.length} progress={activas.length ? Math.round((selladas.length / activas.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
@@ -253,13 +268,21 @@ export default function DamasDorcas() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Responsable</th><th className="py-2">Estado</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Responsable</th><th className="py-2">Estado</th><th className="py-2">Hitos</th></tr></thead>
               <tbody>
                 {beneficiarias.map((item) => (
                   <tr key={item.id} className="border-b border-border">
                     <td className="py-2 font-medium">{item.nombres} {item.apellidos}</td>
                     <td className="py-2 text-secondary">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : "Sin asignar"}</td>
                     <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{item.estado === "activa" ? "Activa" : "Inactiva"}</span></td>
+                    <td className="py-2">
+                      <div className="flex gap-1.5 flex-wrap items-center">
+                        {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizada</span>}
+                        {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellada</span>}
+                        {canEdit && !item.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>Marcar bautizada</button>}
+                        {canEdit && !item.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>Marcar sellada</button>}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

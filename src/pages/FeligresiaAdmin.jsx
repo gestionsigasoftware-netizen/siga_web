@@ -252,7 +252,7 @@ export default function FeligresiaAdmin() {
       supabase.from('familia_miembros').select('id, familia_id, persona_id, parentesco, es_referente, familias!inner(congregacion_id)').eq('familias.congregacion_id', congregacionId),
       supabase.from('relaciones_familiares').select('id, persona_id, relacionada_id, tipo'),
       supabase.from('comites').select('id, nombre, codigo, descripcion, proposito, activo, fecha_inicio, fecha_fin, responsable_id, observaciones, membresias_comite(id, persona_id, cargo, cargo_id, estado, fecha_inicio, fecha_fin, motivo_retiro, reemplaza_membresia_id)').eq('congregacion_id', congregacionId).order('nombre'),
-      supabase.from('cargos_comite').select('id, nombre, codigo, unico_por_comite, admite_suplente, orden').eq('congregacion_id', congregacionId).eq('activo', true).order('orden').order('nombre'),
+      supabase.from('cargos_comite').select('id, nombre, codigo, unico_por_comite, admite_suplente, orden, requiere_sellado').eq('congregacion_id', congregacionId).eq('activo', true).order('orden').order('nombre'),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).eq('activo', true).order('nombre'),
       supabase.from('historial_cargos').select('id, persona_id, nombre_cargo, area, fecha_inicio, fecha_fin, observaciones').order('fecha_inicio', { ascending: false }),
 
@@ -429,6 +429,9 @@ export default function FeligresiaAdmin() {
     const data = new FormData(event.currentTarget)
     const cargoValue = data.get('cargo_id') || data.get('cargo')
     const selectedCargo = committeeCargoCatalog.find((cargo) => cargo.id === cargoValue)
+    const selectedPerson = people.find((person) => person.id === data.get('persona_id'))
+    if (!selectedPerson?.bautizado) { setSaving(false); setError('Esta persona debe estar bautizada para pertenecer a un comité.'); return }
+    if (selectedCargo?.requiere_sellado && !selectedPerson?.sellado_espiritu_santo) { setSaving(false); setError('Este cargo requiere que la persona esté sellada con el Espíritu Santo.'); return }
     const result = await supabase.from('membresias_comite').insert({ comite_id: data.get('comite_id'), persona_id: data.get('persona_id'), cargo_id: selectedCargo?.id || null, cargo: selectedCargo?.nombre || data.get('cargo') || null })
     setSaving(false)
     if (result.error) { setError(`No se pudo asignar el integrante: ${result.error.message}`); return }

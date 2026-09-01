@@ -76,7 +76,7 @@ export default function EscuelaDominical() {
     start.setDate(start.getDate() - Number(periodo));
     const [c, n, m, p, l] = await Promise.all([
       supabase.from("escuela_dominical_clases").select("id, nombre, etapa, metodologia, maestro_lider_persona_id, leccion_actual, activo, personas:maestro_lider_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombre"),
-      supabase.from("escuela_dominical_ninos").select("id, nombres, apellidos, clase_id, fecha_nacimiento, acudiente_nombre, acudiente_telefono, estado").eq("congregacion_id", congregacionId).order("nombres"),
+      supabase.from("escuela_dominical_ninos").select("id, nombres, apellidos, clase_id, fecha_nacimiento, acudiente_nombre, acudiente_telefono, estado, bautizado, fecha_bautismo, sellado, fecha_sellado").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("escuela_dominical_maestros").select("id, persona_id, rol, activo, personas(nombres, apellidos)").eq("congregacion_id", congregacionId).order("created_at", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("escuela_dominical_lecciones").select("id, clase_id, numero, tema, fecha, asistentes, escuela_dominical_clases!inner(congregacion_id, nombre)").eq("escuela_dominical_clases.congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha"),
@@ -186,6 +186,17 @@ export default function EscuelaDominical() {
     load();
   }
 
+  async function marcarHito(nino, campo, fechaCampo) {
+    if (!canEdit) return;
+    setSaving(true); setError(null);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const result = await supabase.from("escuela_dominical_ninos").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", nino.id).eq("congregacion_id", congregacionId);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
+    setNotice("Ficha actualizada.");
+    load();
+  }
+
   async function toggleMaestro(maestro) {
     const result = await supabase.from("escuela_dominical_maestros").update({ activo: maestro.activo === false }).eq("id", maestro.id).eq("congregacion_id", congregacionId);
     if (result.error) { setError("No se pudo cambiar el estado del maestro."); return; }
@@ -202,6 +213,8 @@ export default function EscuelaDominical() {
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Escuela Dominical...</div>;
 
   const ninosActivos = ninos.filter((n) => n.estado === "activo");
+  const ninosBautizados = ninosActivos.filter((n) => n.bautizado);
+  const ninosSellados = ninosActivos.filter((n) => n.sellado);
   const clasesActivas = clases.filter((c) => c.activo !== false);
   const maestrosActivos = maestros.filter((m) => m.activo !== false);
   const ninosPorClase = clasesActivas.length ? Math.round(ninosActivos.length / clasesActivas.length) : 0;
@@ -259,13 +272,15 @@ export default function EscuelaDominical() {
       {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Escuela Dominical.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
-      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Clases activas" value={clasesActivas.length} progress={clasesActivas.length ? 100 : 0} detail={`${claseSinMaestro} sin maestro líder`} insight={claseSinMaestro ? "Asigna un maestro líder a cada clase para dar continuidad." : "Todas las clases tienen maestro líder."} />
         <Metric label="Niños activos" value={ninosActivos.length} progress={ninosActivos.length ? 100 : 0} detail={`${ninosPorClase} niños por clase`} insight={ninosActivos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer niño para iniciar el trabajo."} />
         <Metric label="Maestros activos" value={maestrosActivos.length} progress={maestrosActivos.length ? Math.min(100, maestrosActivos.length * 20) : 0} detail={`${clasesActivas.length ? Math.round(maestrosActivos.length / clasesActivas.length * 100) : 0}% cobertura por clase`} insight={maestrosActivos.length < clasesActivas.length ? "Hay menos maestros que clases activas: revisa cobertura." : "Cobertura de maestros adecuada."} />
         <Metric label="Asistencia promedio" value={promedioLeccion} tone="text-success" progress={ninosActivos.length ? Math.min(100, Math.round((promedioLeccion / ninosActivos.length) * 100)) : 0} detail={`${todasLecciones.length} lecciones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Lecciones registradas" value={todasLecciones.length} progress={todasLecciones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasLecciones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay lecciones registradas en el periodo."} />
         <Metric label="Niños por etapa líder" value={etapasConTotal.sort((a, b) => b.total - a.total)[0]?.etapa || "—"} progress={ninosActivos.length ? Math.round((etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / ninosActivos.length * 100) : 0} detail={`${etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} niños`} insight="Concentra materiales y capacitación según la etapa con más niños." />
+        <Metric label="Bautizados" value={ninosBautizados.length} progress={ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0} detail={`${ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0}% de los activos`} insight="Bautizado y sellado son hitos independientes: compáralos con la métrica de sellados." />
+        <Metric label="Sellados" value={ninosSellados.length} progress={ninosActivos.length ? Math.round((ninosSellados.length / ninosActivos.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
@@ -359,13 +374,21 @@ export default function EscuelaDominical() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Niño</th><th className="py-2">Clase</th><th className="py-2">Acudiente</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Niño</th><th className="py-2">Clase</th><th className="py-2">Acudiente</th><th className="py-2">Hitos</th></tr></thead>
               <tbody>
                 {ninos.map((nino) => (
                   <tr key={nino.id} className="border-b border-border">
                     <td className="py-2 font-medium">{nino.nombres} {nino.apellidos}</td>
                     <td className="py-2 text-secondary">{clases.find((c) => c.id === nino.clase_id)?.nombre || "Sin clase"}</td>
                     <td className="py-2 text-secondary">{nino.acudiente_nombre || "Sin dato"}</td>
+                    <td className="py-2">
+                      <div className="flex gap-1.5 flex-wrap items-center">
+                        {nino.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
+                        {nino.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
+                        {canEdit && !nino.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(nino, "bautizado", "fecha_bautismo")}>Marcar bautizado</button>}
+                        {canEdit && !nino.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(nino, "sellado", "fecha_sellado")}>Marcar sellado</button>}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

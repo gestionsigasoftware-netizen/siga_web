@@ -29,6 +29,10 @@ Ultima validacion conocida:
 	delegados con auditoria INPEC, seguimiento familiar y reinsercion
 	post-penitenciaria entre congregaciones, con catalogo distrital de
 	centros de reclusion. Ver `docs/obra-carcelaria-2026-09-01.md`.
+- Censo de bautizados y sellados con el Espiritu Santo (hitos
+	independientes) en todos los modulos con ficha individual, y bloqueo
+	real de que solo personas bautizadas pueden pertenecer a un comite. Ver
+	`docs/censo-bautizados-sellados-2026-09-01.md`.
 - Preferencias personales: notificaciones, alertas y formato regional de
 	fecha; el formato de fecha ahora se aplica de verdad en toda la app
 	(auditoría, notificaciones, historial de comités y de Amigos, Dashboard),

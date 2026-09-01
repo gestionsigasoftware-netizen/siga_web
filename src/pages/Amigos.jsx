@@ -60,7 +60,7 @@ const EMPTY_ATENCION = {
   notas: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, created_at, etapas_seguimiento(nombre, orden), zonas(nombre)";
+  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -150,7 +150,7 @@ export default function Amigos() {
           return query;
         })(),
         supabase.from("amigos").select("id", { count: "exact", head: true }).eq("congregacion_id", congregacionId).eq("convertido", true),
-        supabase.from("amigos").select("id, etapa_id, zona_id, evangelismo_metodologia_id, convertido, fecha_primer_contacto").eq("congregacion_id", congregacionId),
+        supabase.from("amigos").select("id, etapa_id, zona_id, evangelismo_metodologia_id, convertido, fecha_primer_contacto, sellado").eq("congregacion_id", congregacionId),
         supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       ]);
     if (
@@ -429,6 +429,7 @@ export default function Amigos() {
       etapa_id: form.etapa_id || null,
       zona_id: form.zona_id || null,
       evangelismo_metodologia_id: form.evangelismo_metodologia_id || null,
+      fecha_nacimiento: form.fecha_nacimiento || null,
       congregacion_id: congregacionId,
     };
     const { data, error: insertError } = await supabase
@@ -461,6 +462,7 @@ export default function Amigos() {
       etapa_id: editForm.etapa_id || null,
       zona_id: editForm.zona_id || null,
       evangelismo_metodologia_id: editForm.evangelismo_metodologia_id || null,
+      fecha_nacimiento: editForm.fecha_nacimiento || null,
     };
     const { data, error: updateError } = await supabase
       .from("amigos")
@@ -495,9 +497,11 @@ export default function Amigos() {
     }
     setSaving(true);
     setError(null);
+    const becomingBaptized = selected.estado_espiritual !== "bautizado";
     const values = {
-      estado_espiritual: selected.estado_espiritual === "bautizado" ? "en_ruta" : "bautizado",
-      convertido: selected.estado_espiritual === "bautizado" ? false : true,
+      estado_espiritual: becomingBaptized ? "bautizado" : "en_ruta",
+      convertido: becomingBaptized,
+      ...(becomingBaptized ? { bautizado: true, fecha_bautismo: selected.fecha_bautismo || new Date().toISOString().slice(0, 10) } : {}),
     };
     const { error: updateError } = await supabase
       .from("amigos")
@@ -514,6 +518,23 @@ export default function Amigos() {
         friend.id === selected.id ? { ...friend, ...values } : friend,
       ),
     );
+    setSelected((current) => ({ ...current, ...values }));
+  }
+
+  async function markSealed() {
+    if (!selected || selected.sellado) return;
+    if (!canEdit) { setError("Tu perfil no permite modificar el estado espiritual."); return; }
+    setSaving(true);
+    setError(null);
+    const values = { sellado: true, fecha_sellado: new Date().toISOString().slice(0, 10) };
+    const { error: updateError } = await supabase
+      .from("amigos")
+      .update(values)
+      .eq("id", selected.id)
+      .eq("congregacion_id", congregacionId);
+    setSaving(false);
+    if (updateError) { setError(`No se pudo actualizar el sellado: ${updateError.message}`); return; }
+    setAmigos((current) => current.map((friend) => (friend.id === selected.id ? { ...friend, ...values } : friend)));
     setSelected((current) => ({ ...current, ...values }));
   }
 
@@ -1161,6 +1182,10 @@ export default function Amigos() {
                   {selected.persona_id ? "Ya está en Feligresía" : "Incorporar a Feligresía"}
                 </button>
               )}
+              <button type="button" disabled={saving || selected.sellado} onClick={markSealed} className="btn-secondary justify-center">
+                <CheckCircle2 className="w-4 h-4" />
+                {selected.sellado ? `Sellado el ${selected.fecha_sellado}` : "Marcar sellado con el Espíritu Santo"}
+              </button>
               <button
                 type="button"
                 disabled={saving}
@@ -1228,11 +1253,12 @@ function FriendStageHistory({ history, loading }) {
 function FriendInsights({ amigos, etapas, zonas, metodologias }) {
   const oldContactDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const withoutRecentContact = amigos.filter((friend) => !friend.convertido && friend.fecha_primer_contacto && friend.fecha_primer_contacto < oldContactDate).length
+  const sealedNotBaptized = amigos.filter((friend) => !friend.convertido && friend.sellado).length
   const countBy = (key, items) => items.map((item) => ({ ...item, total: amigos.filter((friend) => friend[key] === item.id && !friend.convertido).length })).filter((item) => item.total > 0).sort((left, right) => right.total - left.total)
   const stageTotals = countBy('etapa_id', etapas)
   const zoneTotals = countBy('zona_id', zonas)
   const methodTotals = countBy('evangelismo_metodologia_id', metodologias)
-  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 30 días desde el primer contacto. Conviene revisar la agenda, disponibilidad y próximo paso.</p>}</section>
+  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 30 días desde el primer contacto. Conviene revisar la agenda, disponibilidad y próximo paso.</p>}{sealedNotBaptized > 0 && <p className="summary-insight mt-3">{sealedNotBaptized} amigo{sealedNotBaptized === 1 ? '' : 's'} en ruta ya {sealedNotBaptized === 1 ? 'fue sellado' : 'fueron sellados'} con el Espíritu Santo aunque aún no se {sealedNotBaptized === 1 ? 'ha bautizado' : 'han bautizado'} — el bautismo y el sellado son hitos independientes.</p>}</section>
 }
 
 function InsightList({ title, items }) {
