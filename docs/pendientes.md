@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-01): no existia ningun camino para corregir el
+	distrito de una congregacion despues de creada (por ejemplo,
+	congregaciones dadas de alta bajo un distrito de prueba/demo). Se agrego
+	`mover_congregacion_distrito(p_congregacion_id, p_distrito_destino)`
+	(solo nacional/super_admin), que ademas sincroniza `pastores.distrito_id`
+	y la asignacion pastoral activa para que no queden desfasados del
+	distrito real de la congregacion. Interfaz nueva en el Catalogo de
+	distritos (`GestionDistritos.jsx`): tabla de congregaciones con selector
+	de distrito y boton "Mover". **Accion requerida del usuario**: ejecutar
+	`supabase/mover_congregacion_distrito.sql` en el SQL Editor.
 - Resuelto (2026-09-01): censo de bautizados y sellados con el Espiritu
 	Santo como hitos independientes en Escuela Dominical, Damas Dorcas,
 	Mision Juvenil y Amigos (Feligresia y Obra Carcelaria ya lo tenian);

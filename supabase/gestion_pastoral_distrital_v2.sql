@@ -3,11 +3,28 @@
 -- Ejecutar despues de schema.sql, accesos.sql, pastoral_distrital.sql,
 -- gestion_distrital_congregaciones.sql y seguridad_produccion.sql.
 -- Es repetible (usa create or replace / add column if not exists).
+--
+-- Correccion 2026-09-01: trasladar_pastor() actualizaba pastor_id en la
+-- congregacion origen y destino, pero nunca sincronizaba el campo de texto
+-- pastor_nombre (usado para mostrar el nombre del pastor en el Dashboard
+-- distrital, resumen_distrital() y Aprobaciones) — por eso, tras un
+-- traslado, la congregacion destino seguia mostrando el nombre del pastor
+-- anterior (o el de la creacion de la congregacion), y la de origen seguia
+-- mostrando el pastor que ya se fue en vez de "Vacante". Se corrigio para
+-- que ambos lados queden sincronizados, igual que ya hacia
+-- registrar_pastor_con_acceso().
 
 -- 1. Ciudad/municipio de cada congregación (hoy no existía ningún campo de
 --    ubicación) y número identificador de cada distrito (hoy los 36 distritos
 --    de la IPUC solo se distinguen por nombre libre).
 alter table congregaciones add column if not exists ciudad text;
+-- pastor_nombre era NOT NULL desde el esquema original, pero el Dashboard
+-- (`c.pastor_nombre || 'Vacante'`, `!c.pastor_nombre` para contar vacantes)
+-- ya esperaba que pudiera quedar vacio cuando una congregacion no tiene
+-- pastor — esa restriccion nunca se relajo. Se corrige aqui junto con
+-- trasladar_pastor() para que "vacante" se represente de verdad como null.
+alter table congregaciones alter column pastor_nombre drop not null;
+
 alter table distritos add column if not exists numero integer unique;
 
 -- 2. Vínculo real entre el registro pastoral/traslados (`pastores`) y el
@@ -152,8 +169,8 @@ begin
   insert into asignaciones_pastorales (pastor_id, distrito_id, congregacion_id, cargo, fecha_inicio, observaciones)
     values (p_pastor_id, v_distrito_id, p_congregacion_destino, 'Pastor local', p_fecha, p_observaciones)
     returning id into v_asignacion_id;
-  update congregaciones set pastor_id = null where pastor_id = p_pastor_id;
-  update congregaciones set pastor_id = p_pastor_id where id = p_congregacion_destino;
+  update congregaciones set pastor_id = null, pastor_nombre = null where pastor_id = p_pastor_id;
+  update congregaciones set pastor_id = p_pastor_id, pastor_nombre = (select trim(nombres || ' ' || apellidos) from pastores where id = p_pastor_id) where id = p_congregacion_destino;
 
   if v_persona_id is not null then
     update personas set congregacion_id = p_congregacion_destino where id = v_persona_id;
@@ -165,54 +182,26 @@ begin
 end;
 $$;
 
--- 6. Comparativa distrital: una fila por congregación del distrito, con lo
---    necesario para que un líder distrital compare crecimiento/deserción
---    entre congregaciones y lo lea junto al pastor que las dirige.
-create or replace function resumen_distrital(p_distrito_id uuid)
-returns table (
-  congregacion_id uuid,
-  nombre text,
-  ciudad text,
-  estado text,
-  pastor_nombre text,
-  personas_activas bigint,
-  bautizados bigint,
-  familias_asociadas bigint,
-  personas_nuevas_3m bigint,
-  asistencia_ultimo_mes bigint,
-  asistencia_mes_anterior bigint
-)
-language sql stable security invoker set search_path = public as $$
-  select
-    c.id as congregacion_id,
-    c.nombre,
-    c.ciudad,
-    c.estado,
-    c.pastor_nombre,
-    coalesce(r.personas_activas, 0),
-    coalesce(r.bautizados, 0),
-    coalesce(r.familias_asociadas, 0),
-    coalesce((
-      select count(*) from personas p
-      where p.congregacion_id = c.id and p.created_at >= now() - interval '3 months'
-    ), 0) as personas_nuevas_3m,
-    coalesce((
-      select sum(a.total_asistentes) from registros_actividad a
-      where a.congregacion_id = c.id and a.fecha >= (current_date - interval '30 days')
-    ), 0) as asistencia_ultimo_mes,
-    coalesce((
-      select sum(a.total_asistentes) from registros_actividad a
-      where a.congregacion_id = c.id and a.fecha >= (current_date - interval '60 days') and a.fecha < (current_date - interval '30 days')
-    ), 0) as asistencia_mes_anterior
-  from congregaciones c
-  left join vw_resumen_feligresia r on r.congregacion_id = c.id
-  where c.distrito_id = p_distrito_id
-    and c.id in (select mis_congregaciones())
-  order by c.nombre;
-$$;
+-- Correccion de datos de una sola vez (segura de repetir): recalcula
+-- pastor_nombre de TODAS las congregaciones a partir de su pastor_id real,
+-- para arreglar cualquier congregacion que haya quedado con el nombre del
+-- pastor desincronizado por el bug de trasladar_pastor() corregido arriba
+-- (incluye tanto congregaciones con un pastor asignado como las vacantes,
+-- que deben quedar en null para mostrar "Vacante").
+update congregaciones c
+set pastor_nombre = (select trim(p.nombres || ' ' || p.apellidos) from pastores p where p.id = c.pastor_id)
+where c.pastor_nombre is distinct from (select trim(p.nombres || ' ' || p.apellidos) from pastores p where p.id = c.pastor_id);
 
-revoke all on function resumen_distrital(uuid) from public, anon;
-grant execute on function resumen_distrital(uuid) to authenticated;
+-- 6. Comparativa distrital (resumen_distrital): la definicion original de
+-- este archivo se retiro de aqui porque `bi_fase2_insights.sql` la
+-- reemplazo con una version ampliada (19 columnas, incluye madurez,
+-- sellados, embudo de conversion, etc.) y se ejecuta DESPUES de este
+-- archivo — dejar ambas definiciones aqui hacia que volver a correr este
+-- archivo fallara con "cannot change return type of existing function"
+-- al chocar con la version mas nueva ya aplicada. La funcion sigue
+-- existiendo y funcionando igual; su definicion vigente esta en
+-- bi_fase2_insights.sql, que ya incluye pastor_nombre y por lo tanto ya
+-- refleja la correccion de trasladar_pastor() de mas arriba.
 
 -- 7. Catálogo de distritos: solo nacional/super_admin pueden crear o editar
 --    distritos (número + nombre). La lectura ya está cubierta por

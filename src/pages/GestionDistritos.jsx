@@ -6,26 +6,36 @@ import { useMiRol } from '../hooks/useMiRol'
 const ALLOWED_LEVELS = ['nacional', 'super_admin']
 const EMPTY_FORM = { numero: '', nombre: '' }
 
+function formatDistrictLabel(nombre, numero) {
+  if (!nombre) return null
+  return numero ? `Distrito ${numero} · ${nombre}` : nombre
+}
+
 export default function GestionDistritos() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const [distritos, setDistritos] = useState([])
   const [conteos, setConteos] = useState(new Map())
+  const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [busqueda, setBusqueda] = useState('')
+  const [cambios, setCambios] = useState({})
+  const [moviendoId, setMoviendoId] = useState(null)
 
   async function load() {
     setLoading(true)
     setError(null)
     const [{ data: distritosData, error: distritosError }, { data: congregacionesData, error: congregacionesError }] = await Promise.all([
       supabase.from('distritos').select('id, numero, nombre, created_at').order('numero', { ascending: true, nullsFirst: false }).order('nombre'),
-      supabase.from('congregaciones').select('distrito_id'),
+      supabase.from('congregaciones').select('id, nombre, ciudad, distrito_id, distritos(nombre, numero)').order('nombre'),
     ])
     if (distritosError || congregacionesError) setError('No se pudieron cargar los distritos.')
     setDistritos(distritosData ?? [])
+    setCongregaciones(congregacionesData ?? [])
     const mapaConteos = new Map()
     for (const congregacion of congregacionesData ?? []) {
       mapaConteos.set(congregacion.distrito_id, (mapaConteos.get(congregacion.distrito_id) || 0) + 1)
@@ -35,6 +45,30 @@ export default function GestionDistritos() {
   }
 
   useEffect(() => { load() }, [])
+
+  async function moverCongregacion(congregacionId) {
+    const nuevoDistritoId = cambios[congregacionId]
+    if (!nuevoDistritoId) return
+    setMoviendoId(congregacionId)
+    setError(null)
+    setNotice(null)
+    const { error: moveError } = await supabase.rpc('mover_congregacion_distrito', {
+      p_congregacion_id: congregacionId,
+      p_distrito_destino: nuevoDistritoId,
+    })
+    setMoviendoId(null)
+    if (moveError) {
+      setError('No se pudo mover la congregación: ' + moveError.message)
+      return
+    }
+    setNotice('Congregación reasignada correctamente.')
+    setCambios((previo) => { const copia = { ...previo }; delete copia[congregacionId]; return copia })
+    await load()
+  }
+
+  const congregacionesFiltradas = congregaciones.filter((congregacion) =>
+    congregacion.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())
+  )
 
   function resetForm() {
     setEditingId(null)
@@ -123,6 +157,72 @@ export default function GestionDistritos() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="card overflow-hidden">
+        <header className="p-5 pb-0 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-medium">Congregaciones por distrito</h2>
+            <p className="text-sm text-secondary mt-0.5">Reasigna una congregación a su distrito real cuando quedó bajo uno incorrecto (por ejemplo, un distrito de prueba).</p>
+          </div>
+          <input
+            className="input-field w-full sm:w-64"
+            placeholder="Buscar congregación..."
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+          />
+        </header>
+        {loading ? (
+          <div className="module-loading" role="status"><span className="loading-dot" />Cargando congregaciones...</div>
+        ) : congregacionesFiltradas.length === 0 ? (
+          <div className="p-10 text-center"><MapPin className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">No hay congregaciones que coincidan.</p></div>
+        ) : (
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="font-normal px-5 py-3">Congregación</th>
+                  <th className="font-normal px-5 py-3">Distrito actual</th>
+                  <th className="font-normal px-5 py-3">Nuevo distrito</th>
+                  <th className="font-normal px-5 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {congregacionesFiltradas.map((congregacion) => {
+                  const distritoActual = formatDistrictLabel(congregacion.distritos?.nombre, congregacion.distritos?.numero) || '—'
+                  const cambioPendiente = cambios[congregacion.id]
+                  return (
+                    <tr key={congregacion.id} className="border-t border-border">
+                      <td className="px-5 py-3 font-medium">{congregacion.nombre}{congregacion.ciudad ? <span className="text-muted font-normal"> · {congregacion.ciudad}</span> : null}</td>
+                      <td className="px-5 py-3 text-secondary">{distritoActual}</td>
+                      <td className="px-5 py-3">
+                        <select
+                          className="input-field"
+                          value={cambioPendiente ?? congregacion.distrito_id ?? ''}
+                          onChange={(event) => setCambios((previo) => ({ ...previo, [congregacion.id]: event.target.value }))}
+                        >
+                          {distritos.map((distrito) => (
+                            <option key={distrito.id} value={distrito.id}>{formatDistrictLabel(distrito.nombre, distrito.numero)}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={!cambioPendiente || cambioPendiente === congregacion.distrito_id || moviendoId === congregacion.id}
+                          onClick={() => moverCongregacion(congregacion.id)}
+                        >
+                          {moviendoId === congregacion.id ? 'Moviendo...' : 'Mover'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
