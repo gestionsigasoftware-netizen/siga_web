@@ -5,6 +5,17 @@
 -- resumen_damas_distrital), igual que Gestion pastoral.
 -- Ejecutar despues de mision_juvenil.sql, seguridad_produccion.sql y
 -- gestion_pastoral_distrital_v2.sql. Es repetible.
+--
+-- Correccion 2026-09-01: las politicas de lectura originales solo
+-- concedian acceso via tiene_permiso(), que NO reconoce a distrital ni a
+-- nacional/super_admin automaticamente (solo mira asignaciones_acceso y
+-- el pastor local implicito). Esto hacia que resumen_escuela_dominical_distrital()
+-- y resumen_damas_distrital() devolvieran 0 en todas las columnas para
+-- cualquier congregacion donde el distrital no fuera tambien pastor local
+-- (el hueco no se detecto antes porque las cuentas de prueba usadas tenian
+-- un solo distrito con una sola congregacion, donde la misma persona era
+-- pastor local Y coordinador distrital a la vez). Se agrego el mismo
+-- bypass ya usado en obra_carcelaria.sql y en amigos_select (schema.sql).
 
 -- =========================================================================
 -- 1. ESCUELA DOMINICAL (MISION INFANTIL)
@@ -74,7 +85,11 @@ alter table escuela_dominical_maestros enable row level security;
 drop policy if exists escuela_dominical_clases_read on escuela_dominical_clases;
 drop policy if exists escuela_dominical_clases_write on escuela_dominical_clases;
 create policy escuela_dominical_clases_read on escuela_dominical_clases for select to authenticated
-using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'));
+using (
+  (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'))
+  or es_super_admin() or es_nacional()
+  or exists (select 1 from congregaciones c where c.id = congregacion_id and c.distrito_id in (select mis_distritos()))
+);
 create policy escuela_dominical_clases_write on escuela_dominical_clases for all to authenticated
 using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'))
 with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'));
@@ -82,7 +97,11 @@ with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(c
 drop policy if exists escuela_dominical_ninos_read on escuela_dominical_ninos;
 drop policy if exists escuela_dominical_ninos_write on escuela_dominical_ninos;
 create policy escuela_dominical_ninos_read on escuela_dominical_ninos for select to authenticated
-using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'));
+using (
+  (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'))
+  or es_super_admin() or es_nacional()
+  or exists (select 1 from congregaciones c where c.id = congregacion_id and c.distrito_id in (select mis_distritos()))
+);
 create policy escuela_dominical_ninos_write on escuela_dominical_ninos for all to authenticated
 using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'))
 with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'));
@@ -90,7 +109,11 @@ with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(c
 drop policy if exists escuela_dominical_maestros_read on escuela_dominical_maestros;
 drop policy if exists escuela_dominical_maestros_write on escuela_dominical_maestros;
 create policy escuela_dominical_maestros_read on escuela_dominical_maestros for select to authenticated
-using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'));
+using (
+  (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.consultar'))
+  or es_super_admin() or es_nacional()
+  or exists (select 1 from congregaciones c where c.id = congregacion_id and c.distrito_id in (select mis_distritos()))
+);
 create policy escuela_dominical_maestros_write on escuela_dominical_maestros for all to authenticated
 using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'))
 with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'escuela_dominical.editar'));
@@ -98,8 +121,14 @@ with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(c
 drop policy if exists escuela_dominical_lecciones_read on escuela_dominical_lecciones;
 drop policy if exists escuela_dominical_lecciones_write on escuela_dominical_lecciones;
 create policy escuela_dominical_lecciones_read on escuela_dominical_lecciones for select to authenticated
-using (exists (select 1 from escuela_dominical_clases cl where cl.id = escuela_dominical_lecciones.clase_id
-  and cl.congregacion_id in (select mis_congregaciones()) and tiene_permiso(cl.congregacion_id, 'escuela_dominical.consultar')));
+using (exists (
+  select 1 from escuela_dominical_clases cl where cl.id = escuela_dominical_lecciones.clase_id
+  and (
+    (cl.congregacion_id in (select mis_congregaciones()) and tiene_permiso(cl.congregacion_id, 'escuela_dominical.consultar'))
+    or es_super_admin() or es_nacional()
+    or exists (select 1 from congregaciones c where c.id = cl.congregacion_id and c.distrito_id in (select mis_distritos()))
+  )
+));
 create policy escuela_dominical_lecciones_write on escuela_dominical_lecciones for all to authenticated
 using (exists (select 1 from escuela_dominical_clases cl where cl.id = escuela_dominical_lecciones.clase_id
   and cl.congregacion_id in (select mis_congregaciones()) and tiene_permiso(cl.congregacion_id, 'escuela_dominical.editar')))
@@ -109,9 +138,15 @@ with check (exists (select 1 from escuela_dominical_clases cl where cl.id = escu
 drop policy if exists escuela_dominical_asistencia_read on escuela_dominical_asistencia;
 drop policy if exists escuela_dominical_asistencia_write on escuela_dominical_asistencia;
 create policy escuela_dominical_asistencia_read on escuela_dominical_asistencia for select to authenticated
-using (exists (select 1 from escuela_dominical_lecciones l join escuela_dominical_clases cl on cl.id = l.clase_id
+using (exists (
+  select 1 from escuela_dominical_lecciones l join escuela_dominical_clases cl on cl.id = l.clase_id
   where l.id = escuela_dominical_asistencia.leccion_id
-    and cl.congregacion_id in (select mis_congregaciones()) and tiene_permiso(cl.congregacion_id, 'escuela_dominical.consultar')));
+    and (
+      (cl.congregacion_id in (select mis_congregaciones()) and tiene_permiso(cl.congregacion_id, 'escuela_dominical.consultar'))
+      or es_super_admin() or es_nacional()
+      or exists (select 1 from congregaciones c where c.id = cl.congregacion_id and c.distrito_id in (select mis_distritos()))
+    )
+));
 create policy escuela_dominical_asistencia_write on escuela_dominical_asistencia for all to authenticated
 using (exists (select 1 from escuela_dominical_lecciones l join escuela_dominical_clases cl on cl.id = l.clase_id
   where l.id = escuela_dominical_asistencia.leccion_id
@@ -162,7 +197,11 @@ alter table damas_dorcas_asistencia enable row level security;
 drop policy if exists damas_dorcas_beneficiarias_read on damas_dorcas_beneficiarias;
 drop policy if exists damas_dorcas_beneficiarias_write on damas_dorcas_beneficiarias;
 create policy damas_dorcas_beneficiarias_read on damas_dorcas_beneficiarias for select to authenticated
-using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.consultar'));
+using (
+  (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.consultar'))
+  or es_super_admin() or es_nacional()
+  or exists (select 1 from congregaciones c where c.id = congregacion_id and c.distrito_id in (select mis_distritos()))
+);
 create policy damas_dorcas_beneficiarias_write on damas_dorcas_beneficiarias for all to authenticated
 using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.editar'))
 with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.editar'));
@@ -170,7 +209,11 @@ with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(c
 drop policy if exists damas_dorcas_actividades_read on damas_dorcas_actividades;
 drop policy if exists damas_dorcas_actividades_write on damas_dorcas_actividades;
 create policy damas_dorcas_actividades_read on damas_dorcas_actividades for select to authenticated
-using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.consultar'));
+using (
+  (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.consultar'))
+  or es_super_admin() or es_nacional()
+  or exists (select 1 from congregaciones c where c.id = congregacion_id and c.distrito_id in (select mis_distritos()))
+);
 create policy damas_dorcas_actividades_write on damas_dorcas_actividades for all to authenticated
 using (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.editar'))
 with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(congregacion_id, 'damas_dorcas.editar'));
@@ -178,8 +221,14 @@ with check (congregacion_id in (select mis_congregaciones()) and tiene_permiso(c
 drop policy if exists damas_dorcas_asistencia_read on damas_dorcas_asistencia;
 drop policy if exists damas_dorcas_asistencia_write on damas_dorcas_asistencia;
 create policy damas_dorcas_asistencia_read on damas_dorcas_asistencia for select to authenticated
-using (exists (select 1 from damas_dorcas_actividades ac where ac.id = damas_dorcas_asistencia.actividad_id
-  and ac.congregacion_id in (select mis_congregaciones()) and tiene_permiso(ac.congregacion_id, 'damas_dorcas.consultar')));
+using (exists (
+  select 1 from damas_dorcas_actividades ac where ac.id = damas_dorcas_asistencia.actividad_id
+  and (
+    (ac.congregacion_id in (select mis_congregaciones()) and tiene_permiso(ac.congregacion_id, 'damas_dorcas.consultar'))
+    or es_super_admin() or es_nacional()
+    or exists (select 1 from congregaciones c where c.id = ac.congregacion_id and c.distrito_id in (select mis_distritos()))
+  )
+));
 create policy damas_dorcas_asistencia_write on damas_dorcas_asistencia for all to authenticated
 using (exists (select 1 from damas_dorcas_actividades ac where ac.id = damas_dorcas_asistencia.actividad_id
   and ac.congregacion_id in (select mis_congregaciones()) and tiene_permiso(ac.congregacion_id, 'damas_dorcas.editar')))

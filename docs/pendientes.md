@@ -6,10 +6,17 @@
 	interna, delegados/INPEC, seguimiento familiar, reinsercion
 	post-penitenciaria cruzando congregaciones, catalogo de centros de
 	reclusion por distrito). Ver `docs/obra-carcelaria-2026-09-01.md`.
-	**Pendiente**: revisar si Escuela Dominical/Damas Dorcas tienen el mismo
-	hueco de RLS (lectura distrital/nacional sin bypass) que se evito aqui
-	desde el diseno; ampliar el selector de congregacion destino de
+	**Pendiente**: ampliar el selector de congregacion destino de
 	reinsercion a busqueda nacional si se necesita en la practica.
+- Resuelto (2026-09-01): hueco de RLS en Escuela Dominical y Damas Dorcas
+	— el consolidado distrital devolvia 0 para cualquier congregacion donde
+	el distrital no fuera tambien pastor local (no detectado antes porque
+	la cuenta de prueba es pastora Y distrital de la misma y unica
+	congregacion de su distrito). Ver
+	`docs/fix-rls-escuela-dominical-damas-dorcas-2026-09-01.md`. **Accion
+	requerida del usuario**: volver a ejecutar
+	`supabase/escuela_dominical_damas_dorcas.sql` completo en el SQL Editor
+	para aplicar la correccion (el archivo es idempotente).
 - Resuelto (2026-08-31): cache de datos entre navegaciones + skeleton de
 	carga para los 3 modulos mas usados (Resumen/Dashboard rama local,
 	Feligresia, Misiones y Evangelismo). Ver
