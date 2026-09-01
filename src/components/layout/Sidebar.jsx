@@ -23,6 +23,11 @@ import {
   Repeat,
   Baby,
   LockKeyhole,
+  Music,
+  Palette,
+  BookOpenCheck,
+  Flag,
+  HandHeart,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -125,6 +130,36 @@ export default function Sidebar() {
       to: "/obra-carcelaria",
       label: "Obra Carcelaria",
       icon: LockKeyhole,
+      show: nivel === "local",
+    },
+    {
+      to: "/musica",
+      label: "Música",
+      icon: Music,
+      show: nivel === "local",
+    },
+    {
+      to: "/educacion-artistica",
+      label: "Educación Artística",
+      icon: Palette,
+      show: nivel === "local",
+    },
+    {
+      to: "/educacion-teologica",
+      label: "Educación Teológica",
+      icon: BookOpenCheck,
+      show: nivel === "local",
+    },
+    {
+      to: "/conquistadores",
+      label: "Conquistadores Pentecostales",
+      icon: Flag,
+      show: nivel === "local",
+    },
+    {
+      to: "/obra-social",
+      label: "Obra Social",
+      icon: HandHeart,
       show: nivel === "local",
     },
     {

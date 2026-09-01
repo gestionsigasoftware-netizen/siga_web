@@ -87,6 +87,11 @@ export default function PastoralDistrital() {
   const [liberadosSinAsignar, setLiberadosSinAsignar] = useState([])
   const [reinsercionForm, setReinsercionForm] = useState({ interno_id: '', congregacion_destino: '' })
   const [savingReinsercion, setSavingReinsercion] = useState(false)
+  const [resumenMusica, setResumenMusica] = useState([])
+  const [resumenArtistica, setResumenArtistica] = useState([])
+  const [resumenTeologica, setResumenTeologica] = useState([])
+  const [resumenConquistadores, setResumenConquistadores] = useState([])
+  const [resumenObraSocial, setResumenObraSocial] = useState([])
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -145,7 +150,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -178,6 +183,11 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_carcelaria_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_reinsercion_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('internos_liberados_sin_asignar', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_musica_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_artistica_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_teologica_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_conquistadores_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_obra_social_distrital', { p_distrito_id: distritoId }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -197,6 +207,11 @@ export default function PastoralDistrital() {
     setResumenCarcelaria(carcelariaResult.data ?? [])
     setResumenReinsercion(reinsercionResult.data ?? [])
     setLiberadosSinAsignar(liberadosResult.data ?? [])
+    setResumenMusica(musicaResult.data ?? [])
+    setResumenArtistica(artisticaResult.data ?? [])
+    setResumenTeologica(teologicaResult.data ?? [])
+    setResumenConquistadores(conquistadoresResult.data ?? [])
+    setResumenObraSocial(obraSocialResult.data ?? [])
     setLoading(false)
   }
 
@@ -813,6 +828,141 @@ export default function PastoralDistrital() {
           </select>
           <button disabled={savingReinsercion || liberadosSinAsignar.length === 0} className="btn-primary justify-center"><ArrowRightLeft className="w-4 h-4" /> Asignar</button>
         </form>
+      </section>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Música por congregación</h2>
+            <p className="text-sm text-secondary mt-1">FECP · Música y Alabanza, consolidado a nivel distrital.</p>
+          </div>
+          {resumenMusica.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Música en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
+                <tbody>
+                  {resumenMusica.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
+                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
+                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Educación Artística por congregación</h2>
+            <p className="text-sm text-secondary mt-1">FECP · Educación Artística, consolidado a nivel distrital.</p>
+          </div>
+          {resumenArtistica.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Artística en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
+                <tbody>
+                  {resumenArtistica.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
+                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
+                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Educación Teológica por congregación</h2>
+            <p className="text-sm text-secondary mt-1">FECP · Educación Teológica, consolidado a nivel distrital.</p>
+          </div>
+          {resumenTeologica.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Teológica en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Certificados</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
+                <tbody>
+                  {resumenTeologica.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
+                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
+                      <td className="px-4 py-2.5">{item.certificados}</td>
+                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Conquistadores Pentecostales por congregación</h2>
+            <p className="text-sm text-secondary mt-1">Jóvenes adultos de 18 a 40 años, consolidado a nivel distrital.</p>
+          </div>
+          {resumenConquistadores.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Conquistadores Pentecostales en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Miembros</th><th className="font-normal px-4 py-2.5">Líderes</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
+                <tbody>
+                  {resumenConquistadores.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.miembros_activos}</td>
+                      <td className="px-4 py-2.5">{item.lideres_activos}</td>
+                      <td className="px-4 py-2.5">{item.actividades_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Obra Social por congregación</h2>
+          <p className="text-sm text-secondary mt-1">Asistencia socioeconómica a familias del censo, conectada con Red de Familias, consolidado a nivel distrital.</p>
+        </div>
+        {resumenObraSocial.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Social en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Casos abiertos</th><th className="font-normal px-4 py-2.5">Casos resueltos</th><th className="font-normal px-4 py-2.5">Ayudas (30d)</th></tr></thead>
+              <tbody>
+                {resumenObraSocial.map((item) => (
+                  <tr key={item.congregacion_id} className="border-t border-border">
+                    <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                    <td className="px-4 py-2.5">{item.casos_abiertos}</td>
+                    <td className="px-4 py-2.5">{item.casos_resueltos}</td>
+                    <td className="px-4 py-2.5">{item.ayudas_ultimo_mes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">

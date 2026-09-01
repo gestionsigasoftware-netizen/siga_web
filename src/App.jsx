@@ -31,6 +31,11 @@ const GestionDistritos = lazy(() => import("./pages/GestionDistritos"));
 const EscuelaDominical = lazy(() => import("./pages/EscuelaDominical"));
 const DamasDorcas = lazy(() => import("./pages/DamasDorcas"));
 const ObraCarcelaria = lazy(() => import("./pages/ObraCarcelaria"));
+const Musica = lazy(() => import("./pages/Musica"));
+const EducacionArtistica = lazy(() => import("./pages/EducacionArtistica"));
+const EducacionTeologica = lazy(() => import("./pages/EducacionTeologica"));
+const Conquistadores = lazy(() => import("./pages/Conquistadores"));
+const ObraSocial = lazy(() => import("./pages/ObraSocial"));
 
 export default function App() {
   return (
@@ -83,6 +88,11 @@ export default function App() {
           <Route path="/escuela-dominical" element={<EscuelaDominical />} />
           <Route path="/damas-dorcas" element={<DamasDorcas />} />
           <Route path="/obra-carcelaria" element={<ObraCarcelaria />} />
+          <Route path="/musica" element={<Musica />} />
+          <Route path="/educacion-artistica" element={<EducacionArtistica />} />
+          <Route path="/educacion-teologica" element={<EducacionTeologica />} />
+          <Route path="/conquistadores" element={<Conquistadores />} />
+          <Route path="/obra-social" element={<ObraSocial />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />
