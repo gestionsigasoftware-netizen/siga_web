@@ -125,6 +125,11 @@ Ultima validacion conocida:
 
 - Registro y traslado de pastores entre congregaciones del distrito, con
 	historial de asignaciones.
+- Preparación académica y ministerial (2026-08-31): cada pastor puede tener
+	varios registros de formación (título, curso, diplomado, especialización,
+	maestría, doctorado, seminario bíblico u otro) con institución y fecha.
+	Los obreros (sin ninguna licencia) muestran además la fecha de su tarjeta
+	de predicador. Ver `supabase/formacion_pastoral.sql`.
 - Licencias ministeriales de la IPUC (2026-08-31): cada pastor tiene un
 	escalafon secuencial (Obrero -> Licencia Local -> Licencia General ->
 	Ordenacion Ministerial), visible como insignia en su ficha y con historial

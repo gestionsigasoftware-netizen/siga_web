@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap } from 'lucide-react'
+import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
@@ -7,6 +7,7 @@ const TODAY = new Date().toISOString().slice(0, 10)
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
 const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
 const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
+const TIPO_FORMACION_LABELS = { titulo: 'Título', curso: 'Curso', diplomado: 'Diplomado', especializacion: 'Especialización', maestria: 'Maestría', doctorado: 'Doctorado', seminario_biblico: 'Seminario bíblico', otro: 'Otro' }
 const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
@@ -17,8 +18,10 @@ const EMPTY_FORM = {
   fecha_inicio: TODAY,
   cargo: 'Pastor local',
   observaciones: '',
+  fecha_tarjeta_predicador: '',
 }
 const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pastor_apellidos: '', pastor_telefono: '', pastor_email: '' }
+const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
 
 const formatDate = (value) => {
   if (!value) return 'Sin fecha'
@@ -66,6 +69,9 @@ export default function PastoralDistrital() {
   const [licenciaHistorial, setLicenciaHistorial] = useState([])
   const [licenciaForm, setLicenciaForm] = useState({ pastor_id: '', fecha: TODAY, observaciones: '' })
   const [ascendiendoLicencia, setAscendiendoLicencia] = useState(false)
+  const [formaciones, setFormaciones] = useState([])
+  const [formacionForm, setFormacionForm] = useState(EMPTY_FORMACION)
+  const [savingFormacion, setSavingFormacion] = useState(false)
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -124,10 +130,10 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult] = await Promise.all([
       supabase
         .from('pastores')
-        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia')
+        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
         .eq('distrito_id', distritoId)
         .order('apellidos')
         .order('nombres'),
@@ -147,6 +153,10 @@ export default function PastoralDistrital() {
         .from('historial_licencias_pastorales')
         .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones')
         .order('fecha', { ascending: false }),
+      supabase
+        .from('formacion_pastoral')
+        .select('id, pastor_id, tipo, tipo_otro, nombre, institucion, fecha, observaciones')
+        .order('fecha', { ascending: false }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -159,6 +169,7 @@ export default function PastoralDistrital() {
     setPastorProfileId(profileResult.data?.id ?? null)
     setResumenPorCongregacion(new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])))
     setLicenciaHistorial(licenciaResult.data ?? [])
+    setFormaciones(formacionResult.data ?? [])
     setLoading(false)
   }
 
@@ -224,6 +235,7 @@ export default function PastoralDistrital() {
       fecha_inicio: activeAssignment?.fecha_inicio || TODAY,
       cargo: activeAssignment?.cargo || 'Pastor local',
       observaciones: activeAssignment?.observaciones || pastor.observaciones || '',
+      fecha_tarjeta_predicador: pastor.fecha_tarjeta_predicador || '',
     })
   }
 
@@ -254,6 +266,7 @@ export default function PastoralDistrital() {
             telefono: form.telefono.trim() || null,
             familia_pastoral: form.familia_pastoral.trim() || null,
             observaciones: form.observaciones.trim() || null,
+            fecha_tarjeta_predicador: form.fecha_tarjeta_predicador || null,
           })
           .eq('id', editingPastorId)
 
@@ -406,6 +419,57 @@ export default function PastoralDistrital() {
     }
   }
 
+  async function addFormacion(event) {
+    event.preventDefault()
+
+    if (!formacionForm.pastor_id || !formacionForm.nombre.trim()) {
+      setError('Selecciona el pastor y el nombre de la preparación.')
+      return
+    }
+    if (formacionForm.tipo === 'otro' && !formacionForm.tipo_otro.trim()) {
+      setError('Especifica el tipo de preparación en "Otro".')
+      return
+    }
+
+    setSavingFormacion(true)
+    setError(null)
+    setNotice(null)
+
+    try {
+      const { error: formacionError } = await supabase.from('formacion_pastoral').insert({
+        pastor_id: formacionForm.pastor_id,
+        tipo: formacionForm.tipo,
+        tipo_otro: formacionForm.tipo === 'otro' ? formacionForm.tipo_otro.trim() : null,
+        nombre: formacionForm.nombre.trim(),
+        institucion: formacionForm.institucion.trim() || null,
+        fecha: formacionForm.fecha || null,
+        observaciones: formacionForm.observaciones.trim() || null,
+      })
+
+      if (formacionError) throw new Error(formacionError.message)
+
+      setFormacionForm(EMPTY_FORMACION)
+      setNotice('Preparación registrada correctamente.')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingFormacion(false)
+    }
+  }
+
+  async function deleteFormacion(id) {
+    setError(null)
+    setNotice(null)
+    const { error: deleteError } = await supabase.from('formacion_pastoral').delete().eq('id', id)
+    if (deleteError) {
+      setError('No se pudo eliminar el registro de preparación.')
+      return
+    }
+    setNotice('Registro de preparación eliminado.')
+    await load()
+  }
+
   if (roleLoading || loading) {
     return <div className="module-loading" role="status"><span className="loading-dot" />Cargando gestión pastoral distrital...</div>
   }
@@ -536,6 +600,18 @@ export default function PastoralDistrital() {
                 className="input-field mt-1.5"
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
+              />
+            </label>
+          )}
+
+          {editingPastorId && (
+            <label className="text-sm">
+              Tarjeta de predicador (obreros sin licencia)
+              <input
+                type="date"
+                className="input-field mt-1.5"
+                value={form.fecha_tarjeta_predicador}
+                onChange={(event) => setForm({ ...form, fecha_tarjeta_predicador: event.target.value })}
               />
             </label>
           )}
@@ -721,6 +797,61 @@ export default function PastoralDistrital() {
         </button>
       </form>
 
+      <form onSubmit={addFormacion} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        <div className="sm:col-span-2 lg:col-span-6">
+          <h2 className="font-medium flex items-center gap-2"><BookOpen className="w-4 h-4 text-accent" />Preparación académica y ministerial</h2>
+          <p className="text-xs text-secondary mt-1">Títulos, cursos, diplomados y demás formación de cada pastor del distrito.</p>
+        </div>
+        <label className="text-sm lg:col-span-2">
+          Pastor
+          <select
+            required
+            className="input-field mt-1.5"
+            value={formacionForm.pastor_id}
+            onChange={(event) => setFormacionForm({ ...formacionForm, pastor_id: event.target.value })}
+          >
+            <option value="">Seleccionar...</option>
+            {pastors.map((pastor) => (
+              <option key={pastor.id} value={pastor.id}>{pastor.nombres} {pastor.apellidos}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          Tipo
+          <select
+            className="input-field mt-1.5"
+            value={formacionForm.tipo}
+            onChange={(event) => setFormacionForm({ ...formacionForm, tipo: event.target.value })}
+          >
+            {Object.entries(TIPO_FORMACION_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        {formacionForm.tipo === 'otro' && (
+          <label className="text-sm">
+            Especifica el tipo
+            <input required className="input-field mt-1.5" value={formacionForm.tipo_otro} onChange={(event) => setFormacionForm({ ...formacionForm, tipo_otro: event.target.value })} />
+          </label>
+        )}
+        <label className="text-sm">
+          Nombre
+          <input required placeholder="Ej: Teología Pastoral" className="input-field mt-1.5" value={formacionForm.nombre} onChange={(event) => setFormacionForm({ ...formacionForm, nombre: event.target.value })} />
+        </label>
+        <label className="text-sm">
+          Institución
+          <input className="input-field mt-1.5" value={formacionForm.institucion} onChange={(event) => setFormacionForm({ ...formacionForm, institucion: event.target.value })} />
+        </label>
+        <label className="text-sm">
+          Fecha
+          <input type="date" className="input-field mt-1.5" value={formacionForm.fecha} onChange={(event) => setFormacionForm({ ...formacionForm, fecha: event.target.value })} />
+        </label>
+        <button disabled={savingFormacion} className="btn-primary lg:col-span-6">
+          <Plus className="w-4 h-4" />
+          {savingFormacion ? 'Guardando...' : 'Agregar preparación'}
+        </button>
+      </form>
+
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -773,6 +904,9 @@ export default function PastoralDistrital() {
                       <h3 className="font-medium text-ink">{pastor.nombres} {pastor.apellidos}</h3>
                       <p className="text-xs text-secondary mt-1">{congregation?.nombre || 'Sin congregación asignada'}{congregation?.ciudad ? ` · ${congregation.ciudad}` : ''}</p>
                       <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{LICENCIA_LABELS[pastor.licencia] || 'Obrero'}</span>
+                      {pastor.licencia === 'obrero' && pastor.fecha_tarjeta_predicador && (
+                        <span className="inline-block mt-1 ml-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-surface-2 text-secondary">Tarjeta de predicador: {formatDate(pastor.fecha_tarjeta_predicador)}</span>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isAssigned ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'}`}>
@@ -890,6 +1024,43 @@ export default function PastoralDistrital() {
               </div>
             ) : (
               <p className="p-4 text-sm text-muted">Aún no hay ascensos de licencia registrados.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-border">
+          <div className="p-5">
+            <div className="flex items-center gap-2 text-sm font-medium mb-3">
+              <BookOpen className="w-4 h-4 text-accent" />
+              Preparación académica y ministerial
+            </div>
+
+            {formaciones.length ? (
+              <div className="space-y-3">
+                {formaciones.map((item) => {
+                  const pastor = pastors.find((entry) => entry.id === item.pastor_id)
+                  const tipoLabel = item.tipo === 'otro' ? (item.tipo_otro || 'Otro') : TIPO_FORMACION_LABELS[item.tipo] || item.tipo
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 border border-border rounded-lg bg-surface-1 p-3">
+                      <BookOpen className="w-4 h-4 text-accent mt-1" />
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}</p>
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{tipoLabel}</span>
+                        </div>
+                        <p className="text-xs text-secondary mt-1">{item.nombre}{item.institucion ? ` · ${item.institucion}` : ''}</p>
+                        {item.fecha && <p className="text-xs text-secondary mt-1">{formatDate(item.fecha)}</p>}
+                        {item.observaciones && <p className="text-xs text-muted mt-1">Obs: {item.observaciones}</p>}
+                      </div>
+                      <button type="button" onClick={() => deleteFormacion(item.id)} className="text-muted hover:text-danger" aria-label="Eliminar registro de preparación">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="p-4 text-sm text-muted">Aún no hay preparación académica registrada.</p>
             )}
           </div>
         </div>
