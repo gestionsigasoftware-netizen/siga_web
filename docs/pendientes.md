@@ -2,6 +2,14 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-01): nuevo modulo Obra Carcelaria completo (asistencia
+	interna, delegados/INPEC, seguimiento familiar, reinsercion
+	post-penitenciaria cruzando congregaciones, catalogo de centros de
+	reclusion por distrito). Ver `docs/obra-carcelaria-2026-09-01.md`.
+	**Pendiente**: revisar si Escuela Dominical/Damas Dorcas tienen el mismo
+	hueco de RLS (lectura distrital/nacional sin bypass) que se evito aqui
+	desde el diseno; ampliar el selector de congregacion destino de
+	reinsercion a busqueda nacional si se necesita en la practica.
 - Resuelto (2026-08-31): cache de datos entre navegaciones + skeleton de
 	carga para los 3 modulos mas usados (Resumen/Dashboard rama local,
 	Feligresia, Misiones y Evangelismo). Ver

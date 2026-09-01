@@ -30,6 +30,7 @@ const PastoralDistrital = lazy(() => import("./pages/PastoralDistrital"));
 const GestionDistritos = lazy(() => import("./pages/GestionDistritos"));
 const EscuelaDominical = lazy(() => import("./pages/EscuelaDominical"));
 const DamasDorcas = lazy(() => import("./pages/DamasDorcas"));
+const ObraCarcelaria = lazy(() => import("./pages/ObraCarcelaria"));
 
 export default function App() {
   return (
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/distritos" element={<GestionDistritos />} />
           <Route path="/escuela-dominical" element={<EscuelaDominical />} />
           <Route path="/damas-dorcas" element={<DamasDorcas />} />
+          <Route path="/obra-carcelaria" element={<ObraCarcelaria />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />

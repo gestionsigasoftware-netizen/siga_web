@@ -25,6 +25,10 @@ Ultima validacion conocida:
 - Cache de datos en memoria + skeleton screens al navegar entre modulos
 	(Resumen, Feligresia, Misiones y Evangelismo por ahora). Ver
 	`docs/cache-skeleton-2026-08-31.md`.
+- Modulo Obra Carcelaria: ficha de internos, cultos/REFAM carcelaria,
+	delegados con auditoria INPEC, seguimiento familiar y reinsercion
+	post-penitenciaria entre congregaciones, con catalogo distrital de
+	centros de reclusion. Ver `docs/obra-carcelaria-2026-09-01.md`.
 - Preferencias personales: notificaciones, alertas y formato regional de
 	fecha; el formato de fecha ahora se aplica de verdad en toda la app
 	(auditoría, notificaciones, historial de comités y de Amigos, Dashboard),

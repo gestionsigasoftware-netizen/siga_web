@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
@@ -23,6 +23,9 @@ const EMPTY_FORM = {
 }
 const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pastor_apellidos: '', pastor_telefono: '', pastor_email: '' }
 const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
+const EMPTY_CENTRO = { nombre: '', tipo: 'municipal', ciudad: '', direccion: '' }
+const TIPO_CENTRO_LABELS = { maxima_seguridad: 'Máxima seguridad', mediana_seguridad: 'Mediana seguridad', municipal: 'Municipal', correccional_menores: 'Correccional de menores', otro: 'Otro' }
+const ESTADO_REINSERCION_LABELS = { asignado: 'Asignado', contactado: 'Contactado', activo: 'Activo', inactivo: 'Inactivo', reincidencia: 'Reincidencia' }
 
 const formatDate = (value) => {
   if (!value) return 'Sin fecha'
@@ -75,6 +78,15 @@ export default function PastoralDistrital() {
   const [resumenEscuelaDominical, setResumenEscuelaDominical] = useState([])
   const [resumenDamas, setResumenDamas] = useState([])
   const [savingFormacion, setSavingFormacion] = useState(false)
+  const [centros, setCentros] = useState([])
+  const [editingCentroId, setEditingCentroId] = useState(null)
+  const [centroForm, setCentroForm] = useState(EMPTY_CENTRO)
+  const [savingCentro, setSavingCentro] = useState(false)
+  const [resumenCarcelaria, setResumenCarcelaria] = useState([])
+  const [resumenReinsercion, setResumenReinsercion] = useState([])
+  const [liberadosSinAsignar, setLiberadosSinAsignar] = useState([])
+  const [reinsercionForm, setReinsercionForm] = useState({ interno_id: '', congregacion_destino: '' })
+  const [savingReinsercion, setSavingReinsercion] = useState(false)
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -133,7 +145,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -162,6 +174,10 @@ export default function PastoralDistrital() {
         .order('fecha', { ascending: false }),
       supabase.rpc('resumen_escuela_dominical_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_damas_distrital', { p_distrito_id: distritoId }),
+      supabase.from('centros_reclusion').select('id, nombre, tipo, ciudad, direccion, activo').eq('distrito_id', distritoId).order('nombre'),
+      supabase.rpc('resumen_carcelaria_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_reinsercion_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('internos_liberados_sin_asignar', { p_distrito_id: distritoId }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -177,7 +193,51 @@ export default function PastoralDistrital() {
     setFormaciones(formacionResult.data ?? [])
     setResumenEscuelaDominical(escuelaDominicalResult.data ?? [])
     setResumenDamas(damasResult.data ?? [])
+    setCentros(centrosResult.data ?? [])
+    setResumenCarcelaria(carcelariaResult.data ?? [])
+    setResumenReinsercion(reinsercionResult.data ?? [])
+    setLiberadosSinAsignar(liberadosResult.data ?? [])
     setLoading(false)
+  }
+
+  function resetCentroForm() { setEditingCentroId(null); setCentroForm(EMPTY_CENTRO) }
+  function editCentro(centro) {
+    setEditingCentroId(centro.id)
+    setCentroForm({ nombre: centro.nombre, tipo: centro.tipo, ciudad: centro.ciudad || '', direccion: centro.direccion || '' })
+  }
+
+  async function saveCentro(event) {
+    event.preventDefault()
+    if (!distritoId || !centroForm.nombre.trim()) { setError('El nombre del centro es obligatorio.'); return }
+    setSavingCentro(true)
+    setError(null)
+    setNotice(null)
+    const payload = { nombre: centroForm.nombre.trim(), tipo: centroForm.tipo, ciudad: centroForm.ciudad.trim() || null, direccion: centroForm.direccion.trim() || null }
+    const result = editingCentroId
+      ? await supabase.from('centros_reclusion').update(payload).eq('id', editingCentroId)
+      : await supabase.from('centros_reclusion').insert({ ...payload, distrito_id: distritoId })
+    setSavingCentro(false)
+    if (result.error) { setError(`No se pudo guardar el centro de reclusión: ${result.error.message}`); return }
+    setNotice(editingCentroId ? 'Centro de reclusión actualizado.' : 'Centro de reclusión creado.')
+    resetCentroForm()
+    await load()
+  }
+
+  async function asignarReinsercion(event) {
+    event.preventDefault()
+    if (!reinsercionForm.interno_id || !reinsercionForm.congregacion_destino) { setError('Selecciona el interno liberado y la congregación destino.'); return }
+    setSavingReinsercion(true)
+    setError(null)
+    setNotice(null)
+    const { error: asignarError } = await supabase.rpc('asignar_reinsercion', {
+      p_interno_id: reinsercionForm.interno_id,
+      p_congregacion_destino: reinsercionForm.congregacion_destino,
+    })
+    setSavingReinsercion(false)
+    if (asignarError) { setError(`No se pudo asignar la reinserción: ${asignarError.message}`); return }
+    setNotice('Reinserción asignada correctamente. La congregación destino podrá reportar el seguimiento.')
+    setReinsercionForm({ interno_id: '', congregacion_destino: '' })
+    await load()
   }
 
   async function createCongregation(event) {
@@ -636,6 +696,124 @@ export default function PastoralDistrital() {
           )}
         </section>
       </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium flex items-center gap-2"><LockKeyhole className="w-4 h-4 text-accent" />Centros de reclusión</h2>
+            <p className="text-sm text-secondary mt-1">Catálogo de cárceles y centros de reclusión de tu distrito. Las congregaciones locales eligen de esta lista al registrar cultos e internos.</p>
+          </div>
+          {centros.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay centros de reclusión registrados en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Nombre</th><th className="font-normal px-4 py-2.5">Tipo</th><th className="font-normal px-4 py-2.5">Ciudad</th><th className="font-normal px-4 py-2.5 text-right">Acciones</th></tr></thead>
+                <tbody>
+                  {centros.map((centro) => (
+                    <tr key={centro.id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{centro.nombre}</td>
+                      <td className="px-4 py-2.5 text-secondary">{TIPO_CENTRO_LABELS[centro.tipo]}</td>
+                      <td className="px-4 py-2.5 text-secondary">{centro.ciudad || '—'}</td>
+                      <td className="px-4 py-2.5 text-right"><button type="button" className="text-accent text-xs" onClick={() => editCentro(centro)}>Editar</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <form onSubmit={saveCentro} className="p-5 border-t border-border grid sm:grid-cols-2 gap-2">
+            <div className="sm:col-span-2 flex items-center justify-between">
+              <p className="text-sm font-medium">{editingCentroId ? 'Editar centro' : 'Nuevo centro de reclusión'}</p>
+              {editingCentroId && <button type="button" className="text-xs text-secondary" onClick={resetCentroForm}>Cancelar</button>}
+            </div>
+            <input required className="input-field" placeholder="Nombre del centro" value={centroForm.nombre} onChange={(event) => setCentroForm({ ...centroForm, nombre: event.target.value })} />
+            <select className="input-field" value={centroForm.tipo} onChange={(event) => setCentroForm({ ...centroForm, tipo: event.target.value })}>
+              {Object.entries(TIPO_CENTRO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            <input className="input-field" placeholder="Ciudad" value={centroForm.ciudad} onChange={(event) => setCentroForm({ ...centroForm, ciudad: event.target.value })} />
+            <input className="input-field" placeholder="Dirección" value={centroForm.direccion} onChange={(event) => setCentroForm({ ...centroForm, direccion: event.target.value })} />
+            <button disabled={savingCentro} className="btn-primary justify-center sm:col-span-2"><Plus className="w-4 h-4" /> {editingCentroId ? 'Guardar cambios' : 'Crear centro'}</button>
+          </form>
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Obra Carcelaria por congregación</h2>
+            <p className="text-sm text-secondary mt-1">Asistencia interna en los centros de reclusión, consolidado a nivel distrital.</p>
+          </div>
+          {resumenCarcelaria.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Carcelaria en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Internos activos</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5">Delegados hábiles</th><th className="font-normal px-4 py-2.5">Cultos (30d)</th></tr></thead>
+                <tbody>
+                  {resumenCarcelaria.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.internos_activos}</td>
+                      <td className="px-4 py-2.5">{item.bautizados}</td>
+                      <td className="px-4 py-2.5">{item.sellados}</td>
+                      <td className="px-4 py-2.5">{item.delegados_habilitados}</td>
+                      <td className="px-4 py-2.5">{item.cultos_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Reinserción post-penitenciaria</h2>
+          <p className="text-sm text-secondary mt-1">Al liberarse, un interno se asigna a una congregación cercana a su residencia para discipulado y evitar la reincidencia. La congregación destino reporta después si el liberado se integró.</p>
+        </div>
+        {resumenReinsercion.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay casos de reinserción en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Estado</th></tr></thead>
+              <tbody>
+                {resumenReinsercion.map((item) => (
+                  <tr key={item.id} className="border-t border-border">
+                    <td className="px-4 py-2.5 font-medium">{item.interno_nombre}</td>
+                    <td className="px-4 py-2.5 text-secondary">{item.congregacion_origen}</td>
+                    <td className="px-4 py-2.5 text-secondary">{item.congregacion_destino}</td>
+                    <td className="px-4 py-2.5 text-secondary">{item.fecha_asignacion}</td>
+                    <td className="px-4 py-2.5"><span className="text-xs px-2 py-1 rounded bg-surface-1">{ESTADO_REINSERCION_LABELS[item.estado]}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {resumenReinsercion.length > 0 && (() => {
+          const activos = resumenReinsercion.filter((item) => ['activo', 'inactivo', 'reincidencia'].includes(item.estado))
+          const eficacia = activos.length ? Math.round((activos.filter((item) => item.estado === 'activo').length / activos.length) * 100) : null
+          return eficacia !== null && (
+            <p className="px-5 pb-4 text-xs text-secondary">Eficacia de reinserción eclesial: {eficacia}% de los liberados con seguimiento concluido siguen activos en su congregación destino.</p>
+          )
+        })()}
+        <form onSubmit={asignarReinsercion} className="p-5 border-t border-border grid sm:grid-cols-3 gap-2 items-end">
+          <div className="sm:col-span-3">
+            <p className="text-sm font-medium">Asignar reinserción</p>
+            <p className="text-xs text-secondary mt-1">Solo aparecen internos marcados como "liberado" que aún no tienen una reinserción en curso.</p>
+          </div>
+          <select required className="input-field" value={reinsercionForm.interno_id} onChange={(event) => setReinsercionForm({ ...reinsercionForm, interno_id: event.target.value })}>
+            <option value="">Interno liberado...</option>
+            {liberadosSinAsignar.map((interno) => <option key={interno.id} value={interno.id}>{interno.nombres} {interno.apellidos} · {interno.congregacion_origen}</option>)}
+          </select>
+          <select required className="input-field" value={reinsercionForm.congregacion_destino} onChange={(event) => setReinsercionForm({ ...reinsercionForm, congregacion_destino: event.target.value })}>
+            <option value="">Congregación destino...</option>
+            {congregations.map((congregacion) => <option key={congregacion.id} value={congregacion.id}>{congregacion.nombre}</option>)}
+          </select>
+          <button disabled={savingReinsercion || liberadosSinAsignar.length === 0} className="btn-primary justify-center"><ArrowRightLeft className="w-4 h-4" /> Asignar</button>
+        </form>
+      </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">
         <div className="sm:col-span-2 lg:col-span-5">

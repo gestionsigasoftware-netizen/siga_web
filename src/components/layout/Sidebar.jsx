@@ -22,6 +22,7 @@ import {
   MapPin,
   Repeat,
   Baby,
+  LockKeyhole,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -118,6 +119,12 @@ export default function Sidebar() {
       to: "/damas-dorcas",
       label: "Damas Dorcas",
       icon: UserRound,
+      show: nivel === "local",
+    },
+    {
+      to: "/obra-carcelaria",
+      label: "Obra Carcelaria",
+      icon: LockKeyhole,
       show: nivel === "local",
     },
     {
