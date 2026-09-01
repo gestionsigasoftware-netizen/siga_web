@@ -21,6 +21,10 @@
 	`docs/nivel-distrital-consolidado-2026-08-31.md`. Pendiente: cargar el
 	listado real de los 36 distritos de la IPUC desde `/distritos`, y probar
 	esa pantalla con una cuenta nacional/super_admin real (no existe todavia).
+- Resuelto (2026-08-31): licencias ministeriales de la IPUC (Obrero, Licencia
+	Local, Licencia General, Ordenacion Ministerial) en Gestion pastoral, con
+	historial de ascensos con fecha. Solo el lider distrital puede ascender, un
+	nivel a la vez, sin saltos. Ver `supabase/licencias_pastorales.sql`.
 - Ejecutar y verificar `supabase/seguridad_produccion.sql`.
 - Aplicar en el proyecto Supabase real la correccion de `tiene_permiso()`
 	(faltaban `red_familias.consultar` y `red_familias.editar` en la lista de

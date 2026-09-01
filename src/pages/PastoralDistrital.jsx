@@ -1,10 +1,12 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned } from 'lucide-react'
+import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
+const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
+const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
 const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
@@ -61,6 +63,9 @@ export default function PastoralDistrital() {
   const [creatingCongregation, setCreatingCongregation] = useState(false)
   const [pastorProfileId, setPastorProfileId] = useState(null)
   const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
+  const [licenciaHistorial, setLicenciaHistorial] = useState([])
+  const [licenciaForm, setLicenciaForm] = useState({ pastor_id: '', fecha: TODAY, observaciones: '' })
+  const [ascendiendoLicencia, setAscendiendoLicencia] = useState(false)
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -119,10 +124,10 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult] = await Promise.all([
       supabase
         .from('pastores')
-        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id')
+        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia')
         .eq('distrito_id', distritoId)
         .order('apellidos')
         .order('nombres'),
@@ -138,6 +143,10 @@ export default function PastoralDistrital() {
         .order('fecha_inicio', { ascending: false }),
       supabase.from('perfiles_acceso').select('id').eq('codigo', 'pastor').maybeSingle(),
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
+      supabase
+        .from('historial_licencias_pastorales')
+        .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones')
+        .order('fecha', { ascending: false }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -149,6 +158,7 @@ export default function PastoralDistrital() {
     setAssignments(assignmentResult.data ?? [])
     setPastorProfileId(profileResult.data?.id ?? null)
     setResumenPorCongregacion(new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])))
+    setLicenciaHistorial(licenciaResult.data ?? [])
     setLoading(false)
   }
 
@@ -365,6 +375,37 @@ export default function PastoralDistrital() {
     }
   }
 
+  async function ascenderLicencia(event) {
+    event.preventDefault()
+
+    if (!licenciaForm.pastor_id) {
+      setError('Selecciona el pastor a ascender.')
+      return
+    }
+
+    setAscendiendoLicencia(true)
+    setError(null)
+    setNotice(null)
+
+    try {
+      const { data: nuevaLicencia, error: licenciaError } = await supabase.rpc('ascender_licencia_pastor', {
+        p_pastor_id: licenciaForm.pastor_id,
+        p_fecha: licenciaForm.fecha || TODAY,
+        p_observaciones: licenciaForm.observaciones.trim() || null,
+      })
+
+      if (licenciaError) throw new Error(licenciaError.message)
+
+      setLicenciaForm({ pastor_id: '', fecha: TODAY, observaciones: '' })
+      setNotice(`Ascenso registrado: ahora tiene ${LICENCIA_LABELS[nuevaLicencia] || nuevaLicencia}.`)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAscendiendoLicencia(false)
+    }
+  }
+
   if (roleLoading || loading) {
     return <div className="module-loading" role="status"><span className="loading-dot" />Cargando gestión pastoral distrital...</div>
   }
@@ -508,12 +549,17 @@ export default function PastoralDistrital() {
               onChange={(event) => setForm({ ...form, congregacion_id: event.target.value })}
             >
               <option value="">Seleccionar...</option>
-              {congregations.map((congregation) => (
-                <option key={congregation.id} value={congregation.id}>
-                  {congregation.nombre}
-                </option>
-              ))}
+              {congregations
+                .filter((congregation) => !congregation.pastor_id || congregation.id === form.congregacion_id)
+                .map((congregation) => (
+                  <option key={congregation.id} value={congregation.id}>
+                    {congregation.nombre}
+                  </option>
+                ))}
             </select>
+            {!editingPastorId && (
+              <span className="block text-xs text-muted mt-1">Solo se muestran congregaciones sin pastor asignado.</span>
+            )}
           </label>
 
           <label className="text-sm">
@@ -629,6 +675,52 @@ export default function PastoralDistrital() {
         </form>
       </div>
 
+      <form onSubmit={ascenderLicencia} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <div className="sm:col-span-2 lg:col-span-4">
+          <h2 className="font-medium flex items-center gap-2"><GraduationCap className="w-4 h-4 text-accent" />Ascender licencia ministerial</h2>
+          <p className="text-xs text-secondary mt-1">Escalafón de la IPUC: Obrero → Licencia Local → Licencia General → Ordenación Ministerial. Un nivel a la vez.</p>
+        </div>
+        <label className="text-sm lg:col-span-2">
+          Pastor
+          <select
+            required
+            className="input-field mt-1.5"
+            value={licenciaForm.pastor_id}
+            onChange={(event) => setLicenciaForm({ ...licenciaForm, pastor_id: event.target.value })}
+          >
+            <option value="">Seleccionar...</option>
+            {pastors.filter((pastor) => LICENCIA_SIGUIENTE[pastor.licencia]).map((pastor) => (
+              <option key={pastor.id} value={pastor.id}>
+                {pastor.nombres} {pastor.apellidos} — {LICENCIA_LABELS[pastor.licencia]} → {LICENCIA_LABELS[LICENCIA_SIGUIENTE[pastor.licencia]]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          Fecha
+          <input
+            required
+            type="date"
+            className="input-field mt-1.5"
+            value={licenciaForm.fecha}
+            onChange={(event) => setLicenciaForm({ ...licenciaForm, fecha: event.target.value })}
+          />
+        </label>
+        <label className="text-sm">
+          Observaciones
+          <input
+            className="input-field mt-1.5"
+            placeholder="Evaluación, Consistorio de Ancianos..."
+            value={licenciaForm.observaciones}
+            onChange={(event) => setLicenciaForm({ ...licenciaForm, observaciones: event.target.value })}
+          />
+        </label>
+        <button disabled={ascendiendoLicencia} className="btn-primary lg:col-span-4">
+          <GraduationCap className="w-4 h-4" />
+          {ascendiendoLicencia ? 'Registrando...' : 'Registrar ascenso'}
+        </button>
+      </form>
+
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -680,6 +772,7 @@ export default function PastoralDistrital() {
                     <div>
                       <h3 className="font-medium text-ink">{pastor.nombres} {pastor.apellidos}</h3>
                       <p className="text-xs text-secondary mt-1">{congregation?.nombre || 'Sin congregación asignada'}{congregation?.ciudad ? ` · ${congregation.ciudad}` : ''}</p>
+                      <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{LICENCIA_LABELS[pastor.licencia] || 'Obrero'}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isAssigned ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'}`}>
@@ -767,6 +860,36 @@ export default function PastoralDistrital() {
               </div>
             ) : (
               <p className="p-4 text-sm text-muted">Aún no hay trayectoria pastoral registrada con los filtros actuales.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-border">
+          <div className="p-5">
+            <div className="flex items-center gap-2 text-sm font-medium mb-3">
+              <GraduationCap className="w-4 h-4 text-accent" />
+              Historial de licencias ministeriales
+            </div>
+
+            {licenciaHistorial.length ? (
+              <div className="space-y-3">
+                {licenciaHistorial.map((item) => {
+                  const pastor = pastors.find((entry) => entry.id === item.pastor_id)
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 border border-border rounded-lg bg-surface-1 p-3">
+                      <GraduationCap className="w-4 h-4 text-accent mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}</p>
+                        <p className="text-xs text-secondary mt-1">{LICENCIA_LABELS[item.licencia_anterior] || item.licencia_anterior} → {LICENCIA_LABELS[item.licencia_nueva] || item.licencia_nueva}</p>
+                        <p className="text-xs text-secondary mt-1">{formatDate(item.fecha)}</p>
+                        {item.observaciones && <p className="text-xs text-muted mt-1">Obs: {item.observaciones}</p>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="p-4 text-sm text-muted">Aún no hay ascensos de licencia registrados.</p>
             )}
           </div>
         </div>

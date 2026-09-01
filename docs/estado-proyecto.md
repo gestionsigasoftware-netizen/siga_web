@@ -125,6 +125,11 @@ Ultima validacion conocida:
 
 - Registro y traslado de pastores entre congregaciones del distrito, con
 	historial de asignaciones.
+- Licencias ministeriales de la IPUC (2026-08-31): cada pastor tiene un
+	escalafon secuencial (Obrero -> Licencia Local -> Licencia General ->
+	Ordenacion Ministerial), visible como insignia en su ficha y con historial
+	de ascensos con fecha. Solo el lider distrital puede ascender a un pastor,
+	un nivel a la vez.
 - Alta de congregaciones nuevas desde el rol distrital (2026-08-31): un
 	lider distrital puede crear una congregacion de su distrito y dejar
 	invitado a su primer pastor local, todo desde la interfaz web. Migracion
