@@ -588,9 +588,11 @@ export default function Dashboard() {
           <div><p className="eyebrow">Categoría seleccionada</p><h2 className="font-medium mt-1">Conteo para toma de decisiones</h2><p className="text-sm text-secondary mt-1">Selecciona una categoría para consultar el total de la {nombreFrecuenciaDetalle} elegido.</p></div>
           <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> Aplicar frecuencia a todos</label>
         </div>
-        <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label="Seleccionar frecuencia de la categoría">
-          {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => aplicarFrecuenciaTodos ? setFrecuencia(valor) : setFrecuenciaDetalle(valor)} className={`text-xs px-2.5 py-1.5 rounded border ${frecuenciaDetalleActiva === valor ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{etiqueta}</button>)}
-        </div>
+        {!aplicarFrecuenciaTodos && (
+          <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label="Seleccionar frecuencia de la categoría">
+            {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuenciaDetalle(valor)} className={`text-xs px-2.5 py-1.5 rounded border ${frecuenciaDetalleActiva === valor ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{etiqueta}</button>)}
+          </div>
+        )}
         <div className="flex gap-2 flex-wrap mt-4" role="group" aria-label="Seleccionar categoría de asistencia">
           <button type="button" onClick={() => setCategoriaSeleccionadaId('general')} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === 'general' ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>General</button>
           {categorias.map((categoria) => <button type="button" key={categoria.id} onClick={() => setCategoriaSeleccionadaId(categoria.id)} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === categoria.id ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{categoria.nombre}</button>)}
