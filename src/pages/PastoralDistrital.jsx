@@ -72,6 +72,8 @@ export default function PastoralDistrital() {
   const [ascendiendoLicencia, setAscendiendoLicencia] = useState(false)
   const [formaciones, setFormaciones] = useState([])
   const [formacionForm, setFormacionForm] = useState(EMPTY_FORMACION)
+  const [resumenEscuelaDominical, setResumenEscuelaDominical] = useState([])
+  const [resumenDamas, setResumenDamas] = useState([])
   const [savingFormacion, setSavingFormacion] = useState(false)
 
   const activeAssignments = useMemo(
@@ -131,7 +133,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -158,6 +160,8 @@ export default function PastoralDistrital() {
         .from('formacion_pastoral')
         .select('id, pastor_id, tipo, tipo_otro, nombre, institucion, fecha, observaciones')
         .order('fecha', { ascending: false }),
+      supabase.rpc('resumen_escuela_dominical_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_damas_distrital', { p_distrito_id: distritoId }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -171,6 +175,8 @@ export default function PastoralDistrital() {
     setResumenPorCongregacion(new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])))
     setLicenciaHistorial(licenciaResult.data ?? [])
     setFormaciones(formacionResult.data ?? [])
+    setResumenEscuelaDominical(escuelaDominicalResult.data ?? [])
+    setResumenDamas(damasResult.data ?? [])
     setLoading(false)
   }
 
@@ -576,6 +582,60 @@ export default function PastoralDistrital() {
           </div>
         )}
       </section>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Escuela Dominical por congregación</h2>
+            <p className="text-sm text-secondary mt-1">Comités administrados localmente, consolidado a nivel distrital.</p>
+          </div>
+          {resumenEscuelaDominical.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Escuela Dominical en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Clases</th><th className="font-normal px-4 py-2.5">Niños</th><th className="font-normal px-4 py-2.5">Maestros</th><th className="font-normal px-4 py-2.5">Lecciones (30d)</th></tr></thead>
+                <tbody>
+                  {resumenEscuelaDominical.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.clases_activas}</td>
+                      <td className="px-4 py-2.5">{item.ninos_activos}</td>
+                      <td className="px-4 py-2.5">{item.maestros_activos}</td>
+                      <td className="px-4 py-2.5">{item.lecciones_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-medium">Damas Dorcas por congregación</h2>
+            <p className="text-sm text-secondary mt-1">Comités administrados localmente, consolidado a nivel distrital.</p>
+          </div>
+          {resumenDamas.length === 0 ? (
+            <p className="p-5 text-sm text-muted">Aún no hay datos de Damas Dorcas en tu distrito.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Beneficiarias</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
+                <tbody>
+                  {resumenDamas.map((item) => (
+                    <tr key={item.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                      <td className="px-4 py-2.5">{item.beneficiarias_activas}</td>
+                      <td className="px-4 py-2.5">{item.actividades_ultimo_mes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">
         <div className="sm:col-span-2 lg:col-span-5">

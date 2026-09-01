@@ -21,6 +21,7 @@ import {
   X,
   MapPin,
   Repeat,
+  Baby,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -105,6 +106,18 @@ export default function Sidebar() {
       to: "/mision-juvenil",
       label: "Misión Juvenil",
       icon: BookOpen,
+      show: nivel === "local",
+    },
+    {
+      to: "/escuela-dominical",
+      label: "Escuela Dominical",
+      icon: Baby,
+      show: nivel === "local",
+    },
+    {
+      to: "/damas-dorcas",
+      label: "Damas Dorcas",
+      icon: UserRound,
       show: nivel === "local",
     },
     {

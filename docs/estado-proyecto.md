@@ -130,6 +130,11 @@ Ultima validacion conocida:
 	maestría, doctorado, seminario bíblico u otro) con institución y fecha.
 	Los obreros (sin ninguna licencia) muestran además la fecha de su tarjeta
 	de predicador. Ver `supabase/formacion_pastoral.sql`.
+- Escuela Dominical (Mision Infantil) y Damas Dorcas (2026-09-01): dos
+	modulos nuevos con ficha individual completa (ninos/beneficiarias),
+	asistencia por leccion/actividad, censo de maestros y consolidado
+	distrital, mismo patron que Mision Juvenil. Cierra las 3 fases del plan
+	BI de la IPUC.
 - Licencias ministeriales de la IPUC (2026-08-31): cada pastor tiene un
 	escalafon secuencial (Obrero -> Licencia Local -> Licencia General ->
 	Ordenacion Ministerial), visible como insignia en su ficha y con historial

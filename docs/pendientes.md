@@ -21,6 +21,10 @@
 	`docs/nivel-distrital-consolidado-2026-08-31.md`. Pendiente: cargar el
 	listado real de los 36 distritos de la IPUC desde `/distritos`, y probar
 	esa pantalla con una cuenta nacional/super_admin real (no existe todavia).
+- Resuelto (2026-09-01): Fase 3 del BI de la IPUC — Escuela Dominical
+	(Mision Infantil) y Damas Dorcas, con ficha individual completa y
+	consolidado distrital. Cierra las 3 fases del plan BI. Ver
+	`docs/bi-fase3-escuela-dominical-damas-dorcas-2026-09-01.md`.
 - Resuelto (2026-09-01): Fase 2 del BI de la IPUC — 5 insights en el
 	Dashboard distrital (brecha de llenura, eficacia REFAM, embudo Uno
 	Mas->REFAM, movimiento de membresia, madurez de la obra), cada uno con
