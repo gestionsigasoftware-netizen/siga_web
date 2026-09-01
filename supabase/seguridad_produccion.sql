@@ -34,6 +34,7 @@ returns boolean language sql stable security definer set search_path = public as
       and coalesce(r.rol_local, 'pastor') = 'pastor'
       and p_permiso in (
         'feligresia.consultar', 'feligresia.editar',
+        'red_familias.consultar', 'red_familias.editar',
         'estadisticas.consultar', 'estadisticas.registrar',
         'reportes.consultar', 'usuarios.administrar',
         'configuracion.administrar', 'auditoria.consultar',

@@ -58,7 +58,10 @@ export default function ConfiguracionSistema() {
     const { error: saveError } = await supabase.from('preferencias_usuario').upsert({ ...preferences, usuario_id: user.id })
     setSaving(false)
     if (saveError) setError(`No se pudieron guardar tus preferencias: ${saveError.message}`)
-    else setNotice('Preferencias personales guardadas.')
+    else {
+      window.dispatchEvent(new CustomEvent('siga:preferencias-actualizadas', { detail: preferences }))
+      setNotice('Preferencias personales guardadas.')
+    }
   }
 
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando preferencias...</div>

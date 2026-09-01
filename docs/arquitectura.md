@@ -24,6 +24,32 @@ Supabase proporciona:
 
 El frontend usa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. La clave `service_role` nunca debe llegar al navegador.
 
+## Multitenencia y jerarquía de roles
+
+SIGA es multi-tenant para las ~5.000 congregaciones de la IPUC a nivel
+nacional, organizadas en 36 distritos. Cada congregación es un tenant
+aislado por `congregacion_id`; ninguna congregación debe ver ni mezclar
+información de otra, en ningún nivel de la jerarquía. La jerarquía y sus
+responsabilidades:
+
+- **Nacional**: visión agregada de todo el país.
+- **Distrital**: administra su propio distrito (uno de los 36). Da de alta
+	las congregaciones locales de su distrito y su primer pastor —
+	aclarado el 2026-08-31: antes no existía ningún camino funcional para
+	esto, ver `docs/alta-congregaciones-distrital-2026-08-31.md`. Monitorea
+	de forma agregada la información que cada congregación de su distrito
+	suministra (vistas, gráficos, insights para toma de decisiones a nivel
+	distrital) — esta vista es distinta a la vista local, no la misma
+	pantalla reducida. Administra también la gestión pastoral propia del
+	distrito: pastores, su asignación y traslado entre congregaciones, y
+	(pendiente de construir, ver `docs/pendientes.md`) su información de
+	tiempo de servicio, familia, salario, cargos y estadísticas
+	distritales — todo lo de carácter pastoral/distrital se maneja desde
+	este rol, no desde lo local.
+- **Local**: opera el día a día de su propia congregación (censo, comités,
+	captura, evangelismo, etc.), sin visibilidad de otras congregaciones ni
+	de la información distrital que no le corresponde.
+
 ## Modelo de alcance
 
 Las tablas operativas guardan `congregacion_id`. Las funciones `mis_congregaciones()` y `mis_distritos()` determinan el alcance del usuario autenticado. Las politicas RLS son la autoridad final; ocultar botones en React no es una medida de seguridad.
@@ -82,6 +108,46 @@ no el canal normal de captura. La PWA futura debe conservar el contrato de
 resumenes agregados a usuarios con acceso activo a la congregacion.
 
 No duplicar estos flujos en nuevas pantallas sin revisar primero las implementaciones existentes.
+
+## Intramural vs. extramural y el rol de la PWA
+
+SIGA distingue dos tipos de captura de asistencia, ambos alimentados por la
+misma PWA (proyecto aparte, aun sin construir) y por el mismo contrato
+`registros_actividad`:
+
+- **Intramural**: lo que ocurre dentro del templo. El modulo sembrado
+	`Ujieres` (`alcance = 'interno'`) representa esto — cultos, escuela
+	dominical, etc. Los responsables de tomar asistencia en el salon son los
+	ujieres; sus tipos de actividad se configuran en Modulos y actividades.
+- **Extramural**: trabajo territorial fuera del templo — Evangelismo y
+	Mision Juvenil (`alcance = 'extramural'`).
+
+`supabase/evangelismo.sql` documenta esto en el comentario de la tabla:
+"Fuente oficial de asistencia de PWA para Ujieres y Evangelismo". El
+Dashboard ya refleja esta separacion ("Separa lo que registra Ujieres de lo
+que gestiona la ruta pastoral").
+
+**No confundir la asistencia agregada (PWA) con el seguimiento individual
+(web):** el conteo de personas por culto o actividad territorial es
+agregado y anonimo, capturado por la PWA. El seguimiento con nombre propio
+— un Amigo en la Ruta Evangelistica, un estudiante de Mision Juvenil — se
+lleva directamente en la web, nunca en la PWA, porque requiere ficha
+individual, historial y responsable, no solo un conteo. Una persona
+(Amigo o estudiante) solo se traslada de "inconverso" a feligres cuando se
+bautiza, mediante el proceso de alta definido por la congregacion
+(`incorporar_amigo_bautizado`); nunca automaticamente ni por alcanzar una
+estacion de la ruta.
+
+## Comites: mecanismo unico para todo equipo operativo local
+
+`Comites` (dentro de Feligresia) es el lugar unico para crear cualquier
+comite o equipo que preste un servicio en la congregacion local, incluido
+**Ujieres** — no existe ni debe crearse una pantalla aparte para
+administrar ese equipo. Los integrantes de cualquier comite salen de
+`Poblacion` (censo de personas bautizadas/activas de la congregacion); no
+hay una fuente de personal distinta para comites intramurales. Antes de
+proponer un modulo nuevo para administrar un equipo operativo, confirmar
+primero que Comites no cubre ya esa necesidad.
 
 ## Limite entre Feligresia y trabajo extramural
 

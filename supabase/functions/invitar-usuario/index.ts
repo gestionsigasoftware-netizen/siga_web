@@ -31,7 +31,15 @@ Deno.serve(async (request) => {
     p_congregacion_id: congregacionId,
     p_permiso: 'usuarios.administrar',
   })
-  if (permissionError || !allowed) return response({ error: 'No tienes permiso para invitar usuarios' }, 403)
+  let authorized = !permissionError && Boolean(allowed)
+  if (!authorized) {
+    const { data: canBootstrap, error: bootstrapError } = await userClient.rpc('distrital_puede_iniciar_congregacion', {
+      p_congregacion_id: congregacionId,
+      p_persona_id: personId,
+    })
+    authorized = !bootstrapError && Boolean(canBootstrap)
+  }
+  if (!authorized) return response({ error: 'No tienes permiso para invitar usuarios' }, 403)
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey)
   const { data: actor } = await adminClient

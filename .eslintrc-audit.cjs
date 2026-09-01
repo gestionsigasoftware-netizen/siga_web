@@ -1,0 +1,23 @@
+module.exports = {
+  root: true,
+  env: { browser: true, es2021: true },
+  parserOptions: { ecmaVersion: 2021, sourceType: 'module', ecmaFeatures: { jsx: true } },
+  plugins: ['react-hooks', 'react'],
+  settings: { react: { version: 'detect' } },
+  rules: {
+    'no-undef': 'error',
+    'no-restricted-globals': ['error',
+      'status', 'name', 'top', 'open', 'close', 'print', 'find', 'event',
+      'history', 'length', 'parent', 'self', 'stop', 'blur', 'focus', 'home',
+      'closed', 'opener', 'personalbar', 'locationbar', 'menubar',
+      'scrollbars', 'statusbar', 'toolbar', 'defaultStatus', 'external',
+      'frames', 'frameElement', 'onblur', 'onfocus', 'onload', 'onerror',
+      'error',
+    ],
+    'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_' }],
+    'react/jsx-uses-vars': 'error',
+    'react/jsx-uses-react': 'off',
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'warn',
+  },
+}

@@ -19,9 +19,12 @@ import {
   Compass,
   Menu,
   X,
+  MapPin,
+  Repeat,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
+import { describirAlcance } from "./RoleChooser";
 
 const NIVEL_LABEL = {
   super_admin: "Super Admin",
@@ -39,19 +42,27 @@ function FamilyNetworkIcon({ className }) {
   );
 }
 
+function formatDistrictLabel(nombre, numero) {
+  if (!nombre) return null;
+  return numero ? `Distrito ${numero} · ${nombre}` : nombre;
+}
+
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
   const [organization, setOrganization] = useState(null);
   const { signOut } = useAuth();
-  const { rolPrincipal } = useMiRol();
+  const { roles, rolPrincipal, elegirRol } = useMiRol();
   const nivel = rolPrincipal?.nivel;
   const rolLocal = rolPrincipal?.rol_local || "pastor";
   const puedeConfigurar = nivel === "local" && rolLocal === "pastor";
+  const esAdminNacional = nivel === "nacional" || nivel === "super_admin";
 
   useEffect(() => {
+    const distrito = rolPrincipal?.congregaciones?.distritos || rolPrincipal?.distritos;
     setOrganization({
       congregation: rolPrincipal?.congregaciones?.nombre,
-      district: rolPrincipal?.congregaciones?.distritos?.nombre || rolPrincipal?.distritos?.nombre,
+      district: formatDistrictLabel(distrito?.nombre, distrito?.numero),
     });
   }, [rolPrincipal]);
 
@@ -112,7 +123,7 @@ export default function Sidebar() {
       to: "/auditoria-feligresia",
       label: "Auditoría de Feligresía",
       icon: ClipboardList,
-      show: nivel !== "local" || rolLocal === "pastor",
+      show: nivel === "local" ? rolLocal === "pastor" : esAdminNacional,
     },
     {
       to: "/pastoral-distrital",
@@ -121,10 +132,16 @@ export default function Sidebar() {
       show: nivel === "distrital",
     },
     {
+      to: "/distritos",
+      label: "Catálogo de distritos",
+      icon: MapPin,
+      show: esAdminNacional,
+    },
+    {
       to: "/modulos",
       label: "Módulos y actividades",
       icon: Layers3,
-      show: nivel === "local",
+      show: puedeConfigurar,
     },
     { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true },
     {
@@ -200,6 +217,37 @@ export default function Sidebar() {
               <p className="text-[11px] text-white/45 truncate">
                 {organization.district}
               </p>
+            )}
+            {roles.length > 1 && (
+              <div className="mt-2.5 pt-2.5 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setRoleSwitcherOpen((current) => !current)}
+                  className="flex items-center gap-1.5 text-[11px] text-white/60 hover:text-white"
+                >
+                  <Repeat className="w-3 h-3" />
+                  Cambiar de rol
+                </button>
+                {roleSwitcherOpen && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    {roles.map((role) => (
+                      <button
+                        key={role.id}
+                        type="button"
+                        onClick={() => {
+                          elegirRol(role.id);
+                          setRoleSwitcherOpen(false);
+                        }}
+                        disabled={role.id === rolPrincipal?.id}
+                        className={`text-left text-[11px] rounded px-2 py-1.5 ${role.id === rolPrincipal?.id ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                      >
+                        <span className="block font-medium">{NIVEL_LABEL[role.nivel] || role.nivel}</span>
+                        <span className="block text-white/50">{describirAlcance(role)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

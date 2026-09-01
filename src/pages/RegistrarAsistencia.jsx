@@ -69,6 +69,7 @@ export default function RegistrarAsistencia() {
       supabase.from('zonas').select('id, nombre').eq('modulo_id', moduloId).order('nombre')
         .then(({ data }) => setZonas(data ?? []))
       setZonaId('')
+      setTipoId('')
   }, [moduloId])
 
   async function loadRegistros() {
@@ -94,10 +95,13 @@ export default function RegistrarAsistencia() {
     if ((captureRules.exigir_responsable && !responsableId) || total <= 0) { setError(`${captureRules.exigir_responsable ? 'Elige un responsable e ' : ''}ingresa al menos un asistente.`); return }
     if (captureRules.exigir_novedades && !novedades.trim()) { setError('Escribe las novedades de la actividad según la configuración de la congregación.'); return }
     if (modulo?.requiere_zona && !zonaId) { setError('Selecciona el barrio o zona de la actividad.'); return }
-    const duplicate = registros.some((registro) => registro.fecha === fecha && registro.modulo_id === moduloId && registro.tipo_actividad_id === tipoId && (registro.zona_id || null) === (zonaId || null))
-    if (duplicate && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) return
     setError(null)
     setSaving(true)
+
+    let duplicateQuery = supabase.from('registros_actividad').select('id', { count: 'exact', head: true }).eq('congregacion_id', congregacionId).eq('fecha', fecha).eq('modulo_id', moduloId).eq('tipo_actividad_id', tipoId)
+    duplicateQuery = zonaId ? duplicateQuery.eq('zona_id', zonaId) : duplicateQuery.is('zona_id', null)
+    const { count: duplicateCount } = await duplicateQuery
+    if (duplicateCount > 0 && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) { setSaving(false); return }
 
     let result
     try {

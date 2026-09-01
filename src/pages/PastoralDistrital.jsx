@@ -9,12 +9,14 @@ const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
   telefono: '',
+  email: '',
   familia_pastoral: '',
   congregacion_id: '',
   fecha_inicio: TODAY,
   cargo: 'Pastor local',
   observaciones: '',
 }
+const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pastor_apellidos: '', pastor_telefono: '', pastor_email: '' }
 
 const formatDate = (value) => {
   if (!value) return 'Sin fecha'
@@ -55,6 +57,10 @@ export default function PastoralDistrital() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+  const [newCongregation, setNewCongregation] = useState(EMPTY_NEW_CONGREGATION)
+  const [creatingCongregation, setCreatingCongregation] = useState(false)
+  const [pastorProfileId, setPastorProfileId] = useState(null)
+  const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -113,16 +119,16 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult] = await Promise.all([
       supabase
         .from('pastores')
-        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id')
+        .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id')
         .eq('distrito_id', distritoId)
         .order('apellidos')
         .order('nombres'),
       supabase
         .from('congregaciones')
-        .select('id, nombre, pastor_id, pastor_nombre')
+        .select('id, nombre, ciudad, pastor_id, pastor_nombre, estado')
         .eq('distrito_id', distritoId)
         .order('nombre'),
       supabase
@@ -130,6 +136,8 @@ export default function PastoralDistrital() {
         .select('id, pastor_id, congregacion_id, cargo, fecha_inicio, fecha_fin, observaciones')
         .eq('distrito_id', distritoId)
         .order('fecha_inicio', { ascending: false }),
+      supabase.from('perfiles_acceso').select('id').eq('codigo', 'pastor').maybeSingle(),
+      supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -139,7 +147,50 @@ export default function PastoralDistrital() {
     setPastors(pastorResult.data ?? [])
     setCongregations(congregationResult.data ?? [])
     setAssignments(assignmentResult.data ?? [])
+    setPastorProfileId(profileResult.data?.id ?? null)
+    setResumenPorCongregacion(new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])))
     setLoading(false)
+  }
+
+  async function createCongregation(event) {
+    event.preventDefault()
+    if (!distritoId) return
+    if (!newCongregation.nombre.trim() || !newCongregation.pastor_nombres.trim() || !newCongregation.pastor_apellidos.trim() || !newCongregation.pastor_email.trim()) {
+      setError('Completa el nombre de la congregación, el nombre del pastor y su correo.')
+      return
+    }
+    setCreatingCongregation(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const { data: created, error: createError } = await supabase.rpc('crear_congregacion_con_pastor', {
+        p_distrito_id: distritoId,
+        p_nombre_congregacion: newCongregation.nombre.trim(),
+        p_pastor_nombres: newCongregation.pastor_nombres.trim(),
+        p_pastor_apellidos: newCongregation.pastor_apellidos.trim(),
+        p_pastor_telefono: newCongregation.pastor_telefono.trim() || null,
+        p_ciudad: newCongregation.ciudad.trim() || null,
+      })
+      if (createError) throw new Error(`No se pudo crear la congregación: ${createError.message}`)
+      const [{ congregacion_id: newCongregationId, persona_id: newPersonId }] = created
+
+      const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invitar-usuario', {
+        body: { personId: newPersonId, profileId: pastorProfileId, congregacionId: newCongregationId, email: newCongregation.pastor_email.trim() },
+      })
+      if (inviteError) {
+        setNotice('La congregación y el pastor quedaron registrados, pero la invitación de acceso no se pudo enviar. Puedes reintentarla luego desde Equipo de trabajo una vez la congregación esté activa.')
+      } else if (!inviteData?.ok) {
+        setNotice('La congregación y el pastor quedaron registrados, pero la invitación no se confirmó. Revísala desde Equipo de trabajo.')
+      } else {
+        setNotice(inviteData.invitationSent ? 'Congregación creada. Se envió la invitación de acceso al pastor.' : 'Congregación creada. La cuenta existente del pastor quedó vinculada.')
+      }
+      setNewCongregation(EMPTY_NEW_CONGREGATION)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCreatingCongregation(false)
+    }
   }
 
   useEffect(() => {
@@ -235,43 +286,30 @@ export default function PastoralDistrital() {
 
         setNotice('Pastor actualizado correctamente.')
       } else {
-        const { data: pastorData, error: pastorError } = await supabase
-          .from('pastores')
-          .insert({
-            distrito_id: distritoId,
-            nombres: form.nombres.trim(),
-            apellidos: form.apellidos.trim(),
-            telefono: form.telefono.trim() || null,
-            familia_pastoral: form.familia_pastoral.trim() || null,
-            observaciones: form.observaciones.trim() || null,
-          })
-          .select('id')
-          .single()
-
-        if (pastorError) {
-          throw new Error(`No se pudo registrar el pastor: ${pastorError.message}`)
+        if (!form.email.trim()) {
+          throw new Error('El correo del pastor es obligatorio para darle acceso al sistema.')
         }
 
-        const { error: assignmentError } = await supabase.from('asignaciones_pastorales').insert({
-          pastor_id: pastorData.id,
-          distrito_id: distritoId,
-          congregacion_id: form.congregacion_id,
-          cargo: form.cargo,
-          fecha_inicio: form.fecha_inicio,
-          observaciones: form.observaciones.trim() || null,
+        const { data: created, error: registerError } = await supabase.rpc('registrar_pastor_con_acceso', {
+          p_congregacion_id: form.congregacion_id,
+          p_pastor_nombres: form.nombres.trim(),
+          p_pastor_apellidos: form.apellidos.trim(),
+          p_pastor_telefono: form.telefono.trim() || null,
+          p_cargo: form.cargo,
         })
+        if (registerError) throw new Error(`No se pudo registrar el pastor: ${registerError.message}`)
+        const [{ persona_id: newPersonId }] = created
 
-        if (assignmentError) {
-          throw new Error(`El pastor se creó, pero no se pudo asignar: ${assignmentError.message}`)
+        const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invitar-usuario', {
+          body: { personId: newPersonId, profileId: pastorProfileId, congregacionId: form.congregacion_id, email: form.email.trim() },
+        })
+        if (inviteError) {
+          setNotice('El pastor quedó registrado y asignado, pero la invitación de acceso no se pudo enviar. Puedes reintentarla desde Equipo de trabajo.')
+        } else if (!inviteData?.ok) {
+          setNotice('El pastor quedó registrado y asignado, pero la invitación no se confirmó. Revísala desde Equipo de trabajo.')
+        } else {
+          setNotice(inviteData.invitationSent ? 'Pastor registrado, asignado y con invitación de acceso enviada.' : 'Pastor registrado y asignado. La cuenta existente quedó vinculada.')
         }
-
-        const nombreCompleto = `${form.nombres.trim()} ${form.apellidos.trim()}`
-        await supabase
-          .from('congregaciones')
-          .update({ pastor_id: pastorData.id, pastor_nombre: nombreCompleto })
-          .eq('id', form.congregacion_id)
-
-        setNotice('Pastor registrado y asignado correctamente.')
       }
 
       resetForm()
@@ -384,6 +422,20 @@ export default function PastoralDistrital() {
         </div>
       </section>
 
+      <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">
+        <div className="sm:col-span-2 lg:col-span-5">
+          <h2 className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-accent" />Registrar nueva congregación</h2>
+          <p className="text-xs text-secondary mt-1">Crea la congregación en tu distrito y da acceso a su primer pastor local. Queda pendiente de aprobación hasta que la actives desde Aprobaciones.</p>
+        </div>
+        <label className="text-sm">Nombre de la congregación<input required className="input-field mt-1.5" value={newCongregation.nombre} onChange={(event) => setNewCongregation({ ...newCongregation, nombre: event.target.value })} /></label>
+        <label className="text-sm">Ciudad/Municipio<input className="input-field mt-1.5" value={newCongregation.ciudad} onChange={(event) => setNewCongregation({ ...newCongregation, ciudad: event.target.value })} /></label>
+        <label className="text-sm">Nombres del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_nombres} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_nombres: event.target.value })} /></label>
+        <label className="text-sm">Apellidos del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_apellidos} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_apellidos: event.target.value })} /></label>
+        <label className="text-sm">Teléfono del pastor<input className="input-field mt-1.5" value={newCongregation.pastor_telefono} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_telefono: event.target.value })} /></label>
+        <label className="text-sm">Correo del pastor<input required type="email" className="input-field mt-1.5" value={newCongregation.pastor_email} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_email: event.target.value })} /></label>
+        <button disabled={creatingCongregation} className="btn-primary lg:col-span-5"><Plus className="w-4 h-4" />{creatingCongregation ? 'Creando...' : 'Crear congregación e invitar pastor'}</button>
+      </form>
+
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <form onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end">
           <div className="sm:col-span-2 flex items-center justify-between gap-3">
@@ -433,6 +485,19 @@ export default function PastoralDistrital() {
               onChange={(event) => setForm({ ...form, familia_pastoral: event.target.value })}
             />
           </label>
+
+          {!editingPastorId && (
+            <label className="text-sm">
+              Correo (para invitar acceso)
+              <input
+                required
+                type="email"
+                className="input-field mt-1.5"
+                value={form.email}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+              />
+            </label>
+          )}
 
           <label className="text-sm">
             Congregación
@@ -607,23 +672,32 @@ export default function PastoralDistrital() {
               const activeAssignment = activeByPastor.get(pastor.id)
               const congregation = congregations.find((item) => item.id === activeAssignment?.congregacion_id)
               const isAssigned = Boolean(activeAssignment)
+              const resumenCongregacion = congregation ? resumenPorCongregacion.get(congregation.id) : null
 
               return (
                 <article key={pastor.id} className="border border-border rounded-lg bg-surface-1 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-medium text-ink">{pastor.nombres} {pastor.apellidos}</h3>
-                      <p className="text-xs text-secondary mt-1">{congregation?.nombre || 'Sin congregación asignada'}</p>
+                      <p className="text-xs text-secondary mt-1">{congregation?.nombre || 'Sin congregación asignada'}{congregation?.ciudad ? ` · ${congregation.ciudad}` : ''}</p>
                     </div>
-                    <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isAssigned ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'}`}>
-                      {isAssigned ? 'Activo' : 'Sin asignación'}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isAssigned ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'}`}>
+                        {isAssigned ? 'Activo' : 'Sin asignación'}
+                      </span>
+                      {!pastor.persona_id && (
+                        <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-danger-bg text-danger">Sin acceso vinculado</span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-3 space-y-1 text-xs text-secondary">
                     {pastor.telefono && <p>Tel: {pastor.telefono}</p>}
                     {pastor.familia_pastoral && <p>Familia: {pastor.familia_pastoral}</p>}
                     {activeAssignment && <p>Cargo: {activeAssignment.cargo}</p>}
+                    {resumenCongregacion && (
+                      <p>{resumenCongregacion.personas_activas} personas activas · {resumenCongregacion.personas_nuevas_3m} nuevas (3 meses)</p>
+                    )}
                   </div>
 
                   <div className="mt-4 flex gap-2">

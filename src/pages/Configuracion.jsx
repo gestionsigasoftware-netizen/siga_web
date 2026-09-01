@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -46,7 +47,6 @@ export default function Configuracion() {
   const [categorias, setCategorias] = useState([])
   const [modulos, setModulos] = useState([])
   const [etapas, setEtapas] = useState([])
-  const [zonas, setZonas] = useState([])
   const [tiposComite, setTiposComite] = useState([])
   const [cargosComite, setCargosComite] = useState([])
   const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '' })
@@ -60,21 +60,19 @@ export default function Configuracion() {
     if (!congregacionId) { setLoading(false); return }
     setLoading(true)
     setError(null)
-    const [cat, mod, et, congregation, zoneResult, typeResult, committeeCargoResult] = await Promise.all([
+    const [cat, mod, et, congregation, typeResult, committeeCargoResult] = await Promise.all([
       supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('congregaciones').select('id, nombre, distrito_id, distritos(nombre)').eq('id', congregacionId).single(),
-      supabase.from('zonas').select('id, nombre').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('cargos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
     ])
-    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : zoneResult.error ? 'zonas' : typeResult.error ? 'tipos de comité' : committeeCargoResult.error ? 'cargos de comité' : congregation.error ? 'la información de la congregación' : null
+    const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : typeResult.error ? 'tipos de comité' : committeeCargoResult.error ? 'cargos de comité' : congregation.error ? 'la información de la congregación' : null
     if (failedCatalog) setError(`No se pudieron cargar las ${failedCatalog}. Intenta nuevamente.`)
     setCategorias(cat.data ?? [])
     setModulos((mod.data ?? []).map((item) => ({ ...item, nombre: item.nombre_modulo })))
     setEtapas(et.data ?? [])
-    setZonas(zoneResult.data ?? [])
     setTiposComite(typeResult.data ?? [])
     setCargosComite(committeeCargoResult.data ?? [])
     if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '' })
@@ -115,18 +113,6 @@ export default function Configuracion() {
     await loadAll(); return true
   }
 
-  async function agregarModulo(nombre) {
-    const { error: insertError } = await supabase.from('modulos').insert({ congregacion_id: congregacionId, nombre_modulo: nombre, alcance: 'interno' })
-    if (insertError) { setError(`No se pudo agregar el módulo: ${insertError.message}`); return false }
-    await loadAll(); return true
-  }
-  async function quitarModulo(id, nombre) {
-    if (!window.confirm(`¿Desactivar el módulo ${nombre}?`)) return false
-    const { error: updateError } = await supabase.from('modulos').update({ activo: false }).eq('id', id)
-    if (updateError) { setError(`No se pudo desactivar el módulo: ${updateError.message}`); return false }
-    await loadAll(); return true
-  }
-
   async function agregarEtapa(nombre) {
     const { error: insertError } = await supabase.from('etapas_seguimiento').insert({ congregacion_id: congregacionId, nombre, orden: etapas.length + 1 })
     if (insertError) { setError(`No se pudo agregar la etapa: ${insertError.message}`); return false }
@@ -139,8 +125,6 @@ export default function Configuracion() {
     await loadAll(); return true
   }
 
-  async function agregarZona(nombre) { const { error: insertError } = await supabase.from('zonas').insert({ congregacion_id: congregacionId, nombre }); if (insertError) { setError(`No se pudo agregar la zona: ${insertError.message}`); return false } await loadAll(); return true }
-  async function quitarZona(id, nombre) { if (!window.confirm(`¿Eliminar la zona ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('zonas').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar la zona: ${deleteError.message}`); return false } await loadAll(); return true }
   async function agregarTipoComite(nombre) { const codigo = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); const { error: insertError } = await supabase.from('tipos_comite').insert({ congregacion_id: congregacionId, nombre, codigo }); if (insertError) { setError(`No se pudo agregar el tipo: ${insertError.message}`); return false } await loadAll(); return true }
   async function quitarTipoComite(id, nombre) { if (!window.confirm(`¿Eliminar el tipo ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('tipos_comite').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar el tipo: ${deleteError.message}`); return false } await loadAll(); return true }
   async function agregarCargoComite(values) { const { error: insertError } = await supabase.from('cargos_comite').insert({ congregacion_id: congregacionId, nombre: values.nombre.trim(), codigo: values.codigo.trim() }); if (insertError) { setError(`No se pudo agregar el cargo: ${insertError.message}`); return false } await loadAll(); return true }
@@ -174,7 +158,7 @@ export default function Configuracion() {
         <div className="mb-5"><h2 className="font-medium">Preferencias de la congregación</h2><p className="text-sm text-secondary mt-1">Define cómo se comportan las alertas y los registros de tu equipo.</p></div>
         <div className="grid sm:grid-cols-2 gap-4">
           <label className="text-sm">Umbral de alerta por disminución (%)<input type="number" min="1" max="100" required className="input-field mt-1.5" value={preferencias.umbral_alerta} onChange={(e) => setPreferencias({ ...preferencias, umbral_alerta: Number(e.target.value) })} /></label>
-          <label className="text-sm">Módulo predeterminado<select className="input-field mt-1.5" value={preferencias.modulo_predeterminado} onChange={(e) => setPreferencias({ ...preferencias, modulo_predeterminado: e.target.value })}><option value="">Sin preferencia</option>{modulos.map((modulo) => <option key={modulo.id} value={modulo.id}>{modulo.nombre}</option>)}</select></label>
+          <label className="text-sm">Módulo predeterminado<select className="input-field mt-1.5" value={preferencias.modulo_predeterminado} onChange={(e) => setPreferencias({ ...preferencias, modulo_predeterminado: e.target.value })}><option value="">Sin preferencia</option>{modulos.filter((modulo) => modulo.activo !== false).map((modulo) => <option key={modulo.id} value={modulo.id}>{modulo.nombre}</option>)}</select></label>
         </div>
         <div className="flex flex-col gap-3 mt-5"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_responsable} onChange={(e) => setPreferencias({ ...preferencias, exigir_responsable: e.target.checked })} /> Exigir responsable al registrar asistencia</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_novedades} onChange={(e) => setPreferencias({ ...preferencias, exigir_novedades: e.target.checked })} /> Solicitar novedades en cada registro</label></div>
         <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button>{notice && <p role="status" className="text-sm text-success">{notice}</p>}</div>
@@ -182,9 +166,9 @@ export default function Configuracion() {
 
       <div className="grid md:grid-cols-3 gap-4">
         <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" busy={saving} />
-        <ListaCatalogo titulo="Módulos (Ujieres, Evangelismo...)" items={modulos.filter((modulo) => modulo.activo !== false)} onAdd={agregarModulo} onRemove={quitarModulo} placeholder="Ej. Misión Juvenil" busy={saving} />
+        <div className="card p-5"><h3 className="font-medium mb-3">Módulos (Ujieres, Evangelismo...)</h3><p className="text-sm text-secondary leading-6">Crear, renombrar y activar o desactivar módulos y sus tipos de actividad se hace ahora desde <Link to="/modulos" className="text-accent">Módulos y actividades</Link>, donde también se administran sus tipos de actividad.</p></div>
         <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" busy={saving} />
-        <ListaCatalogo titulo="Zonas de Evangelismo" items={zonas} onAdd={agregarZona} onRemove={quitarZona} placeholder="Ej. Barrio San Juan" busy={saving} />
+        <div className="card p-5"><h3 className="font-medium mb-3">Zonas de Evangelismo</h3><p className="text-sm text-secondary leading-6">Crear y editar zonas con su responsable se hace ahora desde <Link to="/evangelismo" className="text-accent">Evangelismo</Link>, donde quedan vinculadas al módulo correcto.</p></div>
         <ListaCatalogo titulo="Tipos de comité" items={tiposComite} onAdd={agregarTipoComite} onRemove={quitarTipoComite} placeholder="Ej. Servicio" busy={saving} />
         <ListaCargosComite items={cargosComite} onAdd={agregarCargoComite} onRemove={quitarCargoComite} busy={saving} />
       </div>

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useMiRol } from '../hooks/useMiRol'
+
+const ALLOWED_LEVELS = ['distrital', 'nacional', 'super_admin']
 
 const ESTADO_TONO = {
   pendiente_aprobacion: 'bg-warning-bg text-warning',
@@ -10,6 +13,7 @@ const ESTADO_TONO = {
 const ESTADO_LABEL = { pendiente_aprobacion: 'Pendiente de aprobación', activa: 'Activa', suspendida: 'Suspendida' }
 
 export default function Aprobaciones() {
+  const { rolPrincipal, loading: roleLoading } = useMiRol()
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(null)
@@ -36,6 +40,9 @@ export default function Aprobaciones() {
     if (updateError) { setError('No se pudo actualizar el estado de la congregación.'); return }
     load()
   }
+
+  if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>
+  if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">No tienes permisos para administrar aprobaciones de congregaciones.</p>
 
   return (
     <div className="page-shell">

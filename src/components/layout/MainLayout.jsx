@@ -1,16 +1,35 @@
-import { Suspense, useEffect, useLayoutEffect, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import RoleChooser from './RoleChooser'
 import NotificationCenter from './NotificationCenter'
 import { Link } from 'react-router-dom'
 import { Bell, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
 
 export default function MainLayout() {
-  const { loading: roleLoading } = useMiRol()
+  const { roles, loading: roleLoading, elegirRol } = useMiRol()
+  const [rolElegidoEnSesion, setRolElegidoEnSesion] = useState(() => {
+    try {
+      return Boolean(sessionStorage.getItem('siga_rol_elegido'))
+    } catch {
+      return true
+    }
+  })
   const location = useLocation()
   const scrollPositions = useRef({})
   const locationKey = `${location.pathname}${location.search}`
+  const nombrePersona = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
+
+  function confirmarRol(roleId) {
+    elegirRol(roleId)
+    try {
+      sessionStorage.setItem('siga_rol_elegido', '1')
+    } catch {
+      // sessionStorage no disponible: se volverá a preguntar en la próxima navegación.
+    }
+    setRolElegidoEnSesion(true)
+  }
 
   useLayoutEffect(() => {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual'
@@ -36,6 +55,10 @@ export default function MainLayout() {
     }
   }, [locationKey])
 
+  if (!roleLoading && roles.length > 1 && !rolElegidoEnSesion) {
+    return <RoleChooser roles={roles} onElegir={confirmarRol} />
+  }
+
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar />
@@ -53,6 +76,9 @@ export default function MainLayout() {
                 <span>Notificaciones</span>
               </div>
               <NotificationCenter />
+              {nombrePersona && (
+                <span className="hidden sm:inline text-sm text-secondary">{nombrePersona}</span>
+              )}
               <Link to="/perfil" aria-label="Abrir mi perfil" title="Mi perfil" className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary hover:bg-surface-1 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/20">
                 <UserRound className="w-[18px] h-[18px]" />
                 <span>Perfil</span>

@@ -27,6 +27,7 @@ const RedFamilias = lazy(() => import("./pages/RedFamilias"));
 const AuditoriaFeligresia = lazy(() => import("./pages/AuditoriaFeligresia"));
 const EquipoCongregacion = lazy(() => import("./pages/EquipoCongregacion"));
 const PastoralDistrital = lazy(() => import("./pages/PastoralDistrital"));
+const GestionDistritos = lazy(() => import("./pages/GestionDistritos"));
 
 export default function App() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
           />
           <Route path="/equipo-congregacion" element={<EquipoCongregacion />} />
           <Route path="/pastoral-distrital" element={<PastoralDistrital />} />
+          <Route path="/distritos" element={<GestionDistritos />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />

@@ -120,6 +120,12 @@ export default function MisionJuvenil() {
     lider_persona_id: "",
     leccion_actual: 1,
   });
+  const [selectedGrupoId, setSelectedGrupoId] = useState(null);
+  const [lecciones, setLecciones] = useState([]);
+  const [leccionForm, setLeccionForm] = useState({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+  const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
+  const [lideres, setLideres] = useState([]);
+  const [liderForm, setLiderForm] = useState({ persona_id: "", rol: "gestor" });
 
   async function load() {
     if (!congregacionId) {
@@ -131,7 +137,7 @@ export default function MisionJuvenil() {
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
-    const [i, s, g, r, p] = await Promise.all([
+    const [i, s, g, r, p, l] = await Promise.all([
       supabase
         .from("mision_instituciones")
         .select("*")
@@ -167,8 +173,13 @@ export default function MisionJuvenil() {
         .eq("congregacion_id", congregacionId)
         .eq("estado_membresia", "activo")
         .order("nombres"),
+      supabase
+        .from("mision_lideres")
+        .select("id, persona_id, rol, activo, personas(nombres, apellidos)")
+        .eq("congregacion_id", congregacionId)
+        .order("created_at", { ascending: false }),
     ]);
-    const failed = [i, s, g, r, p].find((item) => item.error);
+    const failed = [i, s, g, r, p, l].find((item) => item.error);
     if (failed)
       setError(
         "No se pudo cargar Misión Juvenil. Intenta nuevamente o contacta al administrador.",
@@ -178,7 +189,83 @@ export default function MisionJuvenil() {
     setGrupos(g.data ?? []);
     setRegistros(r.data ?? []);
     setPersonas(p.data ?? []);
+    setLideres(l.data ?? []);
     setLoading(false);
+  }
+
+  async function loadLecciones(grupoId) {
+    setSelectedGrupoId(grupoId);
+    setLecciones([]);
+    setAsistenciaMarcada({});
+    if (!grupoId) return;
+    const { data, error: leccionesError } = await supabase
+      .from("mision_lecciones")
+      .select("id, numero, tema, fecha, asistentes, notas")
+      .eq("grupo_id", grupoId)
+      .order("numero", { ascending: false });
+    if (leccionesError) setError("No se pudo cargar el historial de lecciones.");
+    setLecciones(data ?? []);
+  }
+
+  async function createLeccion(event) {
+    event.preventDefault();
+    if (!canEdit || !selectedGrupoId) return;
+    const grupo = grupos.find((item) => item.id === selectedGrupoId);
+    const estudiantesGrupo = estudiantes.filter((estudiante) => estudiante.institucion_id === grupo?.institucion_id);
+    const asistentesCount = estudiantesGrupo.filter((estudiante) => asistenciaMarcada[estudiante.id]).length;
+    setSaving(true);
+    setError(null);
+    const proximoNumero = (lecciones[0]?.numero || 0) + 1;
+    const leccionResult = await supabase.from("mision_lecciones").insert({
+      grupo_id: selectedGrupoId,
+      numero: proximoNumero,
+      tema: leccionForm.tema.trim(),
+      fecha: leccionForm.fecha,
+      asistentes: asistentesCount,
+      notas: leccionForm.notas.trim() || null,
+    }).select("id").single();
+    if (leccionResult.error) {
+      setSaving(false);
+      setError(`No se pudo registrar la lección: ${leccionResult.error.message}`);
+      return;
+    }
+    if (estudiantesGrupo.length > 0) {
+      const asistenciaResult = await supabase.from("mision_asistencia_estudiante").insert(
+        estudiantesGrupo.map((estudiante) => ({ leccion_id: leccionResult.data.id, estudiante_id: estudiante.id, asistio: Boolean(asistenciaMarcada[estudiante.id]) })),
+      );
+      if (asistenciaResult.error) { setSaving(false); setError(`La lección se guardó, pero no se pudo registrar la asistencia individual: ${asistenciaResult.error.message}`); return; }
+    }
+    if (proximoNumero > (grupo?.leccion_actual || 0)) {
+      await supabase.from("mision_grupos").update({ leccion_actual: proximoNumero }).eq("id", selectedGrupoId).eq("congregacion_id", congregacionId);
+    }
+    setSaving(false);
+    setNotice("Lección registrada con asistencia individual.");
+    setLeccionForm({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+    setAsistenciaMarcada({});
+    loadLecciones(selectedGrupoId);
+    load();
+  }
+
+  async function createLider(event) {
+    event.preventDefault();
+    if (!canEdit || !liderForm.persona_id) return;
+    setSaving(true);
+    setError(null);
+    const result = await supabase.from("mision_lideres").insert({ congregacion_id: congregacionId, persona_id: liderForm.persona_id, rol: liderForm.rol.trim() || "gestor" });
+    setSaving(false);
+    if (result.error) {
+      setError(result.error.code === "23505" ? "Esta persona ya está registrada como líder." : `No se pudo registrar el líder: ${result.error.message}`);
+      return;
+    }
+    setNotice("Líder registrado.");
+    setLiderForm({ persona_id: "", rol: "gestor" });
+    load();
+  }
+
+  async function toggleLider(lider) {
+    const result = await supabase.from("mision_lideres").update({ activo: lider.activo === false }).eq("id", lider.id).eq("congregacion_id", congregacionId);
+    if (result.error) { setError(`No se pudo cambiar el estado del líder: ${result.error.message}`); return; }
+    load();
   }
   useEffect(() => {
     load();
@@ -566,7 +653,7 @@ export default function MisionJuvenil() {
           </div>
           <div className="flex flex-col divide-y divide-border mt-4">
             {grupos.map((group) => (
-              <div key={group.id} className="py-3">
+              <button type="button" key={group.id} onClick={() => loadLecciones(group.id)} className={`py-3 text-left ${selectedGrupoId === group.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{group.nombre}</p>
                   <span className="text-xs text-accent">
@@ -579,7 +666,7 @@ export default function MisionJuvenil() {
                     ? `${group.personas.nombres} ${group.personas.apellidos}`
                     : "Sin líder"}
                 </p>
-              </div>
+              </button>
             ))}
             {!grupos.length && (
               <p className="text-sm text-muted py-6">
@@ -587,7 +674,45 @@ export default function MisionJuvenil() {
               </p>
             )}
           </div>
+          {selectedGrupoId && (() => {
+            const grupoSeleccionado = grupos.find((item) => item.id === selectedGrupoId);
+            const estudiantesGrupo = estudiantes.filter((estudiante) => estudiante.institucion_id === grupoSeleccionado?.institucion_id);
+            return <div className="border-t border-border mt-4 pt-4">
+              <p className="text-sm font-medium mb-2">Lecciones de {grupoSeleccionado?.nombre}</p>
+              {canEdit && <form onSubmit={createLeccion} className="grid gap-2 mb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <input required className="input-field" placeholder="Tema de la lección" value={leccionForm.tema} onChange={(event) => setLeccionForm({ ...leccionForm, tema: event.target.value })} />
+                  <input required type="date" className="input-field" value={leccionForm.fecha} onChange={(event) => setLeccionForm({ ...leccionForm, fecha: event.target.value })} />
+                </div>
+                <textarea className="input-field min-h-14" placeholder="Notas (opcional)" value={leccionForm.notas} onChange={(event) => setLeccionForm({ ...leccionForm, notas: event.target.value })} />
+                {estudiantesGrupo.length > 0 && <div>
+                  <p className="text-xs text-secondary mb-1">Asistencia individual</p>
+                  <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
+                    {estudiantesGrupo.map((estudiante) => <label key={estudiante.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[estudiante.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [estudiante.id]: event.target.checked })} />{estudiante.nombres} {estudiante.apellidos}</label>)}
+                  </div>
+                </div>}
+                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar lección</button>
+              </form>}
+              {lecciones.length ? <div className="divide-y divide-border">{lecciones.map((leccion) => <div key={leccion.id} className="py-2"><p className="text-sm">Lección {leccion.numero}: {leccion.tema}</p><p className="text-xs text-secondary">{leccion.fecha} · {leccion.asistentes} asistentes</p></div>)}</div> : <p className="text-xs text-muted">Aún no hay lecciones registradas para este grupo.</p>}
+            </div>;
+          })()}
         </div>
+      </section>
+
+      <section className="card p-5">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div><p className="eyebrow">Equipo</p><h2 className="font-medium mt-1">Líderes de Misión Juvenil</h2></div>
+          <UsersRound className="w-5 h-5 text-accent" />
+        </div>
+        {canEdit && <form onSubmit={createLider} className="grid sm:grid-cols-3 gap-2 mb-4">
+          <select required className="input-field" value={liderForm.persona_id} onChange={(event) => setLiderForm({ ...liderForm, persona_id: event.target.value })}>
+            <option value="">Selecciona una persona</option>
+            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+          </select>
+          <input className="input-field" placeholder="Rol (ej. gestor, maestro)" value={liderForm.rol} onChange={(event) => setLiderForm({ ...liderForm, rol: event.target.value })} />
+          <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar líder</button>
+        </form>}
+        <div className="divide-y divide-border">{lideres.filter((lider) => lider.activo !== false).map((lider) => <div key={lider.id} className="py-2 flex items-center justify-between gap-3"><div><p className="text-sm">{lider.personas?.nombres} {lider.personas?.apellidos}</p><p className="text-xs text-secondary">{lider.rol}</p></div>{canEdit && <button type="button" onClick={() => toggleLider(lider)} className="text-xs text-danger">Desactivar</button>}</div>)}{lideres.filter((lider) => lider.activo !== false).length === 0 && <p className="text-sm text-muted py-4">Aún no hay líderes registrados.</p>}</div>
       </section>
       <section className="grid lg:grid-cols-3 gap-4">
         <form

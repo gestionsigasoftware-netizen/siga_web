@@ -28,6 +28,7 @@ export default function EquipoCongregacion() {
       return
     }
     setLoading(true)
+    setMessage((current) => (current?.text === 'Tu usuario no tiene una congregación local asignada.' ? null : current))
     const [peopleResult, profilesResult, modulesResult, assignmentsResult] = await Promise.all([
       supabase.from('personas').select('id, nombres, apellidos, auth_user_id').eq('congregacion_id', congregacionId).order('nombres'),
       supabase.from('perfiles_acceso').select('id, codigo, nombre, descripcion').order('nombre'),

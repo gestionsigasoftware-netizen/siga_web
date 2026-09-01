@@ -22,7 +22,10 @@ Ultima validacion conocida:
 - Dashboard inicial para usuarios autenticados.
 - Sidebar responsive con menu por rol y scroll interno.
 - Centro de notificaciones.
-- Preferencias personales: notificaciones, alertas y formato regional de fecha.
+- Preferencias personales: notificaciones, alertas y formato regional de
+	fecha; el formato de fecha ahora se aplica de verdad en toda la app
+	(auditoría, notificaciones, historial de comités y de Amigos, Dashboard),
+	no solo en la propia pantalla de preferencias.
 - Configuracion de congregacion y catalogos operativos.
 - Edicion del nombre de la congregacion desde Configuracion local; el distrito
 	se muestra como referencia de solo lectura en el Sidebar.
@@ -39,6 +42,9 @@ Ultima validacion conocida:
 	retirar perfiles conservando el historial.
 - La pantalla limita los listados a la congregacion activa, evita asignaciones
 	duplicadas y comunica errores con mensajes orientados al usuario.
+- Equipo de trabajo ya no deja pegado el aviso "sin congregacion asignada"
+	cuando el rol del usuario aun no habia terminado de resolverse al entrar
+	directo a la pantalla.
 
 ### Feligresia
 
@@ -49,6 +55,15 @@ Ultima validacion conocida:
 - Alertas persistentes.
 - Importacion y exportacion CSV/XLSX.
 - Auditoria paginada y filtrable.
+- Auditoria disponible para niveles distrital, nacional, super_admin y pastor
+	local autorizado; conserva el detalle anterior y posterior de cada cambio.
+- Comites: la asignacion de cargo usa el catalogo real `cargos_comite` (antes
+	quedaba desconectada); los integrantes se agrupan por cargo real y se puede
+	editar o reemplazar un integrante conservando el historial.
+- Seguimiento pastoral: agenda, alertas automaticas y reapertura de
+	seguimientos cerrados sin proxima fecha, pidiendo la fecha antes de reabrir.
+	Las alertas muestran conteo total, badge de prioridad real (alta/media) y
+	se agrupan por tipo cuando se repiten.
 
 ### Captura y analitica
 
@@ -103,15 +118,50 @@ Ultima validacion conocida:
 - Permisos `mision_juvenil.consultar`, `mision_juvenil.editar` y `mision_juvenil.registrar`.
 - Ruta web y entrada en el Sidebar.
 - Tablas SQL para instituciones, estudiantes, grupos, lecciones, asistencia individual y lideres.
+- Registro de lecciones por grupo con asistencia individual por estudiante, y
+	administracion de lideres (alta/baja), ya con pantalla propia.
+
+### Pastoral Distrital
+
+- Registro y traslado de pastores entre congregaciones del distrito, con
+	historial de asignaciones.
+- Alta de congregaciones nuevas desde el rol distrital (2026-08-31): un
+	lider distrital puede crear una congregacion de su distrito y dejar
+	invitado a su primer pastor local, todo desde la interfaz web. Migracion
+	ejecutada y Edge Function redesplegada; probado de extremo a extremo con
+	una cuenta distrital real. Pendiente critico de infraestructura:
+	configurar SMTP propio en Supabase Auth antes de produccion (el limite de
+	envio de correo por defecto bloquea las invitaciones reales). Ver
+	`docs/alta-congregaciones-distrital-2026-08-31.md`.
+- Rediseno del nivel distrital (2026-08-31): Resumen, Reportes y Gestion
+	pastoral ahora tienen una vista consolidada real por distrito (comparativa
+	por congregacion), en vez de reutilizar la vista local. Auditoria de
+	Feligresia se quito del menu distrital. Pastores ahora quedan ligados a su
+	persona/acceso real (antes eran dos registros paralelos) y los traslados
+	mueven ese acceso con ellos. Selector de rol (pantalla de login + switcher
+	en el Sidebar) para cuentas con mas de un rol activo. Nuevo catalogo de
+	distritos con numero identificador (`/distritos`, solo nacional/super_admin,
+	vacio hasta que se carguen los 36 distritos reales de la IPUC). Nombre del
+	usuario logueado visible en el encabezado. Ver
+	`docs/nivel-distrital-consolidado-2026-08-31.md`.
+- Pendiente: panel de monitoreo agregado por congregacion del distrito
+	(graficos e insights), y ampliar el modelo de datos de pastores (salario,
+	tiempo de servicio, cargos distritales) — requiere definir con el usuario
+	las reglas de privacidad de datos sensibles antes de construirlo.
 
 ### Ruta Evangelistica
 
 - Definidos los seis procesos institucionales: Metodos, Uno Mas, BIS, REFAM,
 	ESFOB/EFOB y Discipulado.
-- Preparada `supabase/ruta_evangelistica.sql` con catalogo de estaciones,
-	historial de procesos y tablas operativas especificas para cada estacion.
-- La migracion aun requiere aplicacion y pruebas en Supabase; las pantallas de
-	operacion, resultados y analitica de estas estaciones siguen pendientes.
+- Migracion `supabase/ruta_evangelistica.sql` aplicada. Las seis estaciones
+	tienen pantalla operativa: Metodos (diagnostico territorial en
+	Evangelismo), Uno Mas y BIS (compromiso y atenciones dentro de la ficha de
+	Amigos en ruta), REFAM (grupos, participantes y reuniones en Evangelismo),
+	ESFOB/EFOB y Discipulado (pantalla dedicada `RutaFormacion.jsx`).
+- El motor generico de avance entre estaciones (`ruta_estaciones` +
+	`ruta_procesos`) sigue viviendo en Amigos en ruta; las pantallas nuevas
+	capturan el detalle una vez la persona ya esta en la estacion, sin duplicar
+	el mecanismo de traslado.
 
 ## Migraciones existentes
 

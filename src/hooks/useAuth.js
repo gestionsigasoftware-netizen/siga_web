@@ -16,7 +16,14 @@ export function useAuth() {
     redirectTo: `${window.location.origin}/login?reset=1`,
   }), [])
   const updatePassword = useCallback((password) => supabase.auth.updateUser({ password }), [])
-  const signOut = useCallback(() => supabase.auth.signOut(), [])
+  const signOut = useCallback(() => {
+    try {
+      sessionStorage.removeItem('siga_rol_elegido')
+    } catch {
+      // sessionStorage no disponible: no bloquea el cierre de sesión.
+    }
+    return supabase.auth.signOut()
+  }, [])
 
   return { session, user: session?.user ?? null, loading, signIn, resetPassword, updatePassword, signOut }
 }

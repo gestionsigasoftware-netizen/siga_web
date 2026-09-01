@@ -4,7 +4,9 @@ import { ArrowRight, BarChart3, ClipboardPlus, Database, Settings2, TrendingDown
 import { Link } from 'react-router-dom'
 import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
+import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
+import { formatFecha } from '../lib/dateFormat'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
 
@@ -67,13 +69,13 @@ function etiquetaPeriodo(inicio, frecuencia) {
   return inicio.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })
 }
 
-function etiquetaRango(periodos) {
+function etiquetaRango(periodos, formatoFecha) {
   const inicio = periodos[0]?.inicio
   const fin = periodos[periodos.length - 1]?.fin
   if (!inicio || !fin) return ''
   const ultimoDia = new Date(fin)
   ultimoDia.setDate(ultimoDia.getDate() - 1)
-  return `${inicio.toLocaleDateString('es-CO')} - ${ultimoDia.toLocaleDateString('es-CO')}`
+  return `${formatFecha(inicio, { formato: formatoFecha })} - ${formatFecha(ultimoDia, { formato: formatoFecha })}`
 }
 
 function crearPeriodos(fecha, frecuencia, cantidad = 6) {
@@ -153,8 +155,130 @@ function QuickAction({ to, icon: Icon, title, description }) {
   )
 }
 
+function DistritalStatTile({ label, value, tone = 'default' }) {
+  const text = { default: 'text-ink', danger: 'text-danger', success: 'text-success' }[tone]
+  return (
+    <div className="stat-tile">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">{label}</p>
+      <p className={`text-2xl font-semibold mt-3 ${text}`}>{value}</p>
+    </div>
+  )
+}
+
+function DashboardDistrital({ rolPrincipal }) {
+  const [congregaciones, setCongregaciones] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
+  const distrito = rolPrincipal?.distritos
+  const distritoId = rolPrincipal?.distrito_id
+
+  useEffect(() => {
+    if (!distritoId) return
+    let active = true
+    supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }).then(({ data, error: rpcError }) => {
+      if (!active) return
+      if (rpcError) setError('No se pudo cargar el consolidado del distrito.')
+      setCongregaciones(data ?? [])
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [distritoId])
+
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado del distrito...</div>
+
+  const totalFeligreses = congregaciones.reduce((total, c) => total + Number(c.personas_activas || 0), 0)
+  const enCrecimiento = congregaciones.filter((c) => Number(c.personas_nuevas_3m || 0) > 0).length
+  const vacantes = congregaciones.filter((c) => !c.pastor_nombre).length
+  const filas = [...congregaciones].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
+  const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero} · ${distrito.nombre}` : distrito?.nombre || 'Panel distrital'
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+        <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
+        <div className="relative max-w-2xl">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGA · IPUC</p>
+          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
+          <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
+        </div>
+      </section>
+
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <DistritalStatTile label="Congregaciones" value={congregaciones.length} />
+        <DistritalStatTile label="Feligreses activos" value={totalFeligreses} />
+        <DistritalStatTile label="En crecimiento (3 meses)" value={enCrecimiento} tone="success" />
+        <DistritalStatTile label="Vacantes de pastor" value={vacantes} tone={vacantes > 0 ? 'danger' : 'default'} />
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Comparativa por congregación</h2>
+            <p className="text-sm text-secondary mt-1">Ordena para identificar quién está creciendo o en descenso.</p>
+          </div>
+          <select className="input-field min-w-[220px]" value={ordenarPor} onChange={(event) => setOrdenarPor(event.target.value)}>
+            <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
+            <option value="personas_activas">Ordenar por: personas activas</option>
+            <option value="asistencia_ultimo_mes">Ordenar por: asistencia último mes</option>
+          </select>
+        </div>
+        {filas.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay congregaciones registradas en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="px-4 py-3">Congregación</th>
+                  <th className="px-4 py-3">Ciudad</th>
+                  <th className="px-4 py-3">Pastor a cargo</th>
+                  <th className="px-4 py-3">Personas activas</th>
+                  <th className="px-4 py-3">Nuevas (3 meses)</th>
+                  <th className="px-4 py-3">Asistencia último mes</th>
+                  <th className="px-4 py-3">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((c) => {
+                  const variacionAsistencia = c.asistencia_mes_anterior ? Math.round(((c.asistencia_ultimo_mes - c.asistencia_mes_anterior) / c.asistencia_mes_anterior) * 100) : null
+                  return (
+                    <tr key={c.congregacion_id} className="border-t border-border">
+                      <td className="px-4 py-3 font-medium">{c.nombre}</td>
+                      <td className="px-4 py-3 text-secondary">{c.ciudad || '—'}</td>
+                      <td className="px-4 py-3 text-secondary">{c.pastor_nombre || 'Vacante'}</td>
+                      <td className="px-4 py-3">{c.personas_activas}</td>
+                      <td className={`px-4 py-3 ${Number(c.personas_nuevas_3m) > 0 ? 'text-success' : ''}`}>{c.personas_nuevas_3m}</td>
+                      <td className="px-4 py-3">
+                        {c.asistencia_ultimo_mes}
+                        {variacionAsistencia !== null && (
+                          <span className={`ml-1.5 text-xs ${variacionAsistencia < 0 ? 'text-danger' : 'text-success'}`}>
+                            ({variacionAsistencia > 0 ? '+' : ''}{variacionAsistencia}%)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${c.estado === 'activa' ? 'bg-success-bg text-success' : c.estado === 'suspendida' ? 'bg-danger-bg text-danger' : 'bg-warning-bg text-warning'}`}>
+                          {c.estado === 'activa' ? 'Activa' : c.estado === 'suspendida' ? 'Suspendida' : 'Pendiente'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { rolPrincipal, loading: loadingRol } = useMiRol()
+  const { formato_fecha } = usePreferencias()
   const [alertas, setAlertas] = useState([])
   const [registros, setRegistros] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -246,6 +370,7 @@ export default function Dashboard() {
   }
 
   if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
+  if (rolPrincipal.nivel === 'distrital') return <DashboardDistrital rolPrincipal={rolPrincipal} />
   if (loadingData) return <div className="module-loading flex-col gap-3" role="status"><span className="loading-dot" /><span>Cargando indicadores del resumen...</span>{loadError && <><p role="alert" className="text-sm text-danger">{loadError}</p><button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs">Reintentar</button></>}</div>
 
   const hasData = Boolean(registros.length)
@@ -412,7 +537,7 @@ export default function Dashboard() {
       {hasData && (
         <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
           <div className="card chart-card p-5">
-            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">Ritmo de asistencia</p><h2 className="font-medium mt-1">Lectura del periodo</h2><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos)}</p></div><BarChart3 className="w-5 h-5 text-accent" /></div>
+            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">Ritmo de asistencia</p><h2 className="font-medium mt-1">Lectura del periodo</h2><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><BarChart3 className="w-5 h-5 text-accent" /></div>
             <div className="grid sm:grid-cols-3 gap-4">
               <div><p className="text-xs text-muted">Actividades</p><p className="text-2xl font-semibold mt-1">{cantidadRegistros(registrosPeriodo)}</p></div>
               <div><p className="text-xs text-muted">Asistencias registradas</p><p className="text-2xl font-semibold mt-1">{asistentesPeriodo}</p></div>
@@ -480,7 +605,7 @@ export default function Dashboard() {
 
       <div className="card chart-card p-5">
         <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
-          <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
+          <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
         <div style={{ height: 260 }}>
           <Line data={chartData} options={chartOptions} />
         </div>
