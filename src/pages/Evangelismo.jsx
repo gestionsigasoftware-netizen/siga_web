@@ -86,6 +86,7 @@ export default function Evangelismo() {
     nombre: "",
     tipo: "barrio",
     responsable_id: "",
+    tipo_poblacion: "general",
   });
   const [metodoForm, setMetodoForm] = useState("");
   const [metodosEstacion, setMetodosEstacion] = useState(null);
@@ -109,6 +110,7 @@ export default function Evangelismo() {
   const [refamReuniones, setRefamReuniones] = useState([]);
   const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "" });
   const [refamReunionForm, setRefamReunionForm] = useState({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
+  const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
 
   async function load() {
     if (!congregacionId) {
@@ -145,7 +147,7 @@ export default function Evangelismo() {
         supabase
           .from("zonas")
           .select(
-            "id, nombre, modulo_id, lider_persona_id, personas:lider_persona_id(nombres, apellidos)",
+            "id, nombre, modulo_id, lider_persona_id, tipo_poblacion, personas:lider_persona_id(nombres, apellidos)",
           )
           .eq("congregacion_id", congregacionId)
           .order("nombre"),
@@ -330,12 +332,13 @@ export default function Evangelismo() {
         modulo_id: modulo.id,
         nombre: `${zonaForm.tipo}: ${zonaForm.nombre.trim()}`,
         lider_persona_id: zonaForm.responsable_id || null,
+        tipo_poblacion: zonaForm.tipo_poblacion,
       });
     if (result.error)
       setError(`No se pudo crear la cobertura: ${result.error.message}`);
     else {
       setNotice("Lugar de cobertura creado.");
-      setZonaForm({ nombre: "", tipo: "barrio", responsable_id: "" });
+      setZonaForm({ nombre: "", tipo: "barrio", responsable_id: "", tipo_poblacion: "general" });
       load();
     }
   }
@@ -439,6 +442,7 @@ export default function Evangelismo() {
     ]);
     setRefamParticipantes(participantesResult.data ?? []);
     setRefamReuniones(reunionesResult.data ?? []);
+    setAsistenciaRefamMarcada(Object.fromEntries((participantesResult.data ?? []).map((item) => [item.id, true])));
   }
 
   async function addRefamParticipante(event) {
@@ -473,8 +477,17 @@ export default function Evangelismo() {
       visitantes: Number(refamReunionForm.visitantes) || 0,
       resultado: refamReunionForm.resultado.trim() || null,
       novedades: refamReunionForm.novedades.trim() || null,
-    });
+    }).select("id").single();
     if (result.error) { setError(`No se pudo registrar la reunión: ${result.error.message}`); return; }
+    if (refamParticipantes.length) {
+      const asistenciaPayload = refamParticipantes.map((item) => ({
+        reunion_id: result.data.id,
+        participante_id: item.id,
+        asistio: Boolean(asistenciaRefamMarcada[item.id]),
+      }));
+      const asistenciaResult = await supabase.from("refam_asistencia_participante").insert(asistenciaPayload);
+      if (asistenciaResult.error) { setError(`La reunión se registró, pero no se pudo guardar la asistencia individual: ${asistenciaResult.error.message}`); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
+    }
     setNotice("Reunión REFAM registrada.");
     setRefamReunionForm({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
@@ -723,6 +736,19 @@ export default function Evangelismo() {
               }
             />
           </div>
+          <label className="text-sm">
+            Población especial
+            <select
+              className="input-field mt-1.5"
+              value={zonaForm.tipo_poblacion}
+              onChange={(event) => setZonaForm({ ...zonaForm, tipo_poblacion: event.target.value })}
+            >
+              <option value="general">General</option>
+              <option value="carcelaria">Carcelaria</option>
+              <option value="salud">Salud (hospitales)</option>
+              <option value="indigena">Indígena</option>
+            </select>
+          </label>
           <p className="text-xs text-secondary">
             El responsable se asigna en Equipo de trabajo y la actividad quedará asociada a esta zona.
           </p>
@@ -795,6 +821,7 @@ export default function Evangelismo() {
                   <input type="number" min="0" className="input-field" placeholder="Asistentes" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} />
                   <input type="number" min="0" className="input-field" placeholder="Visitantes" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} />
                   <input className="input-field col-span-2" placeholder="Resultado" value={refamReunionForm.resultado} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, resultado: event.target.value })} />
+                  {refamParticipantes.length > 0 && <div className="col-span-2 border border-border rounded-card p-2"><p className="text-xs font-medium mb-1.5">Asistencia individual (estudio entregado)</p>{refamParticipantes.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs py-0.5"><input type="checkbox" checked={Boolean(asistenciaRefamMarcada[item.id])} onChange={(event) => setAsistenciaRefamMarcada({ ...asistenciaRefamMarcada, [item.id]: event.target.checked })} />{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"}</label>)}</div>}
                   <button className="btn-secondary col-span-2 justify-center">Registrar reunión</button>
                 </form>}
                 {refamReuniones.length ? <div className="divide-y divide-border">{refamReuniones.map((item) => <div key={item.id} className="py-1.5 text-sm">{item.fecha} · Lección {item.numero_leccion} · {item.asistentes} asistentes{item.visitantes ? ` (${item.visitantes} visitantes)` : ""}</div>)}</div> : <p className="text-xs text-muted">Sin reuniones registradas.</p>}

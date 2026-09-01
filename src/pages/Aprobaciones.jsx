@@ -11,6 +11,7 @@ const ESTADO_TONO = {
   suspendida: 'bg-danger-bg text-danger',
 }
 const ESTADO_LABEL = { pendiente_aprobacion: 'Pendiente de aprobación', activa: 'Activa', suspendida: 'Suspendida' }
+const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local (Constituida)' }
 
 export default function Aprobaciones() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
@@ -24,7 +25,7 @@ export default function Aprobaciones() {
     setError(null)
     const { data, error: loadError } = await supabase
       .from('congregaciones')
-      .select('id, nombre, pastor_nombre, estado, distritos(nombre), created_at')
+      .select('id, nombre, pastor_nombre, estado, madurez, distritos(nombre), created_at')
       .order('created_at', { ascending: false })
     setCongregaciones(data ?? [])
     if (loadError) setError('No se pudieron cargar las congregaciones.')
@@ -38,6 +39,14 @@ export default function Aprobaciones() {
     const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString() }).eq('id', id)
     setBusy(null)
     if (updateError) { setError('No se pudo actualizar el estado de la congregación.'); return }
+    load()
+  }
+
+  async function actualizarMadurez(id, madurez) {
+    setBusy(id)
+    const { error: updateError } = await supabase.from('congregaciones').update({ madurez }).eq('id', id)
+    setBusy(null)
+    if (updateError) { setError('No se pudo actualizar la madurez de la sede.'); return }
     load()
   }
 
@@ -61,6 +70,7 @@ export default function Aprobaciones() {
               <th className="font-normal py-2.5 px-4">Congregación</th>
               <th className="font-normal py-2.5 px-4">Pastor</th>
               <th className="font-normal py-2.5 px-4">Distrito</th>
+              <th className="font-normal py-2.5 px-4">Madurez</th>
               <th className="font-normal py-2.5 px-4">Estado</th>
               <th className="font-normal py-2.5 px-4 text-right">Acciones</th>
             </tr>
@@ -71,6 +81,11 @@ export default function Aprobaciones() {
                 <td className="py-2.5 px-4 font-medium">{c.nombre}</td>
                 <td className="py-2.5 px-4 text-secondary">{c.pastor_nombre}</td>
                 <td className="py-2.5 px-4 text-secondary">{c.distritos?.nombre}</td>
+                <td className="py-2.5 px-4">
+                  <select disabled={busy === c.id} className="input-field text-xs" value={c.madurez || 'lugar_prediccion'} onChange={(event) => actualizarMadurez(c.id, event.target.value)}>
+                    {Object.entries(MADUREZ_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </td>
                 <td className="py-2.5 px-4">
                   <span className={`text-xs px-2 py-1 rounded ${ESTADO_TONO[c.estado]}`}>{ESTADO_LABEL[c.estado] || c.estado}</span>
                 </td>

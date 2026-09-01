@@ -21,6 +21,13 @@
 	`docs/nivel-distrital-consolidado-2026-08-31.md`. Pendiente: cargar el
 	listado real de los 36 distritos de la IPUC desde `/distritos`, y probar
 	esa pantalla con una cuenta nacional/super_admin real (no existe todavia).
+- Resuelto (2026-09-01): Fase 1 del BI de la IPUC — sellados con el
+	Espiritu Santo, estudios REFAM individuales, madurez de sede, movimientos
+	de membresia estructurados y clasificacion poblacional de zonas. Ver
+	`docs/bi-fase1-datos-base-2026-09-01.md`. Tambien se corrigio un bug
+	critico: el rol activo (selector construido el 2026-08-31) se perdia en
+	cada recarga completa de pagina y volvia siempre al de mayor prioridad.
+	Pendiente: Fase 2 (insights BI) y Fase 3 (Escuela Dominical/Damas Dorcas).
 - Resuelto (2026-08-31): licencias ministeriales de la IPUC (Obrero, Licencia
 	Local, Licencia General, Ordenacion Ministerial) en Gestion pastoral, con
 	historial de ascensos con fecha. Solo el lider distrital puede ascender, un

@@ -8,6 +8,7 @@ const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Co
 const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
 const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
 const TIPO_FORMACION_LABELS = { titulo: 'Título', curso: 'Curso', diplomado: 'Diplomado', especializacion: 'Especialización', maestria: 'Maestría', doctorado: 'Doctorado', seminario_biblico: 'Seminario bíblico', otro: 'Otro' }
+const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local (Constituida)' }
 const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
@@ -139,7 +140,7 @@ export default function PastoralDistrital() {
         .order('nombres'),
       supabase
         .from('congregaciones')
-        .select('id, nombre, ciudad, pastor_id, pastor_nombre, estado')
+        .select('id, nombre, ciudad, pastor_id, pastor_nombre, estado, madurez')
         .eq('distrito_id', distritoId)
         .order('nombre'),
       supabase
@@ -458,6 +459,18 @@ export default function PastoralDistrital() {
     }
   }
 
+  async function updateMadurez(congregacionId, madurez) {
+    setError(null)
+    setNotice(null)
+    const { error: updateError } = await supabase.from('congregaciones').update({ madurez }).eq('id', congregacionId)
+    if (updateError) {
+      setError('No se pudo actualizar la madurez de la sede.')
+      return
+    }
+    setNotice('Madurez de la sede actualizada.')
+    await load()
+  }
+
   async function deleteFormacion(id) {
     setError(null)
     setNotice(null)
@@ -525,6 +538,43 @@ export default function PastoralDistrital() {
           <p className="mt-3 text-2xl font-semibold">{stats.vacantCongregations}</p>
           <p className="text-sm text-secondary mt-1">Sin pastor actual</p>
         </div>
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Congregaciones del distrito</h2>
+          <p className="text-sm text-secondary mt-1">Clasificación de madurez de la sede (Misión Nacional / Lugar de Predicación / Iglesia Local).</p>
+        </div>
+        {congregations.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay congregaciones registradas en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="font-normal px-5 py-3">Congregación</th>
+                  <th className="font-normal px-5 py-3">Ciudad</th>
+                  <th className="font-normal px-5 py-3">Madurez de la sede</th>
+                </tr>
+              </thead>
+              <tbody>
+                {congregations.map((congregation) => (
+                  <tr key={congregation.id} className="border-t border-border">
+                    <td className="px-5 py-3 font-medium">{congregation.nombre}</td>
+                    <td className="px-5 py-3 text-secondary">{congregation.ciudad || '—'}</td>
+                    <td className="px-5 py-3">
+                      <select className="input-field" value={congregation.madurez || 'lugar_prediccion'} onChange={(event) => updateMadurez(congregation.id, event.target.value)}>
+                        {Object.entries(MADUREZ_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">
