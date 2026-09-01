@@ -1,23 +1,62 @@
 import { useEffect, useState } from "react";
-import { Heart, Plus, UsersRound } from "lucide-react";
+import { Bar, Line } from "react-chartjs-2";
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from "chart.js";
+import { AlertTriangle, Heart, Plus, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 
+ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+
 const TIPO_ACTIVIDAD_LABELS = { visita: "Visita", social: "Social", espiritual: "Espiritual", otro: "Otro" };
+const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
+const DIAS_INACTIVIDAD = 60;
+const CHART_OPTIONS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
+  scales: {
+    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
+    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
+  },
+};
+
+function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+  return (
+    <div className="stat-tile h-full min-h-[220px] flex flex-col">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">{label}</p>
+      <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
+      <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+      </div>
+      <p className="text-xs text-muted mt-1 min-h-[1rem]">{detail || " "}</p>
+      <p className="text-[11px] text-secondary leading-4 mt-2 min-h-[2rem]">{insight || " "}</p>
+    </div>
+  );
+}
 
 export default function DamasDorcas() {
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [beneficiarias, setBeneficiarias] = useState([]);
   const [actividades, setActividades] = useState([]);
+  const [asistencias, setAsistencias] = useState([]);
   const [personas, setPersonas] = useState([]);
+  const [periodo, setPeriodo] = useState("180");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [canEdit, setCanEdit] = useState(false);
   const [beneficiariaForm, setBeneficiariaForm] = useState({ nombres: "", apellidos: "", telefono: "", direccion: "", responsable_persona_id: "" });
-  const [selectedActividadId, setSelectedActividadId] = useState(null);
   const [actividadForm, setActividadForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "visita", descripcion: "", responsable_persona_id: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
 
@@ -29,15 +68,19 @@ export default function DamasDorcas() {
     }
     setLoading(true);
     setError(null);
-    const [b, a, p] = await Promise.all([
+    const start = new Date();
+    start.setDate(start.getDate() - Number(periodo));
+    const [b, a, s, p] = await Promise.all([
       supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
-      supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).order("fecha", { ascending: false }),
+      supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
+      supabase.from("damas_dorcas_asistencia").select("id, actividad_id, beneficiaria_id, asistio, damas_dorcas_actividades!inner(congregacion_id, fecha)").eq("damas_dorcas_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
     ]);
-    const failed = [b, a, p].find((item) => item.error);
+    const failed = [b, a, s, p].find((item) => item.error);
     if (failed) setError("No se pudo cargar Damas Dorcas. Intenta nuevamente o contacta al administrador.");
     setBeneficiarias(b.data ?? []);
     setActividades(a.data ?? []);
+    setAsistencias(s.data ?? []);
     setPersonas(p.data ?? []);
     setLoading(false);
   }
@@ -87,7 +130,7 @@ export default function DamasDorcas() {
     load();
   }
 
-  useEffect(() => { load(); }, [congregacionId]);
+  useEffect(() => { load(); }, [congregacionId, periodo]);
   useEffect(() => {
     if (!congregacionId) return;
     const roleCanEdit = rolPrincipal?.nivel === "local" && rolPrincipal?.rol_local !== "solo_lectura";
@@ -99,22 +142,108 @@ export default function DamasDorcas() {
   const activas = beneficiarias.filter((item) => item.estado === "activa");
   const actividadesUltimoMes = actividades.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
 
+  // Tendencia: actividades por fecha en el periodo
+  const trend = [...new Set(actividades.map((item) => item.fecha))].sort().map((fecha) => ({
+    fecha,
+    total: actividades.filter((item) => item.fecha === fecha).length,
+  }));
+  const mitad = Math.floor(trend.length / 2) || 1;
+  const primeraMitad = trend.slice(0, mitad).reduce((sum, item) => sum + item.total, 0);
+  const segundaMitad = trend.slice(mitad).reduce((sum, item) => sum + item.total, 0);
+  const tendenciaVariacion = primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
+
+  // Distribución por tipo de actividad
+  const tiposConTotal = Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => ({
+    label,
+    total: actividades.filter((item) => item.tipo === value).length,
+  }));
+
+  // Beneficiarias sin actividad reciente (alerta de seguimiento)
+  const hoy = new Date();
+  const ultimaActividadPorBeneficiaria = new Map();
+  asistencias.forEach((item) => {
+    const fecha = item.damas_dorcas_actividades?.fecha;
+    if (!fecha) return;
+    const actual = ultimaActividadPorBeneficiaria.get(item.beneficiaria_id);
+    if (!actual || fecha > actual) ultimaActividadPorBeneficiaria.set(item.beneficiaria_id, fecha);
+  });
+  const beneficiariasSinSeguimiento = activas.filter((item) => {
+    const ultima = ultimaActividadPorBeneficiaria.get(item.id);
+    if (!ultima) return true;
+    const dias = Math.floor((hoy - new Date(`${ultima}T00:00:00`)) / 86400000);
+    return dias > DIAS_INACTIVIDAD;
+  });
+
+  const insightGeneral = activas.length
+    ? `${beneficiariasSinSeguimiento.length} de ${activas.length} beneficiarias activas no han tenido actividad en más de ${DIAS_INACTIVIDAD} días. ${beneficiariasSinSeguimiento.length > 0 ? "Prioriza visitarlas esta semana." : "El seguimiento está al día."}`
+    : "Registra beneficiarias para construir una lectura del trabajo con mujeres.";
+
+  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Actividades", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
+  const tiposChartData = { labels: tiposConTotal.map((item) => item.label), datasets: [{ label: "Actividades", data: tiposConTotal.map((item) => item.total), backgroundColor: "#9a6bce", borderRadius: 4, barThickness: 18 }] };
+
   return (
     <div className="page-shell">
-      <header>
-        <p className="eyebrow">Trabajo con mujeres</p>
-        <h1 className="section-title">Damas Dorcas</h1>
-        <p className="text-sm text-secondary mt-1">Trabajo evangelístico, social y espiritual con mujeres de la congregación y su entorno.</p>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Trabajo con mujeres</p>
+          <h1 className="section-title">Damas Dorcas</h1>
+          <p className="text-sm text-secondary mt-1">Trabajo evangelístico, social y espiritual con mujeres de la congregación y su entorno.</p>
+        </div>
+        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+          {PERIODOS.map(([value, label]) => (
+            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+          ))}
+        </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Damas Dorcas.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Beneficiarias activas</p><p className="text-2xl font-semibold mt-3">{activas.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Actividades (30 días)</p><p className="text-2xl font-semibold mt-3">{actividadesUltimoMes.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Total registradas</p><p className="text-2xl font-semibold mt-3">{beneficiarias.length}</p></div>
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Metric label="Beneficiarias activas" value={activas.length} progress={activas.length ? 100 : 0} detail={`${beneficiarias.length} registradas en total`} insight={activas.length ? "Cada beneficiaria debe tener una responsable de seguimiento." : "Registra la primera beneficiaria para iniciar el trabajo."} />
+        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
+        <Metric label="Sin seguimiento reciente" value={beneficiariasSinSeguimiento.length} tone={beneficiariasSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activas.length ? Math.round((beneficiariasSinSeguimiento.length / activas.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={beneficiariasSinSeguimiento.length > 0 ? "Revisa la lista y programa una visita." : "Todas las beneficiarias tienen seguimiento reciente."} />
+        <Metric label="Tipo de trabajo líder" value={tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={`${tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} actividades`} insight="Compara con las demás modalidades para balancear el trabajo." />
       </section>
+
+      <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
+
+      <section className="grid lg:grid-cols-2 gap-4">
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Trabajo realizado</p>
+          <h2 className="font-medium mt-1">Tendencia de actividades</h2>
+          <div className="h-56 mt-4">
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin actividades registradas en el periodo.</p>}
+          </div>
+        </div>
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Modalidad</p>
+          <h2 className="font-medium mt-1">Actividades por tipo</h2>
+          <div className="h-56 mt-4">
+            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin actividades registradas todavía.</p>}
+          </div>
+        </div>
+      </section>
+
+      {beneficiariasSinSeguimiento.length > 0 && (
+        <section className="card p-5 border-2 border-warning/30">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div>
+              <h2 className="font-medium">Beneficiarias sin seguimiento reciente</h2>
+              <p className="text-xs text-secondary mt-1">Sin actividad registrada en más de {DIAS_INACTIVIDAD} días.</p>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+            {beneficiariasSinSeguimiento.map((item) => (
+              <div key={item.id} className="border border-border rounded-lg p-3">
+                <p className="text-sm font-medium">{item.nombres} {item.apellidos}</p>
+                <p className="text-xs text-secondary mt-1">{ultimaActividadPorBeneficiaria.get(item.id) ? `Última actividad: ${ultimaActividadPorBeneficiaria.get(item.id)}` : "Sin actividad registrada"}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">

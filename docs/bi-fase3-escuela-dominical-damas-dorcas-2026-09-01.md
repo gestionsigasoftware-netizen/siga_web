@@ -62,6 +62,39 @@ junto a la comparativa de congregaciones ya existente.
 	recién creados en Gestión pastoral, sin errores de consola.
 - Todos los datos de prueba limpiados al finalizar.
 
+## Actualización: capa avanzada de gráficos e insights
+
+El usuario pidió explícitamente que ambos módulos quedaran "full" en
+gráficos, métricas e insights — igual de completos que Misión Juvenil, no
+solo el CRUD básico con el que se cerró la fase inicialmente. Se agregó a
+`EscuelaDominical.jsx` y `DamasDorcas.jsx`:
+
+- Selector de período (30 días / 6 meses / 12 meses), igual que Misión
+	Juvenil.
+- Seis/cuatro tarjetas de métrica con barra de progreso y una frase de
+	insight cada una (componente `Metric`, mismo patrón visual).
+- Gráfico de línea: tendencia de asistencia (Escuela Dominical) o de
+	actividades (Damas Dorcas) en el período.
+- Gráfico de barras: niños por etapa (Escuela Dominical) o actividades por
+	tipo (Damas Dorcas).
+- Tabla comparativa de clases por niños y asistencia promedio (Escuela
+	Dominical).
+- **Alerta real de decisión** en Damas Dorcas: beneficiarias activas sin
+	actividad registrada en más de 60 días, con la fecha de su última
+	actividad — verificado en vivo que identifica correctamente a la
+	beneficiaria inactiva real, no solo un cálculo de ejemplo.
+- Nombre correcto confirmado: **Damas Dorcas** (sin "Misión"). Ícono
+	`UserRound` (Damas Dorcas) y sin cambios en el de Escuela Dominical
+	(`Baby`) — lucide-react no tiene ningún ícono de género en sus 1641
+	íconos disponibles, confirmado revisando el set completo.
+
+Validado con datos de prueba reales (2 clases con niños en distintas
+etapas y 3 lecciones en fechas distintas; 2 beneficiarias con actividades
+en fechas distintas, una sin seguimiento reciente a propósito): todos los
+gráficos, tendencias e insights calcularon correctamente, sin errores de
+consola, y con estado vacío que no rompe la pantalla. Datos de prueba
+limpiados.
+
 ## Con esto se cierran las 3 fases del plan BI de la IPUC
 
 Hitos espirituales, membresía dinámica, madurez de sede, insights de
