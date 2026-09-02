@@ -31,7 +31,7 @@ export default function AuditoriaFeligresia() {
     async function load() {
       setLoading(true)
       setError(null)
-      let query = supabase.from('auditoria_feligresia').select('id, entidad, entidad_id, entidad_clave, accion, antes, despues, usuario_id, creado_en', { count: 'exact' }).order('creado_en', { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1)
+      let query = supabase.from('auditoria_feligresia').select('id, entidad, entidad_id, entidad_clave, accion, antes, despues, usuario_id, creado_en', { count: 'exact' }).order('creado_en', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1)
       if (entity !== 'todas') query = query.eq('entidad', entity)
       if (action !== 'todas') query = query.eq('accion', action)
       if (fromDate) query = query.gte('creado_en', `${fromDate}T00:00:00`)

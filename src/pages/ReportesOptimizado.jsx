@@ -44,7 +44,7 @@ export default function ReportesOptimizado() {
     setError(null)
     const desde = periodo === 'all' ? '2000-01-01' : (() => { const date = new Date(); date.setDate(date.getDate() - Number(periodo)); return date.toISOString().slice(0, 10) })()
     const summaryRequest = supabase.rpc('resumen_reportes', { p_congregacion_id: congregacionId || null, p_desde: desde })
-    let detailRequest = supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, nombre_actividad, congregacion_id, congregaciones(id, nombre), modulos(id, nombre_modulo), tipos_actividad(nombre)', { count: 'exact' }).order('fecha', { ascending: false }).range(detailPage * PAGE_SIZE, detailPage * PAGE_SIZE + PAGE_SIZE - 1)
+    let detailRequest = supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, nombre_actividad, congregacion_id, congregaciones(id, nombre), modulos(id, nombre_modulo), tipos_actividad(nombre)', { count: 'exact' }).order('fecha', { ascending: false }).order('id', { ascending: false }).range(detailPage * PAGE_SIZE, detailPage * PAGE_SIZE + PAGE_SIZE - 1)
     if (congregacionId) detailRequest = detailRequest.eq('congregacion_id', congregacionId)
     if (congregacion !== 'todas') detailRequest = detailRequest.eq('congregacion_id', congregacion)
     if (modulo !== 'todos') detailRequest = detailRequest.eq('modulo_id', modulo)

@@ -18,7 +18,7 @@ export default function Personas() {
 
   async function load() {
     if (!congregacionId) return
-    let query = supabase.from('personas').select('id, nombres, apellidos, telefono, created_at', { count: 'exact' }).eq('congregacion_id', congregacionId).order('nombres').range(page * pageSize, page * pageSize + pageSize - 1)
+    let query = supabase.from('personas').select('id, nombres, apellidos, telefono, created_at', { count: 'exact' }).eq('congregacion_id', congregacionId).order('nombres').order('id').range(page * pageSize, page * pageSize + pageSize - 1)
     if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,apellidos.ilike.%${busqueda.trim()}%`)
     const { data, count, error: loadError } = await query
     if (loadError) setError('No se pudieron cargar las personas.')

@@ -2,6 +2,7 @@
 import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import Pager from '../components/Pager'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
@@ -92,6 +93,16 @@ export default function PastoralDistrital() {
   const [resumenTeologica, setResumenTeologica] = useState([])
   const [resumenConquistadores, setResumenConquistadores] = useState([])
   const [resumenObraSocial, setResumenObraSocial] = useState([])
+  const [tablePages, setTablePages] = useState({})
+
+  const TABLE_PAGE_SIZE = 50
+  function paginate(key, items) {
+    const totalPages = Math.max(1, Math.ceil(items.length / TABLE_PAGE_SIZE))
+    const page = Math.min(tablePages[key] || 0, totalPages - 1)
+    const pageItems = items.slice(page * TABLE_PAGE_SIZE, page * TABLE_PAGE_SIZE + TABLE_PAGE_SIZE)
+    const setPage = (updater) => setTablePages((prev) => ({ ...prev, [key]: typeof updater === 'function' ? updater(prev[key] || 0) : updater }))
+    return { pageItems, page, totalPages, setPage }
+  }
 
   const activeAssignments = useMemo(
     () => assignments.filter((assignment) => !assignment.fecha_fin),
@@ -628,7 +639,9 @@ export default function PastoralDistrital() {
         </div>
         {congregations.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay congregaciones registradas en tu distrito.</p>
-        ) : (
+        ) : (() => {
+          const paged = paginate('congregations', congregations)
+          return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -639,7 +652,7 @@ export default function PastoralDistrital() {
                 </tr>
               </thead>
               <tbody>
-                {congregations.map((congregation) => (
+                {paged.pageItems.map((congregation) => (
                   <tr key={congregation.id} className="border-t border-border">
                     <td className="px-5 py-3 font-medium">{congregation.nombre}</td>
                     <td className="px-5 py-3 text-secondary">{congregation.ciudad || '—'}</td>
@@ -655,7 +668,9 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-        )}
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={congregations.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          </>
+        })()}
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
@@ -666,12 +681,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenEscuelaDominical.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Escuela Dominical en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('escuelaDominical', resumenEscuelaDominical)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Clases</th><th className="font-normal px-4 py-2.5">Niños</th><th className="font-normal px-4 py-2.5">Maestros</th><th className="font-normal px-4 py-2.5">Lecciones (30d)</th></tr></thead>
                 <tbody>
-                  {resumenEscuelaDominical.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.clases_activas}</td>
@@ -683,7 +700,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenEscuelaDominical.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
 
         <section className="card overflow-hidden">
@@ -693,12 +712,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenDamas.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Damas Dorcas en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('damasDorcas', resumenDamas)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Beneficiarias</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
                 <tbody>
-                  {resumenDamas.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.beneficiarias_activas}</td>
@@ -708,7 +729,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenDamas.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
       </div>
 
@@ -759,12 +782,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenCarcelaria.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Carcelaria en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('carcelaria', resumenCarcelaria)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Internos activos</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5">Delegados hábiles</th><th className="font-normal px-4 py-2.5">Cultos (30d)</th></tr></thead>
                 <tbody>
-                  {resumenCarcelaria.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.internos_activos}</td>
@@ -777,7 +802,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenCarcelaria.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
       </div>
 
@@ -788,12 +815,14 @@ export default function PastoralDistrital() {
         </div>
         {resumenReinsercion.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay casos de reinserción en tu distrito.</p>
-        ) : (
+        ) : (() => {
+          const paged = paginate('reinsercion', resumenReinsercion)
+          return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Estado</th></tr></thead>
               <tbody>
-                {resumenReinsercion.map((item) => (
+                {paged.pageItems.map((item) => (
                   <tr key={item.id} className="border-t border-border">
                     <td className="px-4 py-2.5 font-medium">{item.interno_nombre}</td>
                     <td className="px-4 py-2.5 text-secondary">{item.congregacion_origen}</td>
@@ -805,7 +834,9 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-        )}
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenReinsercion.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="casos" /></div>
+          </>
+        })()}
         {resumenReinsercion.length > 0 && (() => {
           const activos = resumenReinsercion.filter((item) => ['activo', 'inactivo', 'reincidencia'].includes(item.estado))
           const eficacia = activos.length ? Math.round((activos.filter((item) => item.estado === 'activo').length / activos.length) * 100) : null
@@ -838,12 +869,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenMusica.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Música en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('musica', resumenMusica)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
                 <tbody>
-                  {resumenMusica.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.grupos_activos}</td>
@@ -854,7 +887,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenMusica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
 
         <section className="card overflow-hidden">
@@ -864,12 +899,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenArtistica.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Artística en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('artistica', resumenArtistica)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
                 <tbody>
-                  {resumenArtistica.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.grupos_activos}</td>
@@ -880,7 +917,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenArtistica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
       </div>
 
@@ -892,12 +931,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenTeologica.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Teológica en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('teologica', resumenTeologica)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Certificados</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
                 <tbody>
-                  {resumenTeologica.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.grupos_activos}</td>
@@ -909,7 +950,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenTeologica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
 
         <section className="card overflow-hidden">
@@ -919,12 +962,14 @@ export default function PastoralDistrital() {
           </div>
           {resumenConquistadores.length === 0 ? (
             <p className="p-5 text-sm text-muted">Aún no hay datos de Conquistadores Pentecostales en tu distrito.</p>
-          ) : (
+          ) : (() => {
+            const paged = paginate('conquistadores', resumenConquistadores)
+            return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Miembros</th><th className="font-normal px-4 py-2.5">Líderes</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
                 <tbody>
-                  {resumenConquistadores.map((item) => (
+                  {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                       <td className="px-4 py-2.5">{item.miembros_activos}</td>
@@ -935,7 +980,9 @@ export default function PastoralDistrital() {
                 </tbody>
               </table>
             </div>
-          )}
+            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenConquistadores.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+            </>
+          })()}
         </section>
       </div>
 
@@ -946,12 +993,14 @@ export default function PastoralDistrital() {
         </div>
         {resumenObraSocial.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Social en tu distrito.</p>
-        ) : (
+        ) : (() => {
+          const paged = paginate('obraSocial', resumenObraSocial)
+          return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Casos abiertos</th><th className="font-normal px-4 py-2.5">Casos resueltos</th><th className="font-normal px-4 py-2.5">Ayudas (30d)</th></tr></thead>
               <tbody>
-                {resumenObraSocial.map((item) => (
+                {paged.pageItems.map((item) => (
                   <tr key={item.congregacion_id} className="border-t border-border">
                     <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
                     <td className="px-4 py-2.5">{item.casos_abiertos}</td>
@@ -962,7 +1011,9 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-        )}
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenObraSocial.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          </>
+        })()}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30">

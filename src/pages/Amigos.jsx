@@ -144,6 +144,7 @@ export default function Amigos() {
             .select(FRIEND_FIELDS, { count: "exact" })
             .eq("congregacion_id", congregacionId)
             .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
             .range(page * pageSize, page * pageSize + pageSize - 1);
           if (filtro !== "todos") query = query.eq("etapa_id", filtro);
           if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,sector.ilike.%${busqueda.trim()}%,telefono.ilike.%${busqueda.trim()}%`);

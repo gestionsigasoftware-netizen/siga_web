@@ -243,7 +243,7 @@ export default function FeligresiaAdmin() {
     let peopleQuery = supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)', { count: 'exact' }).eq('congregacion_id', congregacionId)
     if (personStatus !== 'todos') peopleQuery = peopleQuery.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) peopleQuery = peopleQuery.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
-    peopleQuery = peopleQuery.order('nombres').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
+    peopleQuery = peopleQuery.order('nombres').order('id').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
     const [peopleResult, analyticsPeopleResult, familyResult, familyMembersResult, familyRelationsResult, committeeResult, committeeCargoResult, committeeTypeResult, cargoResult, followupResult, summaryResult, alertsResult, committeeAuditResult, movementsResult] = await Promise.all([
       peopleQuery,
       supabase.from('personas').select('id, nombres, apellidos, estado_membresia, estado_civil, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),

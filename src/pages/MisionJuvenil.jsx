@@ -14,6 +14,7 @@ import { BookOpen, Building2, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import Pager from "../components/Pager";
 
 ChartJS.register(
   BarElement,
@@ -107,6 +108,7 @@ export default function MisionJuvenil() {
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
   const [lideres, setLideres] = useState([]);
   const [liderForm, setLiderForm] = useState({ persona_id: "", rol: "gestor" });
+  const [studentsPage, setStudentsPage] = useState(0);
 
   async function load() {
     if (!congregacionId) {
@@ -256,12 +258,17 @@ export default function MisionJuvenil() {
     const roleCanEdit = rolPrincipal?.nivel === "local" && rolPrincipal?.rol_local !== "solo_lectura";
     supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "mision_juvenil.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
   }, [congregacionId, rolPrincipal]);
+  useEffect(() => { setStudentsPage(0); }, [institucionFiltro, estadoFiltro]);
   const students = estudiantes.filter(
     (student) =>
       (institucionFiltro === "todos" ||
         student.institucion_id === institucionFiltro) &&
       (estadoFiltro === "todos" || student.estado === estadoFiltro),
   );
+  const STUDENTS_PAGE_SIZE = 50;
+  const studentsPageCount = Math.max(1, Math.ceil(students.length / STUDENTS_PAGE_SIZE));
+  const studentsPageSafe = Math.min(studentsPage, studentsPageCount - 1);
+  const studentsPageItems = students.slice(studentsPageSafe * STUDENTS_PAGE_SIZE, studentsPageSafe * STUDENTS_PAGE_SIZE + STUDENTS_PAGE_SIZE);
   const visibleRecords = registros;
   const attendance = visibleRecords.reduce(
     (sum, item) => sum + Number(item.total_asistentes || 0),
@@ -554,7 +561,7 @@ export default function MisionJuvenil() {
               </tr>
             </thead>
             <tbody>
-              {students.map((student) => (
+              {studentsPageItems.map((student) => (
                 <tr key={student.id} className="border-b border-border">
                   <td className="py-2 font-medium">{student.nombres} {student.apellidos}</td>
                   <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || "Sin institución"}</td>
@@ -573,6 +580,7 @@ export default function MisionJuvenil() {
             </tbody>
           </table>
           {!students.length && <p className="text-sm text-secondary py-6 text-center">No hay estudiantes para los filtros seleccionados.</p>}
+          <Pager page={studentsPageSafe} totalPages={studentsPageCount} total={students.length} onPrev={() => setStudentsPage((current) => current - 1)} onNext={() => setStudentsPage((current) => current + 1)} label="estudiantes" />
         </div>
       </section>
       <section className="grid lg:grid-cols-2 gap-4">

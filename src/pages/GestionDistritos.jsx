@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { MapPin, Plus, PencilLine } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import Pager from '../components/Pager'
+
+const CONG_PAGE_SIZE = 50
 
 const ALLOWED_LEVELS = ['nacional', 'super_admin']
 const EMPTY_FORM = { numero: '', nombre: '' }
@@ -25,6 +28,7 @@ export default function GestionDistritos() {
   const [busqueda, setBusqueda] = useState('')
   const [cambios, setCambios] = useState({})
   const [moviendoId, setMoviendoId] = useState(null)
+  const [congPage, setCongPage] = useState(0)
 
   async function load() {
     setLoading(true)
@@ -45,6 +49,7 @@ export default function GestionDistritos() {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { setCongPage(0) }, [busqueda])
 
   async function moverCongregacion(congregacionId) {
     const nuevoDistritoId = cambios[congregacionId]
@@ -69,6 +74,9 @@ export default function GestionDistritos() {
   const congregacionesFiltradas = congregaciones.filter((congregacion) =>
     congregacion.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())
   )
+  const congPageCount = Math.max(1, Math.ceil(congregacionesFiltradas.length / CONG_PAGE_SIZE))
+  const congPageSafe = Math.min(congPage, congPageCount - 1)
+  const congregacionesPagina = congregacionesFiltradas.slice(congPageSafe * CONG_PAGE_SIZE, congPageSafe * CONG_PAGE_SIZE + CONG_PAGE_SIZE)
 
   function resetForm() {
     setEditingId(null)
@@ -192,7 +200,7 @@ export default function GestionDistritos() {
                 </tr>
               </thead>
               <tbody>
-                {congregacionesFiltradas.map((congregacion) => {
+                {congregacionesPagina.map((congregacion) => {
                   const distritoActual = formatDistrictLabel(congregacion.distritos?.nombre, congregacion.distritos?.numero) || '—'
                   const cambioPendiente = cambios[congregacion.id]
                   return (
@@ -227,6 +235,9 @@ export default function GestionDistritos() {
             </table>
           </div>
         )}
+        <div className="p-4 border-t border-border">
+          <Pager page={congPageSafe} totalPages={congPageCount} total={congregacionesFiltradas.length} onPrev={() => setCongPage((current) => current - 1)} onNext={() => setCongPage((current) => current + 1)} label="congregaciones" />
+        </div>
       </section>
     </div>
   )
