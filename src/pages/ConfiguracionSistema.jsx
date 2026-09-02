@@ -2,6 +2,8 @@ import { Bell, Database, Globe2, LockKeyhole } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useMiRol } from '../hooks/useMiRol'
+import { formatFecha } from '../lib/dateFormat'
 
 const EMPTY_PREFERENCES = { recibir_notificaciones: true, recibir_alertas: true, formato_fecha: 'DD/MM/AAAA' }
 
@@ -22,6 +24,7 @@ function StatusCard({ icon: Icon, title, description, value, tone = 'success' })
 
 export default function ConfiguracionSistema() {
   const { user } = useAuth()
+  const { roles } = useMiRol()
   const [preferences, setPreferences] = useState(EMPTY_PREFERENCES)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -66,6 +69,11 @@ export default function ConfiguracionSistema() {
 
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando preferencias...</div>
 
+  const nombrePersonaVinculada = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
+  const ultimoAcceso = user?.last_sign_in_at ? formatFecha(user.last_sign_in_at, { formato: preferences.formato_fecha, conHora: true }) : 'Sin registro'
+  const correoVerificado = Boolean(user?.email_confirmed_at)
+  const cuentaCreada = user?.created_at ? formatFecha(user.created_at, { formato: preferences.formato_fecha }) : 'Sin registro'
+
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <div>
@@ -93,8 +101,8 @@ export default function ConfiguracionSistema() {
         <div className="grid md:grid-cols-2 gap-4">
           <StatusCard icon={Globe2} title="Idioma y región" description="El idioma de la interfaz es Español. El formato de fecha elegido se muestra aquí." value={preferences.formato_fecha === 'MM/DD/AAAA' ? 'Español · MM/DD' : 'Español · DD/MM'} />
           <StatusCard icon={Bell} title="Notificaciones" description="Resumen de las preferencias que acabas de configurar." value={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'Preferencias activas' : 'Todas desactivadas'} tone={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'success' : 'muted'} />
-          <StatusCard icon={LockKeyhole} title="Seguridad" description="Tu acceso está protegido por autenticación y políticas de sesión." value="Política activa" />
-          <StatusCard icon={Database} title="Información actualizada" description="Tus datos se mantienen disponibles para la gestión de la congregación." value="Estado verificado" />
+          <StatusCard icon={LockKeyhole} title="Seguridad" description={`Correo ${correoVerificado ? 'verificado' : 'sin verificar'}. Cuenta creada el ${cuentaCreada}.`} value={`Último acceso: ${ultimoAcceso}`} tone={correoVerificado ? 'success' : 'muted'} />
+          <StatusCard icon={Database} title="Vinculación al censo" description={nombrePersonaVinculada ? 'Tu cuenta está conectada al registro de feligresía de tu congregación.' : 'Esta cuenta todavía no está vinculada a ninguna persona del censo.'} value={nombrePersonaVinculada || 'Sin vincular'} tone={nombrePersonaVinculada ? 'success' : 'muted'} />
         </div>
       </section>
     </div>

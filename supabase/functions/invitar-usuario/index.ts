@@ -49,7 +49,7 @@ Deno.serve(async (request) => {
     .maybeSingle()
   const { data: person, error: personError } = await adminClient
     .from('personas')
-    .select('id, auth_user_id, congregacion_id')
+    .select('id, auth_user_id, congregacion_id, nombres, apellidos')
     .eq('id', personId)
     .eq('congregacion_id', congregacionId)
     .maybeSingle()
@@ -99,6 +99,7 @@ Deno.serve(async (request) => {
   if (!authUser) {
     const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
       redirectTo: `${request.headers.get('origin') ?? supabaseUrl}/login`,
+      data: { full_name: `${person.nombres} ${person.apellidos}`.trim() },
     })
     if (inviteError || !invited.user) return response({ error: inviteError?.message ?? 'No se pudo enviar la invitacion' }, 400)
     authUser = invited.user

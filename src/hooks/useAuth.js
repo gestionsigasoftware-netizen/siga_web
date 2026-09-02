@@ -16,6 +16,7 @@ export function useAuth() {
     redirectTo: `${window.location.origin}/login?reset=1`,
   }), [])
   const updatePassword = useCallback((password) => supabase.auth.updateUser({ password }), [])
+  const updateProfile = useCallback((fullName) => supabase.auth.updateUser({ data: { full_name: fullName } }), [])
   const signOut = useCallback(() => {
     try {
       sessionStorage.removeItem('siga_rol_elegido')
@@ -25,5 +26,5 @@ export function useAuth() {
     return supabase.auth.signOut()
   }, [])
 
-  return { session, user: session?.user ?? null, loading, signIn, resetPassword, updatePassword, signOut }
+  return { session, user: session?.user ?? null, loading, signIn, resetPassword, updatePassword, updateProfile, signOut }
 }

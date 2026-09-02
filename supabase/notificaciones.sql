@@ -109,7 +109,7 @@ begin
     'Nuevo perfil de acceso',
     format('Se te asignó el perfil %s en %s.', nombre_perfil, nombre_congregacion),
     'success',
-    '/configuracion-sistema'
+    '/perfil'
   );
   return new;
 end;

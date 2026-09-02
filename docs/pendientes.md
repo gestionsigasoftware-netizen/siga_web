@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): al probar el flujo real de invitacion se
+	encontraron 2 bugs y 2 tarjetas decorativas sin datos reales. (1) La
+	notificacion "Nuevo perfil de acceso" enlazaba a Preferencias
+	personales en vez de a Mi perfil (donde esta el detalle real del
+	acceso). (2) invitar-usuario nunca pasaba el nombre real de la persona
+	a Supabase Auth, asi que las cuentas nuevas quedaban con el nombre
+	generico "Usuario SIGAP" — se corrigio de raiz y se agrego un campo
+	editable en Mi perfil. (3) Las tarjetas "Seguridad" e "Informacion
+	actualizada" en Preferencias personales mostraban texto fijo sin
+	ningun dato real detras; ahora muestran ultimo acceso, correo
+	verificado y si la cuenta esta vinculada a una persona del censo. Ver
+	`docs/perfil-nombre-notificaciones-2026-09-02.md`. **Accion requerida
+	del usuario**: ejecutar `supabase/notificaciones.sql`,
+	`supabase/fix_enlace_notificaciones_acceso.sql`, y redesplegar
+	`supabase functions deploy invitar-usuario`.
 - Resuelto (2026-09-02): logo real de SIGAP (recreado como SVG, sin fondo
 	blanco) integrado en Sidebar, Login e Inicio publico, mas favicon nuevo
 	(la app no tenia). Ver `docs/logo-sigap-2026-09-02.md`. No requiere
