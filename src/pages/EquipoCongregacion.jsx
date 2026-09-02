@@ -50,6 +50,12 @@ export default function EquipoCongregacion() {
 
   useEffect(() => { load() }, [congregacionId])
 
+  useEffect(() => {
+    if (!message || message.type !== 'success') return undefined
+    const timer = setTimeout(() => setMessage(null), 4500)
+    return () => clearTimeout(timer)
+  }, [message])
+
   const assignedProfileKeys = new Set(assignments.map((assignment) => `${assignment.persona_id}:${assignment.perfil_id}`))
   const filteredPeople = people.filter((person) => `${person.nombres} ${person.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase()))
   const peopleWithProfiles = new Set(assignments.map((assignment) => assignment.persona_id)).size
