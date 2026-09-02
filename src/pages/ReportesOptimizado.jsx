@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bar, Line } from 'react-chartjs-2'
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js'
-import { Download, FileBarChart2, Filter } from 'lucide-react'
+import { FileBarChart2, Filter } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import { chartOptions as buildChartOptions, trendDataset, distributionDataset } from '../lib/chartTheme'
 import ChartEmpty from '../components/ChartEmpty'
+import ExportButtons from '../components/ExportButtons'
+import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip)
 
@@ -80,13 +82,34 @@ export default function ReportesOptimizado() {
   const categoryTotals = categories.map((category) => ({ ...category, total: filteredSummary.reduce((sum, row) => sum + Number(row.desglose?.[category.id] || 0), 0) })).filter((category) => category.total > 0).sort((a, b) => b.total - a.total)
   const pages = Math.max(1, Math.ceil(detailTotal / PAGE_SIZE))
 
-  function exportar() {
-    const rows = [['Fecha', 'Congregación', 'Módulo', 'Actividad', 'Asistentes'], ...detail.map((row) => [row.fecha, row.congregaciones?.nombre || '', row.modulos?.nombre_modulo || '', row.nombre_actividad || row.tipos_actividad?.nombre || '', row.total_asistentes || 0])]
-    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\n')
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }))
-    link.download = `reporte-siga-${periodo === 'all' ? 'historico' : `${periodo}-dias`}-pagina-${detailPage + 1}.csv`
-    link.click()
+  function exportMeta() {
+    const periodoLabel = PERIODS.find(([value]) => value === periodo)?.[1] || periodo
+    const filtros = [
+      `Periodo: ${periodoLabel}`,
+      congregacion !== 'todas' ? `Congregación: ${congregations.find((item) => item.id === congregacion)?.nombre || congregacion}` : null,
+      modulo !== 'todos' ? `Módulo: ${byModule.find((item) => item.id === modulo)?.nombre || modulo}` : null,
+    ].filter(Boolean)
+    return [`Alcance: ${rolPrincipal?.nivel || ''}`, `Filtros: ${filtros.join(' · ')}`, `Página ${detailPage + 1} de ${pages}`]
+  }
+
+  function exportHeaders() {
+    return { headers: ['Fecha', 'Congregación', 'Módulo', 'Actividad', 'Asistentes'], rows: detail.map((row) => [formatDate(row.fecha), row.congregaciones?.nombre || '', row.modulos?.nombre_modulo || '', row.nombre_actividad || row.tipos_actividad?.nombre || '', row.total_asistentes || 0]) }
+  }
+
+  function exportFilename(extension) {
+    return `reporte-siga-${periodo === 'all' ? 'historico' : `${periodo}-dias`}-pagina-${detailPage + 1}.${extension}`
+  }
+
+  function exportCsv() {
+    descargarCsv({ filename: exportFilename('csv'), titulo: 'Reporte de actividad', meta: exportMeta(), ...exportHeaders() })
+  }
+
+  function exportExcel() {
+    descargarExcel({ filename: exportFilename('xlsx'), hoja: 'Reporte', titulo: 'Reporte de actividad', meta: exportMeta(), ...exportHeaders() })
+  }
+
+  function exportPdf() {
+    descargarPdf({ filename: exportFilename('pdf'), titulo: 'Reporte de actividad', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
   }
 
   const chartOptions = buildChartOptions()
@@ -94,7 +117,7 @@ export default function ReportesOptimizado() {
   const barData = distributionDataset(byModule.map((row) => ({ label: row.nombre || 'Sin módulo', total: row.total })), { datasetLabel: 'Asistentes' })
 
   return <div className="page-shell">
-    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Lectura de datos</p><h1 className="section-title">Reportes</h1><p className="text-sm text-secondary mt-1">Métricas completas y detalle cargado por páginas de 50 registros.</p></div><button className="btn-secondary" disabled={loading || !detail.length} onClick={exportar}><Download className="w-4 h-4" /> Exportar página CSV</button></header>
+    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Lectura de datos</p><h1 className="section-title">Reportes</h1><p className="text-sm text-secondary mt-1">Métricas completas y detalle cargado por páginas de 50 registros.</p></div><ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} disabled={loading || !detail.length} /></header>
     <section className="card p-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[auto_1fr_220px_180px] xl:items-center"><div className="flex items-center gap-2 text-sm text-secondary"><Filter className="w-4 h-4" /> Filtros del análisis</div><div className="flex gap-2 flex-wrap">{PERIODS.map(([value, label]) => <button type="button" key={value} onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? 'bg-ink text-white border-ink' : 'border-border text-secondary'}`}>{label}</button>)}</div><select aria-label="Filtrar por congregación" className="input-field min-w-0" value={congregacion} onChange={(event) => setCongregacion(event.target.value)}><option value="todas">Todas las congregaciones</option>{congregations.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><select aria-label="Filtrar por módulo" className="input-field min-w-0" value={modulo} onChange={(event) => setModulo(event.target.value)}><option value="todos">Todos los módulos</option>{byModule.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></section>
     {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
     <section className="grid sm:grid-cols-3 gap-3"><Metric label="Actividades registradas" value={activities} detail={`${formatDate(byDate.at(-1)?.fecha)} → ${formatDate(byDate[0]?.fecha)}`} /><Metric label="Asistentes contabilizados" value={total} /><Metric label="Promedio por actividad" value={activities ? Math.round(total / activities) : 0} /></section>

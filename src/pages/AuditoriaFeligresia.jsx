@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ClipboardList, Download, Filter, RefreshCw } from 'lucide-react'
+import { ClipboardList, Filter, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
+import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
+import ExportButtons from '../components/ExportButtons'
 
 const ADMIN_LEVELS = ['nacional', 'super_admin', 'distrital']
 const ENTITY_LABELS = { personas: 'Personas', familias: 'Familias', comites: 'Comités', membresias_comite: 'Membresías', historial_cargos: 'Cargos', seguimientos_pastorales: 'Seguimientos', estados_alerta_pastoral: 'Estados de alerta' }
@@ -52,16 +54,30 @@ export default function AuditoriaFeligresia() {
 
   useEffect(() => { setPage(0) }, [entity, action, fromDate, toDate])
 
-  function exportEntries() {
-    const header = ['Fecha', 'Entidad', 'Acción', 'Usuario', 'Clave']
-    const rows = entries.map((entry) => [entry.creado_en, ENTITY_LABELS[entry.entidad] || entry.entidad, ACTION_LABELS[entry.accion] || entry.accion, entry.usuario_id || 'Sistema', entry.entidad_clave || ''])
-    const csv = [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'auditoria-feligresia.csv'
-    link.click()
-    URL.revokeObjectURL(url)
+  function exportMeta() {
+    const filtros = [
+      entity !== 'todas' ? `Entidad: ${ENTITY_LABELS[entity] || entity}` : null,
+      action !== 'todas' ? `Acción: ${ACTION_LABELS[action] || action}` : null,
+      fromDate ? `Desde: ${fromDate}` : null,
+      toDate ? `Hasta: ${toDate}` : null,
+    ].filter(Boolean)
+    return [`Alcance: ${rolPrincipal?.nivel || ''}`, ...(filtros.length ? [`Filtros: ${filtros.join(' · ')}`] : [])]
+  }
+
+  function exportHeaders() {
+    return { headers: ['Fecha', 'Entidad', 'Acción', 'Usuario', 'Clave'], rows: entries.map((entry) => [formatFecha(entry.creado_en, { formato: formato_fecha, conHora: true }), ENTITY_LABELS[entry.entidad] || entry.entidad, ACTION_LABELS[entry.accion] || entry.accion, entry.usuario_id || 'Sistema', entry.entidad_clave || '']) }
+  }
+
+  function exportCsv() {
+    descargarCsv({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.csv`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
+  }
+
+  function exportExcel() {
+    descargarExcel({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
+  }
+
+  function exportPdf() {
+    descargarPdf({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.pdf`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
   }
 
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Validando permisos...</div>
@@ -71,7 +87,7 @@ export default function AuditoriaFeligresia() {
   const pages = Math.max(1, Math.ceil(total / pageSize))
   return (
     <div className="page-shell">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Control administrativo</p><h1 className="section-title">Auditoría de Feligresía</h1><p className="text-sm text-secondary mt-1">Consulta los cambios realizados dentro del censo y el seguimiento pastoral.</p></div><div className="flex gap-2"><button type="button" onClick={exportEntries} disabled={!entries.length || loading} className="btn-secondary"><Download className="w-4 h-4" /> Exportar</button><button type="button" onClick={() => setReloadToken((token) => token + 1)} disabled={loading} className="btn-secondary px-3" title="Actualizar auditoría" aria-label="Actualizar auditoría"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button></div></header>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Control administrativo</p><h1 className="section-title">Auditoría de Feligresía</h1><p className="text-sm text-secondary mt-1">Consulta los cambios realizados dentro del censo y el seguimiento pastoral.</p></div><div className="flex gap-2"><ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} disabled={!entries.length || loading} /><button type="button" onClick={() => setReloadToken((token) => token + 1)} disabled={loading} className="btn-secondary px-3" title="Actualizar auditoría" aria-label="Actualizar auditoría"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button></div></header>
       <section className="card p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-secondary mb-3"><Filter className="w-4 h-4 text-accent" />Filtros de auditoría</div><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"><select aria-label="Filtrar entidad" className="input-field" value={entity} onChange={(event) => setEntity(event.target.value)}><option value="todas">Todas las entidades</option>{Object.entries(ENTITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select aria-label="Filtrar acción" className="input-field" value={action} onChange={(event) => setAction(event.target.value)}><option value="todas">Todas las acciones</option><option value="INSERT">Creaciones</option><option value="UPDATE">Actualizaciones</option><option value="DELETE">Eliminaciones</option></select><label className="text-xs text-secondary">Desde<input aria-label="Fecha inicial" type="date" className="input-field mt-1" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></label><label className="text-xs text-secondary">Hasta<input aria-label="Fecha final" type="date" className="input-field mt-1" value={toDate} onChange={(event) => setToDate(event.target.value)} /></label></div></section>
       {error && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => setReloadToken((token) => token + 1)} className="text-danger underline">Reintentar</button></div>}
       <section className="grid sm:grid-cols-3 gap-3"><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Cambios encontrados</p><p className="text-2xl font-semibold mt-3">{total}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">En esta página</p><p className="text-2xl font-semibold mt-3">{entries.length}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Página actual</p><p className="text-2xl font-semibold mt-3">{page + 1} <span className="text-sm text-muted font-normal">/ {pages}</span></p></div></section>

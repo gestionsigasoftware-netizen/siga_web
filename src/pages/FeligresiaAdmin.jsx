@@ -10,6 +10,8 @@ import { formatFecha } from '../lib/dateFormat'
 import { SkeletonList } from '../components/Skeleton'
 import { chartOptions as buildChartOptions, gradientFill, distributionDataset } from '../lib/chartTheme'
 import ChartEmpty from '../components/ChartEmpty'
+import ExportButtons from '../components/ExportButtons'
+import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip)
 
@@ -94,11 +96,17 @@ function CommitteeAnalytics({ people, committees, cargos, audit }) {
   const withoutMembers = active.filter((committee) => !memberships.some((member) => member.committee.id === committee.id)).length
   const withoutResponsible = active.filter((committee) => !committee.responsable_id).length
   const expiring = memberships.filter((member) => member.fecha_fin && member.fecha_fin >= today && member.fecha_fin <= new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)).length
-  const exportCsv = () => {
-    const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
-    const rows = [['Comité', 'Código', 'Estado', 'Vigencia', 'Integrantes', 'Cargos obligatorios', 'Cargos cubiertos'], ...active.map((committee) => { const current = memberships.filter((member) => member.committee.id === committee.id); const requiredCargos = cargos.filter((cargo) => cargo.obligatorio); return [committee.nombre, committee.codigo, 'Activo', committee.fecha_fin || 'Sin fecha final', current.length, requiredCargos.length, requiredCargos.filter((cargo) => current.some((member) => member.cargo_id === cargo.id)).length] }), [], ['Fecha', 'Entidad', 'Acción', 'Usuario'], ...audit.map((item) => [item.creado_en, item.entidad, item.accion, item.usuario_id])]
-    const csv = `\ufeff${rows.map((row) => row.map(escape).join(';')).join('\r\n')}`
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); const link = document.createElement('a'); link.href = url; link.download = `comites-analisis-${today}.csv`; link.click(); URL.revokeObjectURL(url)
+  function committeeExportHeaders() {
+    return { headers: ['Comité', 'Código', 'Estado', 'Vigencia', 'Integrantes', 'Cargos obligatorios', 'Cargos cubiertos'], rows: active.map((committee) => { const current = memberships.filter((member) => member.committee.id === committee.id); const requiredCargos = cargos.filter((cargo) => cargo.obligatorio); return [committee.nombre, committee.codigo, 'Activo', committee.fecha_fin || 'Sin fecha final', current.length, requiredCargos.length, requiredCargos.filter((cargo) => current.some((member) => member.cargo_id === cargo.id)).length] }) }
+  }
+  function committeeExportCsv() {
+    descargarCsv({ filename: `comites-analisis-${today}.csv`, titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
+  }
+  function committeeExportExcel() {
+    descargarExcel({ filename: `comites-analisis-${today}.xlsx`, hoja: 'Comités', titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
+  }
+  function committeeExportPdf() {
+    descargarPdf({ filename: `comites-analisis-${today}.pdf`, titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
   }
   const insights = []
   if (withoutMembers) insights.push(`${withoutMembers} comité${withoutMembers === 1 ? '' : 's'} activo${withoutMembers === 1 ? '' : 's'} sin integrantes: confirmar continuidad o asignar equipo.`)
@@ -106,7 +114,7 @@ function CommitteeAnalytics({ people, committees, cargos, audit }) {
   if (expiring) insights.push(`${expiring} responsabilidad${expiring === 1 ? '' : 'es'} vence${expiring === 1 ? '' : 'n'} en los próximos 90 días: revisar continuidad o reemplazo.`)
   if (overloaded.length) insights.push(`${overloaded.length} persona${overloaded.length === 1 ? '' : 's'} participa en más de un comité: conversar sobre carga y disponibilidad.`)
   if (!insights.length) insights.push('No hay situaciones operativas prioritarias en este periodo.')
-  return <section className="card p-5"><div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 className="font-medium">Análisis de comités</h3><p className="text-xs text-secondary mt-1">Métricas del periodo actual para apoyar decisiones locales.</p></div><button type="button" onClick={exportCsv} className="btn-secondary"><Download className="w-4 h-4" /> Exportar análisis</button></div><div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-5"><Metric label="Comités activos" value={active.length} accent /><Metric label="Integrantes vigentes" value={memberships.length} /><Metric label="Cargos obligatorios" value={required} /><Metric label="Cargos cubiertos" value={covered} /><Metric label="Vacantes" value={Math.max(required - covered, 0)} /><Metric label="Personas disponibles" value={people.filter((person) => person.estado_membresia === 'activo' && !serving.has(person.id)).length} /></div><div className="grid lg:grid-cols-2 gap-4 mt-5"><div><h4 className="text-sm font-medium">Insights y acciones</h4>{insights.map((item) => <p key={item} className="summary-insight mt-2">{item}</p>)}</div><div><h4 className="text-sm font-medium">Concentración de responsabilidades</h4>{overloaded.length ? overloaded.slice(0, 8).map(([personId, count]) => { const person = people.find((item) => item.id === personId); return <p key={personId} className="text-xs text-secondary mt-2">{person ? `${person.nombres} ${person.apellidos}` : 'Persona'} · {count} comités</p> }) : <p className="text-xs text-muted mt-2">No hay personas con más de una responsabilidad vigente.</p>}</div></div><div className="mt-5 border-t border-border pt-4"><div className="flex justify-between gap-3"><h4 className="text-sm font-medium">Historial reciente</h4><span className="text-xs text-muted">{audit.length} cambios</span></div>{audit.length ? <div className="overflow-x-auto mt-2"><table className="w-full text-xs"><tbody>{audit.slice(0, 12).map((item) => <tr key={item.id} className="border-b border-border"><td className="py-2 pr-3">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })}</td><td className="py-2 pr-3">{item.entidad}</td><td className="py-2 pr-3">{item.accion}</td><td className="py-2">{item.usuario_id || 'Sistema'}</td></tr>)}</tbody></table></div> : <p className="text-xs text-muted mt-2">No hay cambios de comités registrados todavía.</p>}</div></section>
+  return <section className="card p-5"><div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 className="font-medium">Análisis de comités</h3><p className="text-xs text-secondary mt-1">Métricas del periodo actual para apoyar decisiones locales.</p></div><ExportButtons onCsv={committeeExportCsv} onExcel={committeeExportExcel} onPdf={committeeExportPdf} /></div><div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-5"><Metric label="Comités activos" value={active.length} accent /><Metric label="Integrantes vigentes" value={memberships.length} /><Metric label="Cargos obligatorios" value={required} /><Metric label="Cargos cubiertos" value={covered} /><Metric label="Vacantes" value={Math.max(required - covered, 0)} /><Metric label="Personas disponibles" value={people.filter((person) => person.estado_membresia === 'activo' && !serving.has(person.id)).length} /></div><div className="grid lg:grid-cols-2 gap-4 mt-5"><div><h4 className="text-sm font-medium">Insights y acciones</h4>{insights.map((item) => <p key={item} className="summary-insight mt-2">{item}</p>)}</div><div><h4 className="text-sm font-medium">Concentración de responsabilidades</h4>{overloaded.length ? overloaded.slice(0, 8).map(([personId, count]) => { const person = people.find((item) => item.id === personId); return <p key={personId} className="text-xs text-secondary mt-2">{person ? `${person.nombres} ${person.apellidos}` : 'Persona'} · {count} comités</p> }) : <p className="text-xs text-muted mt-2">No hay personas con más de una responsabilidad vigente.</p>}</div></div><div className="mt-5 border-t border-border pt-4"><div className="flex justify-between gap-3"><h4 className="text-sm font-medium">Historial reciente</h4><span className="text-xs text-muted">{audit.length} cambios</span></div>{audit.length ? <div className="overflow-x-auto mt-2"><table className="w-full text-xs"><tbody>{audit.slice(0, 12).map((item) => <tr key={item.id} className="border-b border-border"><td className="py-2 pr-3">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })}</td><td className="py-2 pr-3">{item.entidad}</td><td className="py-2 pr-3">{item.accion}</td><td className="py-2">{item.usuario_id || 'Sistema'}</td></tr>)}</tbody></table></div> : <p className="text-xs text-muted mt-2">No hay cambios de comités registrados todavía.</p>}</div></section>
 }
 
 function FeligresiaInsights({ people, families, committees, cargoHistory, followups, alerts }) {
@@ -745,21 +753,37 @@ export default function FeligresiaAdmin() {
     } })
   }
 
-  async function exportPeople() {
-    if (!congregacionId) return
+  async function fetchPeopleForExport() {
+    if (!congregacionId) return null
     let query = supabase.from('personas').select('nombres, apellidos, telefono, fecha_nacimiento, estado_civil, genero, estado_membresia, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ingreso, fecha_ultima_asistencia, parentesco_familiar, familias(nombre_familia)').eq('congregacion_id', congregacionId).order('apellidos').order('nombres')
     if (personStatus !== 'todos') query = query.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) query = query.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     const result = await query
-    if (result.error) { setError('No se pudo exportar el censo.'); return }
-    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
-    const rows = [
-      ['Nombres', 'Apellidos', 'Teléfono', 'Fecha nacimiento', 'Género', 'Estado civil', 'Estado', 'Bautizado', 'Fecha bautismo', 'Sellado con el Espíritu Santo', 'Fecha sellado', 'Fecha ingreso', 'Última asistencia', 'Familia', 'Parentesco'],
-      ...(result.data ?? []).map((person) => [person.nombres, person.apellidos, person.telefono, person.fecha_nacimiento, GENERO_LABELS[person.genero] || '', MARITAL_STATUSES[person.estado_civil] || person.estado_civil, STATES[person.estado_membresia], person.bautizado ? 'Sí' : 'No', person.fecha_bautismo, person.sellado_espiritu_santo ? 'Sí' : 'No', person.fecha_sellado, person.fecha_ingreso, person.fecha_ultima_asistencia, person.familias?.nombre_familia, FAMILY_RELATIONSHIPS[person.parentesco_familiar] || person.parentesco_familiar]),
-    ]
-    const csv = `\ufeff${rows.map((row) => row.map(escapeCsv).join(';')).join('\r\n')}`
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
-    const link = document.createElement('a'); link.href = url; link.download = `censo-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url)
+    if (result.error) { setError('No se pudo exportar el censo.'); return null }
+    const headers = ['Nombres', 'Apellidos', 'Teléfono', 'Fecha nacimiento', 'Género', 'Estado civil', 'Estado', 'Bautizado', 'Fecha bautismo', 'Sellado con el Espíritu Santo', 'Fecha sellado', 'Fecha ingreso', 'Última asistencia', 'Familia', 'Parentesco']
+    const rows = (result.data ?? []).map((person) => [person.nombres, person.apellidos, person.telefono, person.fecha_nacimiento, GENERO_LABELS[person.genero] || '', MARITAL_STATUSES[person.estado_civil] || person.estado_civil, STATES[person.estado_membresia], person.bautizado ? 'Sí' : 'No', person.fecha_bautismo, person.sellado_espiritu_santo ? 'Sí' : 'No', person.fecha_sellado, person.fecha_ingreso, person.fecha_ultima_asistencia, person.familias?.nombre_familia, FAMILY_RELATIONSHIPS[person.parentesco_familiar] || person.parentesco_familiar])
+    const meta = [personStatus !== 'todos' ? `Estado: ${STATES[personStatus] || personStatus}` : 'Estado: Todos', deferredSearch.trim() ? `Búsqueda: ${deferredSearch.trim()}` : null].filter(Boolean)
+    return { headers, rows, meta }
+  }
+
+  async function exportPeopleCsv() {
+    const data = await fetchPeopleForExport()
+    if (!data) return
+    descargarCsv({ filename: `censo-${new Date().toISOString().slice(0, 10)}.csv`, titulo: 'Censo de feligresía', ...data })
+    setNotice('Censo exportado correctamente.')
+  }
+
+  async function exportPeopleExcel() {
+    const data = await fetchPeopleForExport()
+    if (!data) return
+    await descargarExcel({ filename: `censo-${new Date().toISOString().slice(0, 10)}.xlsx`, hoja: 'Censo', titulo: 'Censo de feligresía', ...data })
+    setNotice('Censo exportado correctamente.')
+  }
+
+  async function exportPeoplePdf() {
+    const data = await fetchPeopleForExport()
+    if (!data) return
+    await descargarPdf({ filename: `censo-${new Date().toISOString().slice(0, 10)}.pdf`, titulo: 'Censo de feligresía', orientacion: 'landscape', ...data })
     setNotice('Censo exportado correctamente.')
   }
 
@@ -831,7 +855,7 @@ export default function FeligresiaAdmin() {
 
   return <div className={`flex flex-col gap-6 ${canEdit ? '' : 'feligresia-read-only'}`}>
     {loading && <p role="status" className="text-sm text-muted bg-surface-1 rounded p-3">Cargando información de feligresía...</p>}
-    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Administración local</p><h1 className="text-2xl font-semibold">Feligresía</h1><p className="text-sm text-secondary mt-1">Censo, familias, comités y seguimiento pastoral.</p></div><div className="flex flex-wrap gap-2">{canEdit && <label className="btn-secondary cursor-pointer" title="Importar CSV o Excel"><Download className="w-4 h-4" /> Importar<input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} /></label>}<button onClick={exportPeople} className="btn-secondary" title="Exportar censo"><Download className="w-4 h-4" /> Exportar CSV</button>{canEdit && <button onClick={startNewPerson} className="btn-primary"><Plus className="w-4 h-4" /> Registrar persona</button>}</div></header>
+    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Administración local</p><h1 className="text-2xl font-semibold">Feligresía</h1><p className="text-sm text-secondary mt-1">Censo, familias, comités y seguimiento pastoral.</p></div><div className="flex flex-wrap gap-2">{canEdit && <label className="btn-secondary cursor-pointer" title="Importar CSV o Excel"><Download className="w-4 h-4" /> Importar<input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} /></label>}<ExportButtons onCsv={exportPeopleCsv} onExcel={exportPeopleExcel} onPdf={exportPeoplePdf} />{canEdit && <button onClick={startNewPerson} className="btn-primary"><Plus className="w-4 h-4" /> Registrar persona</button>}</div></header>
     {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Modo consulta: tu perfil puede revisar la feligresía, pero no modificarla.</p>}
     {importError && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3"><p>{importError}</p>{importRowErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{importRowErrors.map((message) => <li key={message}>{message}</li>)}</ul>}</div>}
     {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Operación</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className={`py-2 pr-3 ${row.operation === 'actualizar' ? 'text-accent' : 'text-success'}`}>{row.operation}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}

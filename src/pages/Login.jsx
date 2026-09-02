@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import sigapLogo from '../assets/sigap-logo.svg'
+import sigapLogoWhite from '../assets/sigap-logo-white.svg'
 
 export default function Login() {
   const { signIn, resetPassword, updatePassword } = useAuth()
@@ -75,9 +77,8 @@ export default function Login() {
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
           <div className="relative">
-            <Link to="/" className="inline-flex items-center gap-3" aria-label="Volver a la página principal de SIGAP">
-              <div className="w-10 h-10 rounded bg-white text-ink flex items-center justify-center font-semibold">S</div>
-              <span className="text-lg font-semibold tracking-wide">SIGAP</span>
+            <Link to="/" className="inline-flex items-center" aria-label="Volver a la página principal de SIGAP">
+              <img src={sigapLogoWhite} alt="SIGAP" className="h-7 w-auto" />
             </Link>
             <div className="mt-28 max-w-md">
               <p className="text-sm uppercase tracking-[0.18em] text-white/60">Gestión pastoral inteligente</p>
@@ -96,9 +97,8 @@ export default function Login() {
 
         <section className="flex items-center justify-center p-7 sm:p-12">
           <div className="w-full max-w-sm">
-            <Link to="/" className="inline-flex items-center gap-3 mb-14 lg:hidden" aria-label="Volver a la página principal de SIGAP">
-              <div className="w-9 h-9 rounded bg-ink text-white flex items-center justify-center font-semibold">S</div>
-              <span className="font-semibold tracking-wide">SIGAP</span>
+            <Link to="/" className="inline-flex items-center mb-14 lg:hidden" aria-label="Volver a la página principal de SIGAP">
+              <img src={sigapLogo} alt="SIGAP" className="h-6 w-auto" />
             </Link>
             <div className="mb-8">
               <p className="text-sm font-medium text-accent mb-3">{isRecovery ? (isInvitation ? 'Invitación a SIGAP' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>

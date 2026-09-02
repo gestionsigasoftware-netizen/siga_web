@@ -1,6 +1,7 @@
 import { ArrowRight, BarChart3, BookOpen, HeartHandshake, ShieldCheck } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import sigapLogo from '../assets/sigap-logo.svg'
 
 const modules = [
   { icon: HeartHandshake, title: 'Acompañamiento pastoral', text: 'Organiza la feligresía, las familias y el seguimiento de cada persona.' },
@@ -15,9 +16,8 @@ export default function InicioPublico() {
   return (
     <main className="min-h-screen bg-[#f4f1eb] text-ink">
       <nav className="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-3" aria-label="Inicio de SIGAP">
-          <span className="w-10 h-10 rounded bg-ink text-white flex items-center justify-center font-semibold">S</span>
-          <span className="font-semibold tracking-wide">SIGAP</span>
+        <Link to="/" className="flex items-center" aria-label="Inicio de SIGAP">
+          <img src={sigapLogo} alt="SIGAP" className="h-7 w-auto" />
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link to="/ayuda" className="text-secondary hover:text-ink">Ayuda</Link>

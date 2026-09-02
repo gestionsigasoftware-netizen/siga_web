@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): logo real de SIGAP (recreado como SVG, sin fondo
+	blanco) integrado en Sidebar, Login e Inicio publico, mas favicon nuevo
+	(la app no tenia). Ver `docs/logo-sigap-2026-09-02.md`. No requiere
+	accion del usuario.
+- Resuelto (2026-09-02): exportacion con membrete real de la IPUC (logo
+	y azul institucional tomados de ipuc.org.co, no inventados) en CSV,
+	Excel y PDF, unificando los 3 puntos de exportacion que existian en la
+	app (Auditoria, Reportes, Feligresia/Comites). Se corrigio un bug real:
+	AuditoriaFeligresia.jsx separaba el CSV con ',' en vez de ';', lo que
+	rompia las columnas al abrir en Excel con configuracion regional
+	Colombia/espanol. Ver `docs/exportacion-membrete-ipuc-2026-09-02.md`.
+	No requiere accion del usuario (sin migraciones SQL).
 - Resuelto (2026-09-02): auditadas las vistas por nivel (local ->
 	distrital -> nacional) comparando los 15 modulos locales contra que
 	existia consolidado arriba. Mision Juvenil y Red de Familias no tenian

@@ -34,6 +34,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
 import { describirAlcance } from "./RoleChooser";
+import sigapLogoWhite from "../../assets/sigap-logo-white.svg";
 
 const NIVEL_LABEL = {
   super_admin: "Super Admin",
@@ -247,14 +248,9 @@ export default function Sidebar() {
     <aside className="sidebar-shell w-full md:w-[248px] flex-shrink-0 md:h-screen md:fixed md:left-0 md:top-0 flex flex-col p-3 md:p-4">
       <div className="flex items-center justify-between gap-3 px-2 pb-2 md:pb-5 pt-1">
         <div className="flex items-center gap-3">
-          <div className="sidebar-mark w-10 h-10 rounded-xl text-white flex items-center justify-center text-sm font-semibold">
-            S
-          </div>
           <div>
-            <div className="text-sm font-semibold tracking-wide text-white">
-              SIGAP
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+            <img src={sigapLogoWhite} alt="SIGAP" className="h-6 w-auto" />
+            <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mt-1">
               Sistema integrado
             </div>
           </div>
