@@ -398,12 +398,12 @@ export default function FeligresiaAdmin() {
       return
     }
     if (form.bautizado && !form.fecha_bautismo) {
-      setError('Indica la fecha de bautismo para guardar a la persona como bautizada.')
+      setError('Indica la fecha de bautismo para guardar el registro.')
       setNotice(null)
       return
     }
     if (form.sellado_espiritu_santo && !form.fecha_sellado) {
-      setError('Indica la fecha en que fue sellada con el Espíritu Santo.')
+      setError('Indica la fecha en que recibió el sello del Espíritu Santo.')
       setNotice(null)
       return
     }
@@ -486,8 +486,8 @@ export default function FeligresiaAdmin() {
     const cargoValue = data.get('cargo_id') || data.get('cargo')
     const selectedCargo = committeeCargoCatalog.find((cargo) => cargo.id === cargoValue)
     const selectedPerson = people.find((person) => person.id === data.get('persona_id'))
-    if (!selectedPerson?.bautizado) { setSaving(false); setError('Esta persona debe estar bautizada para pertenecer a un comité.'); return }
-    if (selectedCargo?.requiere_sellado && !selectedPerson?.sellado_espiritu_santo) { setSaving(false); setError('Este cargo requiere que la persona esté sellada con el Espíritu Santo.'); return }
+    if (!selectedPerson?.bautizado) { setSaving(false); setError('Esta persona debe estar bautizada o bautizado para pertenecer a un comité.'); return }
+    if (selectedCargo?.requiere_sellado && !selectedPerson?.sellado_espiritu_santo) { setSaving(false); setError('Este cargo requiere que la persona haya recibido el sello del Espíritu Santo.'); return }
     const result = await supabase.from('membresias_comite').insert({ comite_id: data.get('comite_id'), persona_id: data.get('persona_id'), cargo_id: selectedCargo?.id || null, cargo: selectedCargo?.nombre || data.get('cargo') || null })
     setSaving(false)
     if (result.error) { setError(`No se pudo asignar el integrante: ${result.error.message}`); return }

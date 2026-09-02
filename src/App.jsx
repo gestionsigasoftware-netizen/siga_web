@@ -38,6 +38,7 @@ const Conquistadores = lazy(() => import("./pages/Conquistadores"));
 const ObraSocial = lazy(() => import("./pages/ObraSocial"));
 const ImpactoMisionero = lazy(() => import("./pages/ImpactoMisionero"));
 const GestionPastoralNacional = lazy(() => import("./pages/GestionPastoralNacional"));
+const ComitesNacional = lazy(() => import("./pages/ComitesNacional"));
 
 export default function App() {
   return (
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/obra-social" element={<ObraSocial />} />
           <Route path="/impacto-misionero" element={<ImpactoMisionero />} />
           <Route path="/gestion-pastoral-nacional" element={<GestionPastoralNacional />} />
+          <Route path="/comites-nacional" element={<ComitesNacional />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />

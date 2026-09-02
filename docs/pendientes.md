@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): auditadas las vistas por nivel (local ->
+	distrital -> nacional) comparando los 15 modulos locales contra que
+	existia consolidado arriba. Mision Juvenil y Red de Familias no tenian
+	NINGUN consolidado distrital (a diferencia de los otros 9 comites) — se
+	agrego siguiendo el mismo patron ya probado. Hallazgo mas grande: los
+	10 comites (con estos 2 nuevos) no tenian ningun equivalente nacional —
+	nacional solo veia poblacion general e Impacto Misionero (3 de 10). Se
+	agrego resumen_comites_nacional() + nueva pagina Comites Nacional (36
+	distritos x 10 comites). Ver `docs/comites-nacional-2026-09-02.md`.
+	**Accion requerida del usuario**: ejecutar
+	`supabase/resumen_mision_juvenil_red_familias.sql` y
+	`supabase/resumen_comites_nacional.sql`.
 - Resuelto (2026-09-02): traslado real de feligreses entre congregaciones
 	(antes solo existia una anotacion estadistica que no movia a la persona
 	ni preservaba su historial) y "Finalizar asignacion pastoral" para

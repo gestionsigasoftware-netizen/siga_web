@@ -29,6 +29,7 @@ import {
   Flag,
   HandHeart,
   Globe2,
+  LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -204,6 +205,12 @@ export default function Sidebar() {
       to: "/gestion-pastoral-nacional",
       label: "Gestión Pastoral Nacional",
       icon: ArrowRightLeft,
+      show: esAdminNacional,
+    },
+    {
+      to: "/comites-nacional",
+      label: "Comités Nacional",
+      icon: LayoutGrid,
       show: esAdminNacional,
     },
     {
