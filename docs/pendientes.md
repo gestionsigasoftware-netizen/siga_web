@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): cerrado el vacio de como se otorga acceso
+	distrital/nacional. Ya existia "distrital crea congregacion + invita a
+	su primer pastor", pero nada permitia el siguiente escalon: nacional
+	dando de alta a un lider distrital, o super_admin a uno nacional -- la
+	unica forma era entrar directo a Supabase. Nueva Edge Function
+	`otorgar-acceso-jerarquico` + funcion de permisos
+	`puede_otorgar_rol_jerarquico` + seccion "Otorgar acceso al sistema"
+	en Gestion Pastoral Nacional (busca en el censo de todo el pais, no
+	solo una congregacion). Ver
+	`docs/acceso-jerarquico-distrital-nacional-2026-09-02.md`. **Accion
+	requerida del usuario**: ejecutar
+	`supabase/otorgar_rol_jerarquico.sql` y desplegar la funcion nueva
+	`otorgar-acceso-jerarquico` (via el editor de Supabase, ver el doc).
 - Resuelto (2026-09-02): el campo de nombre editable en Mi perfil
 	(agregado horas antes en esta misma fecha) guardaba el nombre en Auth
 	en paralelo al censo, lo que dejaba dos nombres distintos para la

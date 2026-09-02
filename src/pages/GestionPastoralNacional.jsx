@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Search, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 
@@ -16,6 +17,113 @@ function Metric({ label, value, detail }) {
 
 function formatDistritoLabel(nombre, numero) {
   return numero ? `Distrito ${numero} · ${nombre}` : nombre;
+}
+
+function OtorgarAccesoJerarquico({ esSuperAdmin, distritos }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [nivel, setNivel] = useState("distrital");
+  const [distritoId, setDistritoId] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!message || message.type !== "success") return undefined;
+    const timer = setTimeout(() => setMessage(null), 4500);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
+    if (searchTerm.trim().length < 2 || selectedPerson) { setResults([]); return undefined; }
+    let active = true;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      const term = searchTerm.trim();
+      const { data } = await supabase
+        .from("personas")
+        .select("id, nombres, apellidos, congregaciones(nombre)")
+        .or(`nombres.ilike.%${term}%,apellidos.ilike.%${term}%`)
+        .order("nombres")
+        .limit(15);
+      if (active) { setResults(data ?? []); setSearching(false); }
+    }, 350);
+    return () => { active = false; clearTimeout(timer); };
+  }, [searchTerm, selectedPerson]);
+
+  function selectPerson(person) {
+    setSelectedPerson(person);
+    setSearchTerm(`${person.nombres} ${person.apellidos}`);
+    setResults([]);
+  }
+
+  async function otorgar(event) {
+    event.preventDefault();
+    if (!selectedPerson || !email.trim() || (nivel === "distrital" && !distritoId)) {
+      setMessage({ type: "error", text: "Selecciona una persona, un correo y (si aplica) un distrito." });
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    const { data, error } = await supabase.functions.invoke("otorgar-acceso-jerarquico", {
+      body: { personId: selectedPerson.id, nivel, distritoId: nivel === "distrital" ? distritoId : null, email: email.trim() },
+    });
+    setSaving(false);
+    if (error) {
+      let serverMessage = "";
+      if (error.context) {
+        try { const body = await error.context.json(); serverMessage = body?.error || ""; } catch { /* sin cuerpo JSON */ }
+      }
+      setMessage({ type: "error", text: serverMessage || "No se pudo otorgar el acceso. Intenta nuevamente." });
+      return;
+    }
+    if (!data?.ok) { setMessage({ type: "error", text: "No se pudo confirmar el acceso." }); return; }
+    setSelectedPerson(null);
+    setSearchTerm("");
+    setEmail("");
+    setDistritoId("");
+    setMessage({
+      type: "success",
+      text: data.yaTeniaAcceso
+        ? "La persona ya tenía este acceso activo."
+        : data.invitationSent
+          ? "Acceso otorgado. La persona recibirá un enlace para crear su contraseña."
+          : "Acceso otorgado. La persona puede ingresar con sus credenciales actuales.",
+    });
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center gap-3 mb-1"><UserPlus className="w-5 h-5 text-accent" /><h2 className="font-medium">Otorgar acceso al sistema</h2></div>
+      <p className="text-sm text-secondary mb-4">Da de alta el acceso de un nuevo líder distrital{esSuperAdmin ? " o nacional" : ""} — sin depender de Supabase directamente.</p>
+      <form onSubmit={otorgar} className="grid sm:grid-cols-2 gap-3">
+        <div className="relative sm:col-span-2">
+          <label className="text-sm">Persona (buscar en el censo nacional)
+            <div className="relative mt-1.5">
+              <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input value={searchTerm} onChange={(event) => { setSearchTerm(event.target.value); setSelectedPerson(null); }} placeholder="Escribe un nombre..." className="input-field pl-9" />
+            </div>
+          </label>
+          {searchTerm.trim().length >= 2 && !selectedPerson && (
+            <div className="absolute z-10 w-full mt-1 bg-surface-2 border border-border rounded-card shadow-lg max-h-56 overflow-y-auto">
+              {searching ? <p className="p-3 text-xs text-muted">Buscando...</p> : results.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : results.map((person) => (
+                <button type="button" key={person.id} onClick={() => selectPerson(person)} className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1">
+                  {person.nombres} {person.apellidos} <span className="text-xs text-muted">· {person.congregaciones?.nombre || "Sin congregación"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <label className="text-sm">Nivel a otorgar<select className="input-field mt-1.5" value={nivel} onChange={(event) => setNivel(event.target.value)}><option value="distrital">Distrital</option>{esSuperAdmin && <option value="nacional">Nacional</option>}</select></label>
+        {nivel === "distrital" && <label className="text-sm">Distrito<select required className="input-field mt-1.5" value={distritoId} onChange={(event) => setDistritoId(event.target.value)}><option value="">Seleccionar...</option>{distritos.map((distrito) => <option key={distrito.distrito_id} value={distrito.distrito_id}>{formatDistritoLabel(distrito.nombre, distrito.numero)}</option>)}</select></label>}
+        <label className="text-sm sm:col-span-2">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+        <button disabled={saving || !selectedPerson} className="btn-primary justify-center sm:w-fit sm:col-span-2">{saving ? "Otorgando..." : "Otorgar acceso"}</button>
+      </form>
+      {message && <p role={message.type === "error" ? "alert" : "status"} className={`text-sm mt-3 ${message.type === "error" ? "text-danger" : "text-success"}`}>{message.text}</p>}
+    </section>
+  );
 }
 
 export default function GestionPastoralNacional() {
@@ -55,6 +163,8 @@ export default function GestionPastoralNacional() {
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <OtorgarAccesoJerarquico esSuperAdmin={rolPrincipal?.nivel === "super_admin"} distritos={distritos} />
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Metric label="Pastores en todo el país" value={totalPastores} detail={`${totalOrdenacion} ordenados`} />
