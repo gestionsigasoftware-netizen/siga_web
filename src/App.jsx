@@ -20,6 +20,8 @@ const Configuracion = lazy(() => import("./pages/Configuracion"));
 const Personas = lazy(() => import("./pages/Personas"));
 const Modulos = lazy(() => import("./pages/Modulos"));
 const Reportes = lazy(() => import("./pages/ReportesOptimizado"));
+const Soporte = lazy(() => import("./pages/Soporte"));
+const Solicitudes = lazy(() => import("./pages/Solicitudes"));
 const Perfil = lazy(() => import("./pages/Perfil"));
 const ConfiguracionSistema = lazy(() => import("./pages/ConfiguracionSistema"));
 const Feligresia = lazy(() => import("./pages/FeligresiaAdmin"));
@@ -107,6 +109,8 @@ export default function App() {
           <Route path="/esfob" element={<Esfob />} />
           <Route path="/discipulado" element={<Discipulado />} />
           <Route path="/reportes" element={<Reportes />} />
+          <Route path="/soporte" element={<Soporte />} />
+          <Route path="/solicitudes" element={<Solicitudes />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route
             path="/configuracion-sistema"

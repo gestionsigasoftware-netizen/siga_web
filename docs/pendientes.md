@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): soporte tecnico (reportar bugs al equipo que
+	mantiene SIGAP, con aviso por correo via Resend) y solicitudes
+	internas entre niveles (local <-> distrital, distrital <-> nacional,
+	sistema de tickets con tipo/prioridad/estado y respuestas -- no chat,
+	decision explicita para que se pueda triage a escala de 36 distritos).
+	Ver `docs/soporte-y-solicitudes-internas-2026-09-02.md`. **Accion
+	requerida del usuario**: ejecutar `supabase/reportes_soporte.sql` y
+	`supabase/solicitudes_jerarquicas.sql`, desplegar la funcion
+	`notificar-reporte-soporte`, y opcionalmente agregar el secreto
+	`RESEND_API_KEY` a las Edge Functions.
 - Resuelto (2026-09-02): 3 utilidades generales pedidas por el usuario --
 	busqueda global en el encabezado (personas para local, congregaciones
 	para distrital/nacional), tarjeta de "Proximos cumpleanos" en el

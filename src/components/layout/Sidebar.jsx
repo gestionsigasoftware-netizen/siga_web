@@ -30,6 +30,8 @@ import {
   HandHeart,
   Globe2,
   LayoutGrid,
+  LifeBuoy,
+  Send,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -221,6 +223,8 @@ export default function Sidebar() {
       show: puedeConfigurar,
     },
     { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true },
+    { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true },
+    { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true },
     {
       to: "/aprobaciones",
       label: "Aprobaciones",
