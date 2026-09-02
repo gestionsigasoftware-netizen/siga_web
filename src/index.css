@@ -188,6 +188,20 @@
   .agenda-action-success { @apply text-success border-transparent hover:bg-success-bg; }
   .agenda-action-danger { @apply text-danger border-transparent hover:bg-danger-bg; }
 
+  .timeline-dot {
+    @apply w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(21, 27, 34, 0.15);
+  }
+
+  .timeline-dot-accent { @apply bg-accent; }
+  .timeline-dot-success { @apply bg-success; }
+  .timeline-dot-muted { @apply bg-muted; }
+
+  .timeline-line {
+    @apply w-px flex-1 bg-border;
+    min-height: 0.75rem;
+  }
+
   .audit-badge {
     @apply inline-flex items-center rounded-full bg-accent-bg px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-accent-dark;
   }

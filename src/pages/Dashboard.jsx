@@ -221,6 +221,8 @@ function DashboardDistrital({ rolPrincipal }) {
   const balanceMembresia = totalAltas3m - totalBajas3m
   const congregacionesPorMadurez = congregaciones.reduce((mapa, c) => ({ ...mapa, [c.madurez]: (mapa[c.madurez] || 0) + 1 }), {})
   const congregacionesConstituidas = congregacionesPorMadurez.iglesia_local || 0
+  const netoMensual3m = (totalAltas3m - totalBajas3m) / 3
+  const proyeccion12m = Math.max(0, Math.round(totalFeligreses + netoMensual3m * 12))
 
   return (
     <div className="flex flex-col gap-6">
@@ -277,6 +279,12 @@ function DashboardDistrital({ rolPrincipal }) {
             title="Madurez de la obra"
             value={congregaciones.length ? `${Math.round((congregacionesConstituidas / congregaciones.length) * 100)}%` : '—'}
             insight={congregaciones.length === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesPorMadurez.lugar_prediccion || 0} Lugar de Predicación, ${congregacionesPorMadurez.mision_nacional || 0} Misión Nacional.`}
+          />
+          <InsightCard
+            title="Proyección a 12 meses"
+            value={totalFeligreses ? proyeccion12m : '—'}
+            tone={netoMensual3m < 0 ? 'danger' : 'default'}
+            insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), el distrito tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
           />
         </div>
       </section>
@@ -393,6 +401,8 @@ function DashboardNacional() {
   const congregacionesConstituidas = sumar('congregaciones_iglesia_local')
   const congregacionesLugarPrediccion = sumar('congregaciones_lugar_prediccion')
   const congregacionesMisionNacional = sumar('congregaciones_mision_nacional')
+  const netoMensual3m = (totalAltas3m - totalBajas3m) / 3
+  const proyeccion12m = Math.max(0, Math.round(totalFeligreses + netoMensual3m * 12))
 
   return (
     <div className="flex flex-col gap-6">
@@ -449,6 +459,12 @@ function DashboardNacional() {
             title="Madurez de la obra"
             value={totalCongregaciones ? `${Math.round((congregacionesConstituidas / totalCongregaciones) * 100)}%` : '—'}
             insight={totalCongregaciones === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesLugarPrediccion} Lugar de Predicación, ${congregacionesMisionNacional} Misión Nacional.`}
+          />
+          <InsightCard
+            title="Proyección a 12 meses"
+            value={totalFeligreses ? proyeccion12m : '—'}
+            tone={netoMensual3m < 0 ? 'danger' : 'default'}
+            insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), la IPUC en Colombia tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
           />
         </div>
       </section>
@@ -530,6 +546,7 @@ export default function Dashboard() {
   const [showAllAlerts, setShowAllAlerts] = useState(false)
   const [alertasTotal, setAlertasTotal] = useState(0)
   const [resumenFeligresia, setResumenFeligresia] = useState(null)
+  const [movimientos3m, setMovimientos3m] = useState({ altas: 0, bajas: 0 })
   const [frecuencia, setFrecuencia] = useState('mensual')
   const [frecuenciaDetalle, setFrecuenciaDetalle] = useState('mensual')
   const [aplicarFrecuenciaTodos, setAplicarFrecuenciaTodos] = useState(true)
@@ -545,6 +562,7 @@ export default function Dashboard() {
         setAlertas(cached.alertas)
         setAlertasTotal(cached.alertasTotal)
         setResumenFeligresia(cached.resumenFeligresia)
+        setMovimientos3m(cached.movimientos3m)
         setCanHandleAlerts(cached.canHandleAlerts)
         setRegistros(cached.registros)
         setCategorias(cached.categorias)
@@ -560,17 +578,23 @@ export default function Dashboard() {
         alertasQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
         alertasCountQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
       }
-      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }] = await Promise.all([
+      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }, { data: movimientosData, error: movimientosError }] = await Promise.all([
         alertasQuery,
         alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)) : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
       setAlertas(alertasData ?? [])
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
       setCanHandleAlerts(Boolean(permisoAlertas))
+      const nuevosMovimientos3m = {
+        altas: (movimientosData ?? []).filter((item) => item.tipo?.startsWith('alta_')).length,
+        bajas: (movimientosData ?? []).filter((item) => item.tipo?.startsWith('baja_')).length,
+      }
+      setMovimientos3m(nuevosMovimientos3m)
 
       const [{ data: registrosData, error: registrosError }, { data: categoriasData, error: categoriasError }, { data: amigosData, error: amigosError }] = await Promise.all([
         (() => {
@@ -591,7 +615,7 @@ export default function Dashboard() {
         })(),
       ])
       if (!active) return
-      if (alertasError || alertasCountError || feligresiaError || permisoError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       const nuevosRegistros = registrosData ?? []
       const nuevasCategorias = categoriasData ?? []
       const nuevosAmigos = amigosData ?? []
@@ -603,6 +627,7 @@ export default function Dashboard() {
         alertas: alertasData ?? [],
         alertasTotal: alertasCount ?? 0,
         resumenFeligresia: feligresiaData,
+        movimientos3m: nuevosMovimientos3m,
         canHandleAlerts: Boolean(permisoAlertas),
         registros: nuevosRegistros,
         categorias: nuevasCategorias,
@@ -862,14 +887,24 @@ export default function Dashboard() {
         </section>
       )}
 
-      {rolPrincipal?.nivel === 'local' && resumenFeligresia && (
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
-          <StatTile label="Bautizados" value={resumenFeligresia.bautizados} />
-          <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
-          <StatTile label="Apartados" value={resumenFeligresia.apartados} />
-        </section>
-      )}
+      {rolPrincipal?.nivel === 'local' && resumenFeligresia && (() => {
+        const netoMensual3m = (movimientos3m.altas - movimientos3m.bajas) / 3
+        const proyeccion12m = Math.max(0, Math.round(resumenFeligresia.personas_activas + netoMensual3m * 12))
+        return (
+          <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
+            <StatTile label="Bautizados" value={resumenFeligresia.bautizados} />
+            <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
+            <StatTile label="Apartados" value={resumenFeligresia.apartados} />
+            <StatTile
+              label="Proyección a 12 meses"
+              value={resumenFeligresia.personas_activas ? proyeccion12m : '—'}
+              tone={netoMensual3m < 0 ? 'danger' : 'default'}
+              insight={resumenFeligresia.personas_activas === 0 ? 'Aún no hay suficientes datos.' : `Al ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)}/mes), en 12 meses. Estimación con poco historial.`}
+            />
+          </section>
+        )
+      })()}
 
       {!hasData && (
         <section className="border border-dashed border-border rounded-card p-7 bg-surface-2 flex flex-col sm:flex-row gap-5 items-start sm:items-center">

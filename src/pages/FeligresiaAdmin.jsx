@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react'
-import { BarChart3, CheckCircle2, Clock, Download, ExternalLink, HeartHandshake, Plus, Search, UsersRound, XCircle } from 'lucide-react'
+import { Award, BarChart3, CheckCircle2, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonList } from '../components/Skeleton'
 import { chartOptions as buildChartOptions, gradientFill, distributionDataset } from '../lib/chartTheme'
+import ChartEmpty from '../components/ChartEmpty'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip)
 
@@ -32,8 +33,9 @@ function committeeMemberGroups(committee, cargoCatalog) {
   if (other.length) groups.push({ key: 'otros', label: other.some((member) => member.cargo) ? 'Otro' : 'Sin cargo', members: other })
   return groups.filter((group) => group.members.length)
 }
-const EMPTY_PERSON = { nombres: '', apellidos: '', telefono: '', fecha_nacimiento: '', estado_membresia: 'activo', estado_civil: 'soltero', bautizado: false, fecha_bautismo: '', sellado_espiritu_santo: false, fecha_sellado: '', fecha_ingreso: '', fecha_ultima_asistencia: '', familia_id: '', parentesco_familiar: '', observaciones_pastorales: '' }
+const EMPTY_PERSON = { nombres: '', apellidos: '', telefono: '', fecha_nacimiento: '', estado_membresia: 'activo', estado_civil: 'soltero', genero: '', bautizado: false, fecha_bautismo: '', sellado_espiritu_santo: false, fecha_sellado: '', fecha_ingreso: '', fecha_ultima_asistencia: '', familia_id: '', parentesco_familiar: '', observaciones_pastorales: '' }
 const MARITAL_STATUSES = { soltero: 'Soltero/a', casado: 'Casado/a', union_libre: 'Unión libre', divorciado: 'Divorciado/a', viudo: 'Viudo/a' }
+const GENERO_LABELS = { masculino: 'Masculino', femenino: 'Femenino' }
 
 function withRequestTimeout(request, milliseconds = 12000) {
   return Promise.race([
@@ -60,10 +62,22 @@ function PersonFormDetailed(props) {
   </>
 }
 
+function SpiritualTimeline({ person, cargos }) {
+  const events = []
+  if (person.fecha_ingreso) events.push({ date: person.fecha_ingreso, label: 'Ingresó a la congregación', icon: LogIn, tone: 'accent' })
+  if (person.bautizado && person.fecha_bautismo) events.push({ date: person.fecha_bautismo, label: 'Bautizado en agua', icon: Droplet, tone: 'accent' })
+  if (person.sellado_espiritu_santo && person.fecha_sellado) events.push({ date: person.fecha_sellado, label: 'Sellado con el Espíritu Santo', icon: Flame, tone: 'success' })
+  cargos.forEach((cargo) => { if (cargo.fecha_inicio) events.push({ date: cargo.fecha_inicio, endDate: cargo.fecha_fin, label: `Asumió el cargo: ${cargo.nombre_cargo}`, icon: Award, tone: cargo.fecha_fin ? 'muted' : 'accent' }) })
+  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
+  if (!sorted.length) return <p className="text-xs text-muted mt-2">Aún no hay hitos espirituales registrados.</p>
+  return <div className="flex flex-col mt-2">{sorted.map((event, index) => <div key={index} className="flex gap-3"><div className="flex flex-col items-center"><span className={`timeline-dot timeline-dot-${event.tone}`}><event.icon className="w-3.5 h-3.5" /></span>{index < sorted.length - 1 && <span className="timeline-line" />}</div><div className="pb-4 -mt-0.5"><p className="text-sm font-medium">{event.label}</p><p className="text-xs text-muted mt-0.5">{event.date}{event.endDate ? ` → ${event.endDate}` : ''}</p></div></div>)}</div>
+}
+
 function PersonFormEditor({ form, setForm, families, committees, cargoHistory, selected, saving, canEdit, editing, error, close, onSubmit }) {
   const memberships = committees.flatMap((committee) => (committee.membresias_comite ?? []).filter((member) => member.persona_id === selected?.id).map((member) => `${committee.nombre}${member.cargo ? ` · ${member.cargo}` : ''}`))
+  const cargoEvents = cargoHistory.filter((item) => item.persona_id === selected?.id)
   const cargos = cargoHistory.filter((item) => item.persona_id === selected?.id).map((item) => item.nombre_cargo)
-  return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(value) => setForm({ ...form, fecha_nacimiento: value })} /><label className="text-sm">Estado<select className="input-field mt-1.5" value={form.estado_membresia} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="text-sm">Estado civil<select className="input-field mt-1.5" value={form.estado_civil} onChange={(event) => setForm({ ...form, estado_civil: event.target.value })}>{Object.entries(MARITAL_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value, parentesco_familiar: event.target.value ? form.parentesco_familiar : '' })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="text-sm">Parentesco familiar<select className="input-field mt-1.5" value={form.parentesco_familiar || ''} onChange={(event) => setForm({ ...form, parentesco_familiar: event.target.value })} disabled={!form.familia_id}><option value="">Seleccionar...</option>{Object.entries(FAMILY_RELATIONSHIPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado</label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.sellado_espiritu_santo} onChange={(event) => setForm({ ...form, sellado_espiritu_santo: event.target.checked })} /> Sellado con el Espíritu Santo</label><Field label="Fecha de sellado" type="date" value={form.fecha_sellado} onChange={(value) => setForm({ ...form, fecha_sellado: value })} /><label className="text-sm sm:col-span-2">Observaciones pastorales<textarea className="input-field mt-1.5 min-h-24" value={form.observaciones_pastorales || ''} onChange={(event) => setForm({ ...form, observaciones_pastorales: event.target.value })} /></label></div>{editing && <div className="mt-5 border-t border-border pt-4"><p className="text-sm font-medium">Participación y responsabilidades</p>{memberships.length ? <p className="text-xs text-secondary mt-2">{memberships.join(' · ')}</p> : <p className="text-xs text-muted mt-2">Sin participación en comités.</p>}{cargos.length > 0 && <p className="text-xs text-secondary mt-2">Cargos históricos: {cargos.join(', ')}</p>}</div>}<button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div>
+  return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(value) => setForm({ ...form, fecha_nacimiento: value })} /><label className="text-sm">Estado<select className="input-field mt-1.5" value={form.estado_membresia} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="text-sm">Estado civil<select className="input-field mt-1.5" value={form.estado_civil} onChange={(event) => setForm({ ...form, estado_civil: event.target.value })}>{Object.entries(MARITAL_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="text-sm">Género<select className="input-field mt-1.5" value={form.genero || ''} onChange={(event) => setForm({ ...form, genero: event.target.value })}><option value="">Sin registrar</option>{Object.entries(GENERO_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value, parentesco_familiar: event.target.value ? form.parentesco_familiar : '' })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="text-sm">Parentesco familiar<select className="input-field mt-1.5" value={form.parentesco_familiar || ''} onChange={(event) => setForm({ ...form, parentesco_familiar: event.target.value })} disabled={!form.familia_id}><option value="">Seleccionar...</option>{Object.entries(FAMILY_RELATIONSHIPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado</label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.sellado_espiritu_santo} onChange={(event) => setForm({ ...form, sellado_espiritu_santo: event.target.checked })} /> Sellado con el Espíritu Santo</label><Field label="Fecha de sellado" type="date" value={form.fecha_sellado} onChange={(value) => setForm({ ...form, fecha_sellado: value })} /><label className="text-sm sm:col-span-2">Observaciones pastorales<textarea className="input-field mt-1.5 min-h-24" value={form.observaciones_pastorales || ''} onChange={(event) => setForm({ ...form, observaciones_pastorales: event.target.value })} /></label></div>{editing && <div className="mt-5 border-t border-border pt-4"><p className="text-sm font-medium">Ciclo de vida espiritual</p><SpiritualTimeline person={selected} cargos={cargoEvents} /></div>}{editing && <div className="mt-2 border-t border-border pt-4"><p className="text-sm font-medium">Participación y responsabilidades</p>{memberships.length ? <p className="text-xs text-secondary mt-2">{memberships.join(' · ')}</p> : <p className="text-xs text-muted mt-2">Sin participación en comités.</p>}{cargos.length > 0 && <p className="text-xs text-secondary mt-2">Cargos históricos: {cargos.join(', ')}</p>}</div>}<button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div>
 }
 
 
@@ -124,6 +138,16 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const ages = activePeople.map((person) => calcularEdad(person.fecha_nacimiento, today)).filter((age) => age !== null)
   const ageGroups = [['0-12', 0], ['13-17', 0], ['18-29', 0], ['30-59', 0], ['60+', 0]]
   ages.forEach((age) => { const index = age <= 12 ? 0 : age <= 17 ? 1 : age <= 29 ? 2 : age <= 59 ? 3 : 4; ageGroups[index][1] += 1 })
+  const AGE_BRACKETS = ['0-12', '13-17', '18-29', '30-59', '60+']
+  const pyramidByBracket = Object.fromEntries(AGE_BRACKETS.map((bracket) => [bracket, { masculino: 0, femenino: 0 }]))
+  let peopleWithGenero = 0
+  activePeople.forEach((person) => {
+    const age = calcularEdad(person.fecha_nacimiento, today)
+    if (age === null || (person.genero !== 'masculino' && person.genero !== 'femenino')) return
+    peopleWithGenero += 1
+    const bracket = age <= 12 ? '0-12' : age <= 17 ? '13-17' : age <= 29 ? '18-29' : age <= 59 ? '30-59' : '60+'
+    pyramidByBracket[bracket][person.genero] += 1
+  })
   const statuses = Object.entries(STATES).map(([key, label]) => ({ label, value: filteredPeople.filter((person) => person.estado_membresia === key).length }))
   const maritalStatuses = Object.entries(MARITAL_STATUSES).map(([key, label]) => ({ label, value: activePeople.filter((person) => person.estado_civil === key).length }))
   const followupStatuses = [['Pendientes', followups.filter((item) => item.estado === 'pendiente').length], ['Completados', followups.filter((item) => item.estado === 'completado').length], ['Cancelados', followups.filter((item) => item.estado === 'cancelado').length]]
@@ -147,12 +171,34 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const ageData = distributionDataset(ageGroups.map(([label, value]) => ({ label, value })), { valueKey: 'value', datasetLabel: 'Personas' })
   const followupData = distributionDataset(followupStatuses.map(([label, value]) => ({ label, value })), { valueKey: 'value', datasetLabel: 'Seguimientos' })
   const admissionsData = { labels: admissionsHistory.map((item) => item.label), datasets: [{ label: 'Nuevos ingresos', data: admissionsHistory.map((item) => item.total), backgroundColor: gradientFill('#2a78d6'), borderRadius: 4, barThickness: months > 24 ? 10 : 18 }] }
+  const pyramidData = {
+    labels: AGE_BRACKETS,
+    datasets: [
+      { label: 'Masculino', data: AGE_BRACKETS.map((bracket) => -pyramidByBracket[bracket].masculino), backgroundColor: '#2a78d6', borderRadius: 4, barThickness: 18 },
+      { label: 'Femenino', data: AGE_BRACKETS.map((bracket) => pyramidByBracket[bracket].femenino), backgroundColor: '#9a6bce', borderRadius: 4, barThickness: 18 },
+    ],
+  }
+  const pyramidOptions = {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 700, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: true, position: 'top', align: 'start', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, boxHeight: 7, padding: 14, color: '#52514e', font: { size: 11, weight: '500' } } },
+      tooltip: { backgroundColor: '#111820', titleColor: '#ffffff', bodyColor: 'rgba(255,255,255,0.78)', padding: 12, callbacks: { label: (context) => ` ${context.dataset.label}: ${Math.abs(context.parsed.x)}` } },
+    },
+    scales: {
+      x: { stacked: true, border: { display: false }, grid: { color: 'rgba(82,81,78,0.1)' }, ticks: { color: '#898781', callback: (value) => Math.abs(value), precision: 0 } },
+      y: { stacked: true, border: { display: false }, grid: { display: false }, ticks: { color: '#898781' } },
+    },
+  }
 
   return <section className="flex flex-col gap-4">
     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-[0.16em] text-accent">Inteligencia de gestión</p><h2 className="font-medium mt-1">Lectura para tomar decisiones</h2><p className="text-sm text-secondary mt-1">Indicadores construidos con el censo completo, no solo con la página visible.</p></div><div className="flex flex-wrap gap-2"><select aria-label="Filtrar dashboard por estado" className="input-field text-xs" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label="Filtrar dashboard por edad" className="input-field text-xs" value={ageFilter} onChange={(event) => setAgeFilter(event.target.value)}><option value="todas">Todas las edades</option>{ageGroups.map(([label]) => <option key={label} value={label}>{label} años</option>)}</select></div></div>
     <div className="grid grid-cols-2 lg:grid-cols-7 gap-3"><Metric label="Personas en censo" value={total} accent /><Metric label="Tasa de actividad" value={`${total ? Math.round(active / total * 100) : 0}%`} /><Metric label="Cobertura familiar" value={`${total ? Math.round(withFamily / total * 100) : 0}%`} /><Metric label="Ingresos últimos 12 meses" value={newPeople} /><Metric label="Viudos/as activos" value={widowed} /><Metric label="Divorciados/as activos" value={divorced} /><Metric label="Alertas activas" value={activeAlerts.length} /></div>
     <p className={`text-sm rounded p-3 ${overdue > 0 || withoutAttendance > 0 ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{insight}</p>
     <div className="grid lg:grid-cols-4 gap-4"><div className="card p-5"><h3 className="font-medium">Estado del censo</h3><p className="text-xs text-secondary mt-1">Distribución por estado de membresía.</p><div className="h-56 mt-4"><Bar data={statusData} options={chartOptions} /></div></div><div className="card p-5"><h3 className="font-medium">Bautismo</h3><p className="text-xs text-secondary mt-1">Nivel de consolidación espiritual entre personas activas.</p><div className="h-56 mt-4"><Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: '#52514e', padding: 14, font: { size: 11 } } } } }} /></div></div><div className="card p-5"><h3 className="font-medium">Rangos de edad</h3><p className="text-xs text-secondary mt-1">Personas con fecha de nacimiento registrada.</p><div className="h-56 mt-4"><Bar data={ageData} options={chartOptions} /></div></div><div className="card p-5"><h3 className="font-medium">Situación familiar</h3><p className="text-xs text-secondary mt-1">Estado civil de las personas activas.</p><div className="h-56 mt-4"><Bar data={maritalData} options={chartOptions} /></div></div></div>
+    <div className="card p-5"><h3 className="font-medium">Pirámide poblacional</h3><p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas.{peopleWithGenero < activePeople.length && ` Basada en ${peopleWithGenero} de ${activePeople.length} activas con género registrado.`}</p>{peopleWithGenero ? <div className="h-72 mt-4"><Bar data={pyramidData} options={pyramidOptions} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado." /></div>}</div>
     <div className="card p-5"><div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 className="font-medium">Evolución de ingresos</h3><p className="text-xs text-secondary mt-1">Nuevas personas registradas en el periodo seleccionado.</p></div><select aria-label="Periodo de evolución de ingresos" className="input-field text-xs" value={historyMonths} onChange={(event) => setHistoryMonths(event.target.value)}><option value="12">Últimos 12 meses</option><option value="24">Últimos 24 meses</option><option value="60">Últimos 5 años</option></select></div><div className="h-56 mt-4"><Bar data={admissionsData} options={chartOptions} /></div></div>
     <div className="grid lg:grid-cols-2 gap-4"><div className="card p-5"><h3 className="font-medium">Seguimiento pastoral</h3><p className="text-xs text-secondary mt-1">Carga de trabajo y resultado de acompañamientos.</p><div className="h-52 mt-4"><Bar data={followupData} options={chartOptions} /></div><p className="summary-insight mt-3">{pending} pendientes · {overdue} vencidos · {followups.length} registros totales.</p></div><div className="card p-5"><h3 className="font-medium">Capacidad de organización</h3><p className="text-xs text-secondary mt-1">Participación en comités y cargos vigentes.</p><div className="grid grid-cols-3 gap-3 mt-6"><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Comités activos</p><p className="text-2xl font-semibold mt-1">{committees.filter((committee) => committee.activo).length}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Personas en comités</p><p className="text-2xl font-semibold mt-1">{committeePeople}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Cargos vigentes</p><p className="text-2xl font-semibold mt-1">{activeCharges}</p></div></div><p className="summary-insight mt-5">Hay {families.length} familias registradas, con un promedio de {averageFamilySize} integrante{averageFamilySize === '1.0' ? '' : 's'} por familia.</p>{cargoHistory.filter((item) => !item.fecha_fin).slice(0, 5).map((item) => { const person = people.find((candidate) => candidate.id === item.persona_id); return <p key={item.id} className="text-xs text-muted mt-2">{item.nombre_cargo} · {person ? `${person.nombres} ${person.apellidos}` : 'Persona'}</p> })}</div></div>
   </section>
@@ -240,13 +286,13 @@ export default function FeligresiaAdmin() {
     } else {
       setLoading(true)
     }
-    let peopleQuery = supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)', { count: 'exact' }).eq('congregacion_id', congregacionId)
+    let peopleQuery = supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)', { count: 'exact' }).eq('congregacion_id', congregacionId)
     if (personStatus !== 'todos') peopleQuery = peopleQuery.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) peopleQuery = peopleQuery.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     peopleQuery = peopleQuery.order('nombres').order('id').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
     const [peopleResult, analyticsPeopleResult, familyResult, familyMembersResult, familyRelationsResult, committeeResult, committeeCargoResult, committeeTypeResult, cargoResult, followupResult, summaryResult, alertsResult, committeeAuditResult, movementsResult] = await Promise.all([
       peopleQuery,
-      supabase.from('personas').select('id, nombres, apellidos, estado_membresia, estado_civil, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),
+      supabase.from('personas').select('id, nombres, apellidos, estado_membresia, estado_civil, genero, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),
       supabase.from('familias').select('id, nombre_familia, direccion, telefono').eq('congregacion_id', congregacionId).order('nombre_familia'),
       supabase.from('familia_miembros').select('id, familia_id, persona_id, parentesco, es_referente, familias!inner(congregacion_id)').eq('familias.congregacion_id', congregacionId),
       supabase.from('relaciones_familiares').select('id, persona_id, relacionada_id, tipo'),
@@ -362,6 +408,7 @@ export default function FeligresiaAdmin() {
       bautizado: Boolean(form.bautizado),
       fecha_nacimiento: form.fecha_nacimiento || null,
       estado_civil: form.estado_civil || 'soltero',
+      genero: form.genero || null,
       fecha_bautismo: form.bautizado ? form.fecha_bautismo : null,
       sellado_espiritu_santo: Boolean(form.sellado_espiritu_santo),
       fecha_sellado: form.sellado_espiritu_santo ? form.fecha_sellado : null,
@@ -626,7 +673,7 @@ export default function FeligresiaAdmin() {
   async function openPersonFromFollowup(personaId) {
     const visiblePerson = people.find((person) => person.id === personaId)
     if (visiblePerson) { editPerson(visiblePerson); return }
-    const result = await withRequestTimeout(supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)').eq('id', personaId).maybeSingle())
+    const result = await withRequestTimeout(supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)').eq('id', personaId).maybeSingle())
     if (result.error || !result.data) { setError('No se pudo abrir la ficha de la persona.'); return }
     editPerson(result.data)
   }
@@ -647,15 +694,15 @@ export default function FeligresiaAdmin() {
 
   async function exportPeople() {
     if (!congregacionId) return
-    let query = supabase.from('personas').select('nombres, apellidos, telefono, fecha_nacimiento, estado_civil, estado_membresia, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ingreso, fecha_ultima_asistencia, parentesco_familiar, familias(nombre_familia)').eq('congregacion_id', congregacionId).order('apellidos').order('nombres')
+    let query = supabase.from('personas').select('nombres, apellidos, telefono, fecha_nacimiento, estado_civil, genero, estado_membresia, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ingreso, fecha_ultima_asistencia, parentesco_familiar, familias(nombre_familia)').eq('congregacion_id', congregacionId).order('apellidos').order('nombres')
     if (personStatus !== 'todos') query = query.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) query = query.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     const result = await query
     if (result.error) { setError('No se pudo exportar el censo.'); return }
     const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
     const rows = [
-      ['Nombres', 'Apellidos', 'Teléfono', 'Fecha nacimiento', 'Estado civil', 'Estado', 'Bautizado', 'Fecha bautismo', 'Sellado con el Espíritu Santo', 'Fecha sellado', 'Fecha ingreso', 'Última asistencia', 'Familia', 'Parentesco'],
-      ...(result.data ?? []).map((person) => [person.nombres, person.apellidos, person.telefono, person.fecha_nacimiento, MARITAL_STATUSES[person.estado_civil] || person.estado_civil, STATES[person.estado_membresia], person.bautizado ? 'Sí' : 'No', person.fecha_bautismo, person.sellado_espiritu_santo ? 'Sí' : 'No', person.fecha_sellado, person.fecha_ingreso, person.fecha_ultima_asistencia, person.familias?.nombre_familia, FAMILY_RELATIONSHIPS[person.parentesco_familiar] || person.parentesco_familiar]),
+      ['Nombres', 'Apellidos', 'Teléfono', 'Fecha nacimiento', 'Género', 'Estado civil', 'Estado', 'Bautizado', 'Fecha bautismo', 'Sellado con el Espíritu Santo', 'Fecha sellado', 'Fecha ingreso', 'Última asistencia', 'Familia', 'Parentesco'],
+      ...(result.data ?? []).map((person) => [person.nombres, person.apellidos, person.telefono, person.fecha_nacimiento, GENERO_LABELS[person.genero] || '', MARITAL_STATUSES[person.estado_civil] || person.estado_civil, STATES[person.estado_membresia], person.bautizado ? 'Sí' : 'No', person.fecha_bautismo, person.sellado_espiritu_santo ? 'Sí' : 'No', person.fecha_sellado, person.fecha_ingreso, person.fecha_ultima_asistencia, person.familias?.nombre_familia, FAMILY_RELATIONSHIPS[person.parentesco_familiar] || person.parentesco_familiar]),
     ]
     const csv = `\ufeff${rows.map((row) => row.map(escapeCsv).join(';')).join('\r\n')}`
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))

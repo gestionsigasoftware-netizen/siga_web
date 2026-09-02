@@ -28,6 +28,7 @@ import {
   BookOpenCheck,
   Flag,
   HandHeart,
+  Globe2,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -162,6 +163,12 @@ export default function Sidebar() {
       label: "Obra Social",
       icon: HandHeart,
       show: nivel === "local",
+    },
+    {
+      to: "/impacto-misionero",
+      label: "Impacto Misionero",
+      icon: Globe2,
+      show: nivel === "local" || nivel === "distrital" || esAdminNacional,
     },
     {
       to: "/registrar",

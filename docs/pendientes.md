@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): campo de genero + piramide poblacional, linea de
+	tiempo de ciclo de vida espiritual por persona, proyeccion de
+	crecimiento a 12 meses (transparente, basada en tendencia de 3 meses,
+	no un modelo de ML — no hay historial suficiente todavia) en los 3
+	niveles, y nueva vista Impacto Misionero (Obra Carcelaria + Mision
+	Juvenil + Obra Social) disponible en local/distrital/nacional. Mapa de
+	calor y metas distritales quedaron **explicitamente en pausa** por
+	decision del usuario (ver justificacion en el doc). Ver
+	`docs/genero-ciclo-vida-proyeccion-impacto-2026-09-02.md`. **Accion
+	requerida del usuario**: ejecutar `supabase/genero_personas.sql`.
 - Resuelto (2026-09-01): nacional/super_admin no tenian ningun dashboard
 	propio — caian al dashboard generico de congregacion local, sin
 	congregacion asignada, asi que salia practicamente vacio. Se agrego

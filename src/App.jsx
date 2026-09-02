@@ -36,6 +36,7 @@ const EducacionArtistica = lazy(() => import("./pages/EducacionArtistica"));
 const EducacionTeologica = lazy(() => import("./pages/EducacionTeologica"));
 const Conquistadores = lazy(() => import("./pages/Conquistadores"));
 const ObraSocial = lazy(() => import("./pages/ObraSocial"));
+const ImpactoMisionero = lazy(() => import("./pages/ImpactoMisionero"));
 
 export default function App() {
   return (
@@ -93,6 +94,7 @@ export default function App() {
           <Route path="/educacion-teologica" element={<EducacionTeologica />} />
           <Route path="/conquistadores" element={<Conquistadores />} />
           <Route path="/obra-social" element={<ObraSocial />} />
+          <Route path="/impacto-misionero" element={<ImpactoMisionero />} />
           <Route path="/modulos" element={<Modulos />} />
           <Route path="/amigos" element={<Amigos />} />
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />
