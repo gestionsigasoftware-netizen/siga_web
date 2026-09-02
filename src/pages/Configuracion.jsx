@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import { useUndoDelete } from '../hooks/useUndoDelete'
+import UndoToast from '../components/UndoToast'
 
 function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
   const [valor, setValor] = useState('')
@@ -13,7 +15,7 @@ function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
         {items.map((item) => (
           <div key={item.id} className="flex justify-between items-center text-sm py-1.5 px-2.5 bg-surface-1 rounded">
             <span>{item.nombre}</span>
-            <button type="button" aria-label={`Eliminar ${item.nombre}`} title={`Eliminar ${item.nombre}`} disabled={busy} onClick={() => onRemove(item.id, item.nombre)} className="text-muted hover:text-danger disabled:opacity-50">
+            <button type="button" aria-label={`Eliminar ${item.nombre}`} title={`Eliminar ${item.nombre}`} disabled={busy} onClick={() => onRemove(item)} className="text-muted hover:text-danger disabled:opacity-50">
               <Trash2 className="w-[15px] h-[15px]" />
             </button>
           </div>
@@ -37,7 +39,7 @@ function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
 
 function ListaCargosComite({ items, onAdd, onRemove, busy }) {
   const [form, setForm] = useState({ nombre: '', codigo: '', requiere_sellado: false })
-  return <div className="card p-5"><h3 className="font-medium mb-3">Cargos de comité</h3><p className="text-xs text-secondary mb-3">Estar bautizado es obligatorio para cualquier cargo. Marca "Requiere sellado" para cargos que además exigen estar sellado con el Espíritu Santo (ej. presidente, secretario, tesorero, músico).</p><div className="flex flex-col gap-1.5 mb-3">{items.map((item) => <div key={item.id} className="flex justify-between items-center text-sm py-1.5 px-2.5 bg-surface-1 rounded"><span>{item.nombre} <small className="text-muted">({item.codigo})</small>{item.requiere_sellado && <small className="text-accent ml-1.5">+ sellado</small>}</span><button type="button" aria-label={`Eliminar ${item.nombre}`} title={`Eliminar ${item.nombre}`} disabled={busy} onClick={() => onRemove(item.id, item.nombre)} className="text-muted hover:text-danger disabled:opacity-50"><Trash2 className="w-[15px] h-[15px]" /></button></div>)}{items.length === 0 && <p className="text-xs text-muted">Sin cargos aún.</p>}</div><div className="grid grid-cols-2 gap-2"><input value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} placeholder="Nombre del cargo" className="input-field" /><input value={form.codigo} onChange={(event) => setForm({ ...form, codigo: event.target.value })} placeholder="Código" className="input-field" /></div><label className="flex items-center gap-2 text-xs text-secondary mt-2"><input type="checkbox" checked={form.requiere_sellado} onChange={(event) => setForm({ ...form, requiere_sellado: event.target.checked })} />Requiere estar sellado con el Espíritu Santo</label><button type="button" disabled={busy} onClick={async () => { if (form.nombre.trim() && form.codigo.trim() && await onAdd(form)) setForm({ nombre: '', codigo: '', requiere_sellado: false }) }} className="btn-secondary mt-2"><Plus className="w-4 h-4" /> Agregar cargo</button></div>
+  return <div className="card p-5"><h3 className="font-medium mb-3">Cargos de comité</h3><p className="text-xs text-secondary mb-3">Estar bautizado es obligatorio para cualquier cargo. Marca "Requiere sellado" para cargos que además exigen estar sellado con el Espíritu Santo (ej. presidente, secretario, tesorero, músico).</p><div className="flex flex-col gap-1.5 mb-3">{items.map((item) => <div key={item.id} className="flex justify-between items-center text-sm py-1.5 px-2.5 bg-surface-1 rounded"><span>{item.nombre} <small className="text-muted">({item.codigo})</small>{item.requiere_sellado && <small className="text-accent ml-1.5">+ sellado</small>}</span><button type="button" aria-label={`Eliminar ${item.nombre}`} title={`Eliminar ${item.nombre}`} disabled={busy} onClick={() => onRemove(item)} className="text-muted hover:text-danger disabled:opacity-50"><Trash2 className="w-[15px] h-[15px]" /></button></div>)}{items.length === 0 && <p className="text-xs text-muted">Sin cargos aún.</p>}</div><div className="grid grid-cols-2 gap-2"><input value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} placeholder="Nombre del cargo" className="input-field" /><input value={form.codigo} onChange={(event) => setForm({ ...form, codigo: event.target.value })} placeholder="Código" className="input-field" /></div><label className="flex items-center gap-2 text-xs text-secondary mt-2"><input type="checkbox" checked={form.requiere_sellado} onChange={(event) => setForm({ ...form, requiere_sellado: event.target.checked })} />Requiere estar sellado con el Espíritu Santo</label><button type="button" disabled={busy} onClick={async () => { if (form.nombre.trim() && form.codigo.trim() && await onAdd(form)) setForm({ nombre: '', codigo: '', requiere_sellado: false }) }} className="btn-secondary mt-2"><Plus className="w-4 h-4" /> Agregar cargo</button></div>
 }
 
 export default function Configuracion() {
@@ -61,9 +63,9 @@ export default function Configuracion() {
     setLoading(true)
     setError(null)
     const [cat, mod, et, congregation, typeResult, committeeCargoResult] = await Promise.all([
-      supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
+      supabase.from('categorias_demograficas').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
-      supabase.from('etapas_seguimiento').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
+      supabase.from('etapas_seguimiento').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('congregaciones').select('id, nombre, distrito_id, distritos(nombre)').eq('id', congregacionId).single(),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('cargos_comite').select('id, nombre, codigo, requiere_sellado').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
@@ -101,15 +103,17 @@ export default function Configuracion() {
 
   useEffect(() => { loadAll() }, [congregacionId])
 
+  const { pending: pendingUndo, registerDelete, undo } = useUndoDelete(loadAll)
+
   async function agregarCategoria(nombre) {
     const { error: insertError } = await supabase.from('categorias_demograficas').insert({ congregacion_id: congregacionId, nombre, orden: categorias.length + 1 })
     if (insertError) { setError(`No se pudo agregar la categoría: ${insertError.message}`); return false }
     await loadAll(); return true
   }
-  async function quitarCategoria(id, nombre) {
-    if (!window.confirm(`¿Eliminar la categoría ${nombre}? Si ya tiene información asociada, no podrá eliminarse.`)) return false
-    const { error: deleteError } = await supabase.from('categorias_demograficas').delete().eq('id', id)
+  async function quitarCategoria(item) {
+    const { error: deleteError } = await supabase.from('categorias_demograficas').delete().eq('id', item.id)
     if (deleteError) { setError(`No se pudo eliminar la categoría: ${deleteError.message}`); return false }
+    registerDelete('categorias_demograficas', { ...item, congregacion_id: congregacionId }, item.nombre)
     await loadAll(); return true
   }
 
@@ -118,17 +122,27 @@ export default function Configuracion() {
     if (insertError) { setError(`No se pudo agregar la etapa: ${insertError.message}`); return false }
     await loadAll(); return true
   }
-  async function quitarEtapa(id, nombre) {
-    if (!window.confirm(`¿Eliminar la etapa ${nombre}? Si tiene amigos asociados, no podrá eliminarse.`)) return false
-    const { error: deleteError } = await supabase.from('etapas_seguimiento').delete().eq('id', id)
+  async function quitarEtapa(item) {
+    const { error: deleteError } = await supabase.from('etapas_seguimiento').delete().eq('id', item.id)
     if (deleteError) { setError(`No se pudo eliminar la etapa: ${deleteError.message}`); return false }
+    registerDelete('etapas_seguimiento', { ...item, congregacion_id: congregacionId }, item.nombre)
     await loadAll(); return true
   }
 
   async function agregarTipoComite(nombre) { const codigo = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); const { error: insertError } = await supabase.from('tipos_comite').insert({ congregacion_id: congregacionId, nombre, codigo }); if (insertError) { setError(`No se pudo agregar el tipo: ${insertError.message}`); return false } await loadAll(); return true }
-  async function quitarTipoComite(id, nombre) { if (!window.confirm(`¿Eliminar el tipo ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('tipos_comite').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar el tipo: ${deleteError.message}`); return false } await loadAll(); return true }
+  async function quitarTipoComite(item) {
+    const { error: deleteError } = await supabase.from('tipos_comite').delete().eq('id', item.id)
+    if (deleteError) { setError(`No se pudo eliminar el tipo: ${deleteError.message}`); return false }
+    registerDelete('tipos_comite', { ...item, congregacion_id: congregacionId }, item.nombre)
+    await loadAll(); return true
+  }
   async function agregarCargoComite(values) { const { error: insertError } = await supabase.from('cargos_comite').insert({ congregacion_id: congregacionId, nombre: values.nombre.trim(), codigo: values.codigo.trim(), requiere_sellado: Boolean(values.requiere_sellado) }); if (insertError) { setError(`No se pudo agregar el cargo: ${insertError.message}`); return false } await loadAll(); return true }
-  async function quitarCargoComite(id, nombre) { if (!window.confirm(`¿Eliminar el cargo ${nombre}?`)) return false; const { error: deleteError } = await supabase.from('cargos_comite').delete().eq('id', id); if (deleteError) { setError(`No se pudo eliminar el cargo: ${deleteError.message}`); return false } await loadAll(); return true }
+  async function quitarCargoComite(item) {
+    const { error: deleteError } = await supabase.from('cargos_comite').delete().eq('id', item.id)
+    if (deleteError) { setError(`No se pudo eliminar el cargo: ${deleteError.message}`); return false }
+    registerDelete('cargos_comite', { ...item, congregacion_id: congregacionId }, item.nombre)
+    await loadAll(); return true
+  }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando configuración...</div>
   if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar la configuración de la congregación.</div>
@@ -174,6 +188,7 @@ export default function Configuracion() {
       </div>
 
       <p className="text-xs text-muted">Los tipos de actividad se administran desde <strong className="text-secondary">Módulos y actividades</strong>, donde puedes crearlos, editarlos y activarlos o desactivarlos.</p>
+      <UndoToast pending={pendingUndo} onUndo={undo} />
     </div>
   )
 }
