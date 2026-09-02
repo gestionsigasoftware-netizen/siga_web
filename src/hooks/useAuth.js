@@ -16,7 +16,11 @@ export function useAuth() {
     redirectTo: `${window.location.origin}/login?reset=1`,
   }), [])
   const updatePassword = useCallback((password) => supabase.auth.updateUser({ password }), [])
-  const updateProfile = useCallback((fullName) => supabase.auth.updateUser({ data: { full_name: fullName } }), [])
+  // Solo para cuentas sin persona vinculada en el censo (ej. nacional o
+  // distrital puros) -- cuando SI hay persona vinculada, el nombre se
+  // corrige en personas via actualizar_mi_nombre(), no aqui, para no
+  // terminar con dos nombres distintos para la misma persona.
+  const updateProfile = useCallback((nombres, apellidos) => supabase.auth.updateUser({ data: { nombres, apellidos } }), [])
   const signOut = useCallback(() => {
     try {
       sessionStorage.removeItem('siga_rol_elegido')

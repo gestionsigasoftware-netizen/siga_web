@@ -22,11 +22,14 @@ export default function MainLayout() {
   const navigate = useNavigate()
   const scrollPositions = useRef({})
   const locationKey = `${location.pathname}${location.search}`
-  // Prioridad: nombre de cuenta editado en Mi perfil (user_metadata) primero
-  // — si alguien lo corrige ahi, se debe reflejar aqui de inmediato — y solo
-  // si no hay ninguno, el nombre del censo (personas) al que esta vinculada.
-  const nombrePersonaCenso = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
-  const nombrePersona = user?.user_metadata?.full_name || nombrePersonaCenso
+  // El censo (personas) es la unica fuente real del nombre cuando la
+  // cuenta esta vinculada a una persona -- Mi perfil corrige ese mismo
+  // registro, no un nombre paralelo, asi que este siempre debe ganar.
+  // Solo las cuentas sin persona vinculada (nacional/distrital puros)
+  // usan el nombre guardado en los metadatos de Auth.
+  const nombrePersona = roles[0]?.personas
+    ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}`
+    : (user?.user_metadata?.nombres ? `${user.user_metadata.nombres} ${user.user_metadata.apellidos || ''}`.trim() : null)
 
   function confirmarRol(roleId) {
     elegirRol(roleId)

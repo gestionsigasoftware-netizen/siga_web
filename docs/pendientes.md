@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): el campo de nombre editable en Mi perfil
+	(agregado horas antes en esta misma fecha) guardaba el nombre en Auth
+	en paralelo al censo, lo que dejaba dos nombres distintos para la
+	misma persona segun donde se mirara. Se corrigio la politica: si la
+	cuenta esta vinculada a una persona del censo, el campo corrige
+	directamente `personas.nombres/apellidos` (nueva funcion
+	`actualizar_mi_nombre`), sin guardar nada paralelo en Auth. Solo las
+	cuentas sin persona vinculada (nacional/distrital puros) usan un
+	nombre propio en Auth. Ver
+	`docs/nombre-unico-censo-cuenta-2026-09-02.md`. **Accion requerida del
+	usuario**: ejecutar `supabase/actualizar_mi_nombre.sql`.
 - Resuelto (2026-09-02): al probar el flujo real de invitacion se
 	encontraron 2 bugs y 2 tarjetas decorativas sin datos reales. (1) La
 	notificacion "Nuevo perfil de acceso" enlazaba a Preferencias
