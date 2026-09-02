@@ -2,6 +2,11 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): FAQ ampliado (4 -> 13 preguntas, agrupadas) y
+	Manual de uso nuevo (`/manual`, 3 pestanas por nivel: local, distrital,
+	nacional), verificado contra Sidebar.jsx para cubrir las ~30 pantallas
+	reales sin dejar ninguna por fuera. Ver
+	`docs/faq-y-manual-2026-09-02.md`. No requiere accion del usuario.
 - Resuelto (2026-09-02): soporte tecnico (reportar bugs al equipo que
 	mantiene SIGAP, con aviso por correo via Resend) y solicitudes
 	internas entre niveles (local <-> distrital, distrital <-> nacional,

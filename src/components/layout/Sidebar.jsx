@@ -223,6 +223,7 @@ export default function Sidebar() {
       show: puedeConfigurar,
     },
     { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true },
+    { to: "/manual", label: "Manual de uso", icon: BookOpen, show: true },
     { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true },
     { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true },
     {
