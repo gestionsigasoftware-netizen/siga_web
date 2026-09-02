@@ -6,9 +6,11 @@ import NotificationCenter from './NotificationCenter'
 import { Link } from 'react-router-dom'
 import { Bell, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function MainLayout() {
   const { roles, loading: roleLoading, elegirRol } = useMiRol()
+  const { user } = useAuth()
   const [rolElegidoEnSesion, setRolElegidoEnSesion] = useState(() => {
     try {
       return Boolean(sessionStorage.getItem('siga_rol_elegido'))
@@ -20,7 +22,11 @@ export default function MainLayout() {
   const navigate = useNavigate()
   const scrollPositions = useRef({})
   const locationKey = `${location.pathname}${location.search}`
-  const nombrePersona = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
+  // Prioridad: nombre de cuenta editado en Mi perfil (user_metadata) primero
+  // — si alguien lo corrige ahi, se debe reflejar aqui de inmediato — y solo
+  // si no hay ninguno, el nombre del censo (personas) al que esta vinculada.
+  const nombrePersonaCenso = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
+  const nombrePersona = user?.user_metadata?.full_name || nombrePersonaCenso
 
   function confirmarRol(roleId) {
     elegirRol(roleId)
