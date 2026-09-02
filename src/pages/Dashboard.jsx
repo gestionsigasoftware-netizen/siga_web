@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill } from '../lib/chartTheme'
+import Pager from '../components/Pager'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
 
@@ -181,6 +182,7 @@ function DashboardDistrital({ rolPrincipal }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
+  const [tablaPage, setTablaPage] = useState(0)
   const distrito = rolPrincipal?.distritos
   const distritoId = rolPrincipal?.distrito_id
 
@@ -196,12 +198,18 @@ function DashboardDistrital({ rolPrincipal }) {
     return () => { active = false }
   }, [distritoId])
 
+  useEffect(() => { setTablaPage(0) }, [ordenarPor])
+
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado del distrito...</div>
 
   const totalFeligreses = congregaciones.reduce((total, c) => total + Number(c.personas_activas || 0), 0)
   const enCrecimiento = congregaciones.filter((c) => Number(c.personas_nuevas_3m || 0) > 0).length
   const vacantes = congregaciones.filter((c) => !c.pastor_nombre).length
-  const filas = [...congregaciones].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
+  const filasOrdenadas = [...congregaciones].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
+  const TABLA_PAGE_SIZE = 50
+  const tablaPageCount = Math.max(1, Math.ceil(filasOrdenadas.length / TABLA_PAGE_SIZE))
+  const tablaPageSafe = Math.min(tablaPage, tablaPageCount - 1)
+  const filas = filasOrdenadas.slice(tablaPageSafe * TABLA_PAGE_SIZE, tablaPageSafe * TABLA_PAGE_SIZE + TABLA_PAGE_SIZE)
   const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero} · ${distrito.nombre}` : distrito?.nombre || 'Panel distrital'
 
   const sumar = (campo) => congregaciones.reduce((total, c) => total + Number(c[campo] || 0), 0)
@@ -343,6 +351,172 @@ function DashboardDistrital({ rolPrincipal }) {
             </table>
           </div>
         )}
+        <div className="p-3 border-t border-border">
+          <Pager page={tablaPageSafe} totalPages={tablaPageCount} total={filasOrdenadas.length} onPrev={() => setTablaPage((p) => p - 1)} onNext={() => setTablaPage((p) => p + 1)} label="congregaciones" />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function DashboardNacional() {
+  const [distritos, setDistritos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
+
+  useEffect(() => {
+    let active = true
+    supabase.rpc('resumen_nacional').then(({ data, error: rpcError }) => {
+      if (!active) return
+      if (rpcError) setError('No se pudo cargar el consolidado nacional.')
+      setDistritos(data ?? [])
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [])
+
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado nacional...</div>
+
+  const totalCongregaciones = distritos.reduce((total, d) => total + Number(d.congregaciones || 0), 0)
+  const totalFeligreses = distritos.reduce((total, d) => total + Number(d.personas_activas || 0), 0)
+  const totalVacantes = distritos.reduce((total, d) => total + Number(d.vacantes || 0), 0)
+  const filas = [...distritos].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
+
+  const sumar = (campo) => distritos.reduce((total, d) => total + Number(d[campo] || 0), 0)
+  const totalBautizados = sumar('bautizados')
+  const totalSellados = sumar('sellados')
+  const sinSellarPct = totalBautizados ? Math.round(((totalBautizados - totalSellados) / totalBautizados) * 100) : null
+  const totalEstudiosRefam = sumar('estudios_refam_3m')
+  const totalBautismos3m = sumar('bautismos_3m')
+  const eficaciaRefam = totalBautismos3m ? Math.round(totalEstudiosRefam / totalBautismos3m) : null
+  const totalUnoMas = sumar('funnel_uno_mas')
+  const totalRefamActivos = sumar('funnel_refam')
+  const totalBautizadosRuta = sumar('funnel_bautizados')
+  const conversionRefamPct = totalUnoMas ? Math.round((totalRefamActivos / totalUnoMas) * 100) : null
+  const totalAltas3m = sumar('altas_3m')
+  const totalBajas3m = sumar('bajas_3m')
+  const balanceMembresia = totalAltas3m - totalBajas3m
+  const congregacionesConstituidas = sumar('congregaciones_iglesia_local')
+  const congregacionesLugarPrediccion = sumar('congregaciones_lugar_prediccion')
+  const congregacionesMisionNacional = sumar('congregaciones_mision_nacional')
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+        <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
+        <div className="relative max-w-2xl">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
+          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
+          <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
+          <p className="text-xs text-white/50 mt-3">Estas cifras son de la IPUC en Colombia. No corresponden a la UPCI (comunión global de la que IPUC es la afiliada colombiana), cuyas cifras internacionales son distintas.</p>
+        </div>
+      </section>
+
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <DistritalStatTile label="Distritos" value={distritos.length} />
+        <DistritalStatTile label="Congregaciones" value={totalCongregaciones} />
+        <DistritalStatTile label="Feligreses activos" value={totalFeligreses} />
+        <DistritalStatTile label="Vacantes de pastor" value={totalVacantes} tone={totalVacantes > 0 ? 'danger' : 'default'} />
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="eyebrow">Insights BI</p>
+            <h2 className="font-medium mt-1">Señales para decidir a nivel nacional</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <InsightCard
+            title="Brecha de llenura"
+            value={sinSellarPct === null ? '—' : `${sinSellarPct}%`}
+            detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
+            tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
+            insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados a nivel nacional.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una campaña nacional de llenura.' : '.'}`}
+          />
+          <InsightCard
+            title="Eficacia de REFAM"
+            value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
+            insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
+          />
+          <InsightCard
+            title="Embudo Uno Más → REFAM"
+            value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
+            insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron a nivel nacional.`}
+          />
+          <InsightCard
+            title="Movimiento de membresía (3 meses)"
+            value={balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia}
+            tone={balanceMembresia < 0 ? 'danger' : 'success'}
+            insight={`${totalAltas3m} altas y ${totalBajas3m} bajas a nivel nacional${balanceMembresia < 0 ? ' — las bajas superan las altas, conviene revisar traslados y disciplina.' : '.'}`}
+          />
+          <InsightCard
+            title="Madurez de la obra"
+            value={totalCongregaciones ? `${Math.round((congregacionesConstituidas / totalCongregaciones) * 100)}%` : '—'}
+            insight={totalCongregaciones === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesLugarPrediccion} Lugar de Predicación, ${congregacionesMisionNacional} Misión Nacional.`}
+          />
+        </div>
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Comparativa por distrito</h2>
+            <p className="text-sm text-secondary mt-1">Ordena para identificar qué distrito está creciendo o en descenso.</p>
+          </div>
+          <select className="input-field min-w-[220px]" value={ordenarPor} onChange={(event) => setOrdenarPor(event.target.value)}>
+            <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
+            <option value="personas_activas">Ordenar por: personas activas</option>
+            <option value="asistencia_ultimo_mes">Ordenar por: asistencia último mes</option>
+            <option value="bajas_3m">Ordenar por: bajas (3 meses)</option>
+            <option value="vacantes">Ordenar por: vacantes de pastor</option>
+          </select>
+        </div>
+        {filas.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay distritos registrados.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="px-4 py-3">Distrito</th>
+                  <th className="px-4 py-3">Congregaciones</th>
+                  <th className="px-4 py-3">Vacantes</th>
+                  <th className="px-4 py-3">Personas activas</th>
+                  <th className="px-4 py-3">Nuevas (3 meses)</th>
+                  <th className="px-4 py-3">Sellados</th>
+                  <th className="px-4 py-3">Asistencia último mes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((d) => {
+                  const variacionAsistencia = d.asistencia_mes_anterior ? Math.round(((d.asistencia_ultimo_mes - d.asistencia_mes_anterior) / d.asistencia_mes_anterior) * 100) : null
+                  return (
+                    <tr key={d.distrito_id} className="border-t border-border">
+                      <td className="px-4 py-3 font-medium">{d.numero ? `Distrito ${d.numero} · ${d.nombre}` : d.nombre}</td>
+                      <td className="px-4 py-3 text-secondary">{d.congregaciones}</td>
+                      <td className={`px-4 py-3 ${Number(d.vacantes) > 0 ? 'text-danger' : 'text-secondary'}`}>{d.vacantes}</td>
+                      <td className="px-4 py-3">{d.personas_activas}</td>
+                      <td className={`px-4 py-3 ${Number(d.personas_nuevas_3m) > 0 ? 'text-success' : ''}`}>{d.personas_nuevas_3m}</td>
+                      <td className="px-4 py-3">{d.sellados}{d.bautizados > 0 && d.sellados < d.bautizados && <span className="ml-1.5 text-xs text-warning">({d.bautizados - d.sellados} sin sellar)</span>}</td>
+                      <td className="px-4 py-3">
+                        {d.asistencia_ultimo_mes}
+                        {variacionAsistencia !== null && (
+                          <span className={`ml-1.5 text-xs ${variacionAsistencia < 0 ? 'text-danger' : 'text-success'}`}>
+                            ({variacionAsistencia > 0 ? '+' : ''}{variacionAsistencia}%)
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   )
@@ -468,6 +642,7 @@ export default function Dashboard() {
 
   if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
   if (rolPrincipal.nivel === 'distrital') return <DashboardDistrital rolPrincipal={rolPrincipal} />
+  if (rolPrincipal.nivel === 'nacional' || rolPrincipal.nivel === 'super_admin') return <DashboardNacional />
   if (loadingData) return (
     <div className="flex flex-col gap-6" role="status" aria-label="Cargando indicadores del resumen">
       <div className="rounded-card bg-ink/90 p-7 sm:p-9 animate-pulse">

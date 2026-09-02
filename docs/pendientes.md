@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-01): nacional/super_admin no tenian ningun dashboard
+	propio — caian al dashboard generico de congregacion local, sin
+	congregacion asignada, asi que salia practicamente vacio. Se agrego
+	`resumen_nacional()` (agrega por distrito, analogo a
+	`resumen_distrital()`) y el componente `DashboardNacional` con los
+	mismos 5 insights BI del distrital pero a escala nacional, mas la
+	aclaracion de que las cifras son de IPUC Colombia (no de la UPCI
+	global). De paso se corrigio que la tabla "Comparativa por
+	congregacion" del Dashboard distrital nunca se habia paginado. Ver
+	`docs/dashboard-nacional-2026-09-01.md`. **Accion requerida del
+	usuario**: ejecutar `supabase/resumen_nacional.sql` en el SQL Editor.
 - Resuelto (2026-09-01): no existia ningun camino para corregir el
 	distrito de una congregacion despues de creada (por ejemplo,
 	congregaciones dadas de alta bajo un distrito de prueba/demo). Se agrego
