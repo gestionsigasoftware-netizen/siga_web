@@ -8,7 +8,7 @@ import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
-import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill } from '../lib/chartTheme'
+import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset } from '../lib/chartTheme'
 import Pager from '../components/Pager'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
@@ -121,19 +121,12 @@ function StatTile({ label, value, tone = 'default', series = [], insight }) {
   )
 }
 
-function MiniTrend({ series, tone }) {
-  const width = 240
-  const height = 46
-  const padding = 4
-  const maxValue = Math.max(...series, 1)
-  const step = series.length > 1 ? (width - padding * 2) / (series.length - 1) : 0
-  const points = series.map((value, index) => `${padding + index * step},${height - padding - (value / maxValue) * (height - padding * 2)}`).join(' ')
-  const areaPoints = `${padding},${height - padding} ${points} ${width - padding},${height - padding}`
-  const stroke = { default: '#71b3f7', danger: '#f18a8a', success: '#74d99d' }[tone]
-  const gradient = { default: 'rgba(42,120,214,0.24)', danger: 'rgba(208,59,59,0.2)', success: 'rgba(0,131,0,0.2)' }[tone]
+const SPARKLINE_OPTIONS = sparklineOptions()
+const SPARKLINE_TONE_COLOR_INDEX = { default: 0, danger: 4, success: 2 }
 
-  const [lastX, lastY] = points.split(' ').pop().split(',')
-  return <div className="summary-chart" aria-hidden="true"><svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"><polygon points={areaPoints} fill={gradient} /><polyline points={points} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx={Number(lastX)} cy={Number(lastY)} r="3" fill={stroke} /></svg></div>
+function MiniTrend({ series, tone }) {
+  const colorIndex = SPARKLINE_TONE_COLOR_INDEX[tone] ?? 0
+  return <div className="summary-chart" aria-hidden="true"><Line data={sparklineDataset(series, { colorIndex })} options={SPARKLINE_OPTIONS} /></div>
 }
 
 function QuickAction({ to, icon: Icon, title, description }) {
@@ -409,7 +402,6 @@ function DashboardNacional() {
           <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
           <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
           <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
-          <p className="text-xs text-white/50 mt-3">Estas cifras son de la IPUC en Colombia. No corresponden a la UPCI (comunión global de la que IPUC es la afiliada colombiana), cuyas cifras internacionales son distintas.</p>
         </div>
       </section>
 

@@ -100,6 +100,41 @@ export function trendDataset(labels, data, { label = 'Total', colorIndex = 0 } =
   }
 }
 
+// Mini-grafico de tendencia sin ejes ni tooltip (para tarjetas KPI
+// compactas), pero con el mismo motor y degradado que los graficos
+// grandes — antes estas tarjetas usaban un SVG dibujado a mano que se
+// veia distinto (mas plano) al resto de graficos de la app.
+export function sparklineOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 700, easing: 'easeOutQuart' },
+    interaction: { intersect: false },
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    scales: {
+      x: { display: false },
+      y: { display: false },
+    },
+    elements: { point: { radius: 0, hoverRadius: 0 } },
+  }
+}
+
+export function sparklineDataset(data, { colorIndex = 0 } = {}) {
+  const color = paletteAt(colorIndex)
+  return {
+    labels: data.map((_, index) => index),
+    datasets: [{
+      data,
+      borderColor: color.line,
+      backgroundColor: gradientFill(color.line, 0.32, 0.02),
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2.5,
+      pointRadius: 0,
+    }],
+  }
+}
+
 // Barras de distribucion (una por categoria), cada una con su propio
 // color de la paleta en vez de un solo tono plano repetido — mas facil
 // de escanear de un vistazo para quien va a tomar una decision.

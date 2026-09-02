@@ -192,13 +192,16 @@
     @apply h-12 mt-4;
   }
 
-  .summary-chart svg {
+  .summary-chart svg,
+  .summary-chart canvas {
     @apply w-full h-full overflow-visible;
     filter: drop-shadow(0 0 5px rgba(42, 120, 214, 0.3));
   }
 
-  .summary-card-success .summary-chart svg { filter: drop-shadow(0 0 5px rgba(0, 131, 0, 0.3)); }
-  .summary-card-danger .summary-chart svg { filter: drop-shadow(0 0 5px rgba(208, 59, 59, 0.3)); }
+  .summary-card-success .summary-chart svg,
+  .summary-card-success .summary-chart canvas { filter: drop-shadow(0 0 5px rgba(0, 131, 0, 0.3)); }
+  .summary-card-danger .summary-chart svg,
+  .summary-card-danger .summary-chart canvas { filter: drop-shadow(0 0 5px rgba(208, 59, 59, 0.3)); }
 
   .summary-insight {
     @apply text-[11px] text-secondary mt-3 leading-4;
