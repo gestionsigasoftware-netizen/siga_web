@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import RoleChooser from './RoleChooser'
 import NotificationCenter from './NotificationCenter'
@@ -17,6 +17,7 @@ export default function MainLayout() {
     }
   })
   const location = useLocation()
+  const navigate = useNavigate()
   const scrollPositions = useRef({})
   const locationKey = `${location.pathname}${location.search}`
   const nombrePersona = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
@@ -29,6 +30,7 @@ export default function MainLayout() {
       // sessionStorage no disponible: se volverá a preguntar en la próxima navegación.
     }
     setRolElegidoEnSesion(true)
+    navigate('/app')
   }
 
   useLayoutEffect(() => {

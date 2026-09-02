@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardPlus,
@@ -58,6 +58,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
   const [organization, setOrganization] = useState(null);
+  const navigate = useNavigate();
   const { signOut } = useAuth();
   const { roles, rolPrincipal, elegirRol } = useMiRol();
   const nivel = rolPrincipal?.nivel;
@@ -292,6 +293,7 @@ export default function Sidebar() {
                         onClick={() => {
                           elegirRol(role.id);
                           setRoleSwitcherOpen(false);
+                          navigate("/app");
                         }}
                         disabled={role.id === rolPrincipal?.id}
                         className={`text-left text-[11px] rounded px-2 py-1.5 ${role.id === rolPrincipal?.id ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}

@@ -143,6 +143,51 @@
     @apply text-danger bg-danger-bg;
   }
 
+  .agenda-item {
+    @apply flex flex-col sm:flex-row sm:items-start justify-between gap-3 rounded-card border border-border bg-surface-1 p-3.5;
+    border-left: 3px solid rgba(42, 120, 214, 0.35);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .agenda-item:hover {
+    border-color: rgba(42, 120, 214, 0.28);
+    box-shadow: 0 8px 20px rgba(21, 27, 34, 0.06);
+  }
+
+  .agenda-item-overdue {
+    border-left-color: #d03b3b;
+    background: linear-gradient(135deg, rgba(252, 235, 235, 0.55), rgba(255, 255, 255, 0.6));
+  }
+
+  .agenda-item-muted {
+    border-left-color: rgba(137, 135, 129, 0.35);
+    opacity: 0.85;
+  }
+
+  .agenda-avatar {
+    @apply w-9 h-9 rounded-full bg-accent-bg text-accent flex items-center justify-center text-xs font-semibold flex-shrink-0;
+  }
+
+  .agenda-avatar-muted {
+    @apply bg-surface-2 text-muted;
+  }
+
+  .agenda-status {
+    @apply inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] rounded-full px-2 py-1 font-medium;
+  }
+
+  .agenda-status-danger { @apply text-danger bg-danger-bg; }
+  .agenda-status-warning { @apply text-warning bg-warning-bg; }
+  .agenda-status-accent { @apply text-accent bg-accent-bg; }
+
+  .agenda-action {
+    @apply inline-flex items-center justify-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1.5 border border-border transition-colors whitespace-nowrap;
+  }
+
+  .agenda-action-neutral { @apply text-secondary hover:bg-surface-2; }
+  .agenda-action-success { @apply text-success border-transparent hover:bg-success-bg; }
+  .agenda-action-danger { @apply text-danger border-transparent hover:bg-danger-bg; }
+
   .audit-badge {
     @apply inline-flex items-center rounded-full bg-accent-bg px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-accent-dark;
   }

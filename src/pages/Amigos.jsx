@@ -891,7 +891,7 @@ export default function Amigos() {
           )}
         </div>
         {selected && (
-          <aside className="card p-5 lg:sticky lg:top-24">
+          <aside className="card p-5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="eyebrow">Ficha de acompañamiento</p>
