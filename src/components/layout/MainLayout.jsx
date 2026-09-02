@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import RoleChooser from './RoleChooser'
 import NotificationCenter from './NotificationCenter'
+import GlobalSearch from './GlobalSearch'
 import { Link } from 'react-router-dom'
 import { Bell, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
@@ -80,6 +81,8 @@ export default function MainLayout() {
               <p className="eyebrow">Panel de control</p>
               <p className="text-sm text-secondary">Panel de gestión pastoral</p>
             </div>
+
+            <GlobalSearch />
 
             <div className="toolbar">
               <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary">

@@ -2,6 +2,14 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): 3 utilidades generales pedidas por el usuario --
+	busqueda global en el encabezado (personas para local, congregaciones
+	para distrital/nacional), tarjeta de "Proximos cumpleanos" en el
+	Dashboard local (30 dias), y borrado con "Deshacer" (en vez de una
+	papelera de varios dias, ver el doc para el porque) aplicado a los 4
+	catalogos de Configuracion. Ver
+	`docs/tres-utilidades-generales-2026-09-02.md`. No requiere accion del
+	usuario (sin migraciones SQL).
 - Resuelto (2026-09-02): cerrado el vacio de como se otorga acceso
 	distrital/nacional. Ya existia "distrital crea congregacion + invita a
 	su primer pastor", pero nada permitia el siguiente escalon: nacional
