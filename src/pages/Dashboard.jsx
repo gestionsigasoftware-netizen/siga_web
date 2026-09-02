@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Line, Bar } from 'react-chartjs-2'
-import { ArrowRight, BarChart3, ClipboardPlus, Database, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
@@ -106,6 +106,28 @@ function alertRecommendation(alert) {
   if (alert.tipo === 'asistencia') return 'Compara las actividades recientes y acuerda una acción.'
   if (alert.tipo === 'comite') return 'Asigna integrantes para activar este comité.'
   return 'Revisa el detalle y registra el siguiente paso.'
+}
+
+// Cumpleaños en los próximos 30 días, ignorando el año de nacimiento —
+// compara solo mes/día, con el "próximo" cumpleaños de cada persona
+// calculado hacia adelante desde hoy (si ya pasó este año, cae en el
+// siguiente). Ordenado por cercanía.
+function proximosCumpleanos(personas, dias = 30) {
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  return personas
+    .map((persona) => {
+      const nacimiento = new Date(`${persona.fecha_nacimiento}T00:00:00`)
+      if (Number.isNaN(nacimiento.getTime())) return null
+      let proximo = new Date(hoy.getFullYear(), nacimiento.getMonth(), nacimiento.getDate())
+      if (proximo < hoy) proximo = new Date(hoy.getFullYear() + 1, nacimiento.getMonth(), nacimiento.getDate())
+      const diasFaltantes = Math.round((proximo - hoy) / 86400000)
+      if (diasFaltantes > dias) return null
+      const edadCumple = proximo.getFullYear() - nacimiento.getFullYear()
+      return { ...persona, diasFaltantes, edadCumple, proximo }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.diasFaltantes - b.diasFaltantes)
 }
 
 function StatTile({ label, value, tone = 'default', series = [], insight }) {
@@ -654,6 +676,7 @@ export default function Dashboard() {
   const [registros, setRegistros] = useState([])
   const [categorias, setCategorias] = useState([])
   const [amigos, setAmigos] = useState([])
+  const [cumpleanos, setCumpleanos] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
@@ -684,6 +707,7 @@ export default function Dashboard() {
         setRegistros(cached.registros)
         setCategorias(cached.categorias)
         setAmigos(cached.amigos)
+        setCumpleanos(cached.cumpleanos ?? [])
         setLoadingData(false)
       } else {
         setLoadingData(true)
@@ -695,15 +719,17 @@ export default function Dashboard() {
         alertasQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
         alertasCountQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
       }
-      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }, { data: movimientosData, error: movimientosError }] = await Promise.all([
+      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }, { data: movimientosData, error: movimientosError }, { data: cumpleanosData, error: cumpleanosError }] = await Promise.all([
         alertasQuery,
         alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)) : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo').not('fecha_nacimiento', 'is', null) : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
       setAlertas(alertasData ?? [])
+      setCumpleanos(proximosCumpleanos(cumpleanosData ?? []))
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
       setCanHandleAlerts(Boolean(permisoAlertas))
@@ -732,7 +758,7 @@ export default function Dashboard() {
         })(),
       ])
       if (!active) return
-      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || cumpleanosError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       const nuevosRegistros = registrosData ?? []
       const nuevasCategorias = categoriasData ?? []
       const nuevosAmigos = amigosData ?? []
@@ -749,6 +775,7 @@ export default function Dashboard() {
         registros: nuevosRegistros,
         categorias: nuevasCategorias,
         amigos: nuevosAmigos,
+        cumpleanos: proximosCumpleanos(cumpleanosData ?? []),
       })
     }
     load()
@@ -1059,6 +1086,25 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {rolPrincipal?.nivel === 'local' && (
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4"><Cake className="w-4 h-4 text-accent" /><h3 className="font-medium">Próximos cumpleaños</h3><span className="text-xs text-muted">· 30 días</span></div>
+          {cumpleanos.length === 0 ? (
+            <p className="text-sm text-muted">Nadie de tu congregación cumple años en los próximos 30 días.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {cumpleanos.slice(0, 8).map((persona) => (
+                <div key={persona.id} className="flex items-center justify-between gap-3 text-sm py-1.5 px-2.5 bg-surface-1 rounded">
+                  <Link to={`/feligresia?persona=${persona.id}`} className="text-ink hover:text-accent">{persona.nombres} {persona.apellidos}</Link>
+                  <span className="text-xs text-muted flex-shrink-0">{persona.diasFaltantes === 0 ? 'Hoy' : persona.diasFaltantes === 1 ? 'Mañana' : `En ${persona.diasFaltantes} días`} · cumple {persona.edadCumple}</span>
+                </div>
+              ))}
+              {cumpleanos.length > 8 && <p className="text-xs text-muted">Y {cumpleanos.length - 8} más en el mes.</p>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
