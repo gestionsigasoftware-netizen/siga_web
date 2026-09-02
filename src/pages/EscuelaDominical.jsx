@@ -13,20 +13,14 @@ import {
 import { BookOpen, GraduationCap, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import ChartEmpty from "../components/ChartEmpty";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
 const ETAPAS = ["Cuna", "Párvulos", "Primarios", "Preadolescentes"];
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
-  scales: {
-    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
-    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
@@ -251,8 +245,8 @@ export default function EscuelaDominical() {
     ? `${topClase.nombre} concentra ${topClase.ninosCount} niños. ${claseSinMaestro > 0 ? `${claseSinMaestro} clase(s) aún no tienen maestro líder asignado.` : "Todas las clases tienen maestro líder."}`
     : "Registra clases y niños para construir una lectura de impacto infantil.";
 
-  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Asistentes", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
-  const etapasChartData = { labels: etapasConTotal.map((item) => item.etapa), datasets: [{ label: "Niños", data: etapasConTotal.map((item) => item.total), backgroundColor: "#e06b35", borderRadius: 4, barThickness: 18 }] };
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" });
+  const etapasChartData = distributionDataset(etapasConTotal, { labelKey: "etapa", datasetLabel: "Niños" });
 
   return (
     <div className="page-shell">
@@ -276,7 +270,7 @@ export default function EscuelaDominical() {
         <Metric label="Clases activas" value={clasesActivas.length} progress={clasesActivas.length ? 100 : 0} detail={`${claseSinMaestro} sin maestro líder`} insight={claseSinMaestro ? "Asigna un maestro líder a cada clase para dar continuidad." : "Todas las clases tienen maestro líder."} />
         <Metric label="Niños activos" value={ninosActivos.length} progress={ninosActivos.length ? 100 : 0} detail={`${ninosPorClase} niños por clase`} insight={ninosActivos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer niño para iniciar el trabajo."} />
         <Metric label="Maestros activos" value={maestrosActivos.length} progress={maestrosActivos.length ? Math.min(100, maestrosActivos.length * 20) : 0} detail={`${clasesActivas.length ? Math.round(maestrosActivos.length / clasesActivas.length * 100) : 0}% cobertura por clase`} insight={maestrosActivos.length < clasesActivas.length ? "Hay menos maestros que clases activas: revisa cobertura." : "Cobertura de maestros adecuada."} />
-        <Metric label="Asistencia promedio" value={promedioLeccion} tone="text-success" progress={ninosActivos.length ? Math.min(100, Math.round((promedioLeccion / ninosActivos.length) * 100)) : 0} detail={`${todasLecciones.length} lecciones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
+        <Metric label="Asistencia promedio" value={promedioLeccion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={ninosActivos.length ? Math.min(100, Math.round((promedioLeccion / ninosActivos.length) * 100)) : 0} detail={`${todasLecciones.length} lecciones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Lecciones registradas" value={todasLecciones.length} progress={todasLecciones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasLecciones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay lecciones registradas en el periodo."} />
         <Metric label="Niños por etapa líder" value={etapasConTotal.sort((a, b) => b.total - a.total)[0]?.etapa || "—"} progress={ninosActivos.length ? Math.round((etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / ninosActivos.length * 100) : 0} detail={`${etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} niños`} insight="Concentra materiales y capacitación según la etapa con más niños." />
         <Metric label="Bautizados" value={ninosBautizados.length} progress={ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0} detail={`${ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0}% de los activos`} insight="Bautizado y sellado son hitos independientes: compáralos con la métrica de sellados." />
@@ -290,14 +284,14 @@ export default function EscuelaDominical() {
           <p className="eyebrow">Asistencia registrada</p>
           <h2 className="font-medium mt-1">Tendencia de asistencia</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin lecciones registradas en el periodo.</p>}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin lecciones registradas en el periodo." />}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Crecimiento</p>
           <h2 className="font-medium mt-1">Niños por etapa</h2>
           <div className="h-56 mt-4">
-            {ninosActivos.length ? <Bar data={etapasChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin niños registrados todavía.</p>}
+            {ninosActivos.length ? <Bar data={etapasChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin niños registrados todavía." />}
           </div>
         </div>
       </section>

@@ -13,20 +13,14 @@ import {
 import { BookOpenCheck, GraduationCap, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import ChartEmpty from "../components/ChartEmpty";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
 const NIVELES = { titulo: "Título", curso: "Curso", diplomado: "Diplomado", especializacion: "Especialización", maestria: "Maestría", doctorado: "Doctorado", seminario_biblico: "Seminario bíblico", otro: "Otro" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
-  scales: {
-    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
-    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
@@ -224,8 +218,8 @@ export default function EducacionTeologica() {
     ? `${topGrupo.nombre} concentra ${topGrupo.integrantesCount} integrantes. ${certificados.length} persona(s) ya se han certificado.`
     : "Registra grupos e integrantes para construir una lectura de la formación bíblica de la congregación.";
 
-  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Asistentes", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
-  const nivelesChartData = { labels: nivelesConTotal.map((item) => item.label), datasets: [{ label: "Integrantes", data: nivelesConTotal.map((item) => item.total), backgroundColor: "#3fa66b", borderRadius: 4, barThickness: 18 }] };
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" });
+  const nivelesChartData = distributionDataset(nivelesConTotal, { datasetLabel: "Integrantes" });
 
   return (
     <div className="page-shell">
@@ -249,7 +243,7 @@ export default function EducacionTeologica() {
         <Metric label="Grupos activos" value={gruposActivos.length} progress={gruposActivos.length ? 100 : 0} detail={`${grupoSinInstructor} sin instructor`} insight={grupoSinInstructor ? "Asigna un instructor a cada grupo." : "Todos los grupos tienen instructor."} />
         <Metric label="Integrantes activos" value={integrantesActivos.length} progress={integrantesActivos.length ? 100 : 0} detail={`${integrantesPorGrupo} por grupo`} insight={integrantesActivos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer integrante para iniciar."} />
         <Metric label="Certificados" value={certificados.length} tone="text-success" progress={integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0} detail={`${integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0}% de los activos`} insight="Hito de graduación del proceso formativo." />
-        <Metric label="Asistencia promedio" value={promedioSesion} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={`${todasSesiones.length} sesiones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
+        <Metric label="Asistencia promedio" value={promedioSesion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={`${todasSesiones.length} sesiones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sesiones registradas" value={todasSesiones.length} progress={todasSesiones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasSesiones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay sesiones registradas en el periodo."} />
         <Metric label="Nivel líder" value={nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={integrantesActivos.length ? Math.round((nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={`${nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} integrantes`} insight="Compara niveles para planear la siguiente oferta formativa." />
       </section>
@@ -261,14 +255,14 @@ export default function EducacionTeologica() {
           <p className="eyebrow">Asistencia registrada</p>
           <h2 className="font-medium mt-1">Tendencia de asistencia</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin sesiones registradas en el periodo.</p>}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin sesiones registradas en el periodo." />}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Composición</p>
           <h2 className="font-medium mt-1">Integrantes por nivel</h2>
           <div className="h-56 mt-4">
-            {nivelesConTotal.length ? <Bar data={nivelesChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin integrantes registrados todavía.</p>}
+            {nivelesConTotal.length ? <Bar data={nivelesChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin integrantes registrados todavía." />}
           </div>
         </div>
       </section>

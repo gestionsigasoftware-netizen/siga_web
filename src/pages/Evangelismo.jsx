@@ -14,6 +14,7 @@ import { ArrowLeft, ArrowRight, MapPinned, Plus, Target, UsersRound } from "luci
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 
 ChartJS.register(
   BarElement,
@@ -29,27 +30,7 @@ const PERIODOS = [
   ["180", "6 meses"],
   ["365", "12 meses"],
 ];
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: { backgroundColor: "#111820", padding: 10 },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-      border: { display: false },
-      grid: { color: "rgba(82,81,78,0.1)" },
-      ticks: { color: "#898781", precision: 0 },
-    },
-    x: {
-      border: { display: false },
-      grid: { display: false },
-      ticks: { color: "#898781", maxRotation: 0 },
-    },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, tone = "" }) {
   return (
@@ -596,21 +577,7 @@ export default function Evangelismo() {
           <h2 className="font-medium mt-1">Asistencia por captura</h2>
           <div className="h-56 mt-4">
             <Line
-              data={{
-                labels: tendencia.map((item) => item.fecha),
-                datasets: [
-                  {
-                    label: "Asistentes",
-                    data: tendencia.map((item) => item.total),
-                    borderColor: "#2a78d6",
-                    backgroundColor: "rgba(42,120,214,0.12)",
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    borderWidth: 2.5,
-                  },
-                ],
-              }}
+              data={trendDataset(tendencia.map((item) => item.fecha), tendencia.map((item) => item.total), { label: "Asistentes" })}
               options={CHART_OPTIONS}
             />
           </div>
@@ -620,18 +587,7 @@ export default function Evangelismo() {
           <h2 className="font-medium mt-1">Conversiones por metodología</h2>
           <div className="h-56 mt-4">
             <Bar
-              data={{
-                labels: metodoRows.map((item) => item.nombre),
-                datasets: [
-                  {
-                    label: "Conversiones",
-                    data: metodoRows.map((item) => item.conversiones),
-                    backgroundColor: "#e06b35",
-                    borderRadius: 4,
-                    barThickness: 20,
-                  },
-                ],
-              }}
+              data={distributionDataset(metodoRows, { labelKey: "nombre", valueKey: "conversiones", datasetLabel: "Conversiones" })}
               options={CHART_OPTIONS}
             />
           </div>

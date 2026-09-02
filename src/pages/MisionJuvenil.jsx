@@ -13,6 +13,7 @@ import {
 import { BookOpen, Building2, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 
 ChartJS.register(
   BarElement,
@@ -40,27 +41,7 @@ const ESTADOS = {
   bautizado: "Bautizado",
   inactivo: "Inactivo",
 };
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: { backgroundColor: "#111820", padding: 10 },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-      border: { display: false },
-      grid: { color: "rgba(82,81,78,0.1)" },
-      ticks: { color: "#898781", precision: 0 },
-    },
-    x: {
-      border: { display: false },
-      grid: { display: false },
-      ticks: { color: "#898781", maxRotation: 0, autoSkip: false },
-    },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
@@ -536,21 +517,7 @@ export default function MisionJuvenil() {
           <h2 className="font-medium mt-1">Actividad juvenil</h2>
           <div className="h-56 mt-4">
             <Line
-              data={{
-                labels: trend.map((item) => item.fecha),
-                datasets: [
-                  {
-                    label: "Asistentes",
-                    data: trend.map((item) => item.total),
-                    borderColor: "#2a78d6",
-                    backgroundColor: "rgba(42,120,214,0.12)",
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    borderWidth: 2.5,
-                  },
-                ],
-              }}
+              data={trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" })}
               options={CHART_OPTIONS}
             />
           </div>
@@ -560,18 +527,7 @@ export default function MisionJuvenil() {
           <h2 className="font-medium mt-1">Estado de estudiantes</h2>
           <div className="h-56 mt-4">
             <Bar
-              data={{
-                labels: statusRows.map((item) => item.label),
-                datasets: [
-                  {
-                    label: "Estudiantes",
-                    data: statusRows.map((item) => item.total),
-                    backgroundColor: "#e06b35",
-                    borderRadius: 4,
-                    barThickness: 18,
-                  },
-                ],
-              }}
+              data={distributionDataset(statusRows, { datasetLabel: "Estudiantes" })}
               options={CHART_OPTIONS}
             />
           </div>

@@ -4,12 +4,13 @@ import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineE
 import { Download, FileBarChart2, Filter } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import { chartOptions as buildChartOptions, trendDataset, distributionDataset } from '../lib/chartTheme'
+import ChartEmpty from '../components/ChartEmpty'
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip)
 
 const PAGE_SIZE = 50
 const PERIODS = [['30', 'Últimos 30 días'], ['90', 'Últimos 90 días'], ['all', 'Todo']]
-const COLORS = ['#2a78d6', '#e06b35', '#008300', '#9a6bce']
 
 function formatDate(date) {
   return date ? new Date(`${date}T12:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Sin datos'
@@ -88,16 +89,16 @@ export default function ReportesOptimizado() {
     link.click()
   }
 
-  const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111820', padding: 10 } }, scales: { y: { beginAtZero: true, border: { display: false } }, x: { border: { display: false }, grid: { display: false } } } }
-  const lineData = { labels: byDate.map((row) => formatDate(row.fecha)), datasets: [{ label: 'Asistentes', data: byDate.map((row) => row.total), borderColor: COLORS[0], backgroundColor: 'rgba(42,120,214,0.14)', fill: true, tension: 0.38, pointRadius: 3, borderWidth: 2.5 }] }
-  const barData = { labels: byModule.map((row) => row.nombre || 'Sin módulo'), datasets: [{ label: 'Asistentes', data: byModule.map((row) => row.total), backgroundColor: COLORS, borderRadius: 4, barThickness: 16 }] }
+  const chartOptions = buildChartOptions()
+  const lineData = trendDataset(byDate.map((row) => formatDate(row.fecha)), byDate.map((row) => row.total), { label: 'Asistentes' })
+  const barData = distributionDataset(byModule.map((row) => ({ label: row.nombre || 'Sin módulo', total: row.total })), { datasetLabel: 'Asistentes' })
 
   return <div className="page-shell">
     <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Lectura de datos</p><h1 className="section-title">Reportes</h1><p className="text-sm text-secondary mt-1">Métricas completas y detalle cargado por páginas de 50 registros.</p></div><button className="btn-secondary" disabled={loading || !detail.length} onClick={exportar}><Download className="w-4 h-4" /> Exportar página CSV</button></header>
     <section className="card p-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[auto_1fr_220px_180px] xl:items-center"><div className="flex items-center gap-2 text-sm text-secondary"><Filter className="w-4 h-4" /> Filtros del análisis</div><div className="flex gap-2 flex-wrap">{PERIODS.map(([value, label]) => <button type="button" key={value} onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? 'bg-ink text-white border-ink' : 'border-border text-secondary'}`}>{label}</button>)}</div><select aria-label="Filtrar por congregación" className="input-field min-w-0" value={congregacion} onChange={(event) => setCongregacion(event.target.value)}><option value="todas">Todas las congregaciones</option>{congregations.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><select aria-label="Filtrar por módulo" className="input-field min-w-0" value={modulo} onChange={(event) => setModulo(event.target.value)}><option value="todos">Todos los módulos</option>{byModule.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></section>
     {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
     <section className="grid sm:grid-cols-3 gap-3"><Metric label="Actividades registradas" value={activities} detail={`${formatDate(byDate.at(-1)?.fecha)} → ${formatDate(byDate[0]?.fecha)}`} /><Metric label="Asistentes contabilizados" value={total} /><Metric label="Promedio por actividad" value={activities ? Math.round(total / activities) : 0} /></section>
-    <section className="grid lg:grid-cols-2 gap-4"><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Señal de comportamiento</p><h2 className="font-medium mt-1">Evolución de asistentes</h2><div className="h-56 mt-5">{byDate.length ? <Line data={lineData} options={chartOptions} /> : <p className="text-sm text-muted text-center pt-20">Sin datos para estos filtros.</p>}</div></section><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Comparación operativa</p><h2 className="font-medium mt-1">Asistencia por módulo</h2><div className="h-56 mt-5">{byModule.length ? <Bar data={barData} options={{ ...chartOptions, indexAxis: 'y' }} /> : <p className="text-sm text-muted text-center pt-20">Sin datos para estos filtros.</p>}</div></section></section>
+    <section className="grid lg:grid-cols-2 gap-4"><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Señal de comportamiento</p><h2 className="font-medium mt-1">Evolución de asistentes</h2><div className="h-56 mt-5">{byDate.length ? <Line data={lineData} options={chartOptions} /> : <ChartEmpty message="Sin datos para estos filtros." />}</div></section><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Comparación operativa</p><h2 className="font-medium mt-1">Asistencia por módulo</h2><div className="h-56 mt-5">{byModule.length ? <Bar data={barData} options={{ ...chartOptions, indexAxis: 'y' }} /> : <ChartEmpty message="Sin datos para estos filtros." />}</div></section></section>
     {rolPrincipal?.nivel !== 'local' && (
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border"><p className="eyebrow">Comparativa distrital</p><h2 className="font-medium mt-1">Asistencia por congregación</h2><p className="text-sm text-secondary mt-1">Suma del período seleccionado, de mayor a menor.</p></div>

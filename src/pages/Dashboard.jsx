@@ -8,10 +8,12 @@ import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
+import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill } from '../lib/chartTheme'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
 
 const dashboardCache = new Map()
+const CATEGORIA_COLORS = CATEGORIA_COLORS_OBJ.map((color) => [color.line, color.soft])
 
 const NIVEL_TITULO = {
   super_admin: 'Panel — todas las congregaciones',
@@ -28,16 +30,6 @@ const FRECUENCIAS = [
   ['semestral', 'Semestral'],
   ['anual', 'Anual'],
 ]
-const CATEGORIA_COLORS = [
-  ['#2a78d6', 'rgba(42,120,214,0.13)'],
-  ['#e06b35', 'rgba(224,107,53,0.1)'],
-  ['#008300', 'rgba(0,131,0,0.1)'],
-  ['#9a6bce', 'rgba(154,107,206,0.1)'],
-  ['#d03b3b', 'rgba(208,59,59,0.1)'],
-  ['#159a9c', 'rgba(21,154,156,0.1)'],
-  ['#c28a16', 'rgba(194,138,22,0.1)'],
-]
-
 function inicioSemanaISO(fecha) {
   const dia = fecha.getDay() || 7
   const inicio = new Date(fecha)
@@ -541,7 +533,7 @@ export default function Dashboard() {
       label: category.nombre,
       data: volumeMonths.map((month) => month.records.reduce((total, registro) => total + Number(registro.desglose?.[category.id] || 0), 0)),
       borderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0],
-      backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][1],
+      backgroundColor: gradientFill(CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0]),
       fill: true,
       tension: 0.42,
       pointRadius: 2,
@@ -553,7 +545,7 @@ export default function Dashboard() {
   }
   const periodChartData = {
     labels: asistenciaPorPeriodo.map((periodo) => periodo.label),
-    datasets: [{ label: 'Asistencia total', data: attendanceSeries, borderColor: '#2a78d6', backgroundColor: 'rgba(42,120,214,0.12)', fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: '#2a78d6', borderWidth: 2.5 }],
+    datasets: [{ label: 'Asistencia total', data: attendanceSeries, borderColor: '#2a78d6', backgroundColor: gradientFill('#2a78d6'), fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: '#2a78d6', borderWidth: 2.5 }],
   }
   const leadingShare = totalCategorias && categoriaPrincipal ? Math.round((categoriaPrincipal.total / totalCategorias) * 100) : 0
   const leadingTrend = volumeChartData.datasets[0]?.data
@@ -567,7 +559,7 @@ export default function Dashboard() {
   const chartData = {
     labels: asistenciaPorPeriodo.map((periodo) => periodo.label),
     datasets: [
-      ...categoriasConTotal.map((categoria, index) => ({ label: categoria.nombre, data: asistenciaPorPeriodo.map((periodo) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoria.id] || 0), 0)), borderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][1], fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], borderWidth: 2.5 })),
+      ...categoriasConTotal.map((categoria, index) => ({ label: categoria.nombre, data: asistenciaPorPeriodo.map((periodo) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoria.id] || 0), 0)), borderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], backgroundColor: gradientFill(CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0]), fill: true, tension: 0.42, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, pointBorderColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0], borderWidth: 2.5 })),
     ],
   }
 
@@ -596,10 +588,11 @@ export default function Dashboard() {
     },
     scales: {
       y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(82,81,78,0.1)', drawTicks: false }, ticks: { color: '#898781', padding: 8, font: { size: 10 } } },
-      x: { border: { display: false }, grid: { display: false }, ticks: { color: '#898781', padding: 8, font: { size: 10 } } },
+      x: { border: { display: false }, grid: { display: false }, ticks: { color: '#898781', padding: 8, font: { size: 10 }, autoSkip: true, maxRotation: 0, maxTicksLimit: 8 } },
     },
   }
   const periodChartOptions = { ...chartOptions, plugins: { ...chartOptions.plugins, legend: { display: false } } }
+  const seleccionColor = categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][0] : '#2a78d6'
 
   return (
     <div className="flex flex-col gap-6">
@@ -641,7 +634,7 @@ export default function Dashboard() {
           <div><p className="text-xs text-muted">Actividades del periodo</p><p className="text-3xl font-semibold mt-1">{cantidadRegistros(registrosPeriodoDetalle)}</p></div>
           <div><p className="text-xs text-muted">Variación anterior</p><p className={`text-3xl font-semibold mt-1 ${variacionCategoria !== null && variacionCategoria < 0 ? 'text-danger' : 'text-success'}`}>{variacionCategoria === null ? '—' : `${variacionCategoria > 0 ? '+' : ''}${variacionCategoria}%`}</p></div>
         </div>
-        <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || 'Asistencia total', data: conteoCategoriaSeleccionada, borderColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][0] : '#2a78d6', backgroundColor: categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][1] : 'rgba(42,120,214,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
+        <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || 'Asistencia total', data: conteoCategoriaSeleccionada, borderColor: seleccionColor, backgroundColor: gradientFill(seleccionColor), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
       </section>
 
       <div className="grid sm:grid-cols-3 gap-3">
@@ -682,7 +675,7 @@ export default function Dashboard() {
           <div><p className="text-xs text-muted">Convertidos</p><p className="text-2xl font-semibold mt-1 text-success">{amigosConvertidos}</p><p className="text-xs text-secondary mt-1">Marcados en la ruta</p></div>
           <div><p className="text-xs text-muted">Con categoría asignada</p><p className="text-2xl font-semibold mt-1">{amigosConCategoria}</p><p className="text-xs text-secondary mt-1">Listos para integración</p></div>
         </div>
-        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: 'rgba(224,107,53,0.12)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">Aún no hay información de asistencia de Amigos para mostrar.</p>}
+        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: gradientFill('#e06b35'), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">Aún no hay información de asistencia de Amigos para mostrar.</p>}
         <p className="text-xs text-muted mt-4">Importante: esta asistencia es un total por categoría; no identifica cuál amigo asistió. Para medir conversión individual habría que registrar el amigo como persona o añadir un vínculo de asistencia por amigo.</p>
       </section>
 

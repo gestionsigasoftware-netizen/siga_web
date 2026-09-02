@@ -13,6 +13,8 @@ import {
 import { AlertTriangle, HandHeart, Plus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import ChartEmpty from "../components/ChartEmpty";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -22,15 +24,7 @@ const ESTADO_LABELS = { identificada: "Identificada", en_apoyo: "En apoyo", resu
 const TIPO_AYUDA_LABELS = { material: "Material", economica: "Económica", acompanamiento: "Acompañamiento", otra: "Otra" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_ALERTA = 30;
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
-  scales: {
-    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
-    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
@@ -180,8 +174,8 @@ export default function ObraSocial() {
     ? `${casosAbiertos.length} caso(s) abiertos, ${casosAltaPrioridad.length} de prioridad alta. ${casosSinSeguimiento.length > 0 ? `${casosSinSeguimiento.length} sin seguimiento en más de ${DIAS_ALERTA} días.` : "Todos los casos abiertos tienen seguimiento reciente."}`
     : "Registra un caso para comenzar a medir la asistencia social de la congregación.";
 
-  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Ayudas", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
-  const tiposChartData = { labels: tiposConTotal.map((item) => item.label), datasets: [{ label: "Casos abiertos", data: tiposConTotal.map((item) => item.total), backgroundColor: "#e06b35", borderRadius: 4, barThickness: 18 }] };
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Ayudas" });
+  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Casos abiertos" });
 
   return (
     <div className="page-shell">
@@ -215,14 +209,14 @@ export default function ObraSocial() {
           <p className="eyebrow">Apoyo brindado</p>
           <h2 className="font-medium mt-1">Tendencia de ayudas</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin ayudas registradas en el periodo.</p>}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin ayudas registradas en el periodo." />}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Composición</p>
           <h2 className="font-medium mt-1">Casos abiertos por tipo de necesidad</h2>
           <div className="h-56 mt-4">
-            {casosAbiertos.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin casos abiertos todavía.</p>}
+            {casosAbiertos.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin casos abiertos todavía." />}
           </div>
         </div>
       </section>

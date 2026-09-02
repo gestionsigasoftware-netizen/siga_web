@@ -13,21 +13,15 @@ import {
 import { AlertTriangle, Flag, Plus, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import ChartEmpty from "../components/ChartEmpty";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
 const TIPO_ACTIVIDAD_LABELS = { campamento: "Campamento", taller: "Taller", social: "Social", reunion: "Reunión", otro: "Otro" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_INACTIVIDAD = 60;
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
-  scales: {
-    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
-    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
@@ -173,8 +167,8 @@ export default function Conquistadores() {
     ? `${lideres.length} de ${activos.length} miembros activos son líderes en formación. ${miembrosSinSeguimiento.length > 0 ? `${miembrosSinSeguimiento.length} sin actividad reciente.` : "Todos con actividad reciente."}`
     : "Registra miembros de 18 a 40 años para construir una lectura del ministerio de jóvenes adultos.";
 
-  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Actividades", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
-  const tiposChartData = { labels: tiposConTotal.map((item) => item.label), datasets: [{ label: "Actividades", data: tiposConTotal.map((item) => item.total), backgroundColor: "#9a6bce", borderRadius: 4, barThickness: 18 }] };
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Actividades" });
+  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Actividades" });
 
   return (
     <div className="page-shell">
@@ -197,7 +191,7 @@ export default function Conquistadores() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Miembros activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${miembros.length} registrados en total`} insight={activos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer miembro para iniciar el trabajo."} />
         <Metric label="Líderes en formación" value={lideres.length} progress={activos.length ? Math.round((lideres.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((lideres.length / activos.length) * 100) : 0}% de los activos`} insight="Líderes comprometidos con la evangelización juvenil del distrito." />
-        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
+        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sin seguimiento reciente" value={miembrosSinSeguimiento.length} tone={miembrosSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activos.length ? Math.round((miembrosSinSeguimiento.length / activos.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={miembrosSinSeguimiento.length > 0 ? "Revisa la lista y programa un contacto." : "Todos los miembros tienen seguimiento reciente."} />
       </section>
 
@@ -208,14 +202,14 @@ export default function Conquistadores() {
           <p className="eyebrow">Trabajo realizado</p>
           <h2 className="font-medium mt-1">Tendencia de actividades</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin actividades registradas en el periodo.</p>}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas en el periodo." />}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Modalidad</p>
           <h2 className="font-medium mt-1">Actividades por tipo</h2>
           <div className="h-56 mt-4">
-            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin actividades registradas todavía.</p>}
+            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas todavía." />}
           </div>
         </div>
       </section>

@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import ChartEmpty from "../components/ChartEmpty";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -29,15 +31,7 @@ const TIPO_APOYO_LABELS = { visita: "Visita", consejeria: "Consejería", espirit
 const ESTADO_REINSERCION_LABELS = { asignado: "Asignado", contactado: "Contactado", activo: "Activo", inactivo: "Inactivo", reincidencia: "Reincidencia" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_ALERTA_INPEC = 30;
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: "#111820", padding: 10 } },
-  scales: {
-    y: { beginAtZero: true, border: { display: false }, grid: { color: "rgba(82,81,78,0.1)" }, ticks: { color: "#898781", precision: 0 } },
-    x: { border: { display: false }, grid: { display: false }, ticks: { color: "#898781", maxRotation: 0, autoSkip: false } },
-  },
-};
+const CHART_OPTIONS = chartOptions();
 
 const EMPTY_INTERNO = { nombres: "", apellidos: "", centro_id: "", patio: "", fecha_ingreso_ministerio: new Date().toISOString().slice(0, 10), observaciones: "" };
 const EMPTY_DELEGADO = { persona_id: "", centro_id: "", permiso_inpec_vigente: false, permiso_inpec_vencimiento: "", observaciones: "" };
@@ -277,11 +271,15 @@ export default function ObraCarcelaria() {
     ? `${delegadosAlerta.length > 0 ? `${delegadosAlerta.length} delegado(s) con permiso INPEC vencido o por vencer. ` : "Todos los delegados activos tienen permiso INPEC vigente. "}${bautizados.length} de ${activos.length} internos activos ya se han bautizado en el centro.`
     : "Registra internos y delegados para construir una lectura del trabajo carcelario.";
 
-  const chartData = { labels: trend.map((item) => item.fecha), datasets: [{ label: "Asistencia", data: trend.map((item) => item.total), borderColor: "#2a78d6", backgroundColor: "rgba(42,120,214,0.12)", fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] };
-  const poblacionChartData = {
-    labels: ["Asistencia acumulada", "Bautizados", "Sellados"],
-    datasets: [{ label: "Total", data: [asistenciaAcumulada, bautizados.length, sellados.length], backgroundColor: ["#9a6bce", "#2a78d6", "#3fa66b"], borderRadius: 4, barThickness: 28 }],
-  };
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistencia" });
+  const poblacionChartData = distributionDataset(
+    [
+      { label: "Asistencia acumulada", total: asistenciaAcumulada },
+      { label: "Bautizados", total: bautizados.length },
+      { label: "Sellados", total: sellados.length },
+    ],
+    { datasetLabel: "Total" }
+  );
 
   return (
     <div className="page-shell">
@@ -315,7 +313,7 @@ export default function ObraCarcelaria() {
           <p className="eyebrow">Asistencia interna</p>
           <h2 className="font-medium mt-1">Tendencia de asistencia a cultos</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin cultos registrados en el periodo.</p>}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin cultos registrados en el periodo." />}
           </div>
           <p className="text-xs text-secondary mt-2">{tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} {estudiosUltimoMes} estudios REFAM entregados en los últimos 30 días.</p>
         </div>
@@ -323,7 +321,7 @@ export default function ObraCarcelaria() {
           <p className="eyebrow">Población flotante vs. membresía interna</p>
           <h2 className="font-medium mt-1">Asistencia vs. hitos espirituales</h2>
           <div className="h-56 mt-4">
-            {cultos.length ? <Bar data={poblacionChartData} options={CHART_OPTIONS} /> : <p className="text-sm text-muted text-center pt-20">Sin datos registrados todavía.</p>}
+            {cultos.length ? <Bar data={poblacionChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin datos registrados todavía." />}
           </div>
         </div>
       </section>
