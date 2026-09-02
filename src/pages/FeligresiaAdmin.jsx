@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react'
-import { Award, BarChart3, CheckCircle2, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
+import { ArrowRightLeft, Award, BarChart3, CheckCircle2, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
@@ -217,6 +217,12 @@ export default function FeligresiaAdmin() {
   const [pastoralFollowups, setPastoralFollowups] = useState([])
   const [pastoralAlerts, setPastoralAlerts] = useState([])
   const [committeeAudit, setCommitteeAudit] = useState([])
+  const [traslados, setTraslados] = useState([])
+  const [trasladoBusqueda, setTrasladoBusqueda] = useState('')
+  const [trasladoResultados, setTrasladoResultados] = useState([])
+  const [trasladoDestinoId, setTrasladoDestinoId] = useState('')
+  const [trasladoObservaciones, setTrasladoObservaciones] = useState('')
+  const [savingTraslado, setSavingTraslado] = useState(false)
   const [pastoralAgendaStatus, setPastoralAgendaStatus] = useState('pendiente')
   const [pastoralAgendaSearch, setPastoralAgendaSearch] = useState('')
   const [peopleTotal, setPeopleTotal] = useState(0)
@@ -282,6 +288,7 @@ export default function FeligresiaAdmin() {
       setSummary(cached.summary)
       setPastoralAlerts(cached.pastoralAlerts)
       setCommitteeAudit(cached.committeeAudit)
+      setTraslados(cached.traslados)
       setLoading(false)
     } else {
       setLoading(true)
@@ -290,7 +297,7 @@ export default function FeligresiaAdmin() {
     if (personStatus !== 'todos') peopleQuery = peopleQuery.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) peopleQuery = peopleQuery.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     peopleQuery = peopleQuery.order('nombres').order('id').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
-    const [peopleResult, analyticsPeopleResult, familyResult, familyMembersResult, familyRelationsResult, committeeResult, committeeCargoResult, committeeTypeResult, cargoResult, followupResult, summaryResult, alertsResult, committeeAuditResult, movementsResult] = await Promise.all([
+    const [peopleResult, analyticsPeopleResult, familyResult, familyMembersResult, familyRelationsResult, committeeResult, committeeCargoResult, committeeTypeResult, cargoResult, followupResult, summaryResult, alertsResult, committeeAuditResult, movementsResult, trasladosResult] = await Promise.all([
       peopleQuery,
       supabase.from('personas').select('id, nombres, apellidos, estado_membresia, estado_civil, genero, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),
       supabase.from('familias').select('id, nombre_familia, direccion, telefono').eq('congregacion_id', congregacionId).order('nombre_familia'),
@@ -306,8 +313,9 @@ export default function FeligresiaAdmin() {
       supabase.from('vw_alertas_pastorales').select('*').order('mes', { ascending: false }),
       supabase.from('auditoria_feligresia').select('id, entidad, accion, usuario_id, creado_en').eq('congregacion_id', congregacionId).in('entidad', ['comites', 'membresias_comite']).order('creado_en', { ascending: false }).limit(100),
       supabase.from('movimientos_membresia').select('id, persona_id, tipo, fecha, congregacion_relacionada_id, observaciones, congregaciones_relacionada:congregacion_relacionada_id(nombre)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }),
+      supabase.from('traslados_feligresia').select('id, persona_id, congregacion_origen_id, congregacion_destino_id, estado, fecha_solicitud, observaciones, persona:persona_id(nombres, apellidos), origen:congregacion_origen_id(nombre), destino:congregacion_destino_id(nombre)').or(`congregacion_origen_id.eq.${congregacionId},congregacion_destino_id.eq.${congregacionId}`).eq('estado', 'pendiente').order('fecha_solicitud', { ascending: false }),
     ])
-    if (peopleResult.error || analyticsPeopleResult.error || familyResult.error || familyMembersResult.error || familyRelationsResult.error || committeeResult.error || committeeCargoResult.error || committeeTypeResult.error || cargoResult.error || followupResult.error || summaryResult.error || alertsResult.error || committeeAuditResult.error) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
+    if (peopleResult.error || analyticsPeopleResult.error || familyResult.error || familyMembersResult.error || familyRelationsResult.error || committeeResult.error || committeeCargoResult.error || committeeTypeResult.error || cargoResult.error || followupResult.error || summaryResult.error || alertsResult.error || committeeAuditResult.error || trasladosResult?.error) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
     const freshData = {
       people: peopleResult.data ?? [],
       committeeCargoCatalog: committeeCargoResult.data ?? [],
@@ -324,6 +332,7 @@ export default function FeligresiaAdmin() {
       summary: summaryResult.data,
       pastoralAlerts: alertsResult.data ?? [],
       committeeAudit: committeeAuditResult.data ?? [],
+      traslados: trasladosResult?.data ?? [],
     }
     setPeople(freshData.people)
     setCommitteeCargoCatalog(freshData.committeeCargoCatalog)
@@ -340,6 +349,7 @@ export default function FeligresiaAdmin() {
     setSummary(freshData.summary)
     setPastoralAlerts(freshData.pastoralAlerts)
     setCommitteeAudit(freshData.committeeAudit)
+    setTraslados(freshData.traslados)
     setLoading(false)
     feligresiaCache.set(cacheKey, freshData)
   }
@@ -631,6 +641,49 @@ export default function FeligresiaAdmin() {
     setNotice('Movimiento de membresía registrado.'); load()
   }
 
+  async function buscarCongregacionesDestino(texto) {
+    setTrasladoBusqueda(texto)
+    if (texto.trim().length < 2) { setTrasladoResultados([]); return }
+    const { data } = await supabase.rpc('buscar_congregaciones', { p_busqueda: texto.trim() })
+    setTrasladoResultados((data ?? []).filter((item) => item.id !== congregacionId))
+  }
+
+  async function iniciarTraslado() {
+    if (!canEdit || !selected || !trasladoDestinoId) return
+    setSavingTraslado(true); setError(null)
+    const { error: trasladoError } = await supabase.rpc('solicitar_traslado_persona', {
+      p_persona_id: selected.id,
+      p_congregacion_destino_id: trasladoDestinoId,
+      p_observaciones: trasladoObservaciones.trim() || null,
+    })
+    setSavingTraslado(false)
+    if (trasladoError) { setError(`No se pudo iniciar el traslado: ${trasladoError.message}`); return }
+    setTrasladoBusqueda(''); setTrasladoResultados([]); setTrasladoDestinoId(''); setTrasladoObservaciones('')
+    setNotice('Traslado iniciado. La congregación destino debe recibirlo para completarlo.')
+    setShowForm(false)
+    load()
+  }
+
+  async function recibirTraslado(traslado) {
+    if (!canEdit) return
+    setSavingTraslado(true); setError(null)
+    const { error: recibirError } = await supabase.rpc('recibir_traslado_persona', { p_traslado_id: traslado.id })
+    setSavingTraslado(false)
+    if (recibirError) { setError(`No se pudo recibir el traslado: ${recibirError.message}`); return }
+    setNotice(`${traslado.persona?.nombres} ${traslado.persona?.apellidos} ahora pertenece a tu congregación, con todo su historial.`)
+    load()
+  }
+
+  async function cancelarTraslado(traslado) {
+    if (!canEdit) return
+    setSavingTraslado(true); setError(null)
+    const { error: cancelarError } = await supabase.rpc('cancelar_traslado_persona', { p_traslado_id: traslado.id })
+    setSavingTraslado(false)
+    if (cancelarError) { setError(`No se pudo cancelar el traslado: ${cancelarError.message}`); return }
+    setNotice('Traslado cancelado.')
+    load()
+  }
+
   async function attendPastoralAlert(alert) {
     if (!canEdit) { setError('Tu perfil solo permite consultar alertas.'); return }
     setDialog({ title: 'Atender alerta pastoral', message: alert.detalle, fields: [{ name: 'accion', label: 'Acción realizada', value: '', required: true }, { name: 'fecha', label: 'Fecha realizada', value: new Date().toISOString().slice(0, 10), required: true, type: 'date' }, { name: 'proxima_fecha', label: 'Próximo contacto (opcional)', value: '', type: 'date' }, { name: 'notas', label: 'Notas', value: '' }], onSubmit: (values) => saveAlertAttention(alert, values) })
@@ -783,16 +836,53 @@ export default function FeligresiaAdmin() {
     {importError && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3"><p>{importError}</p>{importRowErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{importRowErrors.map((message) => <li key={message}>{message}</li>)}</ul>}</div>}
     {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Operación</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className={`py-2 pr-3 ${row.operation === 'actualizar' ? 'text-accent' : 'text-success'}`}>{row.operation}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Metric label="Personas activas" value={active} accent /><Metric label="Bautizados" value={baptized} /><Metric label="Sellados" value={sealed} /><Metric label="Apartados" value={apart} /><Metric label="Familias asociadas" value={familiesWithPeople} /></div>
-    <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de feligresía" role="tablist">{[['personas', 'Población', UsersRound], ['familias', 'Familias', HeartHandshake], ['comites', 'Comités', HeartHandshake], ['seguimiento', 'Seguimiento pastoral', HeartHandshake], ['historial', 'Evolución', BarChart3]].map(([key, label, Icon]) => <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? 'border-accent text-accent' : 'border-transparent text-secondary'}`}><Icon className="w-4 h-4" />{label}</button>)}</nav>
+    <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de feligresía" role="tablist">{[['personas', 'Población', UsersRound], ['familias', 'Familias', HeartHandshake], ['comites', 'Comités', HeartHandshake], ['seguimiento', 'Seguimiento pastoral', HeartHandshake], ['traslados', `Traslados${traslados.length ? ` (${traslados.length})` : ''}`, ArrowRightLeft], ['historial', 'Evolución', BarChart3]].map(([key, label, Icon]) => <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? 'border-accent text-accent' : 'border-transparent text-secondary'}`}><Icon className="w-4 h-4" />{label}</button>)}</nav>
     {error && !showForm && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs self-start sm:self-auto">Reintentar</button></div>}
     {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
     {tab === 'comites' && <><CommitteeFilters status={committeeStatusFilter} setStatus={setCommitteeStatusFilter} cargo={committeeCargoFilter} setCargo={setCommitteeCargoFilter} person={committeePersonFilter} setPerson={setCommitteePersonFilter} validity={committeeValidityFilter} setValidity={setCommitteeValidityFilter} cargos={committeeCargoCatalog} people={analyticsPeople} /><CommitteeCreateForm onSubmit={saveCommittee} saving={saving} name={committeeName} setName={setCommitteeName} code={committeeCode} setCode={setCommitteeCode} type={committeeType} setType={setCommitteeType} types={committeeTypes} description={committeeDescription} setDescription={setCommitteeDescription} purpose={committeePurpose} setPurpose={setCommitteePurpose} start={committeeStart} setStart={setCommitteeStart} end={committeeEnd} setEnd={setCommitteeEnd} responsible={committeeResponsible} setResponsible={setCommitteeResponsible} notes={committeeNotes} setNotes={setCommitteeNotes} people={analyticsPeople} /></>}
     {tab === 'seguimiento' && <><PastoralAgendaFilter value={pastoralAgendaStatus} onChange={setPastoralAgendaStatus} search={pastoralAgendaSearch} setSearch={setPastoralAgendaSearch} /><PastoralSection alerts={pastoralAlerts} followups={pastoralFollowups} people={analyticsPeople} saving={saving} onAttend={attendPastoralAlert} onUpdateFollowup={updateFollowupStatus} onOpenPerson={openPersonFromFollowup} canEdit={canEdit} agendaStatus={pastoralAgendaStatus} agendaSearch={pastoralAgendaSearch} /></>}
+    {tab === 'traslados' && <section className="flex flex-col gap-4">
+      <section className="card p-5">
+        <h2 className="font-medium">Traslados recibidos pendientes</h2>
+        <p className="text-sm text-secondary mt-1">Personas de otra congregación que se trasladaron hacia la tuya. Al recibirlas, conservan todo su historial (bautismo, sellado, familia, cargos).</p>
+        {traslados.filter((item) => item.congregacion_destino_id === congregacionId).length ? (
+          <div className="flex flex-col gap-2.5 mt-4">
+            {traslados.filter((item) => item.congregacion_destino_id === congregacionId).map((item) => (
+              <div key={item.id} className="agenda-item">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{item.persona?.nombres} {item.persona?.apellidos}</p>
+                  <p className="text-xs text-secondary mt-1">Viene de {item.origen?.nombre} · Solicitado el {item.fecha_solicitud}</p>
+                  {item.observaciones && <p className="text-xs text-muted mt-1">{item.observaciones}</p>}
+                </div>
+                <button type="button" disabled={savingTraslado} onClick={() => recibirTraslado(item)} className="agenda-action agenda-action-success"><CheckCircle2 className="w-3.5 h-3.5" />Recibir</button>
+              </div>
+            ))}
+          </div>
+        ) : <Empty text="No hay traslados pendientes por recibir." />}
+      </section>
+      <section className="card p-5">
+        <h2 className="font-medium">Traslados enviados pendientes</h2>
+        <p className="text-sm text-secondary mt-1">Personas de tu congregación en camino a otra, esperando que la reciban.</p>
+        {traslados.filter((item) => item.congregacion_origen_id === congregacionId).length ? (
+          <div className="flex flex-col gap-2.5 mt-4">
+            {traslados.filter((item) => item.congregacion_origen_id === congregacionId).map((item) => (
+              <div key={item.id} className="agenda-item">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{item.persona?.nombres} {item.persona?.apellidos}</p>
+                  <p className="text-xs text-secondary mt-1">Hacia {item.destino?.nombre} · Solicitado el {item.fecha_solicitud}</p>
+                </div>
+                <button type="button" disabled={savingTraslado} onClick={() => cancelarTraslado(item)} className="agenda-action agenda-action-danger"><XCircle className="w-3.5 h-3.5" />Cancelar</button>
+              </div>
+            ))}
+          </div>
+        ) : <Empty text="No tienes traslados enviados pendientes." />}
+      </section>
+    </section>}
     {tab === 'personas' && <section className="card overflow-hidden"><div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3"><div className="flex items-center gap-2 flex-1"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar personas" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar persona..." value={search} onChange={(event) => setSearch(event.target.value)} /></div><select aria-label="Filtrar estado" className="input-field sm:max-w-[180px]" value={personStatus} onChange={(event) => setPersonStatus(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>{loading && people.length === 0 ? <SkeletonList rows={8} /> : filtered.length ? <div className="divide-y divide-border">{filtered.map((person) => <button key={person.id} onClick={() => editPerson(person)} className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface-1"><div><p className="text-sm font-medium">{person.nombres} {person.apellidos}</p><p className="text-xs text-secondary mt-1">{person.bautizado ? 'Bautizado' : 'No bautizado'}{person.familias?.nombre_familia ? ` · ${person.familias.nombre_familia}` : ''}{person.fecha_ultima_asistencia ? ` · Última asistencia: ${person.fecha_ultima_asistencia}` : ''}</p></div><span className="text-xs px-2 py-1 rounded bg-surface-1">{STATES[person.estado_membresia]}</span></button>)}</div> : <Empty text="No hay personas con estos filtros." />}<div className="flex items-center justify-between border-t border-border p-3 text-xs text-secondary"><span>{peopleTotal} personas encontradas</span><div className="flex items-center gap-2"><button type="button" disabled={peoplePage === 0 || loading} onClick={() => setPeoplePage((page) => page - 1)} className="btn-secondary px-3">Anterior</button><span>Página {peoplePage + 1} de {totalPages}</span><button type="button" disabled={peoplePage + 1 >= totalPages || loading} onClick={() => setPeoplePage((page) => page + 1)} className="btn-secondary px-3">Siguiente</button></div></div></section>}
     {tab === 'familias' && <section className="flex flex-col gap-4">{canEdit && <form onSubmit={saveFamily} className="card p-4 grid sm:grid-cols-[1.2fr_1fr_0.8fr_auto] gap-2"><input required className="input-field" placeholder="Nombre de la nueva familia" value={familyName} onChange={(event) => setFamilyName(event.target.value)} /><input className="input-field" placeholder="Dirección" value={familyAddress} onChange={(event) => setFamilyAddress(event.target.value)} /><input className="input-field" placeholder="Teléfono" value={familyPhone} onChange={(event) => setFamilyPhone(event.target.value)} /><button disabled={saving} className="btn-primary whitespace-nowrap"><Plus className="w-4 h-4" /> Crear familia</button></form>}<div className="card p-4"><label className="text-sm">Consultar árbol familiar<select className="input-field mt-1.5" value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)}><option value="">Selecciona un núcleo familiar</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><p className="text-xs text-secondary mt-2">Un núcleo puede compartir personas con otra familia. La ficha de cada persona se mantiene única.</p></div><FamilyTree familyId={selectedFamilyId} families={families} members={familyMembers} relations={familyRelations} people={analyticsPeople} canEdit={canEdit} onOpenPerson={editPerson} onRefresh={() => setReloadToken((current) => current + 1)} /><div className="grid md:grid-cols-2 gap-4">{families.map((family) => <div key={family.id} className="card p-5"><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{family.nombre_familia}</h2>{canEdit && <button type="button" className="text-xs text-accent" onClick={() => renameFamily(family)}>Editar nombre</button>}</div>{(family.direccion || family.telefono) && <p className="text-xs text-secondary mt-2">{family.direccion || 'Sin dirección'}{family.telefono ? ` · ${family.telefono}` : ''}</p>}<p className="text-sm text-secondary mt-1">{analyticsPeople.filter((person) => person.familia_id === family.id).length} integrantes asociados</p>{analyticsPeople.filter((person) => person.familia_id === family.id).map((person) => <p key={person.id} className="text-xs text-muted mt-2">{person.nombres} {person.apellidos}</p>)}</div>)}</div>{families.length === 0 && <Empty text="Aún no hay familias registradas." />}</section>}
     {tab === 'comites' && <section className="flex flex-col gap-4"><form onSubmit={assignCommittee} className="card p-4 grid sm:grid-cols-3 gap-2"><select required name="comite_id" className="input-field"><option value="">Comité...</option>{committees.filter((committee) => committee.activo).map((committee) => <option key={committee.id} value={committee.id}>{committee.nombre}</option>)}</select><select required name="persona_id" className="input-field"><option value="">Integrante...</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex gap-2">{committeeCargoCatalog.length > 0 ? <select required name="cargo_id" className="input-field"><option value="">Cargo...</option>{committeeCargoCatalog.map((cargo) => <option key={cargo.id} value={cargo.id}>{cargo.nombre}</option>)}</select> : <input required name="cargo" className="input-field" placeholder="Cargo (configúralos en Configuración)" />}<button disabled={saving} className="btn-secondary px-3" title="Asignar integrante"><Plus className="w-4 h-4" /></button></div></form><div className="grid md:grid-cols-2 gap-4">{committees.map((committee) => <div key={committee.id} className={`card p-5 ${!committee.activo ? 'opacity-60' : ''}`}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{committee.nombre}</h2><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => renameCommittee(committee)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => deactivateCommittee(committee)}>{committee.activo ? 'Desactivar' : 'Reactivar'}</button></div></div><p className="text-sm text-secondary mt-1">{committee.membresias_comite?.filter((member) => !member.fecha_fin).length ?? 0} integrantes activos</p><div className="flex flex-col gap-2 mt-4">{committeeMemberGroups(committee, committeeCargoCatalog).map((group) => <div key={group.key}><p className="text-xs font-medium text-secondary">{group.label}{group.members.length > 1 ? ` (${group.members.length})` : ''}</p>{group.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-2 mt-1"><span className="text-xs bg-surface-1 rounded px-2 py-1">{people.find((person) => person.id === member.persona_id)?.nombres || 'Integrante'} {people.find((person) => person.id === member.persona_id)?.apellidos || ''}</span><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => editCommitteeMember(member)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => removeCommitteeMember(member)}>Retirar</button></div></div>)}</div>)}</div></div>)}</div>{committees.length === 0 && <Empty text="Aún no hay comités registrados." />}</section>}
     {tab === 'historial' && <><CommitteeAnalytics people={analyticsPeople} committees={allCommittees} cargos={committeeCargoCatalog} audit={committeeAudit} /><FeligresiaInsights people={analyticsPeople} families={families} committees={committees} cargoHistory={cargoHistory} followups={pastoralFollowups} alerts={pastoralAlerts} /></>}
-    {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} pastoralFollowups={pastoralFollowups} movimientosMembresia={movimientosMembresia} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} onSaveMovimiento={saveMovimiento} />}
+    {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} pastoralFollowups={pastoralFollowups} movimientosMembresia={movimientosMembresia} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} onSaveMovimiento={saveMovimiento} trasladoBusqueda={trasladoBusqueda} trasladoResultados={trasladoResultados} trasladoDestinoId={trasladoDestinoId} setTrasladoDestinoId={setTrasladoDestinoId} trasladoObservaciones={trasladoObservaciones} setTrasladoObservaciones={setTrasladoObservaciones} savingTraslado={savingTraslado} onBuscarDestino={buscarCongregacionesDestino} onIniciarTraslado={iniciarTraslado} />}
     {dialog && <AdminDialog dialog={dialog} saving={saving} error={error} close={() => setDialog(null)} />}
   </div>
 }
@@ -865,9 +955,20 @@ function CargoPanel({ person, cargos, saving, onSubmit, onEdit, embedded = false
 
 const MOVIMIENTO_LABELS = { alta_bautismo: 'Alta por bautismo', alta_recibimiento: 'Alta por recibimiento (carta)', baja_traslado: 'Baja por traslado', baja_disciplina: 'Baja por disciplina', baja_exclusion: 'Baja por exclusión', reactivacion: 'Reactivación' }
 
-function MembershipMovementsPanel({ person, movimientosMembresia, saving, onSubmit, embedded = false }) {
+function MembershipMovementsPanel({ person, movimientosMembresia, saving, onSubmit, trasladoBusqueda, trasladoResultados, trasladoDestinoId, setTrasladoDestinoId, trasladoObservaciones, setTrasladoObservaciones, savingTraslado, onBuscarDestino, onIniciarTraslado, embedded = false }) {
   const personMovements = (movimientosMembresia ?? []).filter((item) => item.persona_id === person?.id)
-  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-4 w-[min(24rem,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><h2 className="font-medium">Movimientos de membresía</h2><p className="text-xs text-secondary mt-1">Altas y bajas oficiales para la auditoría de estadísticas.</p><form onSubmit={onSubmit} className="flex flex-col gap-2 mt-3 border-b border-border pb-4"><select required name="tipo" className="input-field text-sm" defaultValue=""><option value="" disabled>Tipo de movimiento...</option>{Object.entries(MOVIMIENTO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><label className="text-xs text-secondary">Fecha<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={new Date().toISOString().slice(0, 10)} /></label><input name="observaciones" className="input-field text-sm" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm justify-center">{saving ? 'Guardando...' : 'Registrar movimiento'}</button></form><div className="divide-y divide-border">{personMovements.length ? personMovements.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{MOVIMIENTO_LABELS[item.tipo] || item.tipo}</p><p className="text-xs text-muted mt-1">{item.fecha}{item.congregaciones_relacionada?.nombre ? ` · ${item.congregaciones_relacionada.nombre}` : ''}</p>{item.observaciones && <p className="text-xs text-secondary mt-1">{item.observaciones}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay movimientos registrados.</p>}</div></section>
+  const destinoSeleccionado = trasladoResultados?.find((item) => item.id === trasladoDestinoId)
+  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-4 w-[min(24rem,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}>
+    <h2 className="font-medium">Trasladar a otra congregación</h2>
+    <p className="text-xs text-secondary mt-1">Busca la congregación destino en cualquier parte del país. Al ser recibida allí, {person?.nombres} conserva todo su historial (bautismo, sellado, familia, cargos).</p>
+    <div className="flex flex-col gap-2 mt-3 border-b border-border pb-4">
+      <input className="input-field text-sm" placeholder="Buscar congregación por nombre o ciudad..." value={trasladoBusqueda} onChange={(event) => { onBuscarDestino(event.target.value); setTrasladoDestinoId('') }} />
+      {trasladoResultados?.length > 0 && !destinoSeleccionado && <div className="flex flex-col divide-y divide-border border border-border rounded max-h-40 overflow-y-auto">{trasladoResultados.map((item) => <button type="button" key={item.id} onClick={() => setTrasladoDestinoId(item.id)} className="text-left text-xs px-2.5 py-2 hover:bg-surface-1"><span className="font-medium">{item.nombre}</span>{item.ciudad ? ` · ${item.ciudad}` : ''} · {item.distrito_numero ? `Distrito ${item.distrito_numero}` : item.distrito_nombre}</button>)}</div>}
+      {destinoSeleccionado && <p className="text-xs text-accent">Destino: {destinoSeleccionado.nombre}{destinoSeleccionado.ciudad ? ` · ${destinoSeleccionado.ciudad}` : ''} <button type="button" className="text-muted underline ml-1" onClick={() => setTrasladoDestinoId('')}>cambiar</button></p>}
+      <input className="input-field text-sm" placeholder="Observaciones (opcional)" value={trasladoObservaciones} onChange={(event) => setTrasladoObservaciones(event.target.value)} />
+      <button type="button" disabled={savingTraslado || !trasladoDestinoId} onClick={onIniciarTraslado} className="btn-primary text-sm justify-center">{savingTraslado ? 'Iniciando...' : 'Iniciar traslado'}</button>
+    </div>
+    <h2 className="font-medium mt-4">Movimientos de membresía</h2><p className="text-xs text-secondary mt-1">Altas y bajas oficiales para la auditoría de estadísticas.</p><form onSubmit={onSubmit} className="flex flex-col gap-2 mt-3 border-b border-border pb-4"><select required name="tipo" className="input-field text-sm" defaultValue=""><option value="" disabled>Tipo de movimiento...</option>{Object.entries(MOVIMIENTO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><label className="text-xs text-secondary">Fecha<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={new Date().toISOString().slice(0, 10)} /></label><input name="observaciones" className="input-field text-sm" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm justify-center">{saving ? 'Guardando...' : 'Registrar movimiento'}</button></form><div className="divide-y divide-border">{personMovements.length ? personMovements.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{MOVIMIENTO_LABELS[item.tipo] || item.tipo}</p><p className="text-xs text-muted mt-1">{item.fecha}{item.congregaciones_relacionada?.nombre ? ` · ${item.congregaciones_relacionada.nombre}` : ''}</p>{item.observaciones && <p className="text-xs text-secondary mt-1">{item.observaciones}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay movimientos registrados.</p>}</div></section>
 }
 function Metric({ label, value, accent }) {
   return (

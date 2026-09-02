@@ -186,7 +186,7 @@ export default function Sidebar() {
       to: "/auditoria-feligresia",
       label: "Auditoría de Feligresía",
       icon: ClipboardList,
-      show: nivel === "local" ? rolLocal === "pastor" : esAdminNacional,
+      show: nivel === "local" ? rolLocal === "pastor" : nivel === "distrital" || esAdminNacional,
     },
     {
       to: "/pastoral-distrital",
@@ -198,6 +198,12 @@ export default function Sidebar() {
       to: "/distritos",
       label: "Catálogo de distritos",
       icon: MapPin,
+      show: esAdminNacional,
+    },
+    {
+      to: "/gestion-pastoral-nacional",
+      label: "Gestión Pastoral Nacional",
+      icon: ArrowRightLeft,
       show: esAdminNacional,
     },
     {

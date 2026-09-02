@@ -2,6 +2,27 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): traslado real de feligreses entre congregaciones
+	(antes solo existia una anotacion estadistica que no movia a la persona
+	ni preservaba su historial) y "Finalizar asignacion pastoral" para
+	vaciar una congregacion cuando el pastor se retira sin ir a otra
+	especifica. Ver `docs/traslados-feligres-pastor-2026-09-02.md`. **Accion
+	requerida del usuario**: ejecutar `supabase/traslados_feligresia.sql` y
+	`supabase/finalizar_asignacion_pastoral.sql`.
+- Resuelto (2026-09-02): cerradas las 5 brechas encontradas al auditar si
+	distrital/nacional ya actuaban como un software de inteligencia de
+	negocios completo: (1) piramide poblacional tambien en distrital y
+	nacional (antes solo local); (2) censo de cargos jerarquicos de la
+	junta distrital (Supervisor, Secretario, Tesorero, Presbiteros, Veedor)
+	+ nueva vista Gestion Pastoral Nacional con el escalafon ministerial de
+	los 36 distritos; (3) auditoria de feligresia ahora tambien accesible
+	para distrital; (4) embudo del ciclo de vida espiritual (Activos ->
+	Bautizados -> Sellados -> Con cargo) con tiempos promedio entre hitos;
+	(5) semaforo de salud del distrito/nacional (5 senales existentes
+	juntas, sin inventar un score numerico compuesto). Ver
+	`docs/brechas-distrital-nacional-2026-09-02.md`. **Accion requerida del
+	usuario**: ejecutar `supabase/cargos_distritales.sql` (y
+	`genero_personas.sql`/`resumen_nacional.sql` si no se han ejecutado).
 - Resuelto (2026-09-02): campo de genero + piramide poblacional, linea de
 	tiempo de ciclo de vida espiritual por persona, proyeccion de
 	crecimiento a 12 meses (transparente, basada en tendencia de 3 meses,

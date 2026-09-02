@@ -5,7 +5,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
 
-const ADMIN_LEVELS = ['nacional', 'super_admin']
+const ADMIN_LEVELS = ['nacional', 'super_admin', 'distrital']
 const ENTITY_LABELS = { personas: 'Personas', familias: 'Familias', comites: 'Comités', membresias_comite: 'Membresías', historial_cargos: 'Cargos', seguimientos_pastorales: 'Seguimientos', estados_alerta_pastoral: 'Estados de alerta' }
 const ACTION_LABELS = { INSERT: 'Creación', UPDATE: 'Actualización', DELETE: 'Eliminación' }
 

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Line } from 'react-chartjs-2'
+import { Line, Bar } from 'react-chartjs-2'
 import { ArrowRight, BarChart3, ClipboardPlus, Database, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler } from 'chart.js'
+import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset } from '../lib/chartTheme'
+import { construirPiramide, piramideChartData, piramideChartOptions } from '../lib/piramide'
+import { construirCicloVida } from '../lib/cicloVida'
+import ChartEmpty from '../components/ChartEmpty'
 import Pager from '../components/Pager'
 
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler)
+ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 const dashboardCache = new Map()
 const CATEGORIA_COLORS = CATEGORIA_COLORS_OBJ.map((color) => [color.line, color.soft])
@@ -170,6 +173,18 @@ function InsightCard({ title, value, detail, insight, tone = 'default' }) {
   )
 }
 
+function SemaforoRow({ label, ok, detalle }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <span className={`mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0 ${ok ? 'bg-success' : 'bg-danger'}`} aria-hidden="true" />
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-secondary mt-0.5">{detalle}</p>
+      </div>
+    </div>
+  )
+}
+
 function DashboardDistrital({ rolPrincipal }) {
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -178,14 +193,29 @@ function DashboardDistrital({ rolPrincipal }) {
   const [tablaPage, setTablaPage] = useState(0)
   const distrito = rolPrincipal?.distritos
   const distritoId = rolPrincipal?.distrito_id
+  const [personasPiramide, setPersonasPiramide] = useState([])
+  const [personaIdsConCargo, setPersonaIdsConCargo] = useState(new Set())
+  const [cargosVigentes, setCargosVigentes] = useState([])
+  const [congregacionesActivas60d, setCongregacionesActivas60d] = useState(new Set())
 
   useEffect(() => {
     if (!distritoId) return
     let active = true
-    supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }).then(({ data, error: rpcError }) => {
+    const desde60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+    Promise.all([
+      supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
+      supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, congregaciones!inner(distrito_id)').eq('estado_membresia', 'activo').eq('congregaciones.distrito_id', distritoId),
+      supabase.from('membresias_comite').select('persona_id, comites!inner(congregaciones!inner(distrito_id))').is('fecha_fin', null).eq('comites.congregaciones.distrito_id', distritoId),
+      supabase.from('cargos_distritales').select('cargo').eq('distrito_id', distritoId).is('fecha_fin', null),
+      supabase.from('registros_actividad').select('congregacion_id, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).gte('fecha', desde60),
+    ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: cargosData, error: cargosError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
-      if (rpcError) setError('No se pudo cargar el consolidado del distrito.')
+      if (rpcError || personasError || membresiasError || cargosError || actividadError) setError('No se pudo cargar el consolidado del distrito.')
       setCongregaciones(data ?? [])
+      setPersonasPiramide(personasData ?? [])
+      setPersonaIdsConCargo(new Set((membresiasData ?? []).map((item) => item.persona_id)))
+      setCargosVigentes(cargosData ?? [])
+      setCongregacionesActivas60d(new Set((actividadData ?? []).map((item) => item.congregacion_id)))
       setLoading(false)
     })
     return () => { active = false }
@@ -223,6 +253,18 @@ function DashboardDistrital({ rolPrincipal }) {
   const congregacionesConstituidas = congregacionesPorMadurez.iglesia_local || 0
   const netoMensual3m = (totalAltas3m - totalBajas3m) / 3
   const proyeccion12m = Math.max(0, Math.round(totalFeligreses + netoMensual3m * 12))
+  const piramide = construirPiramide(personasPiramide)
+  const ciclo = construirCicloVida(personasPiramide, personaIdsConCargo)
+  const cargosOcupados = new Set(cargosVigentes.map((item) => item.cargo).filter((cargo) => cargo !== 'otro')).size
+  const cargosVacantes = Math.max(0, 6 - cargosOcupados)
+  const congregacionesInactivas = Math.max(0, congregaciones.length - congregacionesActivas60d.size)
+  const semaforo = [
+    { label: 'Vacantes de pastor', ok: vacantes === 0, detalle: vacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${vacantes} congregación(es) sin pastor asignado.` },
+    { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
+    { label: 'Movimiento de membresía', ok: balanceMembresia >= 0, detalle: `${totalAltas3m} altas y ${totalBajas3m} bajas en los últimos 3 meses.` },
+    { label: 'Actividad congregacional', ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? 'Todas las congregaciones registraron actividad en 60 días.' : `${congregacionesInactivas} congregación(es) sin ninguna actividad registrada en 60 días.` },
+    { label: 'Directiva distrital', ok: cargosVacantes === 0, detalle: cargosVacantes === 0 ? 'Los 6 cargos de la junta distrital están cubiertos.' : `${cargosVacantes} de 6 cargos de la junta distrital vacante(s).` },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -236,6 +278,14 @@ function DashboardDistrital({ rolPrincipal }) {
       </section>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <section className="card p-5">
+        <h2 className="font-medium">Semáforo del distrito</h2>
+        <p className="text-sm text-secondary mt-1">Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.</p>
+        <div className="divide-y divide-border mt-2">
+          {semaforo.map((item) => <SemaforoRow key={item.label} {...item} />)}
+        </div>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DistritalStatTile label="Congregaciones" value={congregaciones.length} />
@@ -286,7 +336,23 @@ function DashboardDistrital({ rolPrincipal }) {
             tone={netoMensual3m < 0 ? 'danger' : 'default'}
             insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), el distrito tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
           />
+          <InsightCard
+            title="Ciclo de vida espiritual"
+            value={ciclo.activos ? `${ciclo.activos} → ${ciclo.bautizados} → ${ciclo.sellados} → ${ciclo.conCargo}` : '—'}
+            insight={ciclo.activos === 0 ? 'Aún no hay personas activas para medir el ciclo.' : `Activos → Bautizados (${ciclo.pctBautizados ?? 0}%) → Sellados (${ciclo.pctSellados ?? 0}%) → Con cargo o comité (${ciclo.pctConCargo ?? 0}%).`}
+          />
+          <InsightCard
+            title="Tiempo de consolidación"
+            value={ciclo.diasPromedioIngresoBautismo !== null ? `${ciclo.diasPromedioIngresoBautismo}d` : '—'}
+            insight={ciclo.diasPromedioIngresoBautismo === null ? 'Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.' : `En promedio, ${ciclo.diasPromedioIngresoBautismo} días desde el ingreso hasta el bautismo (muestra de ${ciclo.muestraIngresoBautismo})${ciclo.diasPromedioBautismoSellado !== null ? `, y ${ciclo.diasPromedioBautismoSellado} días más hasta el sellado (muestra de ${ciclo.muestraBautismoSellado}).` : '.'}`}
+          />
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h3 className="font-medium">Pirámide poblacional del distrito</h3>
+        <p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas de todas las congregaciones del distrito.{piramide.conGenero < piramide.total && ` Basada en ${piramide.conGenero} de ${piramide.total} activas con género registrado.`}</p>
+        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado en el distrito." /></div>}
       </section>
 
       <section className="card overflow-hidden">
@@ -365,13 +431,28 @@ function DashboardNacional() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
+  const [personasPiramide, setPersonasPiramide] = useState([])
+  const [personaIdsConCargo, setPersonaIdsConCargo] = useState(new Set())
+  const [pastoralNacional, setPastoralNacional] = useState([])
+  const [congregacionesActivas60d, setCongregacionesActivas60d] = useState(new Set())
 
   useEffect(() => {
     let active = true
-    supabase.rpc('resumen_nacional').then(({ data, error: rpcError }) => {
+    const desde60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+    Promise.all([
+      supabase.rpc('resumen_nacional'),
+      supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado').eq('estado_membresia', 'activo'),
+      supabase.from('membresias_comite').select('persona_id').is('fecha_fin', null),
+      supabase.rpc('resumen_pastoral_nacional'),
+      supabase.from('registros_actividad').select('congregacion_id').gte('fecha', desde60),
+    ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: pastoralData, error: pastoralError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
-      if (rpcError) setError('No se pudo cargar el consolidado nacional.')
+      if (rpcError || personasError || membresiasError || pastoralError || actividadError) setError('No se pudo cargar el consolidado nacional.')
       setDistritos(data ?? [])
+      setPersonasPiramide(personasData ?? [])
+      setPersonaIdsConCargo(new Set((membresiasData ?? []).map((item) => item.persona_id)))
+      setPastoralNacional(pastoralData ?? [])
+      setCongregacionesActivas60d(new Set((actividadData ?? []).map((item) => item.congregacion_id)))
       setLoading(false)
     })
     return () => { active = false }
@@ -403,6 +484,18 @@ function DashboardNacional() {
   const congregacionesMisionNacional = sumar('congregaciones_mision_nacional')
   const netoMensual3m = (totalAltas3m - totalBajas3m) / 3
   const proyeccion12m = Math.max(0, Math.round(totalFeligreses + netoMensual3m * 12))
+  const piramide = construirPiramide(personasPiramide)
+  const ciclo = construirCicloVida(personasPiramide, personaIdsConCargo)
+  const totalCargosVacantes = pastoralNacional.reduce((total, d) => total + Number(d.cargos_vacantes || 0), 0)
+  const congregacionesInactivas = Math.max(0, totalCongregaciones - congregacionesActivas60d.size)
+  const distritosSinDirectivaCompleta = pastoralNacional.filter((d) => Number(d.cargos_vacantes || 0) > 0).length
+  const semaforo = [
+    { label: 'Vacantes de pastor', ok: totalVacantes === 0, detalle: totalVacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${totalVacantes} congregación(es) sin pastor asignado en el país.` },
+    { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
+    { label: 'Movimiento de membresía', ok: balanceMembresia >= 0, detalle: `${totalAltas3m} altas y ${totalBajas3m} bajas en los últimos 3 meses.` },
+    { label: 'Actividad congregacional', ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? 'Todas las congregaciones registraron actividad en 60 días.' : `${congregacionesInactivas} congregación(es) sin ninguna actividad registrada en 60 días.` },
+    { label: 'Directiva distrital', ok: totalCargosVacantes === 0, detalle: totalCargosVacantes === 0 ? 'Los 6 cargos están cubiertos en todos los distritos.' : `${distritosSinDirectivaCompleta} distrito(s) con al menos un cargo de junta vacante.` },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -416,6 +509,14 @@ function DashboardNacional() {
       </section>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <section className="card p-5">
+        <h2 className="font-medium">Semáforo nacional</h2>
+        <p className="text-sm text-secondary mt-1">Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.</p>
+        <div className="divide-y divide-border mt-2">
+          {semaforo.map((item) => <SemaforoRow key={item.label} {...item} />)}
+        </div>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DistritalStatTile label="Distritos" value={distritos.length} />
@@ -466,7 +567,23 @@ function DashboardNacional() {
             tone={netoMensual3m < 0 ? 'danger' : 'default'}
             insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), la IPUC en Colombia tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
           />
+          <InsightCard
+            title="Ciclo de vida espiritual"
+            value={ciclo.activos ? `${ciclo.activos} → ${ciclo.bautizados} → ${ciclo.sellados} → ${ciclo.conCargo}` : '—'}
+            insight={ciclo.activos === 0 ? 'Aún no hay personas activas para medir el ciclo.' : `Activos → Bautizados (${ciclo.pctBautizados ?? 0}%) → Sellados (${ciclo.pctSellados ?? 0}%) → Con cargo o comité (${ciclo.pctConCargo ?? 0}%).`}
+          />
+          <InsightCard
+            title="Tiempo de consolidación"
+            value={ciclo.diasPromedioIngresoBautismo !== null ? `${ciclo.diasPromedioIngresoBautismo}d` : '—'}
+            insight={ciclo.diasPromedioIngresoBautismo === null ? 'Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.' : `En promedio, ${ciclo.diasPromedioIngresoBautismo} días desde el ingreso hasta el bautismo (muestra de ${ciclo.muestraIngresoBautismo})${ciclo.diasPromedioBautismoSellado !== null ? `, y ${ciclo.diasPromedioBautismoSellado} días más hasta el sellado (muestra de ${ciclo.muestraBautismoSellado}).` : '.'}`}
+          />
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h3 className="font-medium">Pirámide poblacional nacional</h3>
+        <p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas de la IPUC en Colombia.{piramide.conGenero < piramide.total && ` Basada en ${piramide.conGenero} de ${piramide.total} activas con género registrado.`}</p>
+        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado." /></div>}
       </section>
 
       <section className="card overflow-hidden">

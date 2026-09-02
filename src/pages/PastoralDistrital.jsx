@@ -26,6 +26,7 @@ const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pas
 const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
 const EMPTY_CENTRO = { nombre: '', tipo: 'municipal', ciudad: '', direccion: '' }
 const TIPO_CENTRO_LABELS = { maxima_seguridad: 'Máxima seguridad', mediana_seguridad: 'Mediana seguridad', municipal: 'Municipal', correccional_menores: 'Correccional de menores', otro: 'Otro' }
+const CARGO_DISTRITAL_LABELS = { supervisor: 'Supervisor', secretario: 'Secretario', tesorero: 'Tesorero', presbitero_a: 'Presbítero A', presbitero_b: 'Presbítero B', veedor: 'Veedor', otro: 'Otro' }
 const ESTADO_REINSERCION_LABELS = { asignado: 'Asignado', contactado: 'Contactado', activo: 'Activo', inactivo: 'Inactivo', reincidencia: 'Reincidencia' }
 
 const formatDate = (value) => {
@@ -63,6 +64,8 @@ export default function PastoralDistrital() {
     fecha: TODAY,
     observaciones: '',
   })
+  const [finalizarForm, setFinalizarForm] = useState({ pastor_id: '', fecha: TODAY, observaciones: '' })
+  const [finalizando, setFinalizando] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -93,6 +96,10 @@ export default function PastoralDistrital() {
   const [resumenTeologica, setResumenTeologica] = useState([])
   const [resumenConquistadores, setResumenConquistadores] = useState([])
   const [resumenObraSocial, setResumenObraSocial] = useState([])
+  const [personasDistrito, setPersonasDistrito] = useState([])
+  const [cargosDistritales, setCargosDistritales] = useState([])
+  const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: new Date().toISOString().slice(0, 10) })
+  const [savingCargo, setSavingCargo] = useState(false)
   const [tablePages, setTablePages] = useState({})
 
   const TABLE_PAGE_SIZE = 50
@@ -161,7 +168,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, personasResult, cargosResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -199,6 +206,8 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_teologica_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_conquistadores_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_obra_social_distrital', { p_distrito_id: distritoId }),
+      supabase.from('personas').select('id, nombres, apellidos, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
+      supabase.from('cargos_distritales').select('id, persona_id, nombres, apellidos, cargo, fecha_inicio, fecha_fin, observaciones').eq('distrito_id', distritoId).order('fecha_inicio', { ascending: false }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -223,7 +232,41 @@ export default function PastoralDistrital() {
     setResumenTeologica(teologicaResult.data ?? [])
     setResumenConquistadores(conquistadoresResult.data ?? [])
     setResumenObraSocial(obraSocialResult.data ?? [])
+    setPersonasDistrito(personasResult.data ?? [])
+    setCargosDistritales(cargosResult.data ?? [])
     setLoading(false)
+  }
+
+  async function saveCargo(event) {
+    event.preventDefault()
+    if (!distritoId || !cargoForm.persona_id) return
+    setSavingCargo(true)
+    setError(null)
+    const persona = personasDistrito.find((item) => item.id === cargoForm.persona_id)
+    const result = await supabase.from('cargos_distritales').insert({
+      distrito_id: distritoId,
+      persona_id: cargoForm.persona_id,
+      nombres: persona?.nombres || '',
+      apellidos: persona?.apellidos || '',
+      cargo: cargoForm.cargo,
+      fecha_inicio: cargoForm.fecha_inicio,
+    })
+    setSavingCargo(false)
+    if (result.error) {
+      setError(result.error.code === '23505' ? 'Ya hay una persona vigente en ese cargo. Termina su periodo antes de asignar uno nuevo.' : 'No se pudo asignar el cargo.')
+      return
+    }
+    setCargoForm({ persona_id: '', cargo: 'supervisor', fecha_inicio: new Date().toISOString().slice(0, 10) })
+    load()
+  }
+
+  async function terminarCargo(item) {
+    setSavingCargo(true)
+    setError(null)
+    const result = await supabase.from('cargos_distritales').update({ fecha_fin: new Date().toISOString().slice(0, 10) }).eq('id', item.id)
+    setSavingCargo(false)
+    if (result.error) { setError('No se pudo terminar el cargo.'); return }
+    load()
   }
 
   function resetCentroForm() { setEditingCentroId(null); setCentroForm(EMPTY_CENTRO) }
@@ -481,6 +524,37 @@ export default function PastoralDistrital() {
     }
   }
 
+  async function handleFinalizarAsignacion(event) {
+    event.preventDefault()
+
+    if (!finalizarForm.pastor_id) {
+      setError('Selecciona el pastor cuya asignación quieres finalizar.')
+      return
+    }
+
+    setFinalizando(true)
+    setError(null)
+    setNotice(null)
+
+    try {
+      const { error: finalizarError } = await supabase.rpc('finalizar_asignacion_pastoral', {
+        p_pastor_id: finalizarForm.pastor_id,
+        p_fecha: finalizarForm.fecha || TODAY,
+        p_observaciones: finalizarForm.observaciones.trim() || null,
+      })
+
+      if (finalizarError) throw new Error(finalizarError.message)
+
+      setFinalizarForm({ pastor_id: '', fecha: TODAY, observaciones: '' })
+      setNotice('Asignación finalizada. La congregación quedó vacante para asignar un nuevo pastor.')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setFinalizando(false)
+    }
+  }
+
   async function ascenderLicencia(event) {
     event.preventDefault()
 
@@ -671,6 +745,54 @@ export default function PastoralDistrital() {
           <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={congregations.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
           </>
         })()}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Directiva distrital</h2>
+          <p className="text-sm text-secondary mt-1">Censo de quién ejerce cada cargo de la junta distrital (Supervisor, Secretario, Tesorero, Presbíteros, Veedor), separado del acceso al software.</p>
+        </div>
+        {cargosDistritales.filter((item) => !item.fecha_fin).length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay cargos asignados en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="font-normal px-5 py-3">Cargo</th>
+                  <th className="font-normal px-5 py-3">Persona</th>
+                  <th className="font-normal px-5 py-3">Desde</th>
+                  <th className="font-normal px-5 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cargosDistritales.filter((item) => !item.fecha_fin).map((item) => (
+                  <tr key={item.id} className="border-t border-border">
+                    <td className="px-5 py-3 font-medium">{CARGO_DISTRITAL_LABELS[item.cargo] || item.cargo}</td>
+                    <td className="px-5 py-3">{item.nombres} {item.apellidos}</td>
+                    <td className="px-5 py-3 text-secondary">{item.fecha_inicio}</td>
+                    <td className="px-5 py-3 text-right"><button type="button" disabled={savingCargo} className="text-danger text-xs" onClick={() => terminarCargo(item)}>Terminar periodo</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <form onSubmit={saveCargo} className="p-5 border-t border-border grid sm:grid-cols-4 gap-2 items-end">
+          <div className="sm:col-span-4">
+            <p className="text-sm font-medium">Asignar cargo</p>
+            <p className="text-xs text-secondary mt-1">La persona debe estar en el censo activo de alguna congregación de tu distrito.</p>
+          </div>
+          <select required className="input-field" value={cargoForm.persona_id} onChange={(event) => setCargoForm({ ...cargoForm, persona_id: event.target.value })}>
+            <option value="">Persona...</option>
+            {personasDistrito.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+          </select>
+          <select className="input-field" value={cargoForm.cargo} onChange={(event) => setCargoForm({ ...cargoForm, cargo: event.target.value })}>
+            {Object.entries(CARGO_DISTRITAL_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <input required type="date" className="input-field" value={cargoForm.fecha_inicio} onChange={(event) => setCargoForm({ ...cargoForm, fecha_inicio: event.target.value })} />
+          <button disabled={savingCargo} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{savingCargo ? 'Guardando...' : 'Asignar cargo'}</button>
+        </form>
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
@@ -1239,6 +1361,33 @@ export default function PastoralDistrital() {
           </button>
         </form>
       </div>
+
+      <form onSubmit={handleFinalizarAsignacion} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <div className="sm:col-span-2 lg:col-span-4">
+          <h2 className="font-medium">Finalizar asignación pastoral</h2>
+          <p className="text-xs text-secondary mt-1">Cuando un pastor se retira o renuncia sin ir a otra congregación conocida en SIGAP: deja la congregación vacante y revoca su acceso, lista para asignar un nuevo pastor.</p>
+        </div>
+        <label className="text-sm">
+          Pastor
+          <select required className="input-field mt-1.5" value={finalizarForm.pastor_id} onChange={(event) => setFinalizarForm({ ...finalizarForm, pastor_id: event.target.value })}>
+            <option value="">Seleccionar...</option>
+            {pastors.filter((pastor) => activeByPastor.has(pastor.id)).map((pastor) => (
+              <option key={pastor.id} value={pastor.id}>{pastor.nombres} {pastor.apellidos}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          Fecha
+          <input required type="date" className="input-field mt-1.5" value={finalizarForm.fecha} onChange={(event) => setFinalizarForm({ ...finalizarForm, fecha: event.target.value })} />
+        </label>
+        <label className="text-sm sm:col-span-2">
+          Observaciones
+          <input className="input-field mt-1.5" placeholder="Motivo (opcional)" value={finalizarForm.observaciones} onChange={(event) => setFinalizarForm({ ...finalizarForm, observaciones: event.target.value })} />
+        </label>
+        <button disabled={finalizando} className="btn-secondary sm:col-span-2 lg:col-span-4">
+          {finalizando ? 'Finalizando...' : 'Finalizar asignación'}
+        </button>
+      </form>
 
       <form onSubmit={ascenderLicencia} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
         <div className="sm:col-span-2 lg:col-span-4">
