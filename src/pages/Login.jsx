@@ -87,7 +87,7 @@ export default function Login() {
           </div>
           <div className="relative flex items-end justify-between gap-8">
             <div className="flex flex-col gap-3 text-sm text-white/70">
-              {['Registro de asistencia', 'Ruta de integración', 'Lectura nacional y distrital'].map((item) => (
+              {['Ciclo de vida espiritual', 'Comités y territorio conectados', 'Local, distrital y nacional'].map((item) => (
                 <span key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#8fca68]" />{item}</span>
               ))}
             </div>
