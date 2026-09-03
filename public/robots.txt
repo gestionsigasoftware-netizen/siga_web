@@ -3,6 +3,8 @@ Allow: /$
 Allow: /ayuda$
 Allow: /legal$
 Allow: /login$
+Allow: /sitemap.xml$
+Allow: /robots.txt$
 Disallow: /
 
 Sitemap: https://sigap.com.co/sitemap.xml
