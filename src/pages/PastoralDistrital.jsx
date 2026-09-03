@@ -1339,7 +1339,7 @@ export default function PastoralDistrital() {
             <p className="text-xs text-accent mt-1">Te faltan {catalogoPendientes.length} de {catalogoCongregaciones.length} congregaciones reales de tu distrito por registrar en SIGAP.</p>
           )}
         </div>
-        <div className="text-sm relative" ref={catalogoFieldRef}>
+        <div className="text-sm relative sm:col-span-2 lg:col-span-5" ref={catalogoFieldRef}>
           Nombre de la congregación
           <input
             required
