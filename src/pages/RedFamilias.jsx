@@ -45,6 +45,12 @@ export default function RedFamilias() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
 
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
+
   async function load() {
     if (!congregacionId) { setLoading(false); return }
     setLoading(true); setError(null)

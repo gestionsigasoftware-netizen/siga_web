@@ -56,6 +56,12 @@ export default function Configuracion() {
   const [preferencias, setPreferencias] = useState({ umbral_alerta: 15, modulo_predeterminado: '', exigir_responsable: true, exigir_novedades: false })
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 

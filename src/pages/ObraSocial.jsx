@@ -53,6 +53,12 @@ export default function ObraSocial() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [casoForm, setCasoForm] = useState({ familia_id: "", red_familias_caso_id: "", tipo_necesidad: "economica", prioridad: "media", responsable_persona_id: "", notas: "" });
   const [selectedCasoId, setSelectedCasoId] = useState(null);

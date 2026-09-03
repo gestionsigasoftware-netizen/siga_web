@@ -23,6 +23,12 @@ export default function GestionDistritos() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)

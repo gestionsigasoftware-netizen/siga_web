@@ -9,6 +9,12 @@ export default function Perfil() {
   const { roles } = useMiRol()
   const [password, setPassword] = useState('')
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [error, setError] = useState(null)
   const [nombres, setNombres] = useState('')
   const [apellidos, setApellidos] = useState('')

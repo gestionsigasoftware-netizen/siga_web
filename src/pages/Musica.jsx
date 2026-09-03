@@ -48,6 +48,12 @@ export default function Musica() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [grupoForm, setGrupoForm] = useState({ nombre: "", tipo: "alabanza", instructor_persona_id: "" });
   const [integranteForm, setIntegranteForm] = useState({ persona_id: "", grupo_id: "", instrumento_voz: "" });

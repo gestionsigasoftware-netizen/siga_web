@@ -76,6 +76,12 @@ export default function ObraCarcelaria() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const [editingInternoId, setEditingInternoId] = useState(null);
   const [internoForm, setInternoForm] = useState(EMPTY_INTERNO);
   const [editingDelegadoId, setEditingDelegadoId] = useState(null);

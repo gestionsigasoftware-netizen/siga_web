@@ -49,6 +49,12 @@ export default function Conquistadores() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [miembroForm, setMiembroForm] = useState({ persona_id: "", rol: "miembro" });
   const [actividadForm, setActividadForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "reunion", descripcion: "", responsable_persona_id: "" });

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -14,6 +14,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [newPassword, setNewPassword] = useState('')
   const [isInvitation] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite' || new URLSearchParams(window.location.search).get('type') === 'invite')
   const [isRecovery, setIsRecovery] = useState(() => new URLSearchParams(window.location.search).has('reset') || new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite')

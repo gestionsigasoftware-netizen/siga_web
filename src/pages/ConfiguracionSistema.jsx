@@ -29,6 +29,12 @@ export default function ConfiguracionSistema() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [error, setError] = useState(null)
 
   async function loadPreferences() {

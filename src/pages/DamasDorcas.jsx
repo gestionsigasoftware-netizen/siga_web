@@ -49,6 +49,12 @@ export default function DamasDorcas() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [beneficiariaForm, setBeneficiariaForm] = useState({ nombres: "", apellidos: "", telefono: "", direccion: "", responsable_persona_id: "" });
   const [actividadForm, setActividadForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "visita", descripcion: "", responsable_persona_id: "" });

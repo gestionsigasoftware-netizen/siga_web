@@ -49,6 +49,12 @@ export default function EscuelaDominical() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [claseForm, setClaseForm] = useState({ nombre: "", etapa: ETAPAS[0], metodologia: "", maestro_lider_persona_id: "" });
   const [ninoForm, setNinoForm] = useState({ nombres: "", apellidos: "", clase_id: "", fecha_nacimiento: "", acudiente_nombre: "", acudiente_telefono: "" });

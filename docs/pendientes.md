@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): los mensajes de exito ("notice") se quedaban
+	fijos en pantalla en vez de desaparecer solos -- resulto ser un bug en
+	19 de 23 pantallas (no solo Evangelismo, que fue donde se reporto), ya
+	que el auto-cierre a los 4.5s solo existia en 4 pantallas desde el
+	principio. Se agrego a las 19 restantes. Tambien se investigo a fondo
+	un reporte de que el esqueleto de carga del Resumen se veia "movil" en
+	escritorio -- no se encontro una causa de codigo real (no hay
+	esqueleto separado movil/web, comparten el mismo contenedor), asi que
+	NO se aplico ningun cambio para eso -- pendiente confirmar si es
+	reproducible. Ver `docs/auto-cierre-mensajes-2026-09-03.md`. No
+	requiere accion en base de datos.
 - Resuelto (2026-09-03): mapas de zonas de evangelismo y congregaciones
 	por ciudad. Se agrego direccion + coordenadas (via geocodificacion
 	automatica con Nominatim/OpenStreetMap, gratis y sin licencia
