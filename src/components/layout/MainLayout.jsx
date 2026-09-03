@@ -75,7 +75,7 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar />
-      <main className="app-main md:ml-[248px] min-h-screen p-4 md:p-6">
+      <main className="app-main md:ml-[248px] min-h-screen flex flex-col p-4 md:p-6">
         <header className="main-header sticky top-0 z-20 mb-6 border-b border-border">
           <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-3 py-3.5">
             <div>
@@ -102,7 +102,7 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1220px]">
+        <div className="mx-auto max-w-[1220px] flex-1">
           <Suspense fallback={<div className="module-loading" role="status"><span className="loading-dot" />Cargando módulo...</div>}>
             {roleLoading ? <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div> : <Outlet />}
           </Suspense>
