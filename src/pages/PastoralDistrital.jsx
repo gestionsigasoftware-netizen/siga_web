@@ -450,6 +450,15 @@ export default function PastoralDistrital() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const catalogoPendientes = useMemo(
+    () => catalogoCongregaciones.filter((item) => !item.congregacion_id),
+    [catalogoCongregaciones]
+  )
+  const catalogoSugerencias = useMemo(
+    () => catalogoPendientes.filter((item) => item.nombre.toLowerCase().includes(catalogoSearchTerm.toLowerCase())),
+    [catalogoPendientes, catalogoSearchTerm]
+  )
+
   const congregacionesParaAsignar = useMemo(
     () => congregations
       .filter((congregation) => !congregation.pastor_id || congregation.id === form.congregacion_id)
@@ -471,15 +480,6 @@ export default function PastoralDistrital() {
     const oficialesPendientes = catalogoPendientes.map((item) => ({ tipo: 'oficial', id: item.id, nombre: item.nombre }))
     return [...reales, ...oficialesPendientes].filter((item) => item.nombre.toLowerCase().includes(congregacionSearchTerm.toLowerCase()))
   }, [editingPastorId, congregations, form.congregacion_id, catalogoPendientes, congregacionSearchTerm])
-
-  const catalogoPendientes = useMemo(
-    () => catalogoCongregaciones.filter((item) => !item.congregacion_id),
-    [catalogoCongregaciones]
-  )
-  const catalogoSugerencias = useMemo(
-    () => catalogoPendientes.filter((item) => item.nombre.toLowerCase().includes(catalogoSearchTerm.toLowerCase())),
-    [catalogoPendientes, catalogoSearchTerm]
-  )
 
   const resetForm = () => {
     setEditingPastorId(null)
