@@ -127,6 +127,8 @@ export default function PastoralDistrital() {
   const [catalogoDropdownOpen, setCatalogoDropdownOpen] = useState(false)
   const [catalogoSeleccionadoId, setCatalogoSeleccionadoId] = useState(null)
   const catalogoFieldRef = useRef(null)
+  const pastorFormRef = useRef(null)
+  const transferFormRef = useRef(null)
   const [pastorProfileId, setPastorProfileId] = useState(null)
   const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
   const [licenciaHistorial, setLicenciaHistorial] = useState([])
@@ -469,6 +471,7 @@ export default function PastoralDistrital() {
       observaciones: activeAssignment?.observaciones || pastor.observaciones || '',
       fecha_tarjeta_predicador: pastor.fecha_tarjeta_predicador || '',
     })
+    pastorFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   async function savePastor(event) {
@@ -1354,7 +1357,7 @@ export default function PastoralDistrital() {
       </form>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <form onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end">
+        <form ref={pastorFormRef} onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end">
           <div className="sm:col-span-2 flex items-center justify-between gap-3">
             <h2 className="font-medium">{editingPastorId ? 'Editar pastor' : 'Registrar pastor'}</h2>
             {editingPastorId && (
@@ -1491,7 +1494,7 @@ export default function PastoralDistrital() {
           </label>
         </form>
 
-        <form onSubmit={handleTransfer} className="card p-5 grid gap-3 items-end">
+        <form ref={transferFormRef} onSubmit={handleTransfer} className="card p-5 grid gap-3 items-end">
           <h2 className="font-medium">Trasladar pastor</h2>
 
           <label className="text-sm">
@@ -1774,7 +1777,10 @@ export default function PastoralDistrital() {
                     <button
                       type="button"
                       className="btn-primary flex-1"
-                      onClick={() => setTransferForm({ pastor_id: pastor.id, congregacion_id: '', fecha: TODAY, observaciones: '' })}
+                      onClick={() => {
+                        setTransferForm({ pastor_id: pastor.id, congregacion_id: '', fecha: TODAY, observaciones: '' })
+                        transferFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }}
                     >
                       <ArrowRightLeft className="w-4 h-4" />
                       Trasladar
