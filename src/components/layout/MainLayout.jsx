@@ -153,7 +153,7 @@ export default function MainLayout() {
           </div>
         )}
 
-        <div className="mx-auto max-w-[1220px] flex-1">
+        <div className="mx-auto max-w-[1220px] w-full flex-1">
           {bloqueado ? (
             <div className="flex flex-col items-center justify-center text-center gap-3 py-20">
               <Lock className="w-10 h-10 text-danger" />

@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): el contenedor de contenido de MainLayout
+	(`mx-auto max-w-[1220px] flex-1`, el que envuelve TODAS las pantallas
+	via Outlet) no llegaba a su ancho real -- por ser un item flex sin
+	`w-full` explicito dentro de un `flex-col`, se encogia al tamano de su
+	contenido en vez de estirarse a 1220px. Con contenido liviano (el
+	esqueleto de carga del Resumen, por ejemplo) se notaba mucho, dando la
+	sensacion de una version "movil" en escritorio -- se verifico con una
+	replica exacta del layout real en Playwright (antes/despues, con
+	contorno visual) en vez de adivinar desde capturas. No era exclusivo
+	del esqueleto: cualquier pantalla con poco contenido podia verse
+	angosta igual. Se agrego `w-full`. Ver
+	`docs/ancho-contenido-mainlayout-2026-09-03.md`. No requiere accion en
+	base de datos.
 - Resuelto (2026-09-03): los mensajes de exito ("notice") se quedaban
 	fijos en pantalla en vez de desaparecer solos -- resulto ser un bug en
 	19 de 23 pantallas (no solo Evangelismo, que fue donde se reporto), ya
