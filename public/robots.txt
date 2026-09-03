@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /$
+Allow: /ayuda$
+Allow: /legal$
+Allow: /login$
+Disallow: /
+
+Sitemap: https://sigap.com.co/sitemap.xml

@@ -2,6 +2,29 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): SEO basico -- el usuario reporto que
+	sigap.com.co no aparece al buscarlo en Google (carga normal si se
+	escribe la URL directa). Causa: sitio nuevo sin meta description, sin
+	robots.txt ni sitemap.xml -- no es un bug, es que nunca se le dijo a
+	Google que existe. Se agrego meta description + Open Graph/Twitter
+	Card en `index.html`, `public/robots.txt` (solo indexa las paginas
+	publicas: /, /ayuda, /legal, /login -- el resto esta detras de login)
+	y `public/sitemap.xml`. Ver `docs/seo-basico-2026-09-02.md`.
+	**Accion requerida del usuario**: verificar el dominio en Google
+	Search Console (agregar registro TXT en el DNS de Cloudflare) y
+	enviar el sitemap -- sin eso, Google puede tardar semanas en
+	descubrirlo solo.
+- Resuelto (2026-09-02): el menu movil del Sidebar empujaba la pantalla
+	en vez de superponerse -- el usuario reporto que al hacer scroll hacia
+	abajo recien ahi aparecia el contenido real (Resumen en adelante). El
+	`<aside>` no era `fixed` en movil (solo desde `md:`), asi que su
+	contenido expandido (~25 items de navegacion) se renderizaba como
+	bloque normal antes que `<main>`. Ahora es un overlay fijo con su
+	propio scroll interno en todos los tamanos de pantalla. Ver
+	`docs/sidebar-movil-overlay-2026-09-02.md`. No se pudo verificar
+	visualmente con Playwright por falta de credenciales de prueba en esta
+	sesion -- pendiente que el usuario confirme en su celular. No requiere
+	accion en base de datos.
 - Resuelto (2026-09-02): se quito "IPUC" de Inicio y Login unicamente
 	(el eyebrow del hero publico y el texto bajo el panel de acceso). El
 	usuario aclaro que el alcance era solo esas dos pantallas -- el resto

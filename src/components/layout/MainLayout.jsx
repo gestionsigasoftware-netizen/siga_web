@@ -114,8 +114,8 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar />
-      <main className="app-main md:ml-[248px] min-h-screen flex flex-col p-4 md:p-6">
-        <header className="main-header sticky top-0 z-20 mb-6 border-b border-border">
+      <main className="app-main md:ml-[248px] min-h-screen flex flex-col px-4 pb-4 pt-20 md:p-6">
+        <header className="main-header sticky top-16 md:top-0 z-20 mb-6 border-b border-border">
           <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-3 py-3.5">
             <div>
               <p className="eyebrow">Panel de control</p>

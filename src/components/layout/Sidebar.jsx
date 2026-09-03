@@ -263,8 +263,8 @@ export default function Sidebar() {
   ].filter((i) => i.show);
 
   return (
-    <aside className="sidebar-shell w-full md:w-[248px] flex-shrink-0 md:h-screen md:fixed md:left-0 md:top-0 flex flex-col p-3 md:p-4">
-      <div className="flex items-center justify-between gap-3 px-2 pb-2 md:pb-5 pt-1">
+    <aside className={`sidebar-shell w-full flex-shrink-0 fixed left-0 right-0 top-0 z-50 flex flex-col p-3 md:w-[248px] md:right-auto md:h-screen md:p-4 ${mobileOpen ? "h-screen" : "h-16"}`}>
+      <div className="flex items-center justify-between gap-3 px-2 h-16 md:h-auto md:pt-1 md:pb-5 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div>
             <img src={sigapLogoWhite} alt="SIGAP" className="h-6 w-auto" />
@@ -288,7 +288,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className={`${mobileOpen ? "block" : "hidden md:flex"} md:flex-1 md:min-h-0 md:flex-col`}>
+      <div className={`${mobileOpen ? "flex" : "hidden md:flex"} flex-col flex-1 min-h-0 overflow-y-auto md:overflow-visible`}>
         {rolPrincipal && (
           <div className="sidebar-profile mb-5 rounded-xl px-3 py-3">
             <div className="flex items-center justify-between gap-2">
@@ -349,7 +349,7 @@ export default function Sidebar() {
         )}
 
         <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
-        <nav className="flex flex-col gap-1.5 w-full max-h-[calc(100vh-220px)] overflow-y-auto overflow-x-hidden md:flex-1 md:min-h-0 md:max-h-none md:pr-1">
+        <nav className="flex flex-col gap-1.5 w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto md:pr-1">
           {items.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
