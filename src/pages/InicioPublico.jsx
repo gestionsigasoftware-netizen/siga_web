@@ -28,7 +28,7 @@ export default function InicioPublico() {
 
       <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
         <div>
-          <p className="eyebrow">Inteligencia pastoral IPUC</p>
+          <p className="eyebrow">Inteligencia pastoral</p>
           <h1 className="text-4xl sm:text-6xl font-semibold leading-[1.05] mt-4 max-w-2xl">Cada nivel, la lectura que necesita para decidir.</h1>
           <p className="text-lg text-secondary leading-8 mt-6 max-w-xl">SIGAP convierte el censo, la asistencia y los comités en pirámide poblacional, ciclo de vida espiritual y proyección de crecimiento — con la misma claridad para el pastor local, el distrital y la dirección nacional.</p>
           <div className="flex flex-col sm:flex-row gap-3 mt-8">

@@ -2,6 +2,25 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): se quito "IPUC" de Inicio y Login unicamente
+	(el eyebrow del hero publico y el texto bajo el panel de acceso). El
+	usuario aclaro que el alcance era solo esas dos pantallas -- el resto
+	de la app (footer, dashboard, membrete de exportaciones CSV/Excel/PDF,
+	ayuda, comites nacional, etc.) mantiene sus menciones a la IPUC tal
+	como estaban. Ver `docs/neutralizacion-marca-ipuc-2026-09-02.md`. No
+	requiere accion del usuario.
+- Resuelto (2026-09-02): suscripciones -- cobro por congregacion (v1
+	manual, sin pasarela). 5 dias de gracia tras el vencimiento y luego
+	bloqueo; dominio exclusivo de super_admin (nacional no controla ni ve
+	esto -- es un rol pastoral de la IPUC, no de administracion del
+	negocio SIGAP). Una congregacion sin fila en `suscripciones` sigue sin
+	restriccion (no bloquea de sorpresa a nadie al activar la funcion). La
+	congregacion ve el metodo de pago vigente (Nequi/cuenta bancaria,
+	configurado por super_admin) en el aviso de gracia y en la pantalla de
+	bloqueo. Ver `docs/suscripciones-2026-09-02.md`. **Accion requerida
+	del usuario**: ejecutar `supabase/suscripciones.sql`, y configurar el
+	metodo de pago en `/suscripciones` (solo visible para super_admin)
+	antes de activar el cobro de cualquier congregacion.
 - Resuelto (2026-09-02): footer institucional nuevo (SIGAP - Sistema
 	Integrado de Gestion y Analitica Pastoral + derechos reservados + By
 	Jormelia Soft), reutilizado en InicioPublico, Ayuda, Legal y dentro de

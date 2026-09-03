@@ -33,6 +33,7 @@ import {
   LifeBuoy,
   Send,
   Database,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -220,6 +221,12 @@ export default function Sidebar() {
       label: "Comités Nacional",
       icon: LayoutGrid,
       show: esAdminNacional,
+    },
+    {
+      to: "/suscripciones",
+      label: "Suscripciones",
+      icon: CreditCard,
+      show: nivel === "super_admin",
     },
     {
       to: "/modulos",

@@ -141,7 +141,7 @@ export default function Login() {
             <div className="flex items-center gap-2 mt-8 text-xs text-muted">
               <ShieldCheck className="w-4 h-4 text-success" /> Tu información se mantiene protegida.
             </div>
-            <p className="text-xs text-muted mt-12">IPUC · Gestión pastoral</p>
+            <p className="text-xs text-muted mt-12">SIGAP · Gestión pastoral</p>
           </div>
         </section>
       </div>
