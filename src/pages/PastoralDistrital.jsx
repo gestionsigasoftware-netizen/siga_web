@@ -134,6 +134,7 @@ export default function PastoralDistrital() {
   const [congregacionDropdownOpen, setCongregacionDropdownOpen] = useState(false)
   const congregacionFieldRef = useRef(null)
   const licenciaOriginalRef = useRef('obrero')
+  const [congregacionCorreccionCatalogoId, setCongregacionCorreccionCatalogoId] = useState(null)
   const [pastorProfileId, setPastorProfileId] = useState(null)
   const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
   const [licenciaHistorial, setLicenciaHistorial] = useState([])
@@ -456,6 +457,21 @@ export default function PastoralDistrital() {
     [congregations, form.congregacion_id, congregacionSearchTerm]
   )
 
+  // En "Editar pastor" el buscador combina las congregaciones reales de
+  // SIGAP (para trasladar a una que ya existe) con las de la lista
+  // oficial de Debora que todavia no estan registradas (para corregir el
+  // nombre de la congregacion actual, sin crear una nueva ni trasladar) --
+  // asi el campo siempre fuerza a elegir de una lista oficial, nunca
+  // texto libre.
+  const opcionesCongregacionEditar = useMemo(() => {
+    if (!editingPastorId) return []
+    const reales = congregations
+      .filter((congregation) => !congregation.pastor_id || congregation.id === form.congregacion_id)
+      .map((congregation) => ({ tipo: 'real', id: congregation.id, nombre: congregation.nombre }))
+    const oficialesPendientes = catalogoPendientes.map((item) => ({ tipo: 'oficial', id: item.id, nombre: item.nombre }))
+    return [...reales, ...oficialesPendientes].filter((item) => item.nombre.toLowerCase().includes(congregacionSearchTerm.toLowerCase()))
+  }, [editingPastorId, congregations, form.congregacion_id, catalogoPendientes, congregacionSearchTerm])
+
   const catalogoPendientes = useMemo(
     () => catalogoCongregaciones.filter((item) => !item.congregacion_id),
     [catalogoCongregaciones]
@@ -469,6 +485,7 @@ export default function PastoralDistrital() {
     setEditingPastorId(null)
     setForm(EMPTY_FORM)
     setCongregacionSearchTerm('')
+    setCongregacionCorreccionCatalogoId(null)
   }
 
   const openPastorEditor = (pastor) => {
@@ -489,6 +506,7 @@ export default function PastoralDistrital() {
     })
     licenciaOriginalRef.current = pastor.licencia || 'obrero'
     setCongregacionSearchTerm(congregacionActual?.nombre || '')
+    setCongregacionCorreccionCatalogoId(null)
     pastorFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -534,6 +552,16 @@ export default function PastoralDistrital() {
           })
           if (licenciaError) {
             throw new Error(`El pastor se actualizó, pero la licencia no se pudo corregir: ${licenciaError.message}`)
+          }
+        }
+
+        if (congregacionCorreccionCatalogoId) {
+          const { error: nombreError } = await supabase.rpc('corregir_nombre_congregacion', {
+            p_congregacion_id: form.congregacion_id,
+            p_catalogo_id: congregacionCorreccionCatalogoId,
+          })
+          if (nombreError) {
+            throw new Error(`El pastor se actualizó, pero el nombre de la congregación no se pudo corregir: ${nombreError.message}`)
           }
         }
 
@@ -599,7 +627,7 @@ export default function PastoralDistrital() {
       }
 
       resetForm()
-      await load()
+      await Promise.all([load(), loadCatalogoCongregaciones()])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -1385,7 +1413,7 @@ export default function PastoralDistrital() {
       </form>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <form ref={pastorFormRef} onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end">
+        <form ref={pastorFormRef} onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end" style={{ backdropFilter: 'none' }}>
           <div className="sm:col-span-2 flex items-center justify-between gap-3">
             <h2 className="font-medium">{editingPastorId ? 'Editar pastor' : 'Registrar pastor'}</h2>
             {editingPastorId && (
@@ -1480,33 +1508,46 @@ export default function PastoralDistrital() {
             <input
               required
               className="input-field mt-1.5"
-              placeholder="Escribe para buscar..."
+              placeholder="Escribe para buscar en la lista oficial..."
               value={congregacionSearchTerm}
               onChange={(event) => {
                 setCongregacionSearchTerm(event.target.value)
-                setForm({ ...form, congregacion_id: '' })
+                setForm({ ...form, congregacion_id: editingPastorId ? form.congregacion_id : '' })
+                setCongregacionCorreccionCatalogoId(null)
                 setCongregacionDropdownOpen(true)
               }}
               onFocus={() => setCongregacionDropdownOpen(true)}
             />
-            {congregacionDropdownOpen && (
-              <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
-                {congregacionesParaAsignar.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : congregacionesParaAsignar.map((congregation) => (
-                  <button
-                    type="button"
-                    key={congregation.id}
-                    onClick={() => {
-                      setForm({ ...form, congregacion_id: congregation.id })
-                      setCongregacionSearchTerm(congregation.nombre)
-                      setCongregacionDropdownOpen(false)
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0"
-                  >
-                    {congregation.nombre}
-                  </button>
-                ))}
-              </div>
+            {editingPastorId && (
+              <span className="block text-xs text-muted mt-1">Busca por el nombre oficial. Si eliges una que ya existe en SIGAP, se traslada; si eliges una oficial que aún no está registrada, se corrige el nombre de la congregación actual.</span>
             )}
+            {congregacionDropdownOpen && (() => {
+              const opciones = editingPastorId ? opcionesCongregacionEditar : congregacionesParaAsignar
+              return (
+                <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
+                  {opciones.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : opciones.map((item) => (
+                    <button
+                      type="button"
+                      key={`${item.tipo || 'real'}-${item.id}`}
+                      onClick={() => {
+                        if (!editingPastorId || item.tipo === 'real') {
+                          setForm({ ...form, congregacion_id: item.id })
+                          setCongregacionCorreccionCatalogoId(null)
+                        } else {
+                          setCongregacionCorreccionCatalogoId(item.id)
+                        }
+                        setCongregacionSearchTerm(item.nombre)
+                        setCongregacionDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0"
+                    >
+                      {item.nombre}
+                      {item.tipo === 'oficial' && <span className="ml-2 text-[10px] uppercase tracking-wide text-accent">Oficial · sin registrar</span>}
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
             {!editingPastorId && (
               <span className="block text-xs text-muted mt-1">Solo se muestran congregaciones sin pastor asignado.</span>
             )}

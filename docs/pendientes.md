@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): el buscador de Congregacion en Editar pastor
+	solo buscaba entre las congregaciones reales ya registradas en SIGAP,
+	no contra la lista oficial de Debora -- por eso escribir un nombre
+	oficial que aun no estaba registrado (ej. una prueba con "padilla") no
+	mostraba nada. Ahora combina ambas fuentes: elegir una real traslada
+	al pastor como siempre; elegir una oficial "sin registrar" corrige el
+	nombre de la congregacion actual (misma congregacion, se confirmo con
+	el usuario que NO se debe crear una nueva ni trasladar). De paso se
+	corrigio el mismo bug de backdrop-filter en el formulario de
+	Registrar/Editar pastor, antes de que se reportara aparte. Ver
+	`docs/correccion-nombre-congregacion-2026-09-03.md`. **Accion
+	requerida del usuario**: ejecutar
+	`supabase/corregir_nombre_congregacion.sql`.
 - Resuelto (2026-09-03): en Pastoral Distrital, "Editar" y "Trasladar"
 	pastor parecian no hacer nada -- en realidad si actualizaban el
 	formulario, pero este queda mas arriba que la lista de pastores, fuera
