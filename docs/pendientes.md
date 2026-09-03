@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): en Pastoral Distrital, "Editar" y "Trasladar"
+	pastor parecian no hacer nada -- en realidad si actualizaban el
+	formulario, pero este queda mas arriba que la lista de pastores, fuera
+	de la vista (ahora hacen scroll automatico). De paso: el campo
+	"Congregacion" del formulario de editar/registrar pastor paso de
+	select nativo a buscador con autocompletado, y se agrego una via
+	aparte para corregir la licencia ministerial directamente (distinta
+	del ascenso secuencial real, que se deja intacto) -- queda marcada
+	como "Correccion" en el historial para no mezclarse con los ascensos.
+	Ver `docs/editar-pastor-buscador-y-licencia-2026-09-03.md`. **Accion
+	requerida del usuario**: ejecutar `supabase/corregir_licencia_pastor.sql`.
 - Resuelto (2026-09-03): catalogo de referencia de las 5367
 	congregaciones reales de la IPUC (35 distritos, no 36 como se asumia
 	antes -- confirmado por el usuario), extraido de Debora

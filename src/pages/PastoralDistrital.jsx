@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   cargo: 'Pastor local',
   observaciones: '',
   fecha_tarjeta_predicador: '',
+  licencia: 'obrero',
 }
 const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pastor_apellidos: '', pastor_telefono: '', pastor_email: '' }
 const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
@@ -129,6 +130,10 @@ export default function PastoralDistrital() {
   const catalogoFieldRef = useRef(null)
   const pastorFormRef = useRef(null)
   const transferFormRef = useRef(null)
+  const [congregacionSearchTerm, setCongregacionSearchTerm] = useState('')
+  const [congregacionDropdownOpen, setCongregacionDropdownOpen] = useState(false)
+  const congregacionFieldRef = useRef(null)
+  const licenciaOriginalRef = useRef('obrero')
   const [pastorProfileId, setPastorProfileId] = useState(null)
   const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
   const [licenciaHistorial, setLicenciaHistorial] = useState([])
@@ -248,7 +253,7 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
       supabase
         .from('historial_licencias_pastorales')
-        .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones')
+        .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones, tipo')
         .order('fecha', { ascending: false }),
       supabase
         .from('formacion_pastoral')
@@ -438,10 +443,18 @@ export default function PastoralDistrital() {
   useEffect(() => {
     function handleClickOutside(event) {
       if (catalogoFieldRef.current && !catalogoFieldRef.current.contains(event.target)) setCatalogoDropdownOpen(false)
+      if (congregacionFieldRef.current && !congregacionFieldRef.current.contains(event.target)) setCongregacionDropdownOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const congregacionesParaAsignar = useMemo(
+    () => congregations
+      .filter((congregation) => !congregation.pastor_id || congregation.id === form.congregacion_id)
+      .filter((congregation) => congregation.nombre.toLowerCase().includes(congregacionSearchTerm.toLowerCase())),
+    [congregations, form.congregacion_id, congregacionSearchTerm]
+  )
 
   const catalogoPendientes = useMemo(
     () => catalogoCongregaciones.filter((item) => !item.congregacion_id),
@@ -455,10 +468,12 @@ export default function PastoralDistrital() {
   const resetForm = () => {
     setEditingPastorId(null)
     setForm(EMPTY_FORM)
+    setCongregacionSearchTerm('')
   }
 
   const openPastorEditor = (pastor) => {
     const activeAssignment = activeByPastor.get(pastor.id)
+    const congregacionActual = congregations.find((congregation) => congregation.id === activeAssignment?.congregacion_id)
     setEditingPastorId(pastor.id)
     setForm({
       nombres: pastor.nombres || '',
@@ -470,7 +485,10 @@ export default function PastoralDistrital() {
       cargo: activeAssignment?.cargo || 'Pastor local',
       observaciones: activeAssignment?.observaciones || pastor.observaciones || '',
       fecha_tarjeta_predicador: pastor.fecha_tarjeta_predicador || '',
+      licencia: pastor.licencia || 'obrero',
     })
+    licenciaOriginalRef.current = pastor.licencia || 'obrero'
+    setCongregacionSearchTerm(congregacionActual?.nombre || '')
     pastorFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -507,6 +525,16 @@ export default function PastoralDistrital() {
 
         if (pastorError) {
           throw new Error(`No se pudo actualizar al pastor: ${pastorError.message}`)
+        }
+
+        if (form.licencia !== licenciaOriginalRef.current) {
+          const { error: licenciaError } = await supabase.rpc('corregir_licencia_pastor', {
+            p_pastor_id: editingPastorId,
+            p_licencia: form.licencia,
+          })
+          if (licenciaError) {
+            throw new Error(`El pastor se actualizó, pero la licencia no se pudo corregir: ${licenciaError.message}`)
+          }
         }
 
         const { error: assignmentError } = await supabase
@@ -1327,7 +1355,7 @@ export default function PastoralDistrital() {
             onFocus={() => setCatalogoDropdownOpen(true)}
           />
           {catalogoDropdownOpen && catalogoPendientes.length > 0 && (
-            <div className="absolute z-20 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-56 overflow-y-auto">
+            <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
               {catalogoSugerencias.length === 0 ? (
                 <p className="p-3 text-xs text-muted">Sin coincidencias en la lista oficial — puedes registrarla igual con el nombre que escribiste.</p>
               ) : catalogoSugerencias.slice(0, 30).map((item) => (
@@ -1421,6 +1449,22 @@ export default function PastoralDistrital() {
 
           {editingPastorId && (
             <label className="text-sm">
+              Licencia ministerial
+              <select
+                className="input-field mt-1.5"
+                value={form.licencia}
+                onChange={(event) => setForm({ ...form, licencia: event.target.value })}
+              >
+                {Object.entries(LICENCIA_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <span className="block text-xs text-muted mt-1">Corrige la licencia directamente (ej. un error de captura). Para un ascenso real, usa "Ascender licencia ministerial" más abajo.</span>
+            </label>
+          )}
+
+          {editingPastorId && (
+            <label className="text-sm">
               Tarjeta de predicador (obreros sin licencia)
               <input
                 type="date"
@@ -1431,27 +1475,42 @@ export default function PastoralDistrital() {
             </label>
           )}
 
-          <label className="text-sm">
+          <div className="text-sm relative" ref={congregacionFieldRef}>
             Congregación
-            <select
+            <input
               required
               className="input-field mt-1.5"
-              value={form.congregacion_id}
-              onChange={(event) => setForm({ ...form, congregacion_id: event.target.value })}
-            >
-              <option value="">Seleccionar...</option>
-              {congregations
-                .filter((congregation) => !congregation.pastor_id || congregation.id === form.congregacion_id)
-                .map((congregation) => (
-                  <option key={congregation.id} value={congregation.id}>
+              placeholder="Escribe para buscar..."
+              value={congregacionSearchTerm}
+              onChange={(event) => {
+                setCongregacionSearchTerm(event.target.value)
+                setForm({ ...form, congregacion_id: '' })
+                setCongregacionDropdownOpen(true)
+              }}
+              onFocus={() => setCongregacionDropdownOpen(true)}
+            />
+            {congregacionDropdownOpen && (
+              <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
+                {congregacionesParaAsignar.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : congregacionesParaAsignar.map((congregation) => (
+                  <button
+                    type="button"
+                    key={congregation.id}
+                    onClick={() => {
+                      setForm({ ...form, congregacion_id: congregation.id })
+                      setCongregacionSearchTerm(congregation.nombre)
+                      setCongregacionDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0"
+                  >
                     {congregation.nombre}
-                  </option>
+                  </button>
                 ))}
-            </select>
+              </div>
+            )}
             {!editingPastorId && (
               <span className="block text-xs text-muted mt-1">Solo se muestran congregaciones sin pastor asignado.</span>
             )}
-          </label>
+          </div>
 
           <label className="text-sm">
             Cargo
@@ -1858,7 +1917,10 @@ export default function PastoralDistrital() {
                     <div key={item.id} className="flex items-start gap-3 border border-border rounded-lg bg-surface-1 p-3">
                       <GraduationCap className="w-4 h-4 text-accent mt-1" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}</p>
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          {pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}
+                          {item.tipo === 'correccion' && <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-warning-bg text-warning">Corrección</span>}
+                        </p>
                         <p className="text-xs text-secondary mt-1">{LICENCIA_LABELS[item.licencia_anterior] || item.licencia_anterior} → {LICENCIA_LABELS[item.licencia_nueva] || item.licencia_nueva}</p>
                         <p className="text-xs text-secondary mt-1">{formatDate(item.fecha)}</p>
                         {item.observaciones && <p className="text-xs text-muted mt-1">Obs: {item.observaciones}</p>}
