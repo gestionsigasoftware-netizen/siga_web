@@ -3,6 +3,7 @@ import { MapPin, Plus, PencilLine } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
+import GeoMap from '../components/charts/GeoMap'
 
 const CONG_PAGE_SIZE = 50
 
@@ -35,7 +36,7 @@ export default function GestionDistritos() {
     setError(null)
     const [{ data: distritosData, error: distritosError }, { data: congregacionesData, error: congregacionesError }] = await Promise.all([
       supabase.from('distritos').select('id, numero, nombre, created_at').order('numero', { ascending: true, nullsFirst: false }).order('nombre'),
-      supabase.from('congregaciones').select('id, nombre, ciudad, distrito_id, distritos(nombre, numero)').order('nombre'),
+      supabase.from('congregaciones').select('id, nombre, ciudad, latitud, longitud, distrito_id, distritos(nombre, numero)').order('nombre'),
     ])
     if (distritosError || congregacionesError) setError('No se pudieron cargar los distritos.')
     setDistritos(distritosData ?? [])
@@ -77,6 +78,29 @@ export default function GestionDistritos() {
   const congPageCount = Math.max(1, Math.ceil(congregacionesFiltradas.length / CONG_PAGE_SIZE))
   const congPageSafe = Math.min(congPage, congPageCount - 1)
   const congregacionesPagina = congregacionesFiltradas.slice(congPageSafe * CONG_PAGE_SIZE, congPageSafe * CONG_PAGE_SIZE + CONG_PAGE_SIZE)
+
+  const porCiudad = (() => {
+    const mapa = new Map()
+    for (const congregacion of congregaciones) {
+      const ciudad = (congregacion.ciudad || '').trim()
+      if (!ciudad) continue
+      const clave = ciudad.toLowerCase()
+      if (!mapa.has(clave)) mapa.set(clave, { ciudad, congregaciones: 0, distritos: new Set() })
+      const entrada = mapa.get(clave)
+      entrada.congregaciones += 1
+      if (congregacion.distritos?.numero) entrada.distritos.add(congregacion.distritos.numero)
+    }
+    return [...mapa.values()].map((item) => ({ ...item, distritos: item.distritos.size })).sort((a, b) => b.congregaciones - a.congregaciones)
+  })()
+  const sinCiudad = congregaciones.filter((congregacion) => !congregacion.ciudad?.trim()).length
+  const puntosMapa = congregaciones.map((congregacion) => ({
+    id: congregacion.id,
+    label: congregacion.nombre,
+    valor: 1,
+    latitud: congregacion.latitud,
+    longitud: congregacion.longitud,
+    detalle: [congregacion.ciudad, formatDistrictLabel(congregacion.distritos?.nombre, congregacion.distritos?.numero)].filter(Boolean).join(' · '),
+  }))
 
   function resetForm() {
     setEditingId(null)
@@ -237,6 +261,46 @@ export default function GestionDistritos() {
         )}
         <div className="p-4 border-t border-border">
           <Pager page={congPageSafe} totalPages={congPageCount} total={congregacionesFiltradas.length} onPrev={() => setCongPage((current) => current - 1)} onNext={() => setCongPage((current) => current + 1)} label="congregaciones" />
+        </div>
+      </section>
+
+      <section className="grid lg:grid-cols-2 gap-4">
+        <div className="card overflow-hidden">
+          <header className="p-5 pb-3">
+            <h2 className="font-medium">Congregaciones por ciudad</h2>
+            <p className="text-sm text-secondary mt-0.5">Cuántas congregaciones hay en cada ciudad, y de cuántos distritos distintos vienen — útil cuando una misma ciudad tiene congregaciones de varios distritos (ej. Cali).{sinCiudad > 0 && ` ${sinCiudad} congregación(es) sin ciudad registrada no aparecen aquí.`}</p>
+          </header>
+          {porCiudad.length === 0 ? (
+            <p className="px-5 pb-5 text-sm text-muted">Aún no hay congregaciones con ciudad registrada.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted bg-surface-1">
+                    <th className="font-normal px-5 py-3">Ciudad</th>
+                    <th className="font-normal px-5 py-3 text-right">Congregaciones</th>
+                    <th className="font-normal px-5 py-3 text-right">Distritos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porCiudad.map((item) => (
+                    <tr key={item.ciudad} className="border-t border-border">
+                      <td className="px-5 py-3 font-medium">{item.ciudad}</td>
+                      <td className="px-5 py-3 text-right">{item.congregaciones}</td>
+                      <td className="px-5 py-3 text-right text-secondary">{item.distritos || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="card p-5">
+          <h2 className="font-medium">Mapa nacional de congregaciones</h2>
+          <p className="text-sm text-secondary mt-0.5">Ubicación aproximada, según la dirección que cada congregación registró en Configuración local.</p>
+          <div className="mt-4">
+            <GeoMap points={puntosMapa} height={420} />
+          </div>
         </div>
       </section>
     </div>

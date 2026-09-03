@@ -15,6 +15,8 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import { geocodeAddress } from "../lib/geocoding";
+import GeoMap from "../components/charts/GeoMap";
 
 ChartJS.register(
   BarElement,
@@ -63,11 +65,14 @@ export default function Evangelismo() {
   const [editingZoneId, setEditingZoneId] = useState(null);
   const [zoneEditName, setZoneEditName] = useState("");
   const [zoneEditLeader, setZoneEditLeader] = useState("");
+  const [zoneEditDireccion, setZoneEditDireccion] = useState("");
+  const [geocodificando, setGeocodificando] = useState(false);
   const [zonaForm, setZonaForm] = useState({
     nombre: "",
     tipo: "barrio",
     responsable_id: "",
     tipo_poblacion: "general",
+    direccion: "",
   });
   const [metodoForm, setMetodoForm] = useState("");
   const [metodosEstacion, setMetodosEstacion] = useState(null);
@@ -128,7 +133,7 @@ export default function Evangelismo() {
         supabase
           .from("zonas")
           .select(
-            "id, nombre, modulo_id, lider_persona_id, tipo_poblacion, personas:lider_persona_id(nombres, apellidos)",
+            "id, nombre, modulo_id, lider_persona_id, tipo_poblacion, direccion, latitud, longitud, personas:lider_persona_id(nombres, apellidos)",
           )
           .eq("congregacion_id", congregacionId)
           .order("nombre"),
@@ -306,6 +311,9 @@ export default function Evangelismo() {
   async function createZone(event) {
     event.preventDefault();
     if (!canEdit || !zonaForm.nombre.trim() || !modulo?.id) return;
+    setGeocodificando(true);
+    const ubicacion = zonaForm.direccion.trim() ? await geocodeAddress(zonaForm.direccion.trim()) : null;
+    setGeocodificando(false);
     const result = await supabase
       .from("zonas")
       .insert({
@@ -314,12 +322,15 @@ export default function Evangelismo() {
         nombre: `${zonaForm.tipo}: ${zonaForm.nombre.trim()}`,
         lider_persona_id: zonaForm.responsable_id || null,
         tipo_poblacion: zonaForm.tipo_poblacion,
+        direccion: zonaForm.direccion.trim() || null,
+        latitud: ubicacion?.latitud ?? null,
+        longitud: ubicacion?.longitud ?? null,
       });
     if (result.error)
       setError(`No se pudo crear la cobertura: ${result.error.message}`);
     else {
       setNotice("Lugar de cobertura creado.");
-      setZonaForm({ nombre: "", tipo: "barrio", responsable_id: "", tipo_poblacion: "general" });
+      setZonaForm({ nombre: "", tipo: "barrio", responsable_id: "", tipo_poblacion: "general", direccion: "" });
       load();
     }
   }
@@ -346,9 +357,18 @@ export default function Evangelismo() {
   async function updateZone(event) {
     event.preventDefault();
     if (!canEdit) return;
-    const result = await supabase.from("zonas").update({ nombre: zoneEditName.trim(), lider_persona_id: zoneEditLeader || null }).eq("id", editingZoneId).eq("congregacion_id", congregacionId);
-    if (result.error) setError(`No se pudo actualizar el líder: ${result.error.message}`);
-    else { setNotice("Responsable de zona actualizado."); setEditingZoneId(null); load(); }
+    setGeocodificando(true);
+    const ubicacion = zoneEditDireccion.trim() ? await geocodeAddress(zoneEditDireccion.trim()) : null;
+    setGeocodificando(false);
+    const result = await supabase.from("zonas").update({
+      nombre: zoneEditName.trim(),
+      lider_persona_id: zoneEditLeader || null,
+      direccion: zoneEditDireccion.trim() || null,
+      latitud: ubicacion?.latitud ?? null,
+      longitud: ubicacion?.longitud ?? null,
+    }).eq("id", editingZoneId).eq("congregacion_id", congregacionId);
+    if (result.error) setError(`No se pudo actualizar la zona: ${result.error.message}`);
+    else { setNotice("Zona actualizada."); setEditingZoneId(null); load(); }
   }
 
   async function createDiagnostico(event) {
@@ -634,7 +654,7 @@ export default function Evangelismo() {
                     <td className="py-2 text-right font-medium text-success">
                       {row.conversiones}
                     </td>
-                    <td className="py-2 text-right">{canEdit && <button type="button" className="text-xs text-accent" onClick={() => { setEditingZoneId(row.id); setZoneEditName(row.nombre); setZoneEditLeader(row.lider_persona_id || "") }}>Editar</button>}</td>
+                    <td className="py-2 text-right">{canEdit && <button type="button" className="text-xs text-accent" onClick={() => { setEditingZoneId(row.id); setZoneEditName(row.nombre); setZoneEditLeader(row.lider_persona_id || ""); setZoneEditDireccion(row.direccion || "") }}>Editar</button>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -664,6 +684,27 @@ export default function Evangelismo() {
               value={totalConversiones}
               tone="text-success"
             />
+          </div>
+        </div>
+      </section>
+      <section className="grid lg:grid-cols-2 gap-4">
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Cobertura territorial</p>
+          <h2 className="font-medium mt-1">Amigos alcanzados por zona</h2>
+          <div className="h-56 mt-4">
+            {zonaRows.length ? (
+              <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "amigos", datasetLabel: "Amigos alcanzados" })} options={CHART_OPTIONS} />
+            ) : (
+              <p className="text-sm text-muted py-10 text-center">Aún no hay zonas registradas.</p>
+            )}
+          </div>
+        </div>
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Ubicación geográfica</p>
+          <h2 className="font-medium mt-1">Zonas en el mapa</h2>
+          <p className="text-xs text-secondary mt-1">Solo aparecen las zonas con dirección registrada. El tamaño del punto es proporcional a los amigos alcanzados.</p>
+          <div className="mt-4">
+            <GeoMap points={zonaRows.map((row) => ({ id: row.id, label: row.nombre, valor: row.amigos, latitud: row.latitud, longitud: row.longitud, detalle: `${row.amigos} amigos en ruta · ${row.conversiones} conversiones` }))} />
           </div>
         </div>
       </section>
@@ -705,11 +746,20 @@ export default function Evangelismo() {
               <option value="indigena">Indígena</option>
             </select>
           </label>
+          <label className="text-sm">
+            Dirección aproximada <span className="text-xs text-muted">(opcional, para verla en el mapa)</span>
+            <input
+              className="input-field mt-1.5"
+              placeholder="Calle 5 #23-10, Barrio San Fernando"
+              value={zonaForm.direccion}
+              onChange={(event) => setZonaForm({ ...zonaForm, direccion: event.target.value })}
+            />
+          </label>
           <p className="text-xs text-secondary">
             El responsable se asigna en Equipo de trabajo y la actividad quedará asociada a esta zona.
           </p>
-          <button className="btn-primary justify-center">
-            <Plus className="w-4 h-4" /> Crear cobertura
+          <button disabled={geocodificando} className="btn-primary justify-center">
+            <Plus className="w-4 h-4" /> {geocodificando ? 'Ubicando...' : 'Crear cobertura'}
           </button>
         </form>
         <form onSubmit={createMethod} className="card p-5 flex flex-col gap-2">
@@ -786,7 +836,7 @@ export default function Evangelismo() {
           </div>
         </div>
       </section>
-      {editingZoneId && <div className="modal-backdrop"><form onSubmit={updateZone} className="modal-panel"><h2 className="font-medium">Editar cobertura territorial</h2><input autoFocus required className="input-field mt-4" value={zoneEditName} onChange={(event) => setZoneEditName(event.target.value)} /><select className="input-field mt-2" value={zoneEditLeader} onChange={(event) => setZoneEditLeader(event.target.value)}><option value="">Sin líder asignado</option>{personas.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingZoneId(null)} className="btn-secondary">Cancelar</button><button disabled={!canEdit} className="btn-primary">Guardar</button></div></form></div>}
+      {editingZoneId && <div className="modal-backdrop"><form onSubmit={updateZone} className="modal-panel"><h2 className="font-medium">Editar cobertura territorial</h2><input autoFocus required className="input-field mt-4" value={zoneEditName} onChange={(event) => setZoneEditName(event.target.value)} /><select className="input-field mt-2" value={zoneEditLeader} onChange={(event) => setZoneEditLeader(event.target.value)}><option value="">Sin líder asignado</option>{personas.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><input className="input-field mt-2" placeholder="Dirección aproximada (para el mapa)" value={zoneEditDireccion} onChange={(event) => setZoneEditDireccion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingZoneId(null)} className="btn-secondary">Cancelar</button><button disabled={!canEdit || geocodificando} className="btn-primary">{geocodificando ? 'Ubicando...' : 'Guardar'}</button></div></form></div>}
     </div>
   );
 }

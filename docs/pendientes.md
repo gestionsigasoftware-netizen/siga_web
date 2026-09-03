@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): mapas de zonas de evangelismo y congregaciones
+	por ciudad. Se agrego direccion + coordenadas (via geocodificacion
+	automatica con Nominatim/OpenStreetMap, gratis y sin licencia
+	comercial) a `zonas` y `congregaciones`. Nuevo componente reutilizable
+	`GeoMap` (Leaflet). En Evangelismo: grafico de barras + mapa de amigos
+	alcanzados por zona. En Configuracion local: campos de ciudad y
+	direccion de la congregacion. En Catalogo de distritos (nacional):
+	tabla de congregaciones por ciudad + mapa nacional. Se encontro y
+	corrigio un bug real de zoom (el mapa quedaba muy alejado con puntos
+	cercanos) verificando con captura de pantalla antes de terminar. Ver
+	`docs/mapas-zonas-y-congregaciones-2026-09-03.md`. **Accion requerida
+	del usuario**: ejecutar `supabase/geolocalizacion.sql`. Las zonas y
+	congregaciones existentes quedan sin ubicacion hasta que alguien les
+	agregue direccion.
 - Resuelto (2026-09-03): ciudad automatica en el catalogo de
 	congregaciones -- Debora solo da nombre (sin ciudad separada, ej.
 	"AGUACHICA 3 LA UNION CESAR"). Se cruzaron los 5367 nombres contra la

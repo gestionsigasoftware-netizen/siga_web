@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import { useUndoDelete } from '../hooks/useUndoDelete'
+import { geocodeAddress } from '../lib/geocoding'
 import UndoToast from '../components/UndoToast'
 
 function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
@@ -51,7 +52,7 @@ export default function Configuracion() {
   const [etapas, setEtapas] = useState([])
   const [tiposComite, setTiposComite] = useState([])
   const [cargosComite, setCargosComite] = useState([])
-  const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '' })
+  const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '', ciudad: '', direccion: '' })
   const [preferencias, setPreferencias] = useState({ umbral_alerta: 15, modulo_predeterminado: '', exigir_responsable: true, exigir_novedades: false })
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -66,7 +67,7 @@ export default function Configuracion() {
       supabase.from('categorias_demograficas').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
-      supabase.from('congregaciones').select('id, nombre, distrito_id, distritos(nombre)').eq('id', congregacionId).single(),
+      supabase.from('congregaciones').select('id, nombre, distrito_id, ciudad, direccion, distritos(nombre)').eq('id', congregacionId).single(),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('cargos_comite').select('id, nombre, codigo, requiere_sellado').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
     ])
@@ -77,7 +78,7 @@ export default function Configuracion() {
     setEtapas(et.data ?? [])
     setTiposComite(typeResult.data ?? [])
     setCargosComite(committeeCargoResult.data ?? [])
-    if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '' })
+    if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' })
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()
     if (configError) setError('No se pudieron cargar las preferencias de la congregación.')
     if (config) setPreferencias({ ...config, modulo_predeterminado: config.modulo_predeterminado ?? '' })
@@ -90,7 +91,14 @@ export default function Configuracion() {
     setNotice(null)
     const { data: congregation, error: congregationError } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
     if (congregationError) { setSaving(false); setError(`No se pudo cargar la congregación: ${congregationError.message}`); return }
-    const { error: organizationError } = await supabase.from('congregaciones').update({ nombre: organizacion.nombre.trim() }).eq('id', congregacionId)
+    const ubicacion = organizacion.direccion.trim() ? await geocodeAddress(organizacion.direccion.trim(), organizacion.ciudad.trim()) : null
+    const { error: organizationError } = await supabase.from('congregaciones').update({
+      nombre: organizacion.nombre.trim(),
+      ciudad: organizacion.ciudad.trim() || null,
+      direccion: organizacion.direccion.trim() || null,
+      latitud: ubicacion?.latitud ?? null,
+      longitud: ubicacion?.longitud ?? null,
+    }).eq('id', congregacionId)
     if (organizationError) { setSaving(false); setError(`No se pudo guardar el nombre de la congregación: ${organizationError.message}`); return }
     const { error } = await supabase.from('configuracion_congregacion').upsert({ ...preferencias, congregacion_id: congregacionId, modulo_predeterminado: preferencias.modulo_predeterminado || null })
     setSaving(false)
@@ -163,8 +171,10 @@ export default function Configuracion() {
         <div className="grid sm:grid-cols-2 gap-4">
           <label className="text-sm">Nombre de la congregación<input required maxLength={120} className="input-field mt-1.5" value={organizacion.nombre} onChange={(e) => setOrganizacion({ ...organizacion, nombre: e.target.value })} /></label>
           <label className="text-sm">Distrito<input readOnly className="input-field mt-1.5 opacity-75 cursor-default" value={organizacion.distrito} /></label>
+          <label className="text-sm">Ciudad/Municipio<input maxLength={120} className="input-field mt-1.5" value={organizacion.ciudad} onChange={(e) => setOrganizacion({ ...organizacion, ciudad: e.target.value })} /></label>
+          <label className="text-sm">Dirección<input maxLength={200} placeholder="Calle 5 #23-10, Barrio San Fernando" className="input-field mt-1.5" value={organizacion.direccion} onChange={(e) => setOrganizacion({ ...organizacion, direccion: e.target.value })} /></label>
         </div>
-        <p className="text-xs text-muted mt-3">El distrito se muestra como referencia y se administra desde el nivel correspondiente.</p>
+        <p className="text-xs text-muted mt-3">El distrito se muestra como referencia y se administra desde el nivel correspondiente. La dirección se usa para ubicar aproximadamente tu congregación en el mapa nacional.</p>
         <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar información'}</button></div>
       </form>
 
