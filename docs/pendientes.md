@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): catalogo de referencia de las 5367
+	congregaciones reales de la IPUC (35 distritos, no 36 como se asumia
+	antes -- confirmado por el usuario), extraido de Debora
+	(debora.fecp.org.co, el sistema oficial de la IPUC). NO crea tenants
+	activos -- es solo un catalogo de apoyo para que un distrital elija el
+	nombre oficial al registrar una congregacion nueva (autocompletado en
+	Pastoral Distrital), con un contador de "cuantas le faltan por
+	registrar". Ver `docs/catalogo-congregaciones-ipuc-2026-09-03.md`.
+	**Accion requerida del usuario**: ejecutar
+	`supabase/catalogo_congregaciones_ipuc.sql` y luego
+	`supabase/seed_catalogo_congregaciones_ipuc.sql` (una sola vez, carga
+	las 5367 filas).
 - Resuelto (2026-09-02): SEO basico -- el usuario reporto que
 	sigap.com.co no aparece al buscarlo en Google (carga normal si se
 	escribe la URL directa). Causa: sitio nuevo sin meta description, sin

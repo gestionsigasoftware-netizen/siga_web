@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -122,6 +122,11 @@ export default function PastoralDistrital() {
   const [notice, setNotice] = useState(null)
   const [newCongregation, setNewCongregation] = useState(EMPTY_NEW_CONGREGATION)
   const [creatingCongregation, setCreatingCongregation] = useState(false)
+  const [catalogoCongregaciones, setCatalogoCongregaciones] = useState([])
+  const [catalogoSearchTerm, setCatalogoSearchTerm] = useState('')
+  const [catalogoDropdownOpen, setCatalogoDropdownOpen] = useState(false)
+  const [catalogoSeleccionadoId, setCatalogoSeleccionadoId] = useState(null)
+  const catalogoFieldRef = useRef(null)
   const [pastorProfileId, setPastorProfileId] = useState(null)
   const [resumenPorCongregacion, setResumenPorCongregacion] = useState(new Map())
   const [licenciaHistorial, setLicenciaHistorial] = useState([])
@@ -383,6 +388,7 @@ export default function PastoralDistrital() {
         p_pastor_apellidos: newCongregation.pastor_apellidos.trim(),
         p_pastor_telefono: newCongregation.pastor_telefono.trim() || null,
         p_ciudad: newCongregation.ciudad.trim() || null,
+        p_catalogo_id: catalogoSeleccionadoId || null,
       })
       if (createError) throw new Error(`No se pudo crear la congregación: ${createError.message}`)
       const [{ congregacion_id: newCongregationId, persona_id: newPersonId }] = created
@@ -398,7 +404,9 @@ export default function PastoralDistrital() {
         setNotice(inviteData.invitationSent ? 'Congregación creada. Se envió la invitación de acceso al pastor.' : 'Congregación creada. La cuenta existente del pastor quedó vinculada.')
       }
       setNewCongregation(EMPTY_NEW_CONGREGATION)
-      await load()
+      setCatalogoSearchTerm('')
+      setCatalogoSeleccionadoId(null)
+      await Promise.all([load(), loadCatalogoCongregaciones()])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -406,9 +414,41 @@ export default function PastoralDistrital() {
     }
   }
 
+  async function loadCatalogoCongregaciones() {
+    const distritoNumero = rolPrincipal?.distritos?.numero
+    if (!distritoNumero) { setCatalogoCongregaciones([]); return }
+    const { data } = await supabase
+      .from('catalogo_congregaciones_ipuc')
+      .select('id, nombre, congregacion_id')
+      .eq('distrito_numero', distritoNumero)
+      .order('nombre')
+    setCatalogoCongregaciones(data ?? [])
+  }
+
   useEffect(() => {
     load()
   }, [distritoId, isDistrictLeader])
+
+  useEffect(() => {
+    loadCatalogoCongregaciones()
+  }, [rolPrincipal?.distritos?.numero])
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (catalogoFieldRef.current && !catalogoFieldRef.current.contains(event.target)) setCatalogoDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const catalogoPendientes = useMemo(
+    () => catalogoCongregaciones.filter((item) => !item.congregacion_id),
+    [catalogoCongregaciones]
+  )
+  const catalogoSugerencias = useMemo(
+    () => catalogoPendientes.filter((item) => item.nombre.toLowerCase().includes(catalogoSearchTerm.toLowerCase())),
+    [catalogoPendientes, catalogoSearchTerm]
+  )
 
   const resetForm = () => {
     setEditingPastorId(null)
@@ -1264,8 +1304,47 @@ export default function PastoralDistrital() {
         <div className="sm:col-span-2 lg:col-span-5">
           <h2 className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-accent" />Registrar nueva congregación</h2>
           <p className="text-xs text-secondary mt-1">Crea la congregación en tu distrito y da acceso a su primer pastor local. Queda pendiente de aprobación hasta que la actives desde Aprobaciones.</p>
+          {catalogoCongregaciones.length > 0 && (
+            <p className="text-xs text-accent mt-1">Te faltan {catalogoPendientes.length} de {catalogoCongregaciones.length} congregaciones reales de tu distrito por registrar en SIGAP.</p>
+          )}
         </div>
-        <label className="text-sm">Nombre de la congregación<input required className="input-field mt-1.5" value={newCongregation.nombre} onChange={(event) => setNewCongregation({ ...newCongregation, nombre: event.target.value })} /></label>
+        <div className="text-sm relative" ref={catalogoFieldRef}>
+          Nombre de la congregación
+          <input
+            required
+            className="input-field mt-1.5"
+            placeholder="Escribe o elige de la lista oficial..."
+            value={newCongregation.nombre}
+            onChange={(event) => {
+              setNewCongregation({ ...newCongregation, nombre: event.target.value })
+              setCatalogoSeleccionadoId(null)
+              setCatalogoSearchTerm(event.target.value)
+              setCatalogoDropdownOpen(true)
+            }}
+            onFocus={() => setCatalogoDropdownOpen(true)}
+          />
+          {catalogoDropdownOpen && catalogoPendientes.length > 0 && (
+            <div className="absolute z-20 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-56 overflow-y-auto">
+              {catalogoSugerencias.length === 0 ? (
+                <p className="p-3 text-xs text-muted">Sin coincidencias en la lista oficial — puedes registrarla igual con el nombre que escribiste.</p>
+              ) : catalogoSugerencias.slice(0, 30).map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => {
+                    setNewCongregation({ ...newCongregation, nombre: item.nombre })
+                    setCatalogoSeleccionadoId(item.id)
+                    setCatalogoSearchTerm(item.nombre)
+                    setCatalogoDropdownOpen(false)
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0"
+                >
+                  {item.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <label className="text-sm">Ciudad/Municipio<input className="input-field mt-1.5" value={newCongregation.ciudad} onChange={(event) => setNewCongregation({ ...newCongregation, ciudad: event.target.value })} /></label>
         <label className="text-sm">Nombres del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_nombres} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_nombres: event.target.value })} /></label>
         <label className="text-sm">Apellidos del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_apellidos} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_apellidos: event.target.value })} /></label>
