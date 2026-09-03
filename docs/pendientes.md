@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-03): ciudad automatica en el catalogo de
+	congregaciones -- Debora solo da nombre (sin ciudad separada, ej.
+	"AGUACHICA 3 LA UNION CESAR"). Se cruzaron los 5367 nombres contra la
+	lista oficial de municipios de Colombia (~1124, dataset publico
+	marcovega/colombia-json) para identificar departamento + municipio
+	real dentro del texto, con abreviaturas reales de Debora expandidas
+	antes (BOG, BQUILLA, CGENA, BMANGA, etc.). 3305 de 5367 (61.6%)
+	quedaron con ciudad identificada con confianza; el resto se deja en
+	blanco (no se adivina). Al elegir una sugerencia en "Registrar nueva
+	congregacion" ahora tambien se autocompleta Ciudad/Municipio. Ver
+	`docs/ciudad-catalogo-congregaciones-2026-09-03.md`. **Accion
+	requerida del usuario**: ejecutar
+	`supabase/agregar_ciudad_catalogo_congregaciones.sql`.
 - Resuelto (2026-09-03): el buscador de Congregacion en Editar pastor
 	solo buscaba entre las congregaciones reales ya registradas en SIGAP,
 	no contra la lista oficial de Debora -- por eso escribir un nombre

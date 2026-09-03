@@ -427,7 +427,7 @@ export default function PastoralDistrital() {
     if (!distritoNumero) { setCatalogoCongregaciones([]); return }
     const { data } = await supabase
       .from('catalogo_congregaciones_ipuc')
-      .select('id, nombre, congregacion_id')
+      .select('id, nombre, ciudad, congregacion_id')
       .eq('distrito_numero', distritoNumero)
       .order('nombre')
     setCatalogoCongregaciones(data ?? [])
@@ -1391,7 +1391,7 @@ export default function PastoralDistrital() {
                   type="button"
                   key={item.id}
                   onClick={() => {
-                    setNewCongregation({ ...newCongregation, nombre: item.nombre })
+                    setNewCongregation({ ...newCongregation, nombre: item.nombre, ciudad: item.ciudad || newCongregation.ciudad })
                     setCatalogoSeleccionadoId(item.id)
                     setCatalogoSearchTerm(item.nombre)
                     setCatalogoDropdownOpen(false)
