@@ -130,6 +130,36 @@ function proximosCumpleanos(personas, dias = 30) {
     .sort((a, b) => a.diasFaltantes - b.diasFaltantes)
 }
 
+// Idea profunda: riesgo de apartamiento, no solo deteccion. La alerta
+// pastoral ya existente reacciona cuando alguien lleva 90 dias sin
+// asistir; esto es una ventana mas temprana (45-89 dias) combinada con
+// otras dos senales honestas (sin familia, mucho tiempo sin bautizarse)
+// -- igual que el semaforo de salud del distrito, se muestran las
+// senales tal cual, no se inventa un puntaje compuesto que esconda de
+// donde sale el riesgo. Solo se listan personas con 2 o mas senales,
+// para no generar ruido con una sola coincidencia.
+function calcularRiesgoApartamiento(personas, hoy = new Date()) {
+  const hoyMs = hoy.getTime()
+  return personas
+    .map((persona) => {
+      const senales = []
+      if (persona.fecha_ultima_asistencia) {
+        const dias = Math.floor((hoyMs - new Date(`${persona.fecha_ultima_asistencia}T00:00:00`).getTime()) / 86400000)
+        if (dias >= 45 && dias < 90) senales.push(`${dias} días sin asistir`)
+      } else {
+        senales.push('Sin registro de última asistencia')
+      }
+      if (!persona.familia_id) senales.push('Sin familia asociada')
+      if (!persona.bautizado && persona.fecha_ingreso) {
+        const diasIngreso = Math.floor((hoyMs - new Date(`${persona.fecha_ingreso}T00:00:00`).getTime()) / 86400000)
+        if (diasIngreso > 365) senales.push('Más de un año sin bautizarse')
+      }
+      return { ...persona, senales }
+    })
+    .filter((persona) => persona.senales.length >= 2)
+    .sort((a, b) => b.senales.length - a.senales.length)
+}
+
 function StatTile({ label, value, tone = 'default', series = [], insight }) {
   const text = { default: 'text-ink', danger: 'text-danger', success: 'text-success' }[tone]
   const marker = { default: 'bg-accent', danger: 'bg-danger', success: 'bg-success' }[tone]
@@ -250,6 +280,18 @@ function DashboardDistrital({ rolPrincipal }) {
   const totalFeligreses = congregaciones.reduce((total, c) => total + Number(c.personas_activas || 0), 0)
   const enCrecimiento = congregaciones.filter((c) => Number(c.personas_nuevas_3m || 0) > 0).length
   const vacantes = congregaciones.filter((c) => !c.pastor_nombre).length
+  // Idea profunda: comparativa entre pares. Los numeros absolutos de la
+  // tabla no dicen si una congregacion crece bien o mal — una grande
+  // suma mas "nuevas" en numero puro que una pequena aunque le vaya
+  // peor relativamente. La tasa (neto/activos) si es comparable entre
+  // congregaciones de tamanos distintos.
+  const tasaCrecimiento = (c) => {
+    const activos = Number(c.personas_activas || 0)
+    if (activos === 0) return null
+    return ((Number(c.personas_nuevas_3m || 0) - Number(c.bajas_3m || 0)) / activos) * 100
+  }
+  const tasasValidas = congregaciones.map(tasaCrecimiento).filter((tasa) => tasa !== null)
+  const tasaPromedioDistrito = tasasValidas.length ? tasasValidas.reduce((suma, tasa) => suma + tasa, 0) / tasasValidas.length : null
   const filasOrdenadas = [...congregaciones].sort((a, b) => Number(b[ordenarPor] || 0) - Number(a[ordenarPor] || 0))
   const TABLA_PAGE_SIZE = 50
   const tablaPageCount = Math.max(1, Math.ceil(filasOrdenadas.length / TABLA_PAGE_SIZE))
@@ -381,7 +423,7 @@ function DashboardDistrital({ rolPrincipal }) {
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="font-medium">Comparativa por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Ordena para identificar quién está creciendo o en descenso.</p>
+            <p className="text-sm text-secondary mt-1">Ordena para identificar quién está creciendo o en descenso. {tasaPromedioDistrito !== null && `Tasa de crecimiento promedio del distrito: ${tasaPromedioDistrito >= 0 ? '+' : ''}${tasaPromedioDistrito.toFixed(1)}%.`}</p>
           </div>
           <select className="input-field min-w-[220px]" value={ordenarPor} onChange={(event) => setOrdenarPor(event.target.value)}>
             <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
@@ -405,12 +447,14 @@ function DashboardDistrital({ rolPrincipal }) {
                   <th className="px-4 py-3">Sellados</th>
                   <th className="px-4 py-3">Madurez</th>
                   <th className="px-4 py-3">Asistencia último mes</th>
+                  <th className="px-4 py-3">Crecimiento vs. distrito</th>
                   <th className="px-4 py-3">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {filas.map((c) => {
                   const variacionAsistencia = c.asistencia_mes_anterior ? Math.round(((c.asistencia_ultimo_mes - c.asistencia_mes_anterior) / c.asistencia_mes_anterior) * 100) : null
+                  const tasa = tasaCrecimiento(c)
                   return (
                     <tr key={c.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-3 font-medium">{c.nombre}</td>
@@ -425,6 +469,14 @@ function DashboardDistrital({ rolPrincipal }) {
                         {variacionAsistencia !== null && (
                           <span className={`ml-1.5 text-xs ${variacionAsistencia < 0 ? 'text-danger' : 'text-success'}`}>
                             ({variacionAsistencia > 0 ? '+' : ''}{variacionAsistencia}%)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {tasa === null ? <span className="text-muted">—</span> : (
+                          <span className={tasaPromedioDistrito !== null && tasa >= tasaPromedioDistrito ? 'text-success' : 'text-danger'}>
+                            {tasa >= 0 ? '+' : ''}{tasa.toFixed(1)}%
+                            {tasaPromedioDistrito !== null && <span className="text-muted ml-1">{tasa >= tasaPromedioDistrito ? '▲ sobre el promedio' : '▼ bajo el promedio'}</span>}
                           </span>
                         )}
                       </td>
@@ -677,6 +729,7 @@ export default function Dashboard() {
   const [categorias, setCategorias] = useState([])
   const [amigos, setAmigos] = useState([])
   const [cumpleanos, setCumpleanos] = useState([])
+  const [riesgoApartamiento, setRiesgoApartamiento] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
@@ -708,6 +761,7 @@ export default function Dashboard() {
         setCategorias(cached.categorias)
         setAmigos(cached.amigos)
         setCumpleanos(cached.cumpleanos ?? [])
+        setRiesgoApartamiento(cached.riesgoApartamiento ?? [])
         setLoadingData(false)
       } else {
         setLoadingData(true)
@@ -725,11 +779,12 @@ export default function Dashboard() {
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)) : Promise.resolve({ data: [], error: null }),
-        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo').not('fecha_nacimiento', 'is', null) : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
       setAlertas(alertasData ?? [])
       setCumpleanos(proximosCumpleanos(cumpleanosData ?? []))
+      setRiesgoApartamiento(calcularRiesgoApartamiento(cumpleanosData ?? []))
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
       setCanHandleAlerts(Boolean(permisoAlertas))
@@ -776,6 +831,7 @@ export default function Dashboard() {
         categorias: nuevasCategorias,
         amigos: nuevosAmigos,
         cumpleanos: proximosCumpleanos(cumpleanosData ?? []),
+        riesgoApartamiento: calcularRiesgoApartamiento(cumpleanosData ?? []),
       })
     }
     load()
@@ -1086,6 +1142,24 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {rolPrincipal?.nivel === 'local' && riesgoApartamiento.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-warning" /><h3 className="font-medium">Riesgo de apartamiento</h3></div>
+          <p className="text-xs text-secondary mb-4">Personas con más de una señal de alejamiento, antes de que se cumplan los 90 días de la alerta pastoral — para actuar temprano, no solo reaccionar.</p>
+          <div className="flex flex-col gap-3">
+            {riesgoApartamiento.slice(0, 8).map((persona) => (
+              <div key={persona.id} className="flex items-start justify-between gap-3 text-sm py-2 px-2.5 bg-warning-bg/40 rounded">
+                <div>
+                  <Link to={`/feligresia?persona=${persona.id}`} className="font-medium text-ink hover:text-accent">{persona.nombres} {persona.apellidos}</Link>
+                  <p className="text-xs text-secondary mt-1">{persona.senales.join(' · ')}</p>
+                </div>
+              </div>
+            ))}
+            {riesgoApartamiento.length > 8 && <p className="text-xs text-muted">Y {riesgoApartamiento.length - 8} persona(s) más con señales de riesgo.</p>}
+          </div>
+        </div>
+      )}
 
       {rolPrincipal?.nivel === 'local' && (
         <div className="card p-5">

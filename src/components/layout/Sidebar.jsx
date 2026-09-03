@@ -32,6 +32,7 @@ import {
   LayoutGrid,
   LifeBuoy,
   Send,
+  Database,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -76,12 +77,16 @@ export default function Sidebar() {
     setOrganization({
       congregation: rolPrincipal?.congregaciones?.nombre,
       district: formatDistrictLabel(distrito?.nombre, distrito?.numero),
+      pastor: rolPrincipal?.congregaciones?.pastor_nombre,
     });
   }, [rolPrincipal]);
 
   useEffect(() => {
     function updateOrganization(event) {
-      setOrganization(event.detail);
+      // Combina en vez de reemplazar: el evento de Configuracion local solo
+      // trae congregation/district, y reemplazar todo el objeto borraria el
+      // pastor (que no cambia desde esa pantalla) hasta la proxima recarga.
+      setOrganization((current) => ({ ...current, ...event.detail }));
     }
 
     window.addEventListener("siga:organizacion-actualizada", updateOrganization);
@@ -224,6 +229,7 @@ export default function Sidebar() {
     },
     { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true },
     { to: "/manual", label: "Manual de uso", icon: BookOpen, show: true },
+    { to: "/salud-datos", label: "Salud de datos", icon: Database, show: true },
     { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true },
     { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true },
     {
@@ -290,6 +296,11 @@ export default function Sidebar() {
             <p className="text-xs text-white/75 truncate">
               {organization?.congregation || "Acceso general"}
             </p>
+            {organization?.pastor && (
+              <p className="text-[11px] text-white/60 truncate">
+                Pastor: {organization.pastor}
+              </p>
+            )}
             {organization?.district && (
               <p className="text-[11px] text-white/45 truncate">
                 {organization.district}

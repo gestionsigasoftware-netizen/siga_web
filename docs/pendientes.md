@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): las 4 ideas profundas -- salud de datos del
+	censo (nuevo, 3 niveles), riesgo de apartamiento (alerta temprana
+	antes de los 90 dias, local), comparativa entre pares (tasa de
+	crecimiento vs promedio del distrito, no numeros absolutos),
+	continuidad pastoral (checklist de pendientes al quedar una
+	congregacion vacante). De paso: el nombre del pastor de la
+	congregacion ahora aparece en el panel lateral junto a distrito y
+	congregacion (antes no aparecia), y el selector de persona en Equipo
+	de trabajo ahora tiene su propio buscador (antes dependia sin avisar
+	del buscador de otra lista de la misma pantalla). Ver
+	`docs/4-ideas-profundas-2026-09-02.md`. **Accion requerida del
+	usuario**: ejecutar `supabase/salud_datos.sql` y
+	`supabase/continuidad_pastoral.sql`.
 - Resuelto (2026-09-02): FAQ ampliado (4 -> 13 preguntas, agrupadas) y
 	Manual de uso nuevo (`/manual`, 3 pestanas por nivel: local, distrital,
 	nacional), verificado contra Sidebar.jsx para cubrir las ~30 pantallas

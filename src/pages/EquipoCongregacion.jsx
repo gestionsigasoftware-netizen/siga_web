@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -20,6 +20,9 @@ export default function EquipoCongregacion() {
   const [busyAssignmentId, setBusyAssignmentId] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState(null)
+  const [personSearchTerm, setPersonSearchTerm] = useState('')
+  const [personDropdownOpen, setPersonDropdownOpen] = useState(false)
+  const personFieldRef = useRef(null)
 
   async function load() {
     if (!congregacionId) {
@@ -56,14 +59,26 @@ export default function EquipoCongregacion() {
     return () => clearTimeout(timer)
   }, [message])
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (personFieldRef.current && !personFieldRef.current.contains(event.target)) setPersonDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const assignedProfileKeys = new Set(assignments.map((assignment) => `${assignment.persona_id}:${assignment.perfil_id}`))
-  const filteredPeople = people.filter((person) => `${person.nombres} ${person.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase()))
+  const personasParaAsignar = people.filter((person) => `${person.nombres} ${person.apellidos}`.toLowerCase().includes(personSearchTerm.toLowerCase()))
   const peopleWithProfiles = new Set(assignments.map((assignment) => assignment.persona_id)).size
 
   async function inviteUser(event) {
     event.preventDefault()
-    if (!personId || !email.trim() || (!profileId && !moduleId)) {
-      setMessage({ type: 'error', text: 'Selecciona al menos un tipo de acceso.' })
+    if (!personId) {
+      setMessage({ type: 'error', text: 'Busca y selecciona una persona del censo.' })
+      return
+    }
+    if (!email.trim() || (!profileId && !moduleId)) {
+      setMessage({ type: 'error', text: 'Escribe el correo y selecciona al menos un tipo de acceso.' })
       return
     }
     if (profileId && assignedProfileKeys.has(`${personId}:${profileId}`) && !moduleId) {
@@ -101,6 +116,7 @@ export default function EquipoCongregacion() {
       return
     }
     setPersonId('')
+    setPersonSearchTerm('')
     setProfileId('')
     setModuleId('')
     setEmail('')
@@ -137,7 +153,25 @@ export default function EquipoCongregacion() {
       </section>
       <section className="card p-5"><h2 className="font-medium">Agregar o actualizar acceso</h2><p className="text-sm text-secondary mt-1 mb-4">Selecciona la persona y asígnale el perfil y las responsabilidades que necesita para realizar su trabajo.</p>
       <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
-        <label className="text-sm">Persona<select required className="input-field mt-1.5" value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">Seleccionar persona...</option>{filteredPeople.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}{person.auth_user_id ? ' (cuenta vinculada)' : ''}</option>)}</select></label>
+        <div className="text-sm relative" ref={personFieldRef}>
+          Persona
+          <input
+            className="input-field mt-1.5"
+            placeholder="Escribe un nombre..."
+            value={personSearchTerm}
+            onChange={(event) => { setPersonSearchTerm(event.target.value); setPersonId(''); setPersonDropdownOpen(true) }}
+            onFocus={() => setPersonDropdownOpen(true)}
+          />
+          {personDropdownOpen && (
+            <div className="absolute z-20 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-56 overflow-y-auto">
+              {personasParaAsignar.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : personasParaAsignar.map((person) => (
+                <button type="button" key={person.id} onClick={() => { setPersonId(person.id); setPersonSearchTerm(`${person.nombres} ${person.apellidos}`); setPersonDropdownOpen(false) }} className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0">
+                  {person.nombres} {person.apellidos}{person.auth_user_id ? ' (cuenta vinculada)' : ''}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <label className="text-sm">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
         <label className="text-sm">Acceso web <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Sin acceso web</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select></label>
         <label className="text-sm">Responsabilidad operativa <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => setModuleId(event.target.value)}><option value="">Sin responsabilidad adicional</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>

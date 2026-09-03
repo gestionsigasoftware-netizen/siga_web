@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole } from 'lucide-react'
+import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
@@ -43,6 +43,56 @@ const getCurrentMonthTransfers = (assignments = []) => {
     const date = new Date(`${assignment.fecha_inicio}T12:00:00`)
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
   }).length
+}
+
+// Idea profunda: checklist de continuidad pastoral. Ya existia
+// transferir credenciales al finalizar una asignacion, pero no los
+// pendientes reales de la congregacion que queda vacante — el riesgo de
+// una transicion no es el acceso al sistema, es perder el hilo de a
+// quien habia que visitar.
+function ContinuidadPastoral({ vacantes }) {
+  const [resumenes, setResumenes] = useState({})
+
+  useEffect(() => {
+    let active = true
+    vacantes.forEach((congregacion) => {
+      supabase.rpc('resumen_continuidad_congregacion', { p_congregacion_id: congregacion.id }).then(({ data }) => {
+        if (!active || !data?.[0]) return
+        setResumenes((current) => ({ ...current, [congregacion.id]: data[0] }))
+      })
+    })
+    return () => { active = false }
+  }, [vacantes])
+
+  if (vacantes.length === 0) return null
+
+  return (
+    <section className="card overflow-hidden">
+      <div className="p-5 border-b border-border">
+        <h2 className="font-medium flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-accent" /> Continuidad pendiente</h2>
+        <p className="text-sm text-secondary mt-1">Congregaciones sin pastor asignado ahora mismo — lo que el próximo pastor (o tú, mientras tanto) necesita saber que sigue abierto.</p>
+      </div>
+      <div className="divide-y divide-border">
+        {vacantes.map((congregacion) => {
+          const resumen = resumenes[congregacion.id]
+          return (
+            <div key={congregacion.id} className="p-4">
+              <p className="text-sm font-medium">{congregacion.nombre}</p>
+              {!resumen ? (
+                <p className="text-xs text-muted mt-1">Cargando pendientes...</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.seguimientos_pendientes) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.seguimientos_pendientes} seguimiento(s) pastoral(es) pendiente(s)</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.casos_red_familias_activos) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.casos_red_familias_activos} caso(s) activo(s) de Red de Familias</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.cargos_obligatorios_vacantes) > 0 ? 'bg-danger-bg text-danger' : 'bg-surface-1 text-muted'}`}>{resumen.cargos_obligatorios_vacantes} cargo(s) obligatorio(s) de comité sin cubrir</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 export default function PastoralDistrital() {
@@ -752,6 +802,8 @@ export default function PastoralDistrital() {
           </>
         })()}
       </section>
+
+      <ContinuidadPastoral vacantes={congregations.filter((congregacion) => !congregacion.pastor_id)} />
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
