@@ -2,6 +2,7 @@ import { ArrowRight, BarChart3, BookOpen, HeartHandshake, ShieldCheck } from 'lu
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import sigapLogo from '../assets/sigap-logo.svg'
+import Footer from '../components/Footer'
 
 const modules = [
   { icon: HeartHandshake, title: 'Feligresía con contexto', text: 'Censo, familias y ciclo de vida espiritual de cada persona, desde su ingreso hasta su cargo.' },
@@ -49,7 +50,7 @@ export default function InicioPublico() {
         <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_15%_20%,rgba(42,120,214,0.28),transparent_38%),radial-gradient(circle_at_85%_80%,rgba(42,120,214,0.2),transparent_42%)]" />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-16 grid md:grid-cols-3 gap-4">{modules.map(({ icon: Icon, title, text }) => <article key={title} className="p-5 border border-white/10 rounded-card bg-[linear-gradient(145deg,rgba(42,120,214,0.3),rgba(42,120,214,0.12))] shadow-[0_14px_30px_rgba(5,12,20,0.18)]"><Icon className="w-5 h-5 text-[#8fc8ff]" /><h2 className="font-medium mt-5">{title}</h2><p className="text-sm text-white/65 leading-6 mt-2">{text}</p></article>)}</div>
       </section>
-      <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-7 flex flex-col sm:flex-row gap-3 justify-between text-xs text-muted"><span>IPUC · Gestión pastoral</span><span className="flex gap-4"><Link to="/legal" className="hover:text-ink">Privacidad y términos</Link><Link to="/ayuda" className="hover:text-ink">Ayuda</Link></span></footer>
+      <Footer />
     </main>
   )
 }

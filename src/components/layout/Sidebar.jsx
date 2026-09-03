@@ -262,7 +262,7 @@ export default function Sidebar() {
           <div>
             <img src={sigapLogoWhite} alt="SIGAP" className="h-6 w-auto" />
             <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mt-1">
-              Sistema integrado
+              Gestión y Analítica Pastoral
             </div>
           </div>
         </div>

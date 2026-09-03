@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import RoleChooser from './RoleChooser'
 import NotificationCenter from './NotificationCenter'
 import GlobalSearch from './GlobalSearch'
+import Footer from '../Footer'
 import { Link } from 'react-router-dom'
 import { Bell, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
@@ -106,6 +107,7 @@ export default function MainLayout() {
             {roleLoading ? <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div> : <Outlet />}
           </Suspense>
         </div>
+        <Footer variant="app" />
       </main>
     </div>
   )

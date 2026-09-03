@@ -2,6 +2,14 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-02): footer institucional nuevo (SIGAP - Sistema
+	Integrado de Gestion y Analitica Pastoral + derechos reservados + By
+	Jormelia Soft), reutilizado en InicioPublico, Ayuda, Legal y dentro de
+	la app (MainLayout, antes no tenia). El Sidebar quedo con un texto
+	corto pero real ("Gestion y Analitica Pastoral") en vez de la frase
+	completa, que no cabia bien en ese espacio. Ver
+	`docs/nombre-completo-y-footer-2026-09-02.md`. No requiere accion del
+	usuario.
 - Resuelto (2026-09-02): las 4 ideas profundas -- salud de datos del
 	censo (nuevo, 3 niveles), riesgo de apartamiento (alerta temprana
 	antes de los 90 dias, local), comparativa entre pares (tasa de
