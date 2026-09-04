@@ -35,7 +35,7 @@ const CHART_OPTIONS = chartOptions();
 
 const EMPTY_INTERNO = { nombres: "", apellidos: "", centro_id: "", patio: "", fecha_ingreso_ministerio: new Date().toISOString().slice(0, 10), observaciones: "" };
 const EMPTY_DELEGADO = { persona_id: "", centro_id: "", permiso_inpec_vigente: false, permiso_inpec_vencimiento: "", observaciones: "" };
-const EMPTY_CULTO = { centro_id: "", fecha: new Date().toISOString().slice(0, 10), patio: "", asistentes_total: 0, estudios_biblicos_entregados: 0, responsable_persona_id: "", notas: "" };
+const EMPTY_CULTO = { centro_id: "", fecha: new Date().toISOString().slice(0, 10), patio: "", asistentes_total: "", estudios_biblicos_entregados: "", responsable_persona_id: "", notas: "" };
 const EMPTY_FAMILIAR = { interno_id: "", familia_id: "", contacto_nombre: "", parentesco: "", telefono: "", fecha_visita: new Date().toISOString().slice(0, 10), tipo_apoyo: "visita", responsable_persona_id: "", notas: "" };
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
@@ -435,8 +435,8 @@ export default function ObraCarcelaria() {
               </div>
               <input className="input-field" placeholder="Patio / pabellón" value={cultoForm.patio} onChange={(event) => setCultoForm({ ...cultoForm, patio: event.target.value })} />
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs text-secondary">Asistentes totales<input type="number" min="0" className="input-field mt-1" value={cultoForm.asistentes_total} onChange={(event) => setCultoForm({ ...cultoForm, asistentes_total: event.target.value })} /></label>
-                <label className="text-xs text-secondary">Estudios REFAM entregados<input type="number" min="0" className="input-field mt-1" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
+                <label className="text-xs text-secondary">Asistentes totales<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.asistentes_total} onChange={(event) => setCultoForm({ ...cultoForm, asistentes_total: event.target.value })} /></label>
+                <label className="text-xs text-secondary">Estudios REFAM entregados<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
               </div>
               <select className="input-field" value={cultoForm.responsable_persona_id} onChange={(event) => setCultoForm({ ...cultoForm, responsable_persona_id: event.target.value })}>
                 <option value="">Responsable</option>

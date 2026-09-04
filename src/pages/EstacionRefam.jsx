@@ -30,7 +30,7 @@ export default function EstacionRefam() {
   const [asistenciaPorParticipante, setAsistenciaPorParticipante] = useState({});
   const [progresoPorParticipante, setProgresoPorParticipante] = useState({});
   const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "", responsableId: "" });
-  const [refamReunionForm, setRefamReunionForm] = useState({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
+  const [refamReunionForm, setRefamReunionForm] = useState({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
   const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
   const [trasladoDestino, setTrasladoDestino] = useState({});
   const [loading, setLoading] = useState(true);
@@ -227,7 +227,7 @@ export default function EstacionRefam() {
       if (asistenciaResult.error) { setError(`La reunión se registró, pero no se pudo guardar la asistencia individual: ${asistenciaResult.error.message}`); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
     }
     setNotice("Reunión REFAM registrada.");
-    setRefamReunionForm({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
+    setRefamReunionForm({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
   }
 
@@ -324,8 +324,8 @@ export default function EstacionRefam() {
                   <label className="text-xs text-secondary">Fecha de la reunión<input required type="date" className="input-field mt-1" value={refamReunionForm.fecha} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, fecha: event.target.value })} /></label>
                   <label className="text-xs text-secondary">N.° de lección vista ese día<input type="number" min="1" className="input-field mt-1" placeholder="Ej. 3" value={refamReunionForm.numero_leccion} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, numero_leccion: event.target.value })} /></label>
                   <label className="text-xs text-secondary col-span-2">Tema tratado<input className="input-field mt-1" placeholder="Ej. El perdón" value={refamReunionForm.tema} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, tema: event.target.value })} /></label>
-                  <label className="text-xs text-secondary">Total de asistentes<input type="number" min="0" className="input-field mt-1" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} /></label>
-                  <label className="text-xs text-secondary">Total de visitantes<input type="number" min="0" className="input-field mt-1" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} /></label>
+                  <label className="text-xs text-secondary">Total de asistentes<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} /></label>
+                  <label className="text-xs text-secondary">Total de visitantes<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} /></label>
                   <label className="text-xs text-secondary col-span-2">Resultado de la reunión<input className="input-field mt-1" placeholder="Ej. Buena participación" value={refamReunionForm.resultado} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, resultado: event.target.value })} /></label>
                   {refamParticipantes.length > 0 && <div className="col-span-2 border border-border rounded-card p-2"><p className="text-xs font-medium mb-1.5">Asistencia individual (estudio entregado)</p>{refamParticipantes.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs py-0.5"><input type="checkbox" checked={Boolean(asistenciaRefamMarcada[item.id])} onChange={(event) => setAsistenciaRefamMarcada({ ...asistenciaRefamMarcada, [item.id]: event.target.checked })} />{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"}</label>)}</div>}
                   <button className="btn-secondary col-span-2 justify-center">Registrar reunión</button>

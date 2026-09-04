@@ -106,7 +106,7 @@ export default function MisionJuvenil() {
     institucion_id: "",
     direccion: "",
     lider_persona_id: "",
-    leccion_actual: 1,
+    leccion_actual: "",
   });
   const [selectedGrupoId, setSelectedGrupoId] = useState(null);
   const [lecciones, setLecciones] = useState([]);
@@ -397,7 +397,7 @@ export default function MisionJuvenil() {
         congregacion_id: congregacionId,
         institucion_id: groupForm.institucion_id || null,
         lider_persona_id: groupForm.lider_persona_id || null,
-        leccion_actual: Number(groupForm.leccion_actual),
+        leccion_actual: Number(groupForm.leccion_actual) || 1,
       });
     setSaving(false);
     if (result.error)
@@ -409,7 +409,7 @@ export default function MisionJuvenil() {
         institucion_id: "",
         direccion: "",
         lider_persona_id: "",
-        leccion_actual: 1,
+        leccion_actual: "",
       });
       load();
     }
@@ -915,6 +915,7 @@ export default function MisionJuvenil() {
             <input
               min="1"
               type="number"
+              placeholder="Lección actual (ej. 1)"
               className="input-field"
               value={groupForm.leccion_actual}
               onChange={(event) =>
