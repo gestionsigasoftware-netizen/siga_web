@@ -3,6 +3,8 @@ import { Search, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
+const esModuloCarcelaria = (nombreModulo) => /carcelari/i.test(nombreModulo || '')
+
 export default function EquipoCongregacion() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
@@ -10,12 +12,16 @@ export default function EquipoCongregacion() {
   const [people, setPeople] = useState([])
   const [profiles, setProfiles] = useState([])
   const [modules, setModules] = useState([])
+  const [zonas, setZonas] = useState([])
+  const [centros, setCentros] = useState([])
   const [assignments, setAssignments] = useState([])
   const [cargoAssignments, setCargoAssignments] = useState([])
   const [busyCargoAssignmentId, setBusyCargoAssignmentId] = useState(null)
   const [personId, setPersonId] = useState('')
   const [profileId, setProfileId] = useState('')
   const [moduleId, setModuleId] = useState('')
+  const [zonaId, setZonaId] = useState('')
+  const [centroId, setCentroId] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -34,12 +40,15 @@ export default function EquipoCongregacion() {
     }
     setLoading(true)
     setMessage((current) => (current?.text === 'Tu usuario no tiene una congregación local asignada.' ? null : current))
-    const [peopleResult, profilesResult, modulesResult, assignmentsResult, cargoAssignmentsResult] = await Promise.all([
+    const { data: congregacion } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
+    const [peopleResult, profilesResult, modulesResult, zonasResult, centrosResult, assignmentsResult, cargoAssignmentsResult] = await Promise.all([
       supabase.from('personas').select('id, nombres, apellidos, auth_user_id').eq('congregacion_id', congregacionId).order('nombres'),
       supabase.from('perfiles_acceso').select('id, codigo, nombre, descripcion').order('nombre'),
-      supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId).eq('activo', true).order('created_at'),
+      supabase.from('modulos').select('id, nombre_modulo, activo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true).order('created_at'),
+      supabase.from('zonas').select('id, nombre').eq('congregacion_id', congregacionId).order('nombre'),
+      congregacion?.distrito_id ? supabase.from('centros_reclusion').select('id, nombre').eq('distrito_id', congregacion.distrito_id).eq('activo', true).order('nombre') : Promise.resolve({ data: [] }),
       supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
-      supabase.from('asignaciones_cargo').select('id, persona_id, fecha_inicio, cargos!inner(nombre_cargo, modulos!inner(nombre_modulo, congregacion_id))').eq('cargos.modulos.congregacion_id', congregacionId).is('fecha_fin', null).order('fecha_inicio', { ascending: false }),
+      supabase.from('asignaciones_cargo').select('id, persona_id, fecha_inicio, zonas(nombre), centros_reclusion(nombre), cargos!inner(nombre_cargo, modulos!inner(nombre_modulo, congregacion_id))').eq('cargos.modulos.congregacion_id', congregacionId).is('fecha_fin', null).order('fecha_inicio', { ascending: false }),
     ])
     const failed = [peopleResult, profilesResult, modulesResult, assignmentsResult, cargoAssignmentsResult].find((result) => result.error)
     if (failed) setMessage({ type: 'error', text: 'No se pudo cargar el equipo de trabajo. Intenta nuevamente o contacta al administrador.' })
@@ -50,6 +59,8 @@ export default function EquipoCongregacion() {
     setPeople(loadedPeople)
     setProfiles(loadedProfiles)
     setModules(modulesResult.data ?? [])
+    setZonas(zonasResult.data ?? [])
+    setCentros(centrosResult.data ?? [])
     setAssignments((assignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id), perfiles_acceso: profilesById.get(assignment.perfil_id) })))
     setCargoAssignments((cargoAssignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id) })))
     setLoading(false)
@@ -74,6 +85,9 @@ export default function EquipoCongregacion() {
   const assignedProfileKeys = new Set(assignments.map((assignment) => `${assignment.persona_id}:${assignment.perfil_id}`))
   const personasParaAsignar = people.filter((person) => `${person.nombres} ${person.apellidos}`.toLowerCase().includes(personSearchTerm.toLowerCase()))
   const peopleWithProfiles = new Set(assignments.map((assignment) => assignment.persona_id)).size
+  const moduloSeleccionado = modules.find((module) => module.id === moduleId)
+  const pideZona = Boolean(moduloSeleccionado?.requiere_zona)
+  const pideCentro = esModuloCarcelaria(moduloSeleccionado?.nombre_modulo)
 
   async function inviteUser(event) {
     event.preventDefault()
@@ -89,10 +103,18 @@ export default function EquipoCongregacion() {
       setMessage({ type: 'error', text: 'Esta persona ya tiene ese perfil activo.' })
       return
     }
+    if (pideZona && !zonaId) {
+      setMessage({ type: 'error', text: 'Este módulo necesita que elijas la zona de la que será responsable.' })
+      return
+    }
+    if (pideCentro && !centroId) {
+      setMessage({ type: 'error', text: 'Este módulo necesita que elijas el centro de reclusión del que será responsable.' })
+      return
+    }
     setSaving(true)
     setMessage(null)
     const { data, error } = await supabase.functions.invoke('invitar-usuario', {
-      body: { personId, profileId, moduleId, congregacionId, email: email.trim() },
+      body: { personId, profileId, moduleId, congregacionId, email: email.trim(), zonaId: pideZona ? zonaId : null, centroId: pideCentro ? centroId : null },
     })
     setSaving(false)
     if (error) {
@@ -123,6 +145,8 @@ export default function EquipoCongregacion() {
     setPersonSearchTerm('')
     setProfileId('')
     setModuleId('')
+    setZonaId('')
+    setCentroId('')
     setEmail('')
     setMessage({
       type: 'success',
@@ -188,8 +212,10 @@ export default function EquipoCongregacion() {
         </div>
         <label className="text-sm">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
         <label className="text-sm">Acceso web <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Sin acceso web</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select></label>
-        <label className="text-sm">Responsabilidad operativa <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => setModuleId(event.target.value)}><option value="">Sin responsabilidad adicional</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>
+        <label className="text-sm">Responsabilidad operativa <span className="text-xs text-muted">(opcional)</span><select className="input-field mt-1.5" value={moduleId} onChange={(event) => { setModuleId(event.target.value); setZonaId(''); setCentroId('') }}><option value="">Sin responsabilidad adicional</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select></label>
         <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? 'Enviando...' : 'Invitar usuario'}</button>
+        {pideZona && <label className="text-sm md:col-span-2">Zona de la que será responsable<select required className="input-field mt-1.5" value={zonaId} onChange={(event) => setZonaId(event.target.value)}><option value="">Seleccionar zona...</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select>{zonas.length === 0 && <p className="text-xs text-danger mt-1">Esta congregación aún no tiene zonas creadas (se crean desde Misiones y Evangelismo).</p>}</label>}
+        {pideCentro && <label className="text-sm md:col-span-2">Centro de reclusión del que será responsable<select required className="input-field mt-1.5" value={centroId} onChange={(event) => setCentroId(event.target.value)}><option value="">Seleccionar centro...</option>{centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}</select>{centros.length === 0 && <p className="text-xs text-danger mt-1">Tu distrito aún no tiene centros de reclusión registrados.</p>}</label>}
       </form>
       </section>
       <p className="text-xs text-secondary">La persona recibira un enlace seguro para establecer su contrasena. No se crea ninguna contrasena desde SIGAP.</p>
@@ -199,7 +225,7 @@ export default function EquipoCongregacion() {
       </section>
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border"><h2 className="font-medium">Responsabilidades operativas</h2><p className="text-sm text-secondary mt-1">Módulos que cada persona tiene asignados para capturar desde la app móvil.</p></div>
-        {cargoAssignments.length ? <div className="divide-y divide-border">{cargoAssignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.cargos?.modulos?.nombre_modulo} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyCargoAssignmentId)} onClick={() => endCargoAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyCargoAssignmentId === assignment.id ? 'Retirando...' : 'Retirar'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay responsabilidades operativas asignadas.</p>}
+        {cargoAssignments.length ? <div className="divide-y divide-border">{cargoAssignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.cargos?.modulos?.nombre_modulo}{assignment.zonas?.nombre ? ` — ${assignment.zonas.nombre}` : ''}{assignment.centros_reclusion?.nombre ? ` — ${assignment.centros_reclusion.nombre}` : ''} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyCargoAssignmentId)} onClick={() => endCargoAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyCargoAssignmentId === assignment.id ? 'Retirando...' : 'Retirar'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay responsabilidades operativas asignadas.</p>}
       </section>
     </div>
   )

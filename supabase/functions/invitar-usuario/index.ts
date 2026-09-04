@@ -24,7 +24,7 @@ Deno.serve(async (request) => {
   const { data: userData, error: userError } = await userClient.auth.getUser()
   if (userError || !userData.user) return response({ error: 'Sesion no valida' }, 401)
 
-  const { personId, profileId, moduleId, congregacionId, email } = await request.json()
+  const { personId, profileId, moduleId, congregacionId, email, zonaId, centroId } = await request.json()
   if (!personId || !congregacionId || !email || (!profileId && !moduleId)) return response({ error: 'Selecciona al menos un tipo de acceso' }, 400)
 
   const { data: allowed, error: permissionError } = await userClient.rpc('tiene_permiso', {
@@ -77,6 +77,34 @@ Deno.serve(async (request) => {
       .maybeSingle()
     if (moduleError || !loadedModule) return response({ error: 'El modulo no pertenece a la congregacion o esta inactivo' }, 400)
     module = loadedModule
+  }
+
+  // La zona (Evangelismo/Mision Juvenil) y el centro de reclusion (Obra
+  // Carcelaria) son el "ambito" de esa responsabilidad operativa -- sin
+  // esto, registros_actividad.zona_id queda vacio y amigos_write (RLS)
+  // nunca deja capturar Amigos, porque exige una zona coincidente en
+  // asignaciones_cargo.
+  let zona = null
+  if (zonaId) {
+    const { data: loadedZona, error: zonaError } = await adminClient
+      .from('zonas')
+      .select('id, congregacion_id')
+      .eq('id', zonaId)
+      .eq('congregacion_id', congregacionId)
+      .maybeSingle()
+    if (zonaError || !loadedZona) return response({ error: 'La zona no pertenece a la congregacion' }, 400)
+    zona = loadedZona
+  }
+
+  let centro = null
+  if (centroId) {
+    const { data: loadedCentro, error: centroError } = await adminClient
+      .from('centros_reclusion')
+      .select('id')
+      .eq('id', centroId)
+      .maybeSingle()
+    if (centroError || !loadedCentro) return response({ error: 'El centro de reclusion no es valido' }, 400)
+    centro = loadedCentro
   }
 
   const normalizedEmail = email.trim().toLowerCase()
@@ -173,8 +201,16 @@ Deno.serve(async (request) => {
     if (!activeCargoAssignment) {
       const { error: cargoAssignmentError } = await adminClient
       .from('asignaciones_cargo')
-      .insert({ cargo_id: cargoId, persona_id: personId, autorizado_por: actor?.id ?? null })
+      .insert({ cargo_id: cargoId, persona_id: personId, zona_id: zona?.id ?? null, centro_id: centro?.id ?? null, autorizado_por: actor?.id ?? null })
       if (cargoAssignmentError) return response({ error: 'La cuenta fue vinculada, pero no se pudo asignar el modulo de captura' }, 500)
+    } else if (zona || centro) {
+      // Ya tenia el cargo activo -- permite corregir/completar la zona o el
+      // centro sin tener que retirar y volver a asignar la responsabilidad.
+      const { error: updateAssignmentError } = await adminClient
+        .from('asignaciones_cargo')
+        .update({ zona_id: zona?.id ?? null, centro_id: centro?.id ?? null })
+        .eq('id', activeCargoAssignment.id)
+      if (updateAssignmentError) return response({ error: 'La cuenta ya tenia el modulo, pero no se pudo actualizar la zona/centro' }, 500)
     }
   }
 
