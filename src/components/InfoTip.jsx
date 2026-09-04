@@ -32,9 +32,9 @@ export default function InfoTip({ texto, className = "" }) {
         onFocus={() => setAbierto(true)}
         onBlur={() => setAbierto(false)}
         onClick={(event) => { event.preventDefault(); setAbierto((current) => !current); }}
-        className="w-4 h-4 rounded-full border border-border text-muted hover:text-accent hover:border-accent focus:text-accent focus:border-accent flex items-center justify-center flex-shrink-0 transition-colors"
+        className="w-[18px] h-[18px] rounded-full border border-accent/30 bg-accent-bg text-accent hover:bg-accent hover:text-white hover:border-accent focus:bg-accent focus:text-white focus:border-accent flex items-center justify-center flex-shrink-0 transition-colors"
       >
-        <Info className="w-2.5 h-2.5" />
+        <Info className="w-3 h-3" />
       </button>
       {abierto && (
         <span
