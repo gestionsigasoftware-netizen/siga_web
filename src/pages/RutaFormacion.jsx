@@ -42,6 +42,7 @@ export default function RutaFormacion({ mode }) {
   const [people, setPeople] = useState([]);
   const [friends, setFriends] = useState([]);
   const [estaciones, setEstaciones] = useState([]);
+  const [esfobLecciones, setEsfobLecciones] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,8 +61,6 @@ export default function RutaFormacion({ mode }) {
     responsibleId: "",
     program: config.defaultProgram,
     date: TODAY,
-    lessonsTotal: "12",
-    lessonsCompleted: "0",
     service: "",
     notes: "",
   });
@@ -73,11 +72,12 @@ export default function RutaFormacion({ mode }) {
     }
     setLoading(true);
     setError(null);
-    const [processResult, peopleResult, friendsResult, estacionesResult] = await Promise.all([
-      supabase.from(config.table).select("*").eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
+    const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult] = await Promise.all([
+      supabase.from(config.table).select(mode === "esfob" ? "*, leccion_actual:esfob_lecciones(numero, titulo)" : "*").eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos, bautizado").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("amigos").select("id, nombres, zona_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
+      mode === "esfob" ? supabase.from("esfob_lecciones").select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero") : Promise.resolve({ data: [] }),
     ]);
     const failed = [processResult, peopleResult, friendsResult].find((result) => result.error);
     if (failed) setError(`No se pudo cargar ${config.title}. Intenta nuevamente o contacta al administrador.`);
@@ -85,6 +85,7 @@ export default function RutaFormacion({ mode }) {
     setPeople((peopleResult.data ?? []).filter((person) => mode === "esfob" || person.bautizado));
     setFriends(friendsResult.data ?? []);
     setEstaciones(estacionesResult.data ?? []);
+    setEsfobLecciones(leccionesResult.data ?? []);
     setLoading(false);
   }
 
@@ -104,7 +105,7 @@ export default function RutaFormacion({ mode }) {
 
   async function createProcess(event) {
     event.preventDefault();
-    if (!canEdit || !form.subjectId) return;
+    if (!canEdit || !form.subjectId || !form.responsibleId) return;
     setSaving(true);
     setError(null);
     const stationResult = await getEstacion(congregacionId, mode);
@@ -133,8 +134,9 @@ export default function RutaFormacion({ mode }) {
           amigo_id: form.subjectId,
           responsable_persona_id: form.responsibleId || null,
           programa: form.program,
-          lecciones_total: Number(form.lessonsTotal) || 1,
-          lecciones_completadas: Number(form.lessonsCompleted) || 0,
+          lecciones_total: esfobLecciones.length || 1,
+          lecciones_completadas: 0,
+          leccion_actual_id: esfobLecciones[0]?.id || null,
           fecha_inicio: form.date,
           notas: form.notes || null,
         }
@@ -154,7 +156,7 @@ export default function RutaFormacion({ mode }) {
     } else {
       setNotice(`${config.title} iniciado correctamente.`);
       setShowForm(false);
-      setForm({ subjectId: "", responsibleId: "", program: config.defaultProgram, date: TODAY, lessonsTotal: "12", lessonsCompleted: "0", service: "", notes: "" });
+      setForm({ subjectId: "", responsibleId: "", program: config.defaultProgram, date: TODAY, service: "", notes: "" });
       load();
     }
     setSaving(false);
@@ -177,6 +179,27 @@ export default function RutaFormacion({ mode }) {
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
     setNotice(`Trasladado a ${destino.nombre}.`);
+    load();
+  }
+
+  async function marcarLeccionEsfob(row) {
+    if (!canEdit || !row.leccion_actual_id) return;
+    setSaving(true);
+    setError(null);
+    const insertResult = await supabase.from("esfob_progreso_leccion").insert({
+      esfob_proceso_id: row.id,
+      leccion_id: row.leccion_actual_id,
+      responsable_persona_id: row.responsable_persona_id || null,
+    });
+    if (insertResult.error) { setSaving(false); setError(`No se pudo marcar la lección completada: ${insertResult.error.message}`); return; }
+    const siguiente = esfobLecciones.find((item) => item.numero === (row.leccion_actual?.numero || 0) + 1);
+    const updateResult = await supabase.from("esfob_procesos").update({
+      leccion_actual_id: siguiente?.id || null,
+      lecciones_completadas: Math.min(Number(row.lecciones_total || esfobLecciones.length || 1), Number(row.lecciones_completadas || 0) + 1),
+    }).eq("id", row.id);
+    setSaving(false);
+    if (updateResult.error) { setError(`Se registró la lección, pero no se pudo avanzar a la siguiente: ${updateResult.error.message}`); return; }
+    setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : "Lección completada. Terminó el currículo de ESFOB.");
     load();
   }
 
@@ -229,13 +252,16 @@ export default function RutaFormacion({ mode }) {
       {showForm && <form onSubmit={createProcess} className="card p-5 grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2"><p className="eyebrow">Nuevo proceso</p><h2 className="font-medium mt-1">Registrar {config.title}</h2></div>
         <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => updateForm("subjectId", event.target.value)} required><option value="">Selecciona una persona</option>{(mode === "esfob" ? friends : people).map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos || ""}</option>)}</select></label>
-        <label className="text-sm text-secondary">{mode === "esfob" ? "Responsable" : "Mentor"}<select className="input-field mt-1" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Sin asignar</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
+        <label className="text-sm text-secondary">{mode === "esfob" ? "Responsable" : "Mentor"}<select required className="input-field mt-1" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un responsable</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
         <label className="text-sm text-secondary">Programa<input className="input-field mt-1" value={form.program} onChange={(event) => updateForm("program", event.target.value)} required /></label>
         <label className="text-sm text-secondary">Fecha de inicio<input type="date" className="input-field mt-1" value={form.date} onChange={(event) => updateForm("date", event.target.value)} required /></label>
-        {mode === "esfob" ? <>
-          <label className="text-sm text-secondary">Lecciones totales<input type="number" min="1" className="input-field mt-1" value={form.lessonsTotal} onChange={(event) => updateForm("lessonsTotal", event.target.value)} required /></label>
-          <label className="text-sm text-secondary">Lecciones completadas<input type="number" min="0" className="input-field mt-1" value={form.lessonsCompleted} onChange={(event) => updateForm("lessonsCompleted", event.target.value)} required /></label>
-        </> : <label className="text-sm text-secondary">Servicio actual<input className="input-field mt-1" value={form.service} onChange={(event) => updateForm("service", event.target.value)} placeholder="Ej. apoyo en evangelismo" /></label>}
+        {mode === "esfob" ? (
+          <p className="text-sm text-secondary md:col-span-2 bg-surface-1 rounded p-3">
+            {esfobLecciones.length
+              ? `Empezará en la lección #1 (${esfobLecciones[0].titulo}) de las ${esfobLecciones.length} del catálogo. Se marcan completadas desde la lista de abajo.`
+              : "Aún no hay catálogo de lecciones ESFOB configurado -- ve a Módulos y actividades para crearlo. El proceso igual se puede iniciar."}
+          </p>
+        ) : <label className="text-sm text-secondary">Servicio actual<input className="input-field mt-1" value={form.service} onChange={(event) => updateForm("service", event.target.value)} placeholder="Ej. apoyo en evangelismo" /></label>}
         <label className="text-sm text-secondary md:col-span-2">Notas<textarea className="input-field mt-1 min-h-20" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} /></label>
         <div className="md:col-span-2 flex justify-end"><button className="btn-primary" type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar proceso"}</button></div>
       </form>}
@@ -255,10 +281,18 @@ export default function RutaFormacion({ mode }) {
         <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1">Procesos activos</h2></div></div>
         {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div><p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p><p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{mode === "esfob" ? ` · ${row.lecciones_completadas}/${row.lecciones_total} lecciones` : ""}{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p></div>
+            <div>
+              <p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p>
+              <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
+              {mode === "esfob" && <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : esfobLecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas}/{row.lecciones_total} completadas</p>}
+            </div>
             <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
           </div>
-          {canEdit && <div className="flex items-center gap-2"><select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button></div>}
+          {canEdit && <div className="flex flex-wrap items-center gap-2">
+            {mode === "esfob" && row.leccion_actual_id && <button type="button" onClick={() => marcarLeccionEsfob(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
+            <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+            <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+          </div>}
         </div>; })}</div>}
       </section>
     </div>

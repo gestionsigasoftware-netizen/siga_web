@@ -2,6 +2,26 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-04): seis mejoras a la Ruta Evangelistica en una
+	sola tanda: (1) responsable obligatorio al iniciar en cualquier
+	estacion, (2) linea de tiempo completa del amigo en su ficha, (3)
+	boton de exportar ese recorrido a PDF, (4) desglose por estacion
+	(Uno Mas/BIS/REFAM/ESFOB/Discipulado) en Pastoral Distrital, (5) y
+	(6) catalogo de lecciones (numero + titulo + descripcion,
+	compartido por congregacion) con progreso medible persona por
+	persona para REFAM y ESFOB -- quien inicia una leccion permanece en
+	ella hasta que el responsable la marca completada, entonces avanza
+	a la siguiente del catalogo. Se administra desde Modulos.jsx igual
+	que caracteres de culto/ujieres. Verificado de punta a punta (BD,
+	no solo mensaje en pantalla) para las primeras 3 y para el
+	catalogo+progreso de REFAM/ESFOB; el desglose distrital solo se
+	pudo confirmar por RPC directo (la cuenta de prueba es pastor
+	local, esa seccion es exclusiva de rol distrital -- pendiente
+	verificacion visual con una cuenta distrital real). Ver
+	`docs/mejoras-ruta-evangelistica-2-2026-09-04.md`. **Accion
+	requerida del usuario**: ya ejecutada (confirmo haber corrido
+	`supabase/resumen_ruta_distrital.sql` y
+	`supabase/lecciones_ruta_evangelistica.sql`).
 - Resuelto (2026-09-04): Uno Mas y BIS no tenian tablero propio (el
 	enlace llevaba de vuelta a "Amigos en ruta" sin filtrar nada), REFAM
 	nunca sincronizaba con `ruta_procesos` (el `funnel_refam` del BI

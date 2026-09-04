@@ -98,7 +98,7 @@ export default function EstacionBis() {
 
   async function agregar(event) {
     event.preventDefault();
-    if (!canEdit || !form.amigoId || !estacion) return;
+    if (!canEdit || !form.amigoId || !form.responsableId || !estacion) return;
     setSaving(true);
     setError(null);
     const result = await iniciarOMoverEstacion({ congregacionId, estacionDestino: estacion, amigoId: form.amigoId, responsablePersonaId: form.responsableId || null });
@@ -180,7 +180,7 @@ export default function EstacionBis() {
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
       {canEdit && <form onSubmit={agregar} className="card p-5 grid sm:grid-cols-3 gap-3 items-end">
         <label className="text-sm sm:col-span-2">Amigo<select required className="input-field mt-1.5" value={form.amigoId} onChange={(event) => setForm({ ...form, amigoId: event.target.value })}><option value="">Selecciona un amigo</option>{amigosDisponibles.map((amigo) => <option key={amigo.id} value={amigo.id}>{amigo.nombres}{amigo.zonas?.nombre ? ` — ${amigo.zonas.nombre}` : ""}</option>)}</select></label>
-        <label className="text-sm">Responsable<select className="input-field mt-1.5" value={form.responsableId} onChange={(event) => setForm({ ...form, responsableId: event.target.value })}><option value="">Sin asignar</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+        <label className="text-sm">Responsable<select required className="input-field mt-1.5" value={form.responsableId} onChange={(event) => setForm({ ...form, responsableId: event.target.value })}><option value="">Selecciona un responsable</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
         <button disabled={saving} className="btn-primary justify-center sm:col-span-3"><Plus className="w-4 h-4" />{saving ? "Guardando..." : "Agregar a BIS"}</button>
       </form>}
       <section className="grid lg:grid-cols-[1.3fr_0.7fr] gap-4">

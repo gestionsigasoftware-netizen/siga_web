@@ -75,6 +75,12 @@ export async function iniciarOMoverEstacion({
   if (activo && activo.estacion_id === estacionDestino.id) {
     return { data: activo, moved: false };
   }
+  // Un alta nueva siempre necesita un responsable claro para el
+  // seguimiento -- un traslado conserva el responsable que ya tenia,
+  // asi que no se vuelve a exigir aqui.
+  if (!activo && !responsablePersonaId) {
+    return { error: new Error("Selecciona quién será el responsable de esta persona en la estación.") };
+  }
   if (activo) {
     const cierre = await supabase
       .from("ruta_procesos")

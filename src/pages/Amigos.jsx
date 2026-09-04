@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   ArrowLeft,
   ArrowRight,
+  Download,
   MapPinned,
   Pencil,
   Plus,
@@ -18,6 +19,7 @@ import { useMiRol } from "../hooks/useMiRol";
 import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
 import { diasDesde } from "../lib/rutaEvangelistica";
+import { descargarPdf } from "../lib/reportExport";
 
 const RUTA_ESTACION_PATH = { uno_mas: "/uno-mas", bis: "/bis", refam: "/refam", esfob: "/esfob", discipulado: "/discipulado" };
 const TONO_ETAPA = [
@@ -84,6 +86,7 @@ export default function Amigos() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [routeProcess, setRouteProcess] = useState(null);
+  const [routeHistory, setRouteHistory] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const notesRequest = useRef(0);
 
@@ -198,6 +201,7 @@ export default function Amigos() {
     setHistoryLoading(true);
     setRouteLoading(true);
     setRouteProcess(null);
+    setRouteHistory([]);
     setError(null);
     setNotice(null);
     const requestId = notesRequest.current;
@@ -225,16 +229,15 @@ export default function Amigos() {
       });
     supabase
       .from("ruta_procesos")
-      .select("id, estado, fecha_inicio, fecha_cierre, resultado, estacion_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(id, codigo, nombre, orden)")
+      .select("id, estado, fecha_inicio, fecha_cierre, resultado, estacion_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(id, codigo, nombre, orden), responsable:personas!ruta_procesos_responsable_persona_id_fkey(nombres, apellidos)")
       .eq("amigo_id", friend.id)
-      .in("estado", ["activo", "pausado"])
-      .order("fecha_inicio", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .order("fecha_inicio", { ascending: true })
       .then(({ data, error: routeError }) => {
         if (requestId !== notesRequest.current) return;
         if (routeError) setError("No se pudo cargar la ruta actual.");
-        setRouteProcess(data ?? null);
+        const historial = data ?? [];
+        setRouteHistory(historial);
+        setRouteProcess(historial.find((row) => row.estado === "activo" || row.estado === "pausado") ?? null);
         setRouteLoading(false);
       });
   }
@@ -382,6 +385,22 @@ export default function Amigos() {
     }
     setSelected((current) => ({ ...current, persona_id: personaId }));
     setAmigos((current) => current.map((friend) => friend.id === selected.id ? { ...friend, persona_id: personaId } : friend));
+  }
+
+  async function exportarRecorrido() {
+    if (!selected || !routeHistory.length) return;
+    await descargarPdf({
+      filename: `recorrido-${selected.nombres.replace(/\s+/g, "-").toLowerCase()}.pdf`,
+      titulo: `Recorrido de la Ruta Evangelística — ${selected.nombres}`,
+      meta: [`Primer contacto: ${formatFecha(selected.fecha_primer_contacto, { formato: formato_fecha })}`, selected.convertido ? "Estado: convertido" : "Estado: en ruta"],
+      headers: ["Estación", "Inicio", "Cierre", "Responsable"],
+      rows: routeHistory.map((row) => [
+        row.estacion?.nombre || "Sin nombre",
+        formatFecha(row.fecha_inicio, { formato: formato_fecha }),
+        row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : "En curso",
+        row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : "Sin asignar",
+      ]),
+    });
   }
 
   async function removeFriend() {
@@ -886,6 +905,30 @@ export default function Amigos() {
                     <Link to="/uno-mas" className="text-accent">Uno Más <ArrowRight className="inline w-3 h-3" /></Link>
                     {" "}o directamente en la estación que corresponda según su situación real.
                   </p>
+                )}
+                {routeHistory.length > 0 && (
+                  <div className="mt-4 border-t border-border pt-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">Recorrido completo</h4>
+                      <button type="button" onClick={exportarRecorrido} className="text-xs text-accent inline-flex items-center gap-1">
+                        <Download className="w-3.5 h-3.5" /> Exportar
+                      </button>
+                    </div>
+                    <div className="mt-2.5 space-y-2.5">
+                      {routeHistory.map((row) => (
+                        <div key={row.id} className="flex items-start gap-2 text-xs">
+                          <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${row.fecha_cierre ? "bg-muted" : "bg-success"}`} />
+                          <div>
+                            <p className="font-medium text-ink">{row.estacion?.nombre || "Sin nombre"}</p>
+                            <p className="text-secondary">
+                              {formatFecha(row.fecha_inicio, { formato: formato_fecha })} → {row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : "en curso"}
+                              {row.responsable ? ` · ${row.responsable.nombres} ${row.responsable.apellidos}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </section>
             <div className="mt-4 grid gap-2">

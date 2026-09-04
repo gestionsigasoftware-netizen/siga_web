@@ -167,6 +167,7 @@ export default function PastoralDistrital() {
   const [resumenObraSocial, setResumenObraSocial] = useState([])
   const [resumenMisionJuvenil, setResumenMisionJuvenil] = useState([])
   const [resumenRedFamilias, setResumenRedFamilias] = useState([])
+  const [resumenRuta, setResumenRuta] = useState([])
   const [personasDistrito, setPersonasDistrito] = useState([])
   const [cargosDistritales, setCargosDistritales] = useState([])
   const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: new Date().toISOString().slice(0, 10) })
@@ -239,7 +240,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, personasResult, cargosResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -279,6 +280,7 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_obra_social_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_mision_juvenil_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_red_familias_distrital', { p_distrito_id: distritoId }),
+      supabase.rpc('resumen_ruta_evangelistica_distrital', { p_distrito_id: distritoId }),
       supabase.from('personas').select('id, nombres, apellidos, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
       supabase.from('cargos_distritales').select('id, persona_id, nombres, apellidos, cargo, fecha_inicio, fecha_fin, observaciones').eq('distrito_id', distritoId).order('fecha_inicio', { ascending: false }),
     ])
@@ -307,6 +309,7 @@ export default function PastoralDistrital() {
     setResumenObraSocial(obraSocialResult.data ?? [])
     setResumenMisionJuvenil(misionJuvenilResult.data ?? [])
     setResumenRedFamilias(redFamiliasResult.data ?? [])
+    setResumenRuta(rutaResult.data ?? [])
     setPersonasDistrito(personasResult.data ?? [])
     setCargosDistritales(cargosResult.data ?? [])
     setLoading(false)
@@ -1364,6 +1367,39 @@ export default function PastoralDistrital() {
           })()}
         </section>
       </div>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Ruta Evangelística por congregación</h2>
+          <p className="text-sm text-secondary mt-1">Personas activas en cada estación, consolidado a nivel distrital.</p>
+        </div>
+        {resumenRuta.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay datos de la Ruta Evangelística en tu distrito.</p>
+        ) : (() => {
+          const paged = paginate('ruta', resumenRuta)
+          return <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Uno Más</th><th className="font-normal px-4 py-2.5">BIS</th><th className="font-normal px-4 py-2.5">REFAM</th><th className="font-normal px-4 py-2.5">ESFOB</th><th className="font-normal px-4 py-2.5">Discipulado</th><th className="font-normal px-4 py-2.5">Bautismos (3m)</th></tr></thead>
+              <tbody>
+                {paged.pageItems.map((item) => (
+                  <tr key={item.congregacion_id} className="border-t border-border">
+                    <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                    <td className="px-4 py-2.5">{item.uno_mas}</td>
+                    <td className="px-4 py-2.5">{item.bis}</td>
+                    <td className="px-4 py-2.5">{item.refam}</td>
+                    <td className="px-4 py-2.5">{item.esfob}</td>
+                    <td className="px-4 py-2.5">{item.discipulado}</td>
+                    <td className="px-4 py-2.5 text-success font-medium">{item.bautismos_3m}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenRuta.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          </>
+        })()}
+      </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>
         <div className="sm:col-span-2 lg:col-span-5">
