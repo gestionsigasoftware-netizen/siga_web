@@ -49,6 +49,11 @@ const GRID_COLOR = 'rgba(82,81,78,0.1)'
 // es la parte que importa: sin esto, cuando un grupo acumula mas de ~8
 // sesiones o meses, Chart.js intenta dibujar todas las fechas en una sola
 // fila y quedan amontonadas/ilegibles.
+// `maxRotation: 45` (en vez de 0) evita un bug real que se vio en produccion:
+// con rotacion forzada a 0, si una etiqueta corta (ej. "Apartado") no cabe en
+// horizontal entre sus vecinas, Chart.js la elimina en silencio en vez de
+// inclinarla -- se ve la barra pero no su nombre debajo. Permitir rotacion
+// le da a Chart.js una salida antes de tener que ocultar una etiqueta.
 export function chartOptions({ showLegend = false, maxTicks = 8 } = {}) {
   return {
     responsive: true,
@@ -73,7 +78,7 @@ export function chartOptions({ showLegend = false, maxTicks = 8 } = {}) {
     },
     scales: {
       y: { beginAtZero: true, border: { display: false }, grid: { color: GRID_COLOR, drawTicks: false }, ticks: { color: TICK_COLOR, precision: 0, padding: 8, font: { size: 10.5 } } },
-      x: { border: { display: false }, grid: { display: false }, ticks: { color: TICK_COLOR, maxRotation: 0, autoSkip: true, maxTicksLimit: maxTicks, padding: 8, font: { size: 10.5 } } },
+      x: { border: { display: false }, grid: { display: false }, ticks: { color: TICK_COLOR, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: maxTicks, padding: 8, font: { size: 10.5 } } },
     },
   }
 }
