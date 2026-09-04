@@ -95,14 +95,6 @@ export default function Evangelismo() {
     comite_responsable: "",
     resultado: "",
   });
-  const [refamGrupos, setRefamGrupos] = useState([]);
-  const [refamGrupoForm, setRefamGrupoForm] = useState({ nombre: "", zona_id: "", anfitrion_persona_id: "", lider_persona_id: "", direccion: "", dia_reunion: "" });
-  const [selectedRefamGrupoId, setSelectedRefamGrupoId] = useState(null);
-  const [refamParticipantes, setRefamParticipantes] = useState([]);
-  const [refamReuniones, setRefamReuniones] = useState([]);
-  const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "" });
-  const [refamReunionForm, setRefamReunionForm] = useState({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
-  const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
 
   async function load() {
     if (!congregacionId) {
@@ -124,7 +116,6 @@ export default function Evangelismo() {
         peopleResult,
         estacionesResult,
         diagnosticosResult,
-        refamGruposResult,
       ] = await Promise.all([
         supabase
           .from("modulos")
@@ -153,7 +144,7 @@ export default function Evangelismo() {
           .order("fecha"),
         supabase
           .from("amigos")
-          .select("id, convertido, zona_id, evangelismo_metodologia_id")
+          .select("id, convertido, zona_id, evangelismo_metodologia_id, fecha_primer_contacto, fecha_bautismo, zonas(nombre)")
           .eq("congregacion_id", congregacionId),
         supabase
           .from("personas")
@@ -172,11 +163,6 @@ export default function Evangelismo() {
           .select("id, periodo_inicio, periodo_fin, poblacion_estimada, necesidades, recursos, estrategia, comite_responsable, resultado, zona_id, responsable_persona_id, zonas(nombre), personas:responsable_persona_id(nombres, apellidos)")
           .eq("congregacion_id", congregacionId)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("refam_grupos")
-          .select("id, nombre, direccion, dia_reunion, activo, zona_id, anfitrion_persona_id, lider_persona_id, zonas(nombre), anfitrion:anfitrion_persona_id(nombres, apellidos), lider:lider_persona_id(nombres, apellidos)")
-          .eq("congregacion_id", congregacionId)
-          .order("nombre"),
       ]);
       if (
         moduleResult.error ||
@@ -185,8 +171,7 @@ export default function Evangelismo() {
         friendsResult.error ||
         peopleResult.error ||
         estacionesResult.error ||
-        diagnosticosResult.error ||
-        refamGruposResult.error
+        diagnosticosResult.error
       )
         setError(
           "No se pudo cargar Evangelismo. Intenta nuevamente o contacta al administrador.",
@@ -212,7 +197,6 @@ export default function Evangelismo() {
       setPersonas(peopleResult.data ?? []);
       setMetodosEstacion(estacionesResult.data ?? null);
       setDiagnosticos(diagnosticosResult.data ?? []);
-      setRefamGrupos(refamGruposResult.data ?? []);
     } catch (loadError) {
       setError(`No se pudo cargar Evangelismo: ${loadError.message}`);
     } finally {
@@ -298,6 +282,20 @@ export default function Evangelismo() {
         .filter((item) => item.fecha === fecha)
         .reduce((sum, item) => sum + Number(item.total_asistentes || 0), 0),
     }));
+  const convertidosConTiempo = amigos
+    .filter((friend) => friend.convertido && friend.fecha_primer_contacto && friend.fecha_bautismo)
+    .map((friend) => ({ ...friend, dias: Math.round((new Date(friend.fecha_bautismo) - new Date(friend.fecha_primer_contacto)) / 86400000) }))
+    .filter((friend) => friend.dias >= 0);
+  const promedioDiasPorGrupo = (key, catalogo) => catalogo
+    .map((item) => {
+      const rows = convertidosConTiempo.filter((friend) => friend[key] === item.id);
+      return rows.length ? { nombre: item.nombre, promedio: Math.round(rows.reduce((sum, friend) => sum + friend.dias, 0) / rows.length), total: rows.length } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.promedio - b.promedio);
+  const tiempoConversionMetodo = promedioDiasPorGrupo("evangelismo_metodologia_id", metodos);
+  const tiempoConversionZona = promedioDiasPorGrupo("zona_id", zonas);
+  const metodoMasRapido = tiempoConversionMetodo[0];
   const liderZona = zonaRows[0];
   const liderMetodo = [...metodoRows].sort(
     (a, b) => b.conversiones - a.conversiones,
@@ -417,87 +415,6 @@ export default function Evangelismo() {
     setNotice("Diagnóstico de Métodos registrado.");
     setDiagnosticoForm({ zona_id: "", responsable_persona_id: "", periodo_inicio: "", periodo_fin: "", poblacion_estimada: "", necesidades: "", recursos: "", estrategia: "", comite_responsable: "", resultado: "" });
     load();
-  }
-
-  async function createRefamGrupo(event) {
-    event.preventDefault();
-    if (!canEdit || !refamGrupoForm.nombre.trim()) return;
-    setError(null);
-    const result = await supabase.from("refam_grupos").insert({
-      congregacion_id: congregacionId,
-      nombre: refamGrupoForm.nombre.trim(),
-      zona_id: refamGrupoForm.zona_id || null,
-      anfitrion_persona_id: refamGrupoForm.anfitrion_persona_id || null,
-      lider_persona_id: refamGrupoForm.lider_persona_id || null,
-      direccion: refamGrupoForm.direccion.trim() || null,
-      dia_reunion: refamGrupoForm.dia_reunion.trim() || null,
-    });
-    if (result.error) { setError(`No se pudo crear el grupo REFAM: ${result.error.message}`); return; }
-    setNotice("Grupo REFAM creado.");
-    setRefamGrupoForm({ nombre: "", zona_id: "", anfitrion_persona_id: "", lider_persona_id: "", direccion: "", dia_reunion: "" });
-    load();
-  }
-
-  async function loadRefamGrupoDetail(grupoId) {
-    setSelectedRefamGrupoId(grupoId);
-    setRefamParticipantes([]);
-    setRefamReuniones([]);
-    if (!grupoId) return;
-    const [participantesResult, reunionesResult] = await Promise.all([
-      supabase.from("refam_participantes").select("id, amigo_id, persona_id, fecha_ingreso, estado, amigos:amigo_id(nombres), personas:persona_id(nombres, apellidos)").eq("grupo_id", grupoId).order("fecha_ingreso", { ascending: false }),
-      supabase.from("refam_reuniones").select("id, fecha, numero_leccion, tema, asistentes, visitantes, resultado, novedades").eq("grupo_id", grupoId).order("fecha", { ascending: false }),
-    ]);
-    setRefamParticipantes(participantesResult.data ?? []);
-    setRefamReuniones(reunionesResult.data ?? []);
-    setAsistenciaRefamMarcada(Object.fromEntries((participantesResult.data ?? []).map((item) => [item.id, true])));
-  }
-
-  async function addRefamParticipante(event) {
-    event.preventDefault();
-    if (!canEdit || !selectedRefamGrupoId || !refamParticipanteForm.sujeto_id) return;
-    setError(null);
-    const payload = {
-      congregacion_id: congregacionId,
-      grupo_id: selectedRefamGrupoId,
-      fecha_ingreso: new Date().toISOString().slice(0, 10),
-      amigo_id: refamParticipanteForm.tipo === "amigo" ? refamParticipanteForm.sujeto_id : null,
-      persona_id: refamParticipanteForm.tipo === "persona" ? refamParticipanteForm.sujeto_id : null,
-    };
-    const result = await supabase.from("refam_participantes").insert(payload);
-    if (result.error) { setError(`No se pudo agregar el participante: ${result.error.message}`); return; }
-    setNotice("Participante agregado al grupo.");
-    setRefamParticipanteForm({ tipo: "amigo", sujeto_id: "" });
-    loadRefamGrupoDetail(selectedRefamGrupoId);
-  }
-
-  async function addRefamReunion(event) {
-    event.preventDefault();
-    if (!canEdit || !selectedRefamGrupoId) return;
-    setError(null);
-    const result = await supabase.from("refam_reuniones").insert({
-      congregacion_id: congregacionId,
-      grupo_id: selectedRefamGrupoId,
-      fecha: refamReunionForm.fecha,
-      numero_leccion: Number(refamReunionForm.numero_leccion) || 1,
-      tema: refamReunionForm.tema.trim() || null,
-      asistentes: Number(refamReunionForm.asistentes) || 0,
-      visitantes: Number(refamReunionForm.visitantes) || 0,
-      resultado: refamReunionForm.resultado.trim() || null,
-      novedades: refamReunionForm.novedades.trim() || null,
-    }).select("id").single();
-    if (result.error) { setError(`No se pudo registrar la reunión: ${result.error.message}`); return; }
-    if (refamParticipantes.length) {
-      const asistenciaPayload = refamParticipantes.map((item) => ({
-        reunion_id: result.data.id,
-        participante_id: item.id,
-        asistio: Boolean(asistenciaRefamMarcada[item.id]),
-      }));
-      const asistenciaResult = await supabase.from("refam_asistencia_participante").insert(asistenciaPayload);
-      if (asistenciaResult.error) { setError(`La reunión se registró, pero no se pudo guardar la asistencia individual: ${asistenciaResult.error.message}`); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
-    }
-    setNotice("Reunión REFAM registrada.");
-    setRefamReunionForm({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "1", tema: "", asistentes: "0", visitantes: "0", resultado: "", novedades: "" });
-    loadRefamGrupoDetail(selectedRefamGrupoId);
   }
 
   if (roleLoading || loading)
@@ -624,6 +541,23 @@ export default function Evangelismo() {
           )}
         </div>
       </section>
+      {convertidosConTiempo.length > 0 && (
+        <section className="grid lg:grid-cols-2 gap-4">
+          <div className="card chart-card p-5">
+            <p className="eyebrow">Efectividad</p>
+            <h2 className="font-medium mt-1">Días hasta el bautismo, por metodología</h2>
+            <p className="text-xs text-secondary mt-1">Desde el primer contacto hasta el bautismo. Menos días = metodología más efectiva en este periodo.</p>
+            <div className="h-56 mt-4">{tiempoConversionMetodo.length ? <Bar data={distributionDataset(tiempoConversionMetodo, { labelKey: "nombre", valueKey: "promedio", datasetLabel: "Días promedio" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay conversiones con metodología registrada.</p>}</div>
+            {metodoMasRapido && <p className="summary-insight mt-3">{metodoMasRapido.nombre} convierte en promedio en {metodoMasRapido.promedio} días ({metodoMasRapido.total} caso{metodoMasRapido.total === 1 ? "" : "s"}) -- la metodología más rápida en este periodo.</p>}
+          </div>
+          <div className="card chart-card p-5">
+            <p className="eyebrow">Efectividad</p>
+            <h2 className="font-medium mt-1">Días hasta el bautismo, por zona</h2>
+            <p className="text-xs text-secondary mt-1">Compara qué líder/barrio logra conversiones más rápidas.</p>
+            <div className="h-56 mt-4">{tiempoConversionZona.length ? <Bar data={distributionDataset(tiempoConversionZona, { labelKey: "nombre", valueKey: "promedio", datasetLabel: "Días promedio" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay conversiones con zona registrada.</p>}</div>
+          </div>
+        </section>
+      )}
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
@@ -804,43 +738,9 @@ export default function Evangelismo() {
         {diagnosticos.length ? <div className="divide-y divide-border">{diagnosticos.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{item.zonas?.nombre || "Sin zona"}{item.periodo_inicio ? ` · ${item.periodo_inicio}${item.periodo_fin ? ` a ${item.periodo_fin}` : ""}` : ""}</p><p className="text-xs text-secondary mt-1">{item.personas ? `Responsable: ${item.personas.nombres} ${item.personas.apellidos}` : ""}{item.poblacion_estimada ? ` · Población estimada: ${item.poblacion_estimada}` : ""}</p>{item.estrategia && <p className="text-xs text-muted mt-1">Estrategia: {item.estrategia}</p>}{item.resultado && <p className="text-xs text-muted mt-1">Resultado: {item.resultado}</p>}</div>)}</div> : <p className="text-sm text-muted py-4">Aún no hay diagnósticos registrados.</p>}
       </section>
 
-      <section className="card p-5">
-        <div className="mb-4"><p className="eyebrow">Estación REFAM</p><h2 className="font-medium mt-1">Grupos, participantes y reuniones</h2><p className="text-xs text-secondary mt-1">Evangelismo en los hogares mediante lecciones. No sustituye a Red de Familias.</p></div>
-        {canEdit && <form onSubmit={createRefamGrupo} className="grid md:grid-cols-3 gap-3 mb-5">
-          <label className="text-sm">Nombre del grupo<input required className="input-field mt-1.5" value={refamGrupoForm.nombre} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, nombre: event.target.value })} /></label>
-          <label className="text-sm">Zona<select className="input-field mt-1.5" value={refamGrupoForm.zona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, zona_id: event.target.value })}><option value="">Sin zona</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></label>
-          <label className="text-sm">Día de reunión<input className="input-field mt-1.5" placeholder="Ej. Martes" value={refamGrupoForm.dia_reunion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, dia_reunion: event.target.value })} /></label>
-          <label className="text-sm">Anfitrión<select className="input-field mt-1.5" value={refamGrupoForm.anfitrion_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, anfitrion_persona_id: event.target.value })}><option value="">Sin anfitrión</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
-          <label className="text-sm">Líder<select className="input-field mt-1.5" value={refamGrupoForm.lider_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, lider_persona_id: event.target.value })}><option value="">Sin líder</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
-          <label className="text-sm">Dirección<input className="input-field mt-1.5" value={refamGrupoForm.direccion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, direccion: event.target.value })} /></label>
-          <div className="md:col-span-3 flex justify-end"><button className="btn-primary"><Plus className="w-4 h-4" />Crear grupo REFAM</button></div>
-        </form>}
-        <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-4">
-          <div className="flex flex-col gap-2">{refamGrupos.map((grupo) => <button type="button" key={grupo.id} onClick={() => loadRefamGrupoDetail(grupo.id)} className={`text-left border rounded-card p-3 ${selectedRefamGrupoId === grupo.id ? "border-accent bg-accent-bg" : "border-border"}`}><p className="text-sm font-medium">{grupo.nombre}</p><p className="text-xs text-secondary mt-1">{grupo.zonas?.nombre || "Sin zona"}{grupo.dia_reunion ? ` · ${grupo.dia_reunion}` : ""}</p>{grupo.lider && <p className="text-xs text-muted mt-1">Líder: {grupo.lider.nombres} {grupo.lider.apellidos}</p>}</button>)}{refamGrupos.length === 0 && <p className="text-sm text-muted">Aún no hay grupos REFAM.</p>}</div>
-          <div>
-            {selectedRefamGrupoId ? <div className="flex flex-col gap-4">
-              <div>
-                <h3 className="text-sm font-medium mb-2">Participantes</h3>
-                {canEdit && <form onSubmit={addRefamParticipante} className="flex gap-2 mb-2"><select className="input-field" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ tipo: event.target.value, sujeto_id: "" })}><option value="amigo">Amigo</option><option value="persona">Persona</option></select><select required className="input-field flex-1" value={refamParticipanteForm.sujeto_id} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, sujeto_id: event.target.value })}><option value="">Selecciona...</option>{(refamParticipanteForm.tipo === "amigo" ? amigos : personas).map((item) => <option key={item.id} value={item.id}>{item.nombres} {item.apellidos || ""}</option>)}</select><button className="btn-secondary px-3"><Plus className="w-4 h-4" /></button></form>}
-                {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-1.5 text-sm">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {item.estado}</span></div>)}</div> : <p className="text-xs text-muted">Sin participantes aún.</p>}
-              </div>
-              <div>
-                <h3 className="text-sm font-medium mb-2">Reuniones</h3>
-                {canEdit && <form onSubmit={addRefamReunion} className="grid grid-cols-2 gap-2 mb-2">
-                  <input required type="date" className="input-field" value={refamReunionForm.fecha} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, fecha: event.target.value })} />
-                  <input type="number" min="1" className="input-field" placeholder="N.° lección" value={refamReunionForm.numero_leccion} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, numero_leccion: event.target.value })} />
-                  <input className="input-field col-span-2" placeholder="Tema" value={refamReunionForm.tema} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, tema: event.target.value })} />
-                  <input type="number" min="0" className="input-field" placeholder="Asistentes" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} />
-                  <input type="number" min="0" className="input-field" placeholder="Visitantes" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} />
-                  <input className="input-field col-span-2" placeholder="Resultado" value={refamReunionForm.resultado} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, resultado: event.target.value })} />
-                  {refamParticipantes.length > 0 && <div className="col-span-2 border border-border rounded-card p-2"><p className="text-xs font-medium mb-1.5">Asistencia individual (estudio entregado)</p>{refamParticipantes.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs py-0.5"><input type="checkbox" checked={Boolean(asistenciaRefamMarcada[item.id])} onChange={(event) => setAsistenciaRefamMarcada({ ...asistenciaRefamMarcada, [item.id]: event.target.checked })} />{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"}</label>)}</div>}
-                  <button className="btn-secondary col-span-2 justify-center">Registrar reunión</button>
-                </form>}
-                {refamReuniones.length ? <div className="divide-y divide-border">{refamReuniones.map((item) => <div key={item.id} className="py-1.5 text-sm">{item.fecha} · Lección {item.numero_leccion} · {item.asistentes} asistentes{item.visitantes ? ` (${item.visitantes} visitantes)` : ""}</div>)}</div> : <p className="text-xs text-muted">Sin reuniones registradas.</p>}
-              </div>
-            </div> : <p className="text-sm text-muted">Selecciona un grupo para ver sus participantes y reuniones.</p>}
-          </div>
-        </div>
+      <section className="card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div><p className="eyebrow">Estación REFAM</p><h2 className="font-medium mt-1">Grupos, participantes y reuniones</h2><p className="text-xs text-secondary mt-1">La gestión de REFAM se movió a su propio tablero, con métricas y traslado entre estaciones.</p></div>
+        <Link to="/refam" className="btn-secondary whitespace-nowrap">Ver estación REFAM<ArrowRight className="w-4 h-4" /></Link>
       </section>
       {editingZoneId && <div className="modal-backdrop"><form onSubmit={updateZone} className="modal-panel"><h2 className="font-medium">Editar cobertura territorial</h2><input autoFocus required className="input-field mt-4" value={zoneEditName} onChange={(event) => setZoneEditName(event.target.value)} /><select className="input-field mt-2" value={zoneEditLeader} onChange={(event) => setZoneEditLeader(event.target.value)}><option value="">Sin líder asignado</option>{personas.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><input className="input-field mt-2" placeholder="Dirección aproximada (para el mapa)" value={zoneEditDireccion} onChange={(event) => setZoneEditDireccion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingZoneId(null)} className="btn-secondary">Cancelar</button><button disabled={!canEdit || geocodificando} className="btn-primary">{geocodificando ? 'Ubicando...' : 'Guardar'}</button></div></form></div>}
     </div>

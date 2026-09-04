@@ -2,6 +2,27 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-04): Uno Mas y BIS no tenian tablero propio (el
+	enlace llevaba de vuelta a "Amigos en ruta" sin filtrar nada), REFAM
+	nunca sincronizaba con `ruta_procesos` (el `funnel_refam` del BI
+	distrital llevaba mal desde que existe), y "Iniciar proceso" en
+	ESFOB/Discipulado insertaba un `estado` invalido en `ruta_procesos`
+	que violaba su check constraint -- fallaba en silencio, ningun
+	proceso iniciado ahi quedaba realmente registrado en la ruta. Se
+	rediseño el flujo completo: "Amigos en ruta" queda como ficha
+	maestra de solo lectura sobre la estacion; cada una de las 5
+	estaciones de persona (Uno Mas, BIS, REFAM, ESFOB, Discipulado) tiene
+	su propio tablero con dias en la estacion, candidatos a trasladar,
+	grafico por zona e insight; el traslado entre estaciones es libre
+	(sin exigir orden secuencial), con un solo mecanismo compartido
+	(`iniciarOMoverEstacion`). Se agrego tambien el grafico de dias
+	promedio hasta el bautismo por metodologia y por zona. Verificado de
+	punta a punta (BD, no solo mensaje en pantalla) para las 5
+	estaciones. Ver `docs/rediseno-ruta-evangelistica-2026-09-04.md`. No
+	requiere accion en base de datos (no hubo migraciones). Hallazgo
+	aparte sin corregir: `historial_amigos` da 404 en Supabase
+	(PGRST205) -- el historial de etapas en la ficha del amigo nunca ha
+	funcionado.
 - Resuelto (2026-09-04): "Equipo de trabajo" nunca pedia zona/centro de
 	reclusion al asignar la responsabilidad operativa de Evangelismo,
 	Mision Juvenil u Obra Carcelaria, pese a que la RLS de `amigos`

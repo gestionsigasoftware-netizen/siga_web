@@ -17,7 +17,9 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
+import { diasDesde } from "../lib/rutaEvangelistica";
 
+const RUTA_ESTACION_PATH = { uno_mas: "/uno-mas", bis: "/bis", refam: "/refam", esfob: "/esfob", discipulado: "/discipulado" };
 const TONO_ETAPA = [
   "bg-surface-1 text-secondary",
   "bg-warning-bg text-warning",
@@ -37,27 +39,6 @@ const EMPTY_FORM = {
   evangelismo_metodologia_id: "",
   fecha_nacimiento: "",
   estado_civil: "soltero",
-};
-const EMPTY_COMPROMISO = {
-  miembro_id: "",
-  fecha_primer_contacto: "",
-  fecha_ultimo_contacto: "",
-  estado: "activo",
-  resultado: "",
-  notas: "",
-};
-const COMPROMISO_ESTADOS = { activo: "Activo", cumplido: "Cumplido", pausado: "Pausado", cerrado: "Cerrado" };
-const EMPTY_ATENCION = {
-  responsable_persona_id: "",
-  fecha_visita: new Date().toISOString().slice(0, 10),
-  primera_visita: true,
-  recibimiento: "",
-  necesidad_inmediata: "",
-  contacto_posterior: "",
-  resultado_contacto: "",
-  integrado: false,
-  derivado_a: "",
-  notas: "",
 };
 const FRIEND_FIELDS =
   "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre)";
@@ -102,15 +83,8 @@ export default function Amigos() {
     return () => clearTimeout(timer);
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
-  const [routeStations, setRouteStations] = useState([]);
   const [routeProcess, setRouteProcess] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [routeStationId, setRouteStationId] = useState("");
-  const [personas, setPersonas] = useState([]);
-  const [unoMasCompromiso, setUnoMasCompromiso] = useState(null);
-  const [compromisoForm, setCompromisoForm] = useState(EMPTY_COMPROMISO);
-  const [bisAtenciones, setBisAtenciones] = useState([]);
-  const [atencionForm, setAtencionForm] = useState(EMPTY_ATENCION);
   const notesRequest = useRef(0);
 
   async function load() {
@@ -121,7 +95,7 @@ export default function Amigos() {
     }
     setLoading(true);
     setError(null);
-    const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult, peopleResult] =
+    const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult] =
       await Promise.all([
         supabase
           .from("etapas_seguimiento")
@@ -158,7 +132,6 @@ export default function Amigos() {
         })(),
         supabase.from("amigos").select("id", { count: "exact", head: true }).eq("congregacion_id", congregacionId).eq("convertido", true),
         supabase.from("amigos").select("id, etapa_id, zona_id, evangelismo_metodologia_id, convertido, fecha_primer_contacto, sellado").eq("congregacion_id", congregacionId),
-        supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       ]);
     if (
       stageResult.error ||
@@ -168,7 +141,6 @@ export default function Amigos() {
       friendResult.error ||
       convertedResult.error
       || analysisResult.error
-      || peopleResult.error
     )
       setError("No se pudo cargar la ruta de seguimiento.");
     setEtapas(stageResult.data ?? []);
@@ -179,7 +151,6 @@ export default function Amigos() {
     setTotalAmigos(friendResult.count ?? 0);
     setTotalConvertidos(convertedResult.count ?? 0);
     setAnalysisAmigos(analysisResult.data ?? []);
-    setPersonas(peopleResult.data ?? []);
     setLoading(false);
   }
 
@@ -227,10 +198,6 @@ export default function Amigos() {
     setHistoryLoading(true);
     setRouteLoading(true);
     setRouteProcess(null);
-    setUnoMasCompromiso(null);
-    setCompromisoForm(EMPTY_COMPROMISO);
-    setBisAtenciones([]);
-    setAtencionForm(EMPTY_ATENCION);
     setError(null);
     setNotice(null);
     const requestId = notesRequest.current;
@@ -268,162 +235,8 @@ export default function Amigos() {
         if (requestId !== notesRequest.current) return;
         if (routeError) setError("No se pudo cargar la ruta actual.");
         setRouteProcess(data ?? null);
-        setRouteStationId(data?.estacion_id || "");
         setRouteLoading(false);
-        if (data?.estacion?.codigo === "uno_mas") {
-          supabase
-            .from("uno_mas_compromisos")
-            .select("id, miembro_id, fecha_compromiso, fecha_primer_contacto, fecha_ultimo_contacto, estado, resultado, notas")
-            .eq("proceso_id", data.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle()
-            .then(({ data: compromiso }) => {
-              if (requestId !== notesRequest.current) return;
-              setUnoMasCompromiso(compromiso ?? null);
-              setCompromisoForm(compromiso ? {
-                miembro_id: compromiso.miembro_id || "",
-                fecha_primer_contacto: compromiso.fecha_primer_contacto || "",
-                fecha_ultimo_contacto: compromiso.fecha_ultimo_contacto || "",
-                estado: compromiso.estado,
-                resultado: compromiso.resultado || "",
-                notas: compromiso.notas || "",
-              } : EMPTY_COMPROMISO);
-            });
-        } else if (data?.estacion?.codigo === "bis") {
-          supabase
-            .from("bis_atenciones")
-            .select("id, fecha_visita, primera_visita, recibimiento, necesidad_inmediata, contacto_posterior, resultado_contacto, integrado, derivado_a, notas, responsable_persona_id")
-            .eq("proceso_id", data.id)
-            .order("fecha_visita", { ascending: false })
-            .then(({ data: atenciones }) => {
-              if (requestId !== notesRequest.current) return;
-              setBisAtenciones(atenciones ?? []);
-            });
-        }
       });
-  }
-
-  async function saveCompromiso(event) {
-    event.preventDefault();
-    if (!canEdit || !routeProcess || !selected || !compromisoForm.miembro_id) return;
-    setSaving(true);
-    setError(null);
-    const payload = {
-      congregacion_id: congregacionId,
-      proceso_id: routeProcess.id,
-      amigo_id: selected.id,
-      miembro_id: compromisoForm.miembro_id,
-      fecha_primer_contacto: compromisoForm.fecha_primer_contacto || null,
-      fecha_ultimo_contacto: compromisoForm.fecha_ultimo_contacto || null,
-      estado: compromisoForm.estado,
-      resultado: compromisoForm.resultado.trim() || null,
-      notas: compromisoForm.notas.trim() || null,
-    };
-    const result = unoMasCompromiso
-      ? await supabase.from("uno_mas_compromisos").update(payload).eq("id", unoMasCompromiso.id).select().single()
-      : await supabase.from("uno_mas_compromisos").insert(payload).select().single();
-    setSaving(false);
-    if (result.error) {
-      setError(`No se pudo guardar el compromiso: ${result.error.message}`);
-      return;
-    }
-    setUnoMasCompromiso(result.data);
-    setNotice("Compromiso de Uno Más guardado.");
-  }
-
-  async function saveAtencion(event) {
-    event.preventDefault();
-    if (!canEdit || !routeProcess || !selected) return;
-    setSaving(true);
-    setError(null);
-    const payload = {
-      congregacion_id: congregacionId,
-      proceso_id: routeProcess.id,
-      amigo_id: selected.id,
-      responsable_persona_id: atencionForm.responsable_persona_id || null,
-      fecha_visita: atencionForm.fecha_visita || new Date().toISOString().slice(0, 10),
-      primera_visita: atencionForm.primera_visita,
-      recibimiento: atencionForm.recibimiento.trim() || null,
-      necesidad_inmediata: atencionForm.necesidad_inmediata.trim() || null,
-      contacto_posterior: atencionForm.contacto_posterior || null,
-      resultado_contacto: atencionForm.resultado_contacto.trim() || null,
-      integrado: atencionForm.integrado,
-      derivado_a: atencionForm.derivado_a.trim() || null,
-      notas: atencionForm.notas.trim() || null,
-    };
-    const result = await supabase.from("bis_atenciones").insert(payload).select().single();
-    setSaving(false);
-    if (result.error) {
-      setError(`No se pudo registrar la atención: ${result.error.message}`);
-      return;
-    }
-    setBisAtenciones((current) => [result.data, ...current]);
-    setAtencionForm(EMPTY_ATENCION);
-    setNotice("Atención BIS registrada.");
-  }
-
-  async function loadRouteStations() {
-    if (!congregacionId) return;
-    const { data, error: stationsError } = await supabase
-      .from("ruta_estaciones")
-      .select("id, codigo, nombre, orden")
-      .eq("congregacion_id", congregacionId)
-      .eq("activo", true)
-      .order("orden");
-    if (!stationsError) setRouteStations(data ?? []);
-  }
-
-  useEffect(() => {
-    loadRouteStations();
-  }, [congregacionId]);
-
-  async function moveRouteProcess(event) {
-    event.preventDefault();
-    if (!canEdit || !selected || !routeStationId) return;
-    setSaving(true);
-    setError(null);
-    setNotice(null);
-    const station = routeStations.find((item) => item.id === routeStationId);
-    if (!station) {
-      setSaving(false);
-      return;
-    }
-    if (routeProcess?.estacion_id === station.id) {
-      setError("Selecciona una estación diferente para avanzar la ruta.");
-      setSaving(false);
-      return;
-    }
-    if (routeProcess && station.orden !== (routeProcess.estacion?.orden || 0) + 1) {
-      setError("La ruta debe avanzar a la estación siguiente.");
-      setSaving(false);
-      return;
-    }
-    if (routeProcess) {
-      const closeResult = await supabase
-        .from("ruta_procesos")
-        .update({ estado: "completado", fecha_cierre: new Date().toISOString().slice(0, 10), estacion_siguiente_id: station.id })
-        .eq("id", routeProcess.id)
-        .eq("congregacion_id", congregacionId);
-      if (closeResult.error) {
-        setError("No se pudo cerrar la estación actual.");
-        setSaving(false);
-        return;
-      }
-    }
-    const nextResult = await supabase
-      .from("ruta_procesos")
-      .insert({ congregacion_id: congregacionId, estacion_id: station.id, amigo_id: selected.id, fecha_inicio: new Date().toISOString().slice(0, 10), estado: "activo" })
-      .select("id, estado, fecha_inicio, fecha_cierre, resultado, estacion_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(id, codigo, nombre, orden)")
-      .single();
-    if (nextResult.error) {
-      setError("No se pudo trasladar la persona a la nueva estación.");
-    } else {
-      setRouteProcess(nextResult.data);
-      setRouteStationId(nextResult.data.estacion_id);
-      setNotice(`La persona avanzó a ${station.nombre}.`);
-    }
-    setSaving(false);
   }
 
   async function createFriend(event) {
@@ -1049,7 +862,7 @@ export default function Amigos() {
             </form>
               <section className="mt-5 border-t border-border pt-4">
                 <div className="flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4 text-accent" />
+                  <MapPinned className="w-4 h-4 text-accent" />
                   <div>
                     <p className="eyebrow">Ruta Evangelística</p>
                     <h3 className="font-medium text-sm mt-1">Estación de acompañamiento</h3>
@@ -1057,75 +870,22 @@ export default function Amigos() {
                 </div>
                 {routeLoading ? (
                   <p className="text-xs text-muted mt-3">Cargando estación...</p>
+                ) : routeProcess ? (
+                  <p className="text-sm text-secondary mt-3">
+                    Estación actual: <span className="font-medium text-ink">{routeProcess.estacion?.nombre || "Sin nombre"}</span>
+                    {" · "}{diasDesde(routeProcess.fecha_inicio) ?? 0} días.{" "}
+                    {RUTA_ESTACION_PATH[routeProcess.estacion?.codigo] && (
+                      <Link to={RUTA_ESTACION_PATH[routeProcess.estacion.codigo]} className="text-accent">
+                        Gestionar en {routeProcess.estacion?.nombre} <ArrowRight className="inline w-3 h-3" />
+                      </Link>
+                    )}
+                  </p>
                 ) : (
-                  <>
-                    <p className="text-sm text-secondary mt-3">
-                      {routeProcess ? `Estación actual: ${routeProcess.estacion?.nombre || "Sin nombre"}.` : "Esta persona todavía no tiene una estación iniciada."}
-                    </p>
-                    {canEdit && routeStations.length > 0 && (
-                      <form onSubmit={moveRouteProcess} className="grid gap-2 mt-3">
-                        <select className="input-field" value={routeStationId} onChange={(event) => setRouteStationId(event.target.value)}>
-                          <option value="">Selecciona una estación</option>
-                          {routeStations.filter((station) => routeProcess ? station.orden === (routeProcess.estacion?.orden || 0) + 1 : station.codigo === "uno_mas").map((station) => <option key={station.id} value={station.id}>{station.orden}. {station.nombre}</option>)}
-                        </select>
-                        <button type="submit" disabled={saving || !routeStationId} className="btn-secondary justify-center">
-                          <ArrowRight className="w-4 h-4" />
-                          {routeProcess ? "Trasladar a estación" : "Iniciar estación"}
-                        </button>
-                      </form>
-                    )}
-                    {routeProcess?.estacion?.codigo === "uno_mas" && (
-                      <form onSubmit={saveCompromiso} className="border-t border-border mt-4 pt-4 grid gap-2">
-                        <p className="text-xs font-medium text-secondary">Compromiso de Uno Más</p>
-                        <label className="text-xs text-secondary">Miembro comprometido
-                          <select required disabled={!canEdit} className="input-field mt-1" value={compromisoForm.miembro_id} onChange={(event) => setCompromisoForm({ ...compromisoForm, miembro_id: event.target.value })}>
-                            <option value="">Selecciona un miembro</option>
-                            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
-                          </select>
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="text-xs text-secondary">Primer contacto<input disabled={!canEdit} type="date" className="input-field mt-1" value={compromisoForm.fecha_primer_contacto} onChange={(event) => setCompromisoForm({ ...compromisoForm, fecha_primer_contacto: event.target.value })} /></label>
-                          <label className="text-xs text-secondary">Último contacto<input disabled={!canEdit} type="date" className="input-field mt-1" value={compromisoForm.fecha_ultimo_contacto} onChange={(event) => setCompromisoForm({ ...compromisoForm, fecha_ultimo_contacto: event.target.value })} /></label>
-                        </div>
-                        <label className="text-xs text-secondary">Estado
-                          <select disabled={!canEdit} className="input-field mt-1" value={compromisoForm.estado} onChange={(event) => setCompromisoForm({ ...compromisoForm, estado: event.target.value })}>
-                            {Object.entries(COMPROMISO_ESTADOS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                          </select>
-                        </label>
-                        <label className="text-xs text-secondary">Resultado<input disabled={!canEdit} className="input-field mt-1" value={compromisoForm.resultado} onChange={(event) => setCompromisoForm({ ...compromisoForm, resultado: event.target.value })} /></label>
-                        <label className="text-xs text-secondary">Notas<textarea disabled={!canEdit} className="input-field mt-1 min-h-16" value={compromisoForm.notas} onChange={(event) => setCompromisoForm({ ...compromisoForm, notas: event.target.value })} /></label>
-                        {canEdit && <button type="submit" disabled={saving || !compromisoForm.miembro_id} className="btn-secondary justify-center">{unoMasCompromiso ? "Actualizar compromiso" : "Registrar compromiso"}</button>}
-                      </form>
-                    )}
-                    {routeProcess?.estacion?.codigo === "bis" && (
-                      <div className="border-t border-border mt-4 pt-4">
-                        <p className="text-xs font-medium text-secondary mb-2">Atenciones BIS</p>
-                        {canEdit && (
-                          <form onSubmit={saveAtencion} className="grid gap-2 mb-3">
-                            <div className="grid grid-cols-2 gap-2">
-                              <label className="text-xs text-secondary">Fecha de visita<input required type="date" className="input-field mt-1" value={atencionForm.fecha_visita} onChange={(event) => setAtencionForm({ ...atencionForm, fecha_visita: event.target.value })} /></label>
-                              <label className="text-xs text-secondary">Responsable
-                                <select className="input-field mt-1" value={atencionForm.responsable_persona_id} onChange={(event) => setAtencionForm({ ...atencionForm, responsable_persona_id: event.target.value })}>
-                                  <option value="">Sin asignar</option>
-                                  {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
-                                </select>
-                              </label>
-                            </div>
-                            <label className="flex items-center gap-2 text-xs text-secondary"><input type="checkbox" checked={atencionForm.primera_visita} onChange={(event) => setAtencionForm({ ...atencionForm, primera_visita: event.target.checked })} /> Primera visita</label>
-                            <label className="text-xs text-secondary">Recibimiento<input className="input-field mt-1" value={atencionForm.recibimiento} onChange={(event) => setAtencionForm({ ...atencionForm, recibimiento: event.target.value })} /></label>
-                            <label className="text-xs text-secondary">Necesidad inmediata<input className="input-field mt-1" value={atencionForm.necesidad_inmediata} onChange={(event) => setAtencionForm({ ...atencionForm, necesidad_inmediata: event.target.value })} /></label>
-                            <label className="text-xs text-secondary">Próximo contacto<input type="date" className="input-field mt-1" value={atencionForm.contacto_posterior} onChange={(event) => setAtencionForm({ ...atencionForm, contacto_posterior: event.target.value })} /></label>
-                            <label className="text-xs text-secondary">Resultado del contacto<input className="input-field mt-1" value={atencionForm.resultado_contacto} onChange={(event) => setAtencionForm({ ...atencionForm, resultado_contacto: event.target.value })} /></label>
-                            <label className="flex items-center gap-2 text-xs text-secondary"><input type="checkbox" checked={atencionForm.integrado} onChange={(event) => setAtencionForm({ ...atencionForm, integrado: event.target.checked })} /> Quedó integrado</label>
-                            <label className="text-xs text-secondary">Derivado a<input className="input-field mt-1" value={atencionForm.derivado_a} onChange={(event) => setAtencionForm({ ...atencionForm, derivado_a: event.target.value })} /></label>
-                            <label className="text-xs text-secondary">Notas<textarea className="input-field mt-1 min-h-16" value={atencionForm.notas} onChange={(event) => setAtencionForm({ ...atencionForm, notas: event.target.value })} /></label>
-                            <button type="submit" disabled={saving} className="btn-secondary justify-center">Registrar atención</button>
-                          </form>
-                        )}
-                        {bisAtenciones.length ? <div className="divide-y divide-border">{bisAtenciones.map((atencion) => <div key={atencion.id} className="py-2"><p className="text-xs font-medium">{atencion.fecha_visita}{atencion.primera_visita ? " · Primera visita" : ""}{atencion.integrado ? " · Integrado" : ""}</p>{atencion.recibimiento && <p className="text-xs text-secondary mt-0.5">Recibimiento: {atencion.recibimiento}</p>}{atencion.necesidad_inmediata && <p className="text-xs text-secondary mt-0.5">Necesidad: {atencion.necesidad_inmediata}</p>}{atencion.notas && <p className="text-xs text-muted mt-0.5">{atencion.notas}</p>}</div>)}</div> : <p className="text-xs text-muted">Aún no hay atenciones registradas.</p>}
-                      </div>
-                    )}
-                  </>
+                  <p className="text-sm text-secondary mt-3">
+                    Esta persona todavía no tiene una estación iniciada. Agrégala desde{" "}
+                    <Link to="/uno-mas" className="text-accent">Uno Más <ArrowRight className="inline w-3 h-3" /></Link>
+                    {" "}o directamente en la estación que corresponda según su situación real.
+                  </p>
                 )}
               </section>
             <div className="mt-4 grid gap-2">

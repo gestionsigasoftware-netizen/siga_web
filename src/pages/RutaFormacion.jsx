@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle2, Plus, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bar } from "react-chartjs-2";
+import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from "chart.js";
+import { ArrowLeft, ArrowRightLeft, BookOpen, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, distributionDataset } from "../lib/chartTheme";
+import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+const CHART_OPTIONS = chartOptions();
 const TODAY = new Date().toISOString().slice(0, 10);
 
 const CONFIG = {
@@ -29,17 +35,20 @@ const CONFIG = {
 
 export default function RutaFormacion({ mode }) {
   const config = CONFIG[mode];
+  const umbral = UMBRAL_DIAS_ESTACION[mode];
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [rows, setRows] = useState([]);
   const [people, setPeople] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [estaciones, setEstaciones] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [trasladoDestino, setTrasladoDestino] = useState({});
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -64,16 +73,18 @@ export default function RutaFormacion({ mode }) {
     }
     setLoading(true);
     setError(null);
-    const [processResult, peopleResult, friendsResult] = await Promise.all([
+    const [processResult, peopleResult, friendsResult, estacionesResult] = await Promise.all([
       supabase.from(config.table).select("*").eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos, bautizado").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
-      supabase.from("amigos").select("id, nombres").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
+      supabase.from("amigos").select("id, nombres, zona_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
+      supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
     ]);
     const failed = [processResult, peopleResult, friendsResult].find((result) => result.error);
     if (failed) setError(`No se pudo cargar ${config.title}. Intenta nuevamente o contacta al administrador.`);
     setRows(processResult.data ?? []);
     setPeople((peopleResult.data ?? []).filter((person) => mode === "esfob" || person.bautizado));
     setFriends(friendsResult.data ?? []);
+    setEstaciones(estacionesResult.data ?? []);
     setLoading(false);
   }
 
@@ -96,32 +107,29 @@ export default function RutaFormacion({ mode }) {
     if (!canEdit || !form.subjectId) return;
     setSaving(true);
     setError(null);
-    const stationResult = await supabase.from("ruta_estaciones").select("id").eq("congregacion_id", congregacionId).eq("codigo", mode).single();
+    const stationResult = await getEstacion(congregacionId, mode);
     if (stationResult.error) {
       setError("No se encontró la estación. Intenta nuevamente o contacta al administrador.");
       setSaving(false);
       return;
     }
-    const processPayload = {
-      congregacion_id: congregacionId,
-      estacion_id: stationResult.data.id,
-      responsable_persona_id: form.responsibleId || null,
-      fecha_inicio: form.date,
-      estado: config.activeState,
-      notas: form.notes || null,
-    };
-    if (mode === "esfob") processPayload.amigo_id = form.subjectId;
-    else processPayload.persona_id = form.subjectId;
-    const processResult = await supabase.from("ruta_procesos").insert(processPayload).select("id").single();
-    if (processResult.error) {
-      setError(`No se pudo iniciar el proceso: ${processResult.error.message}`);
+    const rutaResult = await iniciarOMoverEstacion({
+      congregacionId,
+      estacionDestino: stationResult.data,
+      amigoId: mode === "esfob" ? form.subjectId : null,
+      personaId: mode === "discipulado" ? form.subjectId : null,
+      responsablePersonaId: form.responsibleId || null,
+      fechaInicio: form.date,
+    });
+    if (rutaResult.error) {
+      setError(`No se pudo iniciar el proceso: ${rutaResult.error.message}`);
       setSaving(false);
       return;
     }
     const detailPayload = mode === "esfob"
       ? {
           congregacion_id: congregacionId,
-          proceso_id: processResult.data.id,
+          proceso_id: rutaResult.data.id,
           amigo_id: form.subjectId,
           responsable_persona_id: form.responsibleId || null,
           programa: form.program,
@@ -132,7 +140,7 @@ export default function RutaFormacion({ mode }) {
         }
       : {
           congregacion_id: congregacionId,
-          proceso_id: processResult.data.id,
+          proceso_id: rutaResult.data.id,
           persona_id: form.subjectId,
           mentor_persona_id: form.responsibleId || null,
           programa: form.program,
@@ -142,7 +150,6 @@ export default function RutaFormacion({ mode }) {
         };
     const detailResult = await supabase.from(config.table).insert(detailPayload);
     if (detailResult.error) {
-      await supabase.from("ruta_procesos").delete().eq("id", processResult.data.id);
       setError(`No se pudo guardar el detalle: ${detailResult.error.message}`);
     } else {
       setNotice(`${config.title} iniciado correctamente.`);
@@ -153,11 +160,55 @@ export default function RutaFormacion({ mode }) {
     setSaving(false);
   }
 
+  async function trasladar(row) {
+    if (!canEdit) return;
+    const destinoId = trasladoDestino[row.id];
+    const destino = estaciones.find((item) => item.id === destinoId);
+    if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
+    setSaving(true);
+    setError(null);
+    const result = await iniciarOMoverEstacion({
+      congregacionId,
+      estacionDestino: destino,
+      amigoId: mode === "esfob" ? row.amigo_id : null,
+      personaId: mode === "discipulado" ? row.persona_id : null,
+      responsablePersonaId: row.responsable_persona_id || row.mentor_persona_id || null,
+    });
+    setSaving(false);
+    if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
+    setNotice(`Trasladado a ${destino.nombre}.`);
+    load();
+  }
+
   const active = rows.filter((row) => row.estado === config.activeState).length;
   const completed = rows.filter((row) => row.estado === "completado" || row.estado === "aprobado").length;
   const totalLessons = rows.reduce((total, row) => total + Number(row.lecciones_completadas || 0), 0);
   const findName = (id) => people.find((person) => person.id === id);
   const findFriend = (id) => friends.find((friend) => friend.id === id);
+
+  const filas = useMemo(() => rows.filter((row) => row.estado === config.activeState).map((row) => {
+    const person = mode === "esfob" ? findFriend(row.amigo_id) : findName(row.persona_id);
+    const dias = diasDesde(row.fecha_inicio);
+    const listo = mode === "esfob"
+      ? Number(row.lecciones_completadas || 0) >= Number(row.lecciones_total || 1)
+      : (dias ?? 0) > umbral;
+    return { ...row, person, dias, listo, zonaNombre: person?.zonas?.nombre || "Sin zona" };
+  }), [rows, friends, people, mode, umbral]);
+  const candidatos = filas.filter((row) => row.listo);
+  const zonaRows = useMemo(() => {
+    if (mode !== "esfob") return [];
+    const conteo = new Map();
+    filas.forEach((row) => conteo.set(row.zonaNombre, (conteo.get(row.zonaNombre) || 0) + 1));
+    return [...conteo.entries()].map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total);
+  }, [filas, mode]);
+  const promedioDias = filas.length ? Math.round(filas.reduce((sum, row) => sum + (row.dias || 0), 0) / filas.length) : 0;
+  const insight = candidatos.length
+    ? mode === "esfob"
+      ? `${candidatos.length} persona${candidatos.length === 1 ? "" : "s"} ya completó sus lecciones -- revisa si están listas para el bautismo.`
+      : `${candidatos.length} persona${candidatos.length === 1 ? "" : "s"} lleva${candidatos.length === 1 ? "" : "n"} más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`
+    : filas.length
+      ? `${filas.length} persona${filas.length === 1 ? "" : "s"} activa${filas.length === 1 ? "" : "s"}, con un promedio de ${promedioDias} días.`
+      : "Aún no hay procesos activos.";
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando {config.title}...</div>;
 
@@ -188,14 +239,27 @@ export default function RutaFormacion({ mode }) {
         <label className="text-sm text-secondary md:col-span-2">Notas<textarea className="input-field mt-1 min-h-20" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} /></label>
         <div className="md:col-span-2 flex justify-end"><button className="btn-primary" type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar proceso"}</button></div>
       </form>}
-      <section className="grid sm:grid-cols-3 gap-3">
+      <section className="grid sm:grid-cols-4 gap-3">
         <Metric label={config.activeLabel} value={active} />
         <Metric label="Completados" value={completed} tone="text-success" />
         <Metric label={mode === "esfob" ? "Lecciones completadas" : "Personas acompañadas"} value={mode === "esfob" ? totalLessons : rows.length} />
+        <Metric label="Candidatos a trasladar" value={candidatos.length} tone="text-warning" />
       </section>
+      <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
+      {mode === "esfob" && <section className="card chart-card p-5">
+        <p className="eyebrow">Cobertura territorial</p>
+        <h2 className="font-medium mt-1">Personas en ESFOB por zona</h2>
+        <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
+      </section>}
       <section className="card p-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1">Procesos registrados</h2></div></div>
-        {rows.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos registrados.</p> : <div className="divide-y divide-border">{rows.map((row) => { const person = mode === "esfob" ? findFriend(row.amigo_id) : findName(row.persona_id); const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div><p className="font-medium">{person?.nombres} {person?.apellidos || ""}</p><p className="text-xs text-secondary">{row.programa} · Inicio: {row.fecha_inicio}{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p></div><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>; })}</div>}
+        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1">Procesos activos</h2></div></div>
+        {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div><p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p><p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{mode === "esfob" ? ` · ${row.lecciones_completadas}/${row.lecciones_total} lecciones` : ""}{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p></div>
+            <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
+          </div>
+          {canEdit && <div className="flex items-center gap-2"><select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button></div>}
+        </div>; })}</div>}
       </section>
     </div>
   );

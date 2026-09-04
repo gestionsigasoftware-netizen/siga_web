@@ -15,6 +15,9 @@ const MisionesEvangelismo = lazy(() => import("./pages/MisionesEvangelismo"));
 const MisionJuvenil = lazy(() => import("./pages/MisionJuvenil"));
 const Esfob = lazy(() => import("./pages/Esfob"));
 const Discipulado = lazy(() => import("./pages/Discipulado"));
+const EstacionUnoMas = lazy(() => import("./pages/EstacionUnoMas"));
+const EstacionBis = lazy(() => import("./pages/EstacionBis"));
+const EstacionRefam = lazy(() => import("./pages/EstacionRefam"));
 const Aprobaciones = lazy(() => import("./pages/Aprobaciones"));
 const Configuracion = lazy(() => import("./pages/Configuracion"));
 const Personas = lazy(() => import("./pages/Personas"));
@@ -109,6 +112,9 @@ export default function App() {
           <Route path="/misiones-evangelismo" element={<MisionesEvangelismo />} />
           <Route path="/evangelismo" element={<Evangelismo />} />
           <Route path="/mision-juvenil" element={<MisionJuvenil />} />
+          <Route path="/uno-mas" element={<EstacionUnoMas />} />
+          <Route path="/bis" element={<EstacionBis />} />
+          <Route path="/refam" element={<EstacionRefam />} />
           <Route path="/esfob" element={<Esfob />} />
           <Route path="/discipulado" element={<Discipulado />} />
           <Route path="/reportes" element={<Reportes />} />

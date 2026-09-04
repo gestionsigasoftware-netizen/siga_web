@@ -17,7 +17,7 @@ const SUBMODULES = [
     codigo: "metodos",
   },
   {
-    to: "/amigos?station=uno_mas",
+    to: "/uno-mas",
     title: "Uno Más",
     description: "Activa a cada creyente para adoptar en oración y contacto personal a una persona.",
     label: "Sensibilización y tarea de todos",
@@ -25,7 +25,7 @@ const SUBMODULES = [
     codigo: "uno_mas",
   },
   {
-    to: "/amigos?station=bis",
+    to: "/bis",
     title: "BIS",
     description: "Registra la bienvenida, atención, contacto posterior e integración de cada amigo.",
     label: "Bienvenida, integración y seguimiento",
@@ -33,7 +33,7 @@ const SUBMODULES = [
     codigo: "bis",
   },
   {
-    to: "/evangelismo",
+    to: "/refam",
     title: "REFAM",
     description: "Reunión Familiar y de Amistad como estrategia de Misiones y Evangelismo.",
     label: "Reunión Familiar y de Amistad",
@@ -163,7 +163,7 @@ export default function MisionesEvangelismo() {
       ? { title: "Prepara el siguiente paso", text: `${metrics.esfobActive} persona${metrics.esfobActive === 1 ? " está" : "s están"} en formación bautismal. Revisa su avance y fecha prevista para acompañar la continuidad.`, to: "/esfob", action: "Abrir ESFOB / EFOB" }
       : metrics.friends
         ? { title: "Activa el acompañamiento", text: `${metrics.friends} amigo${metrics.friends === 1 ? " requiere" : "s requieren"} seguimiento. Prioriza la próxima acción y registra su avance en la ruta.`, to: "/amigos", action: "Abrir Amigos en ruta" }
-        : { title: "Inicia la ruta", text: "Aún no hay personas en proceso. Registra el primer contacto para comenzar el acompañamiento.", to: "/amigos?station=uno_mas", action: "Registrar primer contacto" };
+        : { title: "Inicia la ruta", text: "Aún no hay personas en proceso. Registra el primer contacto para comenzar el acompañamiento.", to: "/uno-mas", action: "Registrar primer contacto" };
 
   return (
     <div className="page-shell">
