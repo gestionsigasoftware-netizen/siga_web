@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ChevronDown, Edit3, Layers3, Plus, Power, Search, Sparkles, X } from 'lucide-react'
+import { Check, ChevronDown, Edit3, Layers3, Plus, Power, Search, Sparkles, UsersRound, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
@@ -26,6 +26,11 @@ export default function Modulos() {
   const [nuevoCaracterCulto, setNuevoCaracterCulto] = useState('')
   const [editingCaracterCultoId, setEditingCaracterCultoId] = useState(null)
   const [editingCaracterCultoName, setEditingCaracterCultoName] = useState('')
+  const [ujieres, setUjieres] = useState([])
+  const [nuevoUjier, setNuevoUjier] = useState('')
+  const [bulkUjieres, setBulkUjieres] = useState('')
+  const [editingUjierId, setEditingUjierId] = useState(null)
+  const [editingUjierName, setEditingUjierName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -34,15 +39,17 @@ export default function Modulos() {
     if (!congregacionId) return
     setLoading(true)
     setError(null)
-    const [modulosResult, caracteresResult] = await Promise.all([
+    const [modulosResult, caracteresResult, ujieresResult] = await Promise.all([
       supabase.from('modulos').select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').eq('congregacion_id', congregacionId).order('created_at'),
       supabase.from('caracteres_culto').select('id, nombre, activo').eq('congregacion_id', congregacionId).order('nombre'),
+      supabase.from('ujieres_congregacion').select('id, nombre, activo').eq('congregacion_id', congregacionId).order('nombre'),
     ])
     if (modulosResult.error) setError(`No se pudieron cargar los módulos: ${modulosResult.error.message}`)
     const loaded = modulosResult.data ?? []
     setModulos(loaded)
     setSeleccionado((current) => loaded.find((module) => module.id === current?.id) ?? loaded[0] ?? null)
     setCaracteresCulto(caracteresResult.data ?? [])
+    setUjieres(ujieresResult.data ?? [])
     setLoading(false)
   }
 
@@ -140,6 +147,48 @@ export default function Modulos() {
     else load()
   }
 
+  async function agregarUjier(event) {
+    event.preventDefault()
+    const value = nuevoUjier.trim()
+    if (!value) return
+    if (ujieres.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError('Ya existe un ujier con ese nombre.'); return }
+    setSaving(true); setError(null)
+    const { error: insertError } = await supabase.from('ujieres_congregacion').insert({ congregacion_id: congregacionId, nombre: value })
+    setSaving(false)
+    if (insertError) { setError(`No se pudo agregar el ujier: ${insertError.message}`); return }
+    setNuevoUjier(''); load()
+  }
+
+  async function agregarUjieresEnBloque(event) {
+    event.preventDefault()
+    const existentes = new Set(ujieres.map((item) => item.nombre.toLowerCase()))
+    const nombresNuevos = [...new Set(
+      bulkUjieres.split('\n').map((line) => line.trim()).filter(Boolean)
+    )].filter((nombreLinea) => !existentes.has(nombreLinea.toLowerCase()))
+    if (nombresNuevos.length === 0) { setError('No hay nombres nuevos para agregar (revisa que no estén ya en la lista).'); return }
+    setSaving(true); setError(null)
+    const { error: insertError } = await supabase.from('ujieres_congregacion').insert(nombresNuevos.map((nombreUjier) => ({ congregacion_id: congregacionId, nombre: nombreUjier })))
+    setSaving(false)
+    if (insertError) { setError(`No se pudieron agregar los ujieres: ${insertError.message}`); return }
+    setBulkUjieres(''); load()
+  }
+
+  async function saveUjier(item) {
+    const value = editingUjierName.trim()
+    if (!value) return
+    setSaving(true); setError(null)
+    const { error: updateError } = await supabase.from('ujieres_congregacion').update({ nombre: value }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    setSaving(false)
+    if (updateError) { setError(`No se pudo actualizar el ujier: ${updateError.message}`); return }
+    setEditingUjierId(null); load()
+  }
+
+  async function toggleUjier(item) {
+    const { error: updateError } = await supabase.from('ujieres_congregacion').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (updateError) setError(`No se pudo cambiar el estado del ujier: ${updateError.message}`)
+    else load()
+  }
+
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando módulos y actividades...</div>
   if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar módulos y actividades.</div>
 
@@ -157,8 +206,22 @@ export default function Modulos() {
       <div className="flex flex-wrap gap-2">{caracteresCulto.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingCaracterCultoId(item.id); setEditingCaracterCultoName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleCaracterCulto(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
       {caracteresCulto.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay caracteres de culto configurados.</p>}
     </section>
+    <section className="card p-5">
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Ujieres</h2><p className="text-xs text-secondary mt-1">Lista fija de quienes prestan el servicio de ujier. Al registrar la asistencia se elige cuál de ellos fue el responsable de ese culto — no depende de qué cuenta esté usando el celular.</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <form onSubmit={agregarUjier} className="flex gap-2 my-4"><input required className="input-field" placeholder="Nombre del ujier" value={nuevoUjier} onChange={(event) => setNuevoUjier(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar ujier"><Plus className="w-4 h-4" /></button></form>
+      <details className="mb-4">
+        <summary className="text-xs text-accent cursor-pointer select-none">Agregar varios a la vez (pegar una lista)</summary>
+        <form onSubmit={agregarUjieresEnBloque} className="flex flex-col gap-2 mt-3">
+          <textarea className="input-field min-h-24" placeholder={'Un nombre por línea, ej:\nJhan Carlos Vallecilla\nDaniela Gómez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
+          <button disabled={saving} className="btn-secondary self-start px-3">Agregar lista</button>
+        </form>
+      </details>
+      <div className="flex flex-wrap gap-2">{ujieres.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingUjierId(item.id); setEditingUjierName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleUjier(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
+      {ujieres.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay ujieres registrados.</p>}
+    </section>
     {editingModuleId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveModuleName(modulos.find((module) => module.id === editingModuleId)) }} className="modal-panel"><h2 className="font-medium">Editar módulo</h2><input autoFocus required className="input-field mt-4" value={editingName} onChange={(event) => setEditingName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingModuleId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingActivityId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveActivity(seleccionado.tipos_actividad.find((type) => type.id === editingActivityId)) }} className="modal-panel"><h2 className="font-medium">Editar actividad</h2><input autoFocus required className="input-field mt-4" value={editingActivityName} onChange={(event) => setEditingActivityName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingActivityId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingCaracterCultoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveCaracterCulto(caracteresCulto.find((item) => item.id === editingCaracterCultoId)) }} className="modal-panel"><h2 className="font-medium">Editar carácter de culto</h2><input autoFocus required className="input-field mt-4" value={editingCaracterCultoName} onChange={(event) => setEditingCaracterCultoName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingCaracterCultoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
+    {editingUjierId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveUjier(ujieres.find((item) => item.id === editingUjierId)) }} className="modal-panel"><h2 className="font-medium">Editar ujier</h2><input autoFocus required className="input-field mt-4" value={editingUjierName} onChange={(event) => setEditingUjierName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingUjierId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
   </div>
 }
