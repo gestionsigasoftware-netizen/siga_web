@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const CHART_OPTIONS = chartOptions();
@@ -252,7 +253,7 @@ export default function RutaFormacion({ mode }) {
       {showForm && <form onSubmit={createProcess} className="card p-5 grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2"><p className="eyebrow">Nuevo proceso</p><h2 className="font-medium mt-1">Registrar {config.title}</h2></div>
         <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => updateForm("subjectId", event.target.value)} required><option value="">Selecciona una persona</option>{(mode === "esfob" ? friends : people).map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos || ""}</option>)}</select></label>
-        <label className="text-sm text-secondary">{mode === "esfob" ? "Responsable" : "Mentor"}<select required className="input-field mt-1" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un responsable</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
+        <label className="text-sm text-secondary flex items-center gap-1">{mode === "esfob" ? "Responsable" : "Mentor"}<InfoTip texto="Quién le va a dar seguimiento a esta persona en el proceso. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un responsable</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
         <label className="text-sm text-secondary">Programa<input className="input-field mt-1" value={form.program} onChange={(event) => updateForm("program", event.target.value)} required /></label>
         <label className="text-sm text-secondary">Fecha de inicio<input type="date" className="input-field mt-1" value={form.date} onChange={(event) => updateForm("date", event.target.value)} required /></label>
         {mode === "esfob" ? (
@@ -269,7 +270,7 @@ export default function RutaFormacion({ mode }) {
         <Metric label={config.activeLabel} value={active} />
         <Metric label="Completados" value={completed} tone="text-success" />
         <Metric label={mode === "esfob" ? "Lecciones completadas" : "Personas acompañadas"} value={mode === "esfob" ? totalLessons : rows.length} />
-        <Metric label="Candidatos a trasladar" value={candidatos.length} tone="text-warning" />
+        <Metric label="Candidatos a trasladar" value={candidatos.length} tone="text-warning" tip={mode === "esfob" ? "Personas que ya completaron todas las lecciones del catálogo -- revisa si están listas para el bautismo." : `Personas que llevan más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`} />
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
       {mode === "esfob" && <section className="card chart-card p-5">
@@ -278,7 +279,7 @@ export default function RutaFormacion({ mode }) {
         <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
       </section>}
       <section className="card p-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1">Procesos activos</h2></div></div>
+        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien." : "Puedes trasladar a cualquier persona a la estación que corresponda, no solo a la siguiente en orden."} /></h2></div></div>
         {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -299,6 +300,6 @@ export default function RutaFormacion({ mode }) {
   );
 }
 
-function Metric({ label, value, tone = "text-ink" }) {
-  return <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{label}</p><p className={`text-2xl font-semibold mt-3 ${tone}`}>{value}</p></div>;
+function Metric({ label, value, tone = "text-ink", tip }) {
+  return <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p><p className={`text-2xl font-semibold mt-3 ${tone}`}>{value}</p></div>;
 }

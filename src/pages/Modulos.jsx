@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Check, ChevronDown, Edit3, GraduationCap, HeartHandshake, Layers3, Plus, Power, Search, Sparkles, UsersRound, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 // Estos módulos los siembran sus propias migraciones y sus pantallas los
 // ubican por nombre exacto (ver Evangelismo.jsx y MisionJuvenil.jsx). No deben
@@ -294,7 +295,7 @@ export default function Modulos() {
     <section className="card p-5">
       <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Lecciones REFAM</h2><p className="text-xs text-secondary mt-1">Currículo compartido de la congregación. Cada persona en REFAM avanza lección por lección, sin saltarse ninguna, hasta completarlo.</p></div><HeartHandshake className="w-5 h-5 text-accent flex-shrink-0" /></div>
       <form onSubmit={agregarLeccionRefam} className="grid sm:grid-cols-[auto_1fr_auto] gap-2 my-4 items-start">
-        <span className="input-field w-14 text-center text-sm text-muted flex items-center justify-center">#{Math.max(0, ...refamLecciones.map((item) => item.numero)) + 1}</span>
+        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...refamLecciones.map((item) => item.numero)) + 1}<InfoTip texto="El número de la lección se asigna solo, siguiendo el orden del catálogo -- no se puede escribir a mano." /></span>
         <div className="grid gap-2">
           <input required className="input-field" placeholder="Título de la lección" value={nuevaLeccionRefamTitulo} onChange={(event) => setNuevaLeccionRefamTitulo(event.target.value)} />
           <textarea className="input-field min-h-16" placeholder="Descripción corta (opcional)" value={nuevaLeccionRefamDescripcion} onChange={(event) => setNuevaLeccionRefamDescripcion(event.target.value)} />
@@ -310,7 +311,7 @@ export default function Modulos() {
     <section className="card p-5">
       <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Lecciones ESFOB / EFOB</h2><p className="text-xs text-secondary mt-1">Currículo compartido de formación bautismal. El responsable marca cada lección completada antes de avanzar a la siguiente.</p></div><GraduationCap className="w-5 h-5 text-accent flex-shrink-0" /></div>
       <form onSubmit={agregarLeccionEsfob} className="grid sm:grid-cols-[auto_1fr_auto] gap-2 my-4 items-start">
-        <span className="input-field w-14 text-center text-sm text-muted flex items-center justify-center">#{Math.max(0, ...esfobLecciones.map((item) => item.numero)) + 1}</span>
+        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...esfobLecciones.map((item) => item.numero)) + 1}<InfoTip texto="El número de la lección se asigna solo, siguiendo el orden del catálogo -- no se puede escribir a mano." /></span>
         <div className="grid gap-2">
           <input required className="input-field" placeholder="Título de la lección" value={nuevaLeccionEsfobTitulo} onChange={(event) => setNuevaLeccionEsfobTitulo(event.target.value)} />
           <textarea className="input-field min-h-16" placeholder="Descripción corta (opcional)" value={nuevaLeccionEsfobDescripcion} onChange={(event) => setNuevaLeccionEsfobDescripcion(event.target.value)} />

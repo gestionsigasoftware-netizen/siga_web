@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const CHART_OPTIONS = chartOptions();
@@ -266,7 +267,7 @@ export default function EstacionRefam() {
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activos</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Candidatos a trasladar</p><p className="text-2xl font-semibold mt-3 text-warning">{candidatos.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Personas que llevan más de ${UMBRAL} días en REFAM. Revisa si ya están listas para pasar a la siguiente estación (por ejemplo, ESFOB).`} /></p><p className="text-2xl font-semibold mt-3 text-warning">{candidatos.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Promedio de días</p><p className="text-2xl font-semibold mt-3">{promedioDias}</p></div>
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
@@ -276,7 +277,7 @@ export default function EstacionRefam() {
         <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
       </section>
       <section className="card p-5">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">Tablero</p><h2 className="font-medium mt-1">Personas activas en REFAM</h2></div></div>
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">Tablero</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Personas activas en REFAM<InfoTip texto="Puedes trasladar a cualquier persona a la estación que corresponda según su situación real -- no tiene que ser la siguiente en orden. El líder de zona decide, y aquí solo se registra." /></h2></div></div>
         {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay personas en esta estación.</p> : <div className="divide-y divide-border">{filas.map((row) => (
           <div key={row.id} className="py-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
@@ -303,11 +304,11 @@ export default function EstacionRefam() {
           <div>
             {selectedRefamGrupoId ? <div className="flex flex-col gap-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Participantes</h3>
+                <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">Participantes<InfoTip texto="Cada persona avanza lección por lección desde la #1 del catálogo. Usa 'Marcar completada' solo cuando de verdad terminó esa lección -- así el sistema sabe exactamente en cuál va cada quien." /></h3>
                 {canEdit && <form onSubmit={addRefamParticipante} className="grid sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] gap-2 mb-2 items-end">
-                  <label className="text-xs text-secondary">Tipo de participante<select className="input-field mt-1" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, tipo: event.target.value, sujeto_id: "" })}><option value="amigo">Amigo</option><option value="persona">Persona</option></select></label>
+                  <label className="text-xs text-secondary flex items-center gap-1">Tipo de participante<InfoTip texto="Elige 'Amigo' si la persona aún no se ha bautizado. Elige 'Persona' si ya es feligrés bautizado y también participa en este grupo REFAM." /><select className="input-field mt-1 w-full" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, tipo: event.target.value, sujeto_id: "" })}><option value="amigo">Amigo</option><option value="persona">Persona</option></select></label>
                   <label className="text-xs text-secondary">{refamParticipanteForm.tipo === "amigo" ? "Amigo" : "Persona"} a agregar<select required className="input-field mt-1" value={refamParticipanteForm.sujeto_id} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, sujeto_id: event.target.value })}><option value="">Selecciona...</option>{(refamParticipanteForm.tipo === "amigo" ? amigosDisponibles : personas).map((item) => <option key={item.id} value={item.id}>{item.nombres} {item.apellidos || ""}</option>)}</select></label>
-                  <label className="text-xs text-secondary">Responsable de su seguimiento<select required className="input-field mt-1" value={refamParticipanteForm.responsableId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, responsableId: event.target.value })}><option value="">Selecciona...</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+                  <label className="text-xs text-secondary flex items-center gap-1">Responsable de su seguimiento<InfoTip texto="Quién le va a dar seguimiento a esta persona mientras esté en REFAM. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.responsableId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, responsableId: event.target.value })}><option value="">Selecciona...</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
                   <button aria-label="Agregar participante" disabled={saving} className="btn-secondary px-3"><Plus className="w-4 h-4" /></button>
                 </form>}
                 {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex items-center justify-between gap-2">
