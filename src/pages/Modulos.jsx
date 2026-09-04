@@ -212,7 +212,7 @@ export default function Modulos() {
       <details className="mb-4">
         <summary className="text-xs text-accent cursor-pointer select-none">Agregar varios a la vez (pegar una lista)</summary>
         <form onSubmit={agregarUjieresEnBloque} className="flex flex-col gap-2 mt-3">
-          <textarea className="input-field min-h-24" placeholder={'Un nombre por línea, ej:\nJhan Carlos Vallecilla\nDaniela Gómez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
+          <textarea className="input-field min-h-24" placeholder={'Un nombre por línea, ej:\nJuan Pérez\nPepito Pérez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
           <button disabled={saving} className="btn-secondary self-start px-3">Agregar lista</button>
         </form>
       </details>
