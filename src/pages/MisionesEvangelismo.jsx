@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { SkeletonCard, SkeletonStatTiles } from "../components/Skeleton";
+import InfoTip from "../components/InfoTip";
 
 const metricsCache = new Map();
 
@@ -31,6 +32,7 @@ const SUBMODULES = [
     label: "Bienvenida, integración y seguimiento",
     icon: UsersRound,
     codigo: "bis",
+    info: "BIS significa Bienvenida, Integración y Seguimiento: la estación que recibe a cada amigo después del primer contacto y lo acompaña de cerca.",
   },
   {
     to: "/refam",
@@ -39,6 +41,7 @@ const SUBMODULES = [
     label: "Reunión Familiar y de Amistad",
     icon: HeartHandshake,
     codigo: "refam",
+    info: "REFAM significa Reunión Familiar y de Amistad: grupos pequeños que se reúnen en casas para compartir lecciones bíblicas sencillas.",
   },
   {
     to: "/esfob",
@@ -47,6 +50,7 @@ const SUBMODULES = [
     label: "Formación bautismal",
     icon: GraduationCap,
     codigo: "esfob",
+    info: "Escuela de Formación Bíblica: prepara doctrinalmente a la persona antes de su bautismo.",
   },
   {
     to: "/discipulado",
@@ -169,7 +173,7 @@ export default function MisionesEvangelismo() {
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Ruta Evangelística</p>
+          <p className="eyebrow flex items-center gap-1.5">Ruta Evangelística<InfoTip texto="Acompaña a cada persona desde el primer contacto hasta su formación, dividido en 6 estaciones. No hace falta pasar por todas en orden: cada quien avanza según su situación real." /></p>
           <h1 className="section-title">Misiones y Evangelismo</h1>
           <p className="text-sm text-secondary mt-1 max-w-2xl">
             Gestiona el acompañamiento de cada persona desde el primer contacto hasta su formación y crecimiento.
@@ -202,7 +206,7 @@ export default function MisionesEvangelismo() {
               </span>
               <div>
                 <p className="eyebrow">Lectura para decidir</p>
-                <h2 className="font-medium mt-1">Personas por estación</h2>
+                <h2 className="font-medium mt-1 flex items-center gap-1.5">Personas por estación<InfoTip texto="Cuántas personas están activas ahora mismo en cada estación. Una barra muy alta frente a las demás puede indicar que ahí se está frenando la ruta." /></h2>
                 <p className="text-xs text-secondary mt-1">Identifica dónde se concentra el trabajo y dónde se está deteniendo la ruta.</p>
               </div>
             </div>
@@ -235,7 +239,7 @@ export default function MisionesEvangelismo() {
         </>
       )}
       <section className="grid md:grid-cols-2 gap-4" aria-label="Submódulos de Misiones y Evangelismo">
-        {SUBMODULES.map(({ to, title, description, label, icon: Icon }) => {
+        {SUBMODULES.map(({ to, title, description, label, icon: Icon, info }) => {
           const content = (
             <div className="flex items-start gap-3">
               <span className="w-10 h-10 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0">
@@ -243,7 +247,7 @@ export default function MisionesEvangelismo() {
               </span>
               <div>
                 <p className="eyebrow">{label}</p>
-                <h2 className="font-medium mt-1">{title}</h2>
+                <h2 className="font-medium mt-1 flex items-center gap-1.5">{title}{info && <InfoTip texto={info} />}</h2>
                 <p className="text-sm text-secondary mt-2">{description}</p>
               </div>
             </div>

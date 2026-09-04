@@ -23,6 +23,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -38,10 +39,10 @@ const EMPTY_DELEGADO = { persona_id: "", centro_id: "", permiso_inpec_vigente: f
 const EMPTY_CULTO = { centro_id: "", fecha: new Date().toISOString().slice(0, 10), patio: "", asistentes_total: "", estudios_biblicos_entregados: "", responsable_persona_id: "", notas: "" };
 const EMPTY_FAMILIAR = { interno_id: "", familia_id: "", contacto_nombre: "", parentesco: "", telefono: "", fecha_visita: new Date().toISOString().slice(0, 10), tipo_apoyo: "visita", responsable_persona_id: "", notas: "" };
 
-function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "", info }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start gap-1.5">{label}{info && <InfoTip texto={info} />}</p>
       <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
       <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
@@ -309,7 +310,7 @@ export default function ObraCarcelaria() {
         <Metric label="Internos activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${internos.length} registrados en total`} insight="Población atendida actualmente dentro del centro." />
         <Metric label="Bautizados" value={bautizados.length} progress={activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0}% de los activos`} insight="Membresía interna formal tras las rejas." />
         <Metric label="Sellados" value={sellados.length} progress={activos.length ? Math.round((sellados.length / activos.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Hito espiritual registrado durante la reclusión." />
-        <Metric label="Delegados habilitados" value={delegadosHabilitados.length} tone={delegadosAlerta.length > 0 ? "text-danger" : "text-success"} progress={delegados.length ? Math.round((delegadosHabilitados.length / delegados.length) * 100) : 0} detail={`${delegadosAlerta.length} con permiso por revisar`} insight="Voluntarios con ingreso autorizado por el INPEC." />
+        <Metric label="Delegados habilitados" value={delegadosHabilitados.length} tone={delegadosAlerta.length > 0 ? "text-danger" : "text-success"} progress={delegados.length ? Math.round((delegadosHabilitados.length / delegados.length) * 100) : 0} detail={`${delegadosAlerta.length} con permiso por revisar`} insight="Voluntarios con ingreso autorizado por el INPEC." info="El INPEC es la entidad que autoriza el ingreso de voluntarios a los centros de reclusión. Sin este permiso vigente, el delegado no puede entrar." />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
@@ -358,7 +359,7 @@ export default function ObraCarcelaria() {
       {tab === "internos" && (
         <section className="grid lg:grid-cols-2 gap-4">
           <div className="card p-5">
-            <p className="eyebrow">Censo</p><h2 className="font-medium mt-1">Internos</h2>
+            <p className="eyebrow">Censo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Internos<InfoTip texto="'Marcar liberado' registra la salida del centro y su fecha. Después, la asignación a una congregación receptora la hace el coordinador distrital en Pastoral Distrital." /></h2>
             <div className="overflow-x-auto mt-4 max-h-96 overflow-y-auto">
               {internos.length ? internos.map((item) => (
                 <div key={item.id} className="border-b border-border py-3">
@@ -436,7 +437,7 @@ export default function ObraCarcelaria() {
               <input className="input-field" placeholder="Patio / pabellón" value={cultoForm.patio} onChange={(event) => setCultoForm({ ...cultoForm, patio: event.target.value })} />
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-secondary">Asistentes totales<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.asistentes_total} onChange={(event) => setCultoForm({ ...cultoForm, asistentes_total: event.target.value })} /></label>
-                <label className="text-xs text-secondary">Estudios REFAM entregados<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
+                <label className="text-xs text-secondary flex items-center gap-1">Estudios REFAM entregados<InfoTip texto="Cuántas lecciones bíblicas de REFAM (Reunión Familiar y de Amistad) se entregaron a los internos en este culto." /><input type="number" min="0" placeholder="0" className="input-field mt-1 w-full" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
               </div>
               <select className="input-field" value={cultoForm.responsable_persona_id} onChange={(event) => setCultoForm({ ...cultoForm, responsable_persona_id: event.target.value })}>
                 <option value="">Responsable</option>
@@ -492,7 +493,7 @@ export default function ObraCarcelaria() {
                 <option value="">Centro de reclusión</option>
                 {centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}
               </select>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.permiso_inpec_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vigente: event.target.checked })} />Permiso INPEC vigente</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.permiso_inpec_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vigente: event.target.checked })} />Permiso INPEC vigente<InfoTip texto="El INPEC es la entidad que autoriza el ingreso de voluntarios a las cárceles. Marca esta opción solo si el delegado tiene ese permiso vigente en este momento." /></label>
               <label className="text-xs text-secondary">Vencimiento del permiso<input type="date" className="input-field mt-1" value={delegadoForm.permiso_inpec_vencimiento} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vencimiento: event.target.value })} /></label>
               <textarea className="input-field min-h-14" placeholder="Observaciones" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
               <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingDelegadoId ? "Guardar cambios" : "Habilitar delegado"}</button>

@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const CHART_OPTIONS = chartOptions();
@@ -174,13 +175,13 @@ export default function EstacionBis() {
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activos</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Candidatos a trasladar</p><p className="text-2xl font-semibold mt-3 text-warning">{candidatos.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Amigos que llevan más de ${UMBRAL} días en BIS, o que ya quedaron integrados. Revisa si están listos para pasar a REFAM o el siguiente paso.`} /></p><p className="text-2xl font-semibold mt-3 text-warning">{candidatos.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Promedio de días</p><p className="text-2xl font-semibold mt-3">{promedioDias}</p></div>
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
       {canEdit && <form onSubmit={agregar} className="card p-5 grid sm:grid-cols-3 gap-3 items-end">
         <label className="text-sm sm:col-span-2">Amigo<select required className="input-field mt-1.5" value={form.amigoId} onChange={(event) => setForm({ ...form, amigoId: event.target.value })}><option value="">Selecciona un amigo</option>{amigosDisponibles.map((amigo) => <option key={amigo.id} value={amigo.id}>{amigo.nombres}{amigo.zonas?.nombre ? ` — ${amigo.zonas.nombre}` : ""}</option>)}</select></label>
-        <label className="text-sm">Responsable<select required className="input-field mt-1.5" value={form.responsableId} onChange={(event) => setForm({ ...form, responsableId: event.target.value })}><option value="">Selecciona un responsable</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+        <label className="text-sm"><span className="flex items-center gap-1.5">Responsable<InfoTip texto="Quién le dará seguimiento a este amigo en BIS. Es obligatorio para que siempre haya alguien encargado." /></span><select required className="input-field mt-1.5" value={form.responsableId} onChange={(event) => setForm({ ...form, responsableId: event.target.value })}><option value="">Selecciona un responsable</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
         <button disabled={saving} className="btn-primary justify-center sm:col-span-3"><Plus className="w-4 h-4" />{saving ? "Guardando..." : "Agregar a BIS"}</button>
       </form>}
       <section className="grid lg:grid-cols-[1.3fr_0.7fr] gap-4">
@@ -190,12 +191,12 @@ export default function EstacionBis() {
           <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Amigos" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
         </div>
         <div className="card p-5">
-          <div className="flex items-start gap-3"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0"><UsersRound className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento</p><h2 className="font-medium mt-1">Atenciones BIS</h2><p className="text-xs text-secondary mt-1">Bienvenida, contacto posterior e integración de cada amigo.</p></div></div>
+          <div className="flex items-start gap-3"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0"><UsersRound className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Atenciones BIS<InfoTip texto="Cada visita o contacto que se registra aquí documenta cómo se recibió al amigo y qué necesita, hasta lograr que quede integrado." /></h2><p className="text-xs text-secondary mt-1">Bienvenida, contacto posterior e integración de cada amigo.</p></div></div>
         </div>
       </section>
       <section className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
         <div className="card p-5">
-          <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">Tablero</p><h2 className="font-medium mt-1">Amigos activos en BIS</h2></div></div>
+          <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">Tablero</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Amigos activos en BIS<InfoTip texto="Puedes trasladar a cualquier amigo a la estación que corresponda según su situación real -- no tiene que ser la siguiente en orden." /></h2></div></div>
           {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay amigos en esta estación.</p> : <div className="divide-y divide-border">{filas.map((row) => (
             <div key={row.id} className={`py-4 flex flex-col gap-2 ${selectedId === row.id ? "bg-accent-bg/40 -mx-5 px-5" : ""}`}>
               <div className="flex items-center justify-between gap-3">
@@ -216,7 +217,7 @@ export default function EstacionBis() {
             <label className="text-sm">Necesidad inmediata<input disabled={!canEdit} className="input-field mt-1.5" value={atencionForm.necesidad_inmediata} onChange={(event) => setAtencionForm({ ...atencionForm, necesidad_inmediata: event.target.value })} /></label>
             <label className="text-sm">Próximo contacto<input disabled={!canEdit} type="date" className="input-field mt-1.5" value={atencionForm.contacto_posterior} onChange={(event) => setAtencionForm({ ...atencionForm, contacto_posterior: event.target.value })} /></label>
             <label className="text-sm">Resultado del contacto<input disabled={!canEdit} className="input-field mt-1.5" value={atencionForm.resultado_contacto} onChange={(event) => setAtencionForm({ ...atencionForm, resultado_contacto: event.target.value })} /></label>
-            <label className="flex items-center gap-2 text-sm"><input disabled={!canEdit} type="checkbox" checked={atencionForm.integrado} onChange={(event) => setAtencionForm({ ...atencionForm, integrado: event.target.checked })} /> Quedó integrado</label>
+            <label className="flex items-center gap-2 text-sm"><input disabled={!canEdit} type="checkbox" checked={atencionForm.integrado} onChange={(event) => setAtencionForm({ ...atencionForm, integrado: event.target.checked })} /> Quedó integrado<InfoTip texto="Marca esto cuando el amigo ya se siente parte de la congregación y participa con regularidad. Esto lo hace candidato a pasar a la siguiente estación." /></label>
             <label className="text-sm">Derivado a<input disabled={!canEdit} className="input-field mt-1.5" value={atencionForm.derivado_a} onChange={(event) => setAtencionForm({ ...atencionForm, derivado_a: event.target.value })} /></label>
             <label className="text-sm">Notas<textarea disabled={!canEdit} className="input-field mt-1.5 min-h-16" value={atencionForm.notas} onChange={(event) => setAtencionForm({ ...atencionForm, notas: event.target.value })} /></label>
             {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Registrar atención"}</button>}

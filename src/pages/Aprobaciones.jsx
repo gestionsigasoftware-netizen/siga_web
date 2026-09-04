@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 const ALLOWED_LEVELS = ['distrital', 'nacional', 'super_admin']
 
@@ -70,9 +71,9 @@ export default function Aprobaciones() {
               <th className="font-normal py-2.5 px-4">Congregación</th>
               <th className="font-normal py-2.5 px-4">Pastor</th>
               <th className="font-normal py-2.5 px-4">Distrito</th>
-              <th className="font-normal py-2.5 px-4">Madurez</th>
+              <th className="font-normal py-2.5 px-4"><span className="flex items-center gap-1">Madurez<InfoTip texto="Nivel de desarrollo de la sede: Misión Nacional (recién empieza), Lugar de Predicación (ya reúne gente de forma estable) o Iglesia Local (ya está constituida)." /></span></th>
               <th className="font-normal py-2.5 px-4">Estado</th>
-              <th className="font-normal py-2.5 px-4 text-right">Acciones</th>
+              <th className="font-normal py-2.5 px-4 text-right"><span className="flex items-center justify-end gap-1">Acciones<InfoTip texto="El visto aprueba la congregación y le da acceso al sistema. La X la deja suspendida sin poder usarlo." /></span></th>
             </tr>
           </thead>
           <tbody>

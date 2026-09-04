@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
+import InfoTip from '../components/InfoTip'
 
 const ESTADO_LABELS = { pendiente: 'Pendiente', resuelto: 'Resuelto' }
 const ADMIN_LEVELS = ['nacional', 'super_admin']
@@ -120,7 +121,7 @@ export default function Soporte() {
                       <td className="px-5 py-3"><p className="font-medium">{reporte.asunto}</p><p className="text-xs text-secondary mt-1 max-w-md">{reporte.descripcion}</p><p className="text-xs text-muted mt-1">{reporte.pagina}</p></td>
                       <td className="px-5 py-3 text-xs">{reporte.correo_usuario}<br />{reporte.nivel}{reporte.congregacion_nombre ? ` · ${reporte.congregacion_nombre}` : ''}</td>
                       <td className="px-5 py-3"><span className={`audit-badge ${reporte.estado === 'resuelto' ? 'text-success' : 'text-warning'}`}>{ESTADO_LABELS[reporte.estado] || reporte.estado}</span></td>
-                      <td className="px-5 py-3">{reporte.estado !== 'resuelto' && <button type="button" onClick={() => marcarResuelto(reporte)} className="text-accent text-xs">Marcar resuelto</button>}</td>
+                      <td className="px-5 py-3">{reporte.estado !== 'resuelto' && <span className="flex items-center gap-1"><button type="button" onClick={() => marcarResuelto(reporte)} className="text-accent text-xs">Marcar resuelto</button><InfoTip texto="No se puede reabrir desde aquí. Úsalo solo cuando el problema ya quedó solucionado." /></span>}</td>
                     </tr>
                   ))}
                 </tbody>

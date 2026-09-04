@@ -8,6 +8,7 @@ import { chartOptions as buildChartOptions, trendDataset, distributionDataset } 
 import ChartEmpty from '../components/ChartEmpty'
 import ExportButtons from '../components/ExportButtons'
 import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
+import InfoTip from '../components/InfoTip'
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip)
 
@@ -22,8 +23,8 @@ function totalActivities(rows) {
   return rows.reduce((sum, row) => sum + Number(row.registros || 0), 0)
 }
 
-function Metric({ label, value, detail }) {
-  return <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{label}</p><p className="text-2xl font-semibold mt-3">{value}</p>{detail && <p className="text-xs text-muted mt-1">{detail}</p>}</div>
+function Metric({ label, value, detail, info }) {
+  return <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1">{label}{info && <InfoTip texto={info} />}</p><p className="text-2xl font-semibold mt-3">{value}</p>{detail && <p className="text-xs text-muted mt-1">{detail}</p>}</div>
 }
 
 export default function ReportesOptimizado() {
@@ -120,7 +121,7 @@ export default function ReportesOptimizado() {
     <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow">Lectura de datos</p><h1 className="section-title">Reportes</h1><p className="text-sm text-secondary mt-1">Métricas completas y detalle cargado por páginas de 50 registros.</p></div><ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} disabled={loading || !detail.length} /></header>
     <section className="card p-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[auto_1fr_220px_180px] xl:items-center"><div className="flex items-center gap-2 text-sm text-secondary"><Filter className="w-4 h-4" /> Filtros del análisis</div><div className="flex gap-2 flex-wrap">{PERIODS.map(([value, label]) => <button type="button" key={value} onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? 'bg-ink text-white border-ink' : 'border-border text-secondary'}`}>{label}</button>)}</div><select aria-label="Filtrar por congregación" className="input-field min-w-0" value={congregacion} onChange={(event) => setCongregacion(event.target.value)}><option value="todas">Todas las congregaciones</option>{congregations.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><select aria-label="Filtrar por módulo" className="input-field min-w-0" value={modulo} onChange={(event) => setModulo(event.target.value)}><option value="todos">Todos los módulos</option>{byModule.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></section>
     {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-    <section className="grid sm:grid-cols-3 gap-3"><Metric label="Actividades registradas" value={activities} detail={`${formatDate(byDate.at(-1)?.fecha)} → ${formatDate(byDate[0]?.fecha)}`} /><Metric label="Asistentes contabilizados" value={total} /><Metric label="Promedio por actividad" value={activities ? Math.round(total / activities) : 0} /></section>
+    <section className="grid sm:grid-cols-3 gap-3"><Metric label="Actividades registradas" value={activities} detail={`${formatDate(byDate.at(-1)?.fecha)} → ${formatDate(byDate[0]?.fecha)}`} info="Cuántas veces se tomó asistencia en el período, no cuántas personas asistieron." /><Metric label="Asistentes contabilizados" value={total} /><Metric label="Promedio por actividad" value={activities ? Math.round(total / activities) : 0} info="Asistentes contabilizados divididos entre actividades registradas." /></section>
     <section className="grid lg:grid-cols-2 gap-4"><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Señal de comportamiento</p><h2 className="font-medium mt-1">Evolución de asistentes</h2><div className="h-56 mt-5">{byDate.length ? <Line data={lineData} options={chartOptions} /> : <ChartEmpty message="Sin datos para estos filtros." />}</div></section><section className="card chart-card p-5 min-h-[310px]"><p className="eyebrow">Comparación operativa</p><h2 className="font-medium mt-1">Asistencia por módulo</h2><div className="h-56 mt-5">{byModule.length ? <Bar data={barData} options={{ ...chartOptions, indexAxis: 'y' }} /> : <ChartEmpty message="Sin datos para estos filtros." />}</div></section></section>
     {rolPrincipal?.nivel !== 'local' && (
       <section className="card overflow-hidden">

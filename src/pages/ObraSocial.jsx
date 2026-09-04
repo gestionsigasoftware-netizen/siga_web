@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -26,10 +27,10 @@ const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_ALERTA = 30;
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "", tip }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p>
       <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
       <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
@@ -204,7 +205,7 @@ export default function ObraSocial() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Casos abiertos" value={casosAbiertos.length} progress={casos.length ? Math.round((casosAbiertos.length / casos.length) * 100) : 0} detail={`${casos.length} registrados en total`} insight="Necesidades identificadas o en apoyo activo." />
         <Metric label="Prioridad alta" value={casosAltaPrioridad.length} tone={casosAltaPrioridad.length > 0 ? "text-danger" : "text-success"} progress={casosAbiertos.length ? Math.round((casosAltaPrioridad.length / casosAbiertos.length) * 100) : 0} detail="Casos abiertos urgentes" insight="Prioriza estos casos en la próxima jornada de apoyo." />
-        <Metric label="Casos resueltos" value={casosResueltos.length} tone="text-success" progress={casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0} detail={`${casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0}% del total`} insight="Necesidad resuelta o caso cerrado." />
+        <Metric label="Casos resueltos" value={casosResueltos.length} tone="text-success" progress={casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0} detail={`${casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0}% del total`} insight="Necesidad resuelta o caso cerrado." tip="Suma los casos marcados como Resuelta y como Cerrada, aunque no sean lo mismo: uno significa que se atendió la necesidad y el otro que el caso ya no sigue abierto." />
         <Metric label="Ayudas (30 días)" value={ayudasUltimoMes.length} progress={ayudasUltimoMes.length ? 100 : 0} detail={`${ayudas.length} en el periodo seleccionado`} insight="Cada ayuda entregada queda registrada por caso." />
       </section>
 
@@ -272,9 +273,12 @@ export default function ObraSocial() {
             return <div className="border-t border-border mt-4 pt-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-medium">Ayudas para la familia {caso.familias?.nombre_familia}</p>
-                {canEdit && <select className="input-field text-xs py-1 w-auto" value={caso.estado} onChange={(event) => actualizarEstado(caso, event.target.value)}>
-                  {Object.entries(ESTADO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>}
+                {canEdit && <span className="flex items-center gap-1.5">
+                  <select className="input-field text-xs py-1 w-auto" value={caso.estado} onChange={(event) => actualizarEstado(caso, event.target.value)}>
+                    {Object.entries(ESTADO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                  <InfoTip texto="Resuelta: la necesidad ya se atendió. Cerrada: el caso se cierra aunque no se haya resuelto, por ejemplo si la familia ya no requiere seguimiento." />
+                </span>}
               </div>
               {caso.notas && <p className="text-xs text-secondary mt-2">{caso.notas}</p>}
               {canEdit && <form onSubmit={createAyuda} className="grid gap-2 mt-3">

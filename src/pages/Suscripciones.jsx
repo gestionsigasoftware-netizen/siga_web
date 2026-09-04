@@ -5,6 +5,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { calcularEstadoSuscripcion } from '../lib/suscripciones'
+import InfoTip from '../components/InfoTip'
 
 const PLAN_LABELS = { mensual: 'Mensual', anual: 'Anual' }
 const ESTADO_LABELS = { activa: 'Activa', en_gracia: 'En periodo de gracia', bloqueada: 'Bloqueada', sin_configurar: 'Sin suscripción' }
@@ -133,16 +134,16 @@ export default function Suscripciones() {
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activas</p><p className="text-2xl font-semibold mt-3 text-success">{resumen.activa || 0}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">En gracia</p><p className="text-2xl font-semibold mt-3 text-warning">{resumen.en_gracia || 0}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Bloqueadas</p><p className="text-2xl font-semibold mt-3 text-danger">{resumen.bloqueada || 0}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Sin configurar</p><p className="text-2xl font-semibold mt-3">{resumen.sin_configurar || 0}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">En gracia<InfoTip texto="Ya venció su pago, pero todavía pueden usar el sistema mientras pasan los días de gracia configurados." /></p><p className="text-2xl font-semibold mt-3 text-warning">{resumen.en_gracia || 0}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Bloqueadas<InfoTip texto="Pasaron los días de gracia sin que se registrara el pago. No pueden entrar a SIGAP hasta que registres el pago." /></p><p className="text-2xl font-semibold mt-3 text-danger">{resumen.bloqueada || 0}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Sin configurar<InfoTip texto="Todavía no se les ha creado una suscripción, así que no aplica ningún bloqueo por pago." /></p><p className="text-2xl font-semibold mt-3">{resumen.sin_configurar || 0}</p></div>
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex items-center gap-2"><Search className="w-4 h-4 text-muted" /><input className="bg-transparent outline-none text-sm w-full" placeholder="Buscar congregación..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Distrito</th><th className="font-normal px-5 py-3">Plan</th><th className="font-normal px-5 py-3">Próximo pago</th><th className="font-normal px-5 py-3">Estado</th><th className="font-normal px-5 py-3"></th></tr></thead>
+            <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Distrito</th><th className="font-normal px-5 py-3">Plan</th><th className="font-normal px-5 py-3">Próximo pago</th><th className="font-normal px-5 py-3">Estado</th><th className="font-normal px-5 py-3"><span className="flex items-center justify-end gap-1.5">Acciones<InfoTip texto="'Registrar pago' no cobra nada automáticamente: solo confirma que ya te pagaron y mueve la próxima fecha de pago." /></span></th></tr></thead>
             <tbody>
               {filas.map(({ congregacion, suscripcion, estado }) => (
                 <tr key={congregacion.id} className="border-t border-border">

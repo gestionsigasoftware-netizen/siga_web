@@ -17,6 +17,7 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import { geocodeAddress } from "../lib/geocoding";
 import GeoMap from "../components/charts/GeoMap";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(
   BarElement,
@@ -34,11 +35,12 @@ const PERIODOS = [
 ];
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail, tone = "" }) {
+function Metric({ label, value, detail, tone = "", info }) {
   return (
     <div className="stat-tile">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">
         {label}
+        {info && <InfoTip texto={info} />}
       </p>
       <p className={`text-2xl font-semibold mt-3 ${tone}`}>{value}</p>
       {detail && <p className="text-xs text-muted mt-1">{detail}</p>}
@@ -475,13 +477,13 @@ export default function Evangelismo() {
         <Metric label="Lugares en cobertura" value={zonas.length} />
         <Metric label="Capturas móviles" value={visibles.length} />
         <Metric label="Asistencia promedio" value={promedio} />
-        <Metric label="Amigos en ruta" value={amigosEnRuta} />
+        <Metric label="Amigos en ruta" value={amigosEnRuta} info="Personas que ya tuvieron un primer contacto pero todavía no se han bautizado." />
         <Metric
           label="Conversiones"
           value={totalConversiones}
           tone="text-success"
         />
-        <Metric label="Conversión / asistente" value={`${conversionRate}%`} detail="Indicador de referencia" />
+        <Metric label="Conversión / asistente" value={`${conversionRate}%`} detail="Indicador de referencia" info="Compara el total de conversiones con el total de asistentes a capturas en este periodo. Es una referencia general, no mide el seguimiento de cada persona en particular." />
       </section>
       <section className="card p-5">
         <div className="flex items-start gap-3 pb-4 border-b border-border">
@@ -673,10 +675,11 @@ export default function Evangelismo() {
               }
             />
           </div>
-          <label className="text-sm">
+          <label className="text-sm flex items-center gap-1">
             Población especial
+            <InfoTip texto="Marca esta opción si la zona corresponde a un grupo con ministerio propio, como cárceles o centros de salud, para que quede identificada por su contexto." />
             <select
-              className="input-field mt-1.5"
+              className="input-field w-full"
               value={zonaForm.tipo_poblacion}
               onChange={(event) => setZonaForm({ ...zonaForm, tipo_poblacion: event.target.value })}
             >
@@ -721,14 +724,14 @@ export default function Evangelismo() {
       </section>
 
       <section className="card p-5">
-        <div className="mb-4"><p className="eyebrow">Estación Métodos</p><h2 className="font-medium mt-1">Diagnóstico de caracterización territorial</h2><p className="text-xs text-secondary mt-1">Registra el diagnóstico de una zona antes de iniciar el trabajo evangelístico.</p></div>
+        <div className="mb-4"><p className="eyebrow">Estación Métodos</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Diagnóstico de caracterización territorial<InfoTip texto="Métodos es la primera estación de la Ruta Evangelística: estudia una zona antes de empezar el trabajo evangelístico, para elegir la estrategia correcta." /></h2><p className="text-xs text-secondary mt-1">Registra el diagnóstico de una zona antes de iniciar el trabajo evangelístico.</p></div>
         {canEdit && <form onSubmit={createDiagnostico} className="grid md:grid-cols-2 gap-3 mb-5">
           <label className="text-sm">Zona<select required className="input-field mt-1.5" value={diagnosticoForm.zona_id} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, zona_id: event.target.value })}><option value="">Selecciona una zona</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></label>
-          <label className="text-sm">Responsable<select required className="input-field mt-1.5" value={diagnosticoForm.responsable_persona_id} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, responsable_persona_id: event.target.value })}><option value="">Selecciona un responsable</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+          <label className="text-sm flex items-center gap-1">Responsable<InfoTip texto="Quién queda a cargo de este diagnóstico. Al elegirlo, se abre o continúa su proceso en la estación Métodos." /><select required className="input-field w-full" value={diagnosticoForm.responsable_persona_id} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, responsable_persona_id: event.target.value })}><option value="">Selecciona un responsable</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
           <label className="text-sm">Periodo desde<input type="date" className="input-field mt-1.5" value={diagnosticoForm.periodo_inicio} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, periodo_inicio: event.target.value })} /></label>
           <label className="text-sm">Periodo hasta<input type="date" className="input-field mt-1.5" value={diagnosticoForm.periodo_fin} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, periodo_fin: event.target.value })} /></label>
           <label className="text-sm">Población estimada<input type="number" min="0" className="input-field mt-1.5" value={diagnosticoForm.poblacion_estimada} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, poblacion_estimada: event.target.value })} /></label>
-          <label className="text-sm">Comité responsable<input className="input-field mt-1.5" value={diagnosticoForm.comite_responsable} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, comite_responsable: event.target.value })} /></label>
+          <label className="text-sm flex items-center gap-1">Comité responsable<InfoTip texto="Nombre del comité local de evangelismo que respalda esta estrategia, si aplica." /><input className="input-field w-full" value={diagnosticoForm.comite_responsable} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, comite_responsable: event.target.value })} /></label>
           <label className="text-sm md:col-span-2">Necesidades identificadas (una por línea)<textarea className="input-field mt-1.5 min-h-16" value={diagnosticoForm.necesidades} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, necesidades: event.target.value })} /></label>
           <label className="text-sm md:col-span-2">Recursos disponibles (uno por línea)<textarea className="input-field mt-1.5 min-h-16" value={diagnosticoForm.recursos} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, recursos: event.target.value })} /></label>
           <label className="text-sm md:col-span-2">Estrategia elegida<textarea className="input-field mt-1.5 min-h-16" value={diagnosticoForm.estrategia} onChange={(event) => setDiagnosticoForm({ ...diagnosticoForm, estrategia: event.target.value })} /></label>

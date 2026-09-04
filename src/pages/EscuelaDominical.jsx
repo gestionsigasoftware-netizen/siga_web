@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -336,7 +337,7 @@ export default function EscuelaDominical() {
               <button type="button" key={clase.id} onClick={() => loadLecciones(clase.id)} className={`py-3 text-left ${selectedClaseId === clase.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{clase.nombre}</p>
-                  <span className="text-xs text-accent">Lección {clase.leccion_actual}</span>
+                  <span className="text-xs text-accent flex items-center gap-1">Lección {clase.leccion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una lección nueva; no se puede editar a mano." /></span>
                 </div>
                 <p className="text-xs text-secondary mt-1">{clase.etapa || "Sin etapa"} · {clase.personas ? `${clase.personas.nombres} ${clase.personas.apellidos}` : "Sin maestro líder"}</p>
               </button>
@@ -374,7 +375,7 @@ export default function EscuelaDominical() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Niño</th><th className="py-2">Clase</th><th className="py-2">Acudiente</th><th className="py-2">Hitos</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Niño</th><th className="py-2">Clase</th><th className="py-2">Acudiente</th><th className="py-2"><span className="inline-flex items-center gap-1">Hitos<InfoTip texto="Bautizado y sellado se marcan una sola vez con la fecha de hoy; no hay botón para deshacerlo desde aquí." /></span></th></tr></thead>
               <tbody>
                 {ninos.map((nino) => (
                   <tr key={nino.id} className="border-b border-border">

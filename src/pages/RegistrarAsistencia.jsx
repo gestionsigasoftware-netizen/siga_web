@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 function withRequestTimeout(request, milliseconds = 12000) {
   return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Intenta nuevamente.')), milliseconds))])
@@ -164,8 +165,11 @@ export default function RegistrarAsistencia() {
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Responsable de tomar asistencia{captureRules.exigir_responsable ? '' : ' (opcional)'}</label>
-          <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field" required={captureRules.exigir_responsable}>
+          <label className="text-sm text-secondary mb-1 flex items-center gap-1">
+            Responsable de tomar asistencia{captureRules.exigir_responsable ? '' : ' (opcional)'}
+            <InfoTip texto="Es la persona que da fe del conteo. La congregación decide si este dato es obligatorio." />
+          </label>
+          <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field w-full" required={captureRules.exigir_responsable}>
             <option value="">Selecciona un responsable</option>
             {responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
           </select>
@@ -189,7 +193,10 @@ export default function RegistrarAsistencia() {
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Motivo de corrección o contingencia</label>
+          <label className="text-sm text-secondary mb-1 flex items-center gap-1">
+            Motivo de corrección o contingencia
+            <InfoTip texto="Explica por qué este registro se hizo aquí y no en la captura habitual. Queda guardado como respaldo del dato." />
+          </label>
           <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La captura habitual no estuvo disponible o se corrigió un dato enviado" />
         </div>
 

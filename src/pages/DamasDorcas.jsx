@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -268,7 +269,7 @@ export default function DamasDorcas() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Responsable</th><th className="py-2">Estado</th><th className="py-2">Hitos</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Responsable</th><th className="py-2">Estado</th><th className="py-2"><span className="inline-flex items-center gap-1">Hitos<InfoTip texto="Bautizada y sellada se marcan una sola vez con la fecha de hoy; no hay botón para deshacerlo desde aquí." /></span></th></tr></thead>
               <tbody>
                 {beneficiarias.map((item) => (
                   <tr key={item.id} className="border-b border-border">
@@ -342,10 +343,14 @@ export default function DamasDorcas() {
           <input className="input-field" placeholder="Teléfono" value={beneficiariaForm.telefono} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, telefono: event.target.value })} />
           <input className="input-field" placeholder="Dirección" value={beneficiariaForm.direccion} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, direccion: event.target.value })} />
         </div>
-        <select className="input-field" value={beneficiariaForm.responsable_persona_id} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, responsable_persona_id: event.target.value })}>
-          <option value="">Responsable de seguimiento</option>
-          {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
-        </select>
+        <label className="text-xs text-secondary flex items-center gap-1">
+          Responsable de seguimiento
+          <InfoTip texto="Sin alguien asignado, es más fácil que esta beneficiaria quede sin visitas de seguimiento." />
+          <select className="input-field mt-1 w-full" value={beneficiariaForm.responsable_persona_id} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, responsable_persona_id: event.target.value })}>
+            <option value="">Selecciona una persona</option>
+            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+          </select>
+        </label>
         <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar beneficiaria</button>
       </form>
     </div>

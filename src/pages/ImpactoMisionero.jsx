@@ -5,15 +5,16 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail }) {
+function Metric({ label, value, detail, tip }) {
   return (
     <div className="stat-tile">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p>
       <p className="text-2xl font-semibold mt-3">{value}</p>
       {detail && <p className="text-xs text-muted mt-1">{detail}</p>}
     </div>
@@ -100,7 +101,7 @@ export default function ImpactoMisionero() {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Metric label="Personas alcanzadas" value={personasAlcanzadas} detail="Activas en los 3 frentes" />
+        <Metric label="Personas alcanzadas" value={personasAlcanzadas} detail="Activas en los 3 frentes" tip="Suma de personas activas ahora mismo en Obra Carcelaria, Misión Juvenil y Obra Social. Es un conteo simple de los 3 frentes, no personas distintas verificadas una por una." />
         <Metric label="Internos en Obra Carcelaria" value={internosActivos} detail={`${internosBautizados} bautizados`} />
         <Metric label="Estudiantes en Misión Juvenil" value={estudiantesActivos} detail={`${estudiantesBautizados} bautizados · ${data.institucionesCount} instituciones`} />
         <Metric label="Casos de Obra Social" value={casosActivos} detail={`${casosResueltos} resueltos`} />
@@ -119,11 +120,11 @@ export default function ImpactoMisionero() {
           <h2 className="font-medium mt-1">Actividad reciente</h2>
           <div className="flex flex-col gap-3 mt-5">
             <div className="flex justify-between items-center gap-3">
-              <p className="text-sm text-secondary">Asistencia en cultos carcelarios</p>
+              <p className="text-sm text-secondary flex items-center gap-1.5">Asistencia en cultos carcelarios<InfoTip texto="Suma de asistentes de todos los cultos de los últimos 12 meses. Si una misma persona fue a varios cultos, se cuenta cada vez, no una sola vez." /></p>
               <p className="text-lg font-semibold">{asistenciaCultos12m}</p>
             </div>
             <div className="flex justify-between items-center gap-3">
-              <p className="text-sm text-secondary">Ayudas de Obra Social entregadas</p>
+              <p className="text-sm text-secondary flex items-center gap-1.5">Ayudas de Obra Social entregadas<InfoTip texto="Número de ayudas puntuales entregadas en los últimos 12 meses (por ejemplo, un mercado o un pago de servicios), no el número de familias o casos atendidos." /></p>
               <p className="text-lg font-semibold">{data.ayudasCount}</p>
             </div>
           </div>

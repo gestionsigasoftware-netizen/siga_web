@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -307,7 +308,7 @@ export default function EducacionTeologica() {
               <button type="button" key={grupo.id} onClick={() => loadSesiones(grupo.id)} className={`py-3 text-left ${selectedGrupoId === grupo.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{grupo.nombre}</p>
-                  <span className="text-xs text-accent">Sesión {grupo.sesion_actual}</span>
+                  <span className="text-xs text-accent flex items-center gap-1">Sesión {grupo.sesion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una sesión nueva; no se puede editar a mano." /></span>
                 </div>
                 <p className="text-xs text-secondary mt-1">{NIVELES[grupo.nivel]} · {grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin instructor"}</p>
               </button>
@@ -345,7 +346,7 @@ export default function EducacionTeologica() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Integrante</th><th className="py-2">Grupo</th><th className="py-2"></th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Integrante</th><th className="py-2">Grupo</th><th className="py-2"><span className="inline-flex items-center gap-1">Certificación<InfoTip texto="Certificar registra la fecha de hoy y no se puede deshacer desde aquí." /></span></th></tr></thead>
               <tbody>
                 {integrantes.map((item) => (
                   <tr key={item.id} className="border-b border-border">

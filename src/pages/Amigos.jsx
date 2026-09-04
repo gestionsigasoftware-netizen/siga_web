@@ -20,6 +20,7 @@ import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
 import { diasDesde } from "../lib/rutaEvangelistica";
 import { descargarPdf } from "../lib/reportExport";
+import InfoTip from "../components/InfoTip";
 
 const RUTA_ESTACION_PATH = { uno_mas: "/uno-mas", bis: "/bis", refam: "/refam", esfob: "/esfob", discipulado: "/discipulado" };
 const TONO_ETAPA = [
@@ -517,8 +518,9 @@ export default function Amigos() {
           </p>
         </div>
         <div className="stat-tile">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">
             Etapas configuradas
+            <InfoTip texto="La 'etapa' es un paso interno de seguimiento dentro de esta ficha (por ejemplo, primer contacto o visita). Es distinta de la 'estación' de la Ruta Evangelística, que es más general (Uno Más, BIS, REFAM, etc.)." />
           </p>
           <p className="text-2xl font-semibold mt-3">{etapas.length}</p>
         </div>
@@ -884,7 +886,7 @@ export default function Amigos() {
                   <MapPinned className="w-4 h-4 text-accent" />
                   <div>
                     <p className="eyebrow">Ruta Evangelística</p>
-                    <h3 className="font-medium text-sm mt-1">Estación de acompañamiento</h3>
+                    <h3 className="font-medium text-sm mt-1 flex items-center gap-1.5">Estación de acompañamiento<InfoTip texto="La estación indica en qué parte de la Ruta Evangelística está esta persona ahora mismo. Puede moverse a cualquier estación según su situación real, no tiene que ser en orden." /></h3>
                   </div>
                 </div>
                 {routeLoading ? (
@@ -909,10 +911,13 @@ export default function Amigos() {
                 {routeHistory.length > 0 && (
                   <div className="mt-4 border-t border-border pt-3">
                     <div className="flex items-center justify-between gap-3">
-                      <h4 className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">Recorrido completo</h4>
-                      <button type="button" onClick={exportarRecorrido} className="text-xs text-accent inline-flex items-center gap-1">
-                        <Download className="w-3.5 h-3.5" /> Exportar
-                      </button>
+                      <h4 className="text-xs font-medium text-secondary uppercase tracking-[0.08em] flex items-center gap-1.5">Recorrido completo<InfoTip texto="Muestra por cuáles estaciones ha pasado esta persona, cuándo y quién la acompañó en cada una." /></h4>
+                      <span className="flex items-center gap-1">
+                        <button type="button" onClick={exportarRecorrido} className="text-xs text-accent inline-flex items-center gap-1">
+                          <Download className="w-3.5 h-3.5" /> Exportar
+                        </button>
+                        <InfoTip texto="Descarga en PDF el recorrido completo de esta persona por la Ruta Evangelística, listo para imprimir o compartir." />
+                      </span>
                     </div>
                     <div className="mt-2.5 space-y-2.5">
                       {routeHistory.map((row) => (
@@ -954,10 +959,11 @@ export default function Amigos() {
                   <option value="viudo">Viudo/a</option>
                 </select>
               </label>
-              <label className="text-sm">
+              <label className="text-sm flex items-center gap-1">
                 Categoría al convertir
+                <InfoTip texto="Grupo demográfico con el que quedará registrada la persona en Feligresía (por ejemplo, niño, joven o adulto)." />
                 <select
-                  className="input-field mt-1.5"
+                  className="input-field mt-1.5 w-full"
                   value={selected.categoria_asignada_id || ""}
                   onChange={(event) =>
                     setSelected({
@@ -974,6 +980,10 @@ export default function Amigos() {
                   ))}
                 </select>
               </label>
+              <p className="text-xs text-secondary flex items-center gap-1.5 mt-1">
+                Hitos espirituales
+                <InfoTip texto="Bautizado y sellado son hitos independientes entre sí. Incorporar a Feligresía sí es definitivo: crea el registro oficial de membresía y esta ficha deja de poder volver a estado en ruta." />
+              </p>
               <button
                 type="button"
                 disabled={saving || Boolean(selected.persona_id)}

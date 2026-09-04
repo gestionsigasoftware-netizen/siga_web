@@ -3,6 +3,7 @@ import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCh
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
+import InfoTip from '../components/InfoTip'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
@@ -85,7 +86,7 @@ function ContinuidadPastoral({ vacantes }) {
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.seguimientos_pendientes) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.seguimientos_pendientes} seguimiento(s) pastoral(es) pendiente(s)</span>
                   <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.casos_red_familias_activos) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.casos_red_familias_activos} caso(s) activo(s) de Red de Familias</span>
-                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.cargos_obligatorios_vacantes) > 0 ? 'bg-danger-bg text-danger' : 'bg-surface-1 text-muted'}`}>{resumen.cargos_obligatorios_vacantes} cargo(s) obligatorio(s) de comité sin cubrir</span>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${Number(resumen.cargos_obligatorios_vacantes) > 0 ? 'bg-danger-bg text-danger' : 'bg-surface-1 text-muted'}`}>{resumen.cargos_obligatorios_vacantes} cargo(s) obligatorio(s) de comité sin cubrir<InfoTip texto="Cargos locales (de comités como Escuela Dominical, Damas Dorcas, etc.) que toda congregación debe tener cubiertos. No son los 6 cargos de la junta distrital." /></span>
                 </div>
               )}
             </div>
@@ -886,7 +887,7 @@ export default function PastoralDistrital() {
                 <tr className="text-left text-muted bg-surface-1">
                   <th className="font-normal px-5 py-3">Congregación</th>
                   <th className="font-normal px-5 py-3">Ciudad</th>
-                  <th className="font-normal px-5 py-3">Madurez de la sede</th>
+                  <th className="font-normal px-5 py-3"><span className="flex items-center gap-1.5">Madurez de la sede<InfoTip texto="Etapa de desarrollo de la congregación: Misión Nacional (recién plantada), Lugar de Predicación (en crecimiento) o Iglesia Local Constituida (ya establecida)." /></span></th>
                 </tr>
               </thead>
               <tbody>
@@ -1075,7 +1076,7 @@ export default function PastoralDistrital() {
             return <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Internos activos</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5">Delegados hábiles</th><th className="font-normal px-4 py-2.5">Cultos (30d)</th></tr></thead>
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Internos activos</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5"><span className="flex items-center gap-1.5">Delegados hábiles<InfoTip texto="Voluntarios ya autorizados para entrar a un centro de reclusión, no el total de personas que quisieran servir en Obra Carcelaria." /></span></th><th className="font-normal px-4 py-2.5">Cultos (30d)</th></tr></thead>
                 <tbody>
                   {paged.pageItems.map((item) => (
                     <tr key={item.congregacion_id} className="border-t border-border">
@@ -1129,7 +1130,7 @@ export default function PastoralDistrital() {
           const activos = resumenReinsercion.filter((item) => ['activo', 'inactivo', 'reincidencia'].includes(item.estado))
           const eficacia = activos.length ? Math.round((activos.filter((item) => item.estado === 'activo').length / activos.length) * 100) : null
           return eficacia !== null && (
-            <p className="px-5 pb-4 text-xs text-secondary">Eficacia de reinserción eclesial: {eficacia}% de los liberados con seguimiento concluido siguen activos en su congregación destino.</p>
+            <p className="px-5 pb-4 text-xs text-secondary flex items-center gap-1.5">Eficacia de reinserción eclesial: {eficacia}% de los liberados con seguimiento concluido siguen activos en su congregación destino.<InfoTip texto="Se calcula solo sobre los casos que ya tuvieron seguimiento (activo, inactivo o con reincidencia); no cuenta los que siguen recién asignados y aún sin evaluar." /></p>
           )
         })()}
         <form onSubmit={asignarReinsercion} className="p-5 border-t border-border grid sm:grid-cols-3 gap-2 items-end">
@@ -1370,7 +1371,7 @@ export default function PastoralDistrital() {
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Ruta Evangelística por congregación</h2>
+          <h2 className="font-medium flex items-center gap-1.5">Ruta Evangelística por congregación<InfoTip texto="Estaciones en orden: Uno Más (contacto inicial) → BIS → REFAM → ESFOB → Discipulado. Cada columna muestra cuántas personas están activas en esa etapa; el bautismo es el resultado final de la ruta." /></h2>
           <p className="text-sm text-secondary mt-1">Personas activas en cada estación, consolidado a nivel distrital.</p>
         </div>
         {resumenRuta.length === 0 ? (
@@ -1380,7 +1381,7 @@ export default function PastoralDistrital() {
           return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Uno Más</th><th className="font-normal px-4 py-2.5">BIS</th><th className="font-normal px-4 py-2.5">REFAM</th><th className="font-normal px-4 py-2.5">ESFOB</th><th className="font-normal px-4 py-2.5">Discipulado</th><th className="font-normal px-4 py-2.5">Bautismos (3m)</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Uno Más</th><th className="font-normal px-4 py-2.5">BIS</th><th className="font-normal px-4 py-2.5">REFAM</th><th className="font-normal px-4 py-2.5">ESFOB</th><th className="font-normal px-4 py-2.5">Discipulado</th><th className="font-normal px-4 py-2.5"><span className="flex items-center gap-1.5">Bautismos (3m)<InfoTip texto="Personas que completaron la Ruta Evangelística y se bautizaron en los últimos 3 meses. Es el número que mide si la ruta realmente está dando fruto." /></span></th></tr></thead>
               <tbody>
                 {paged.pageItems.map((item) => (
                   <tr key={item.congregacion_id} className="border-t border-border">
@@ -1535,7 +1536,7 @@ export default function PastoralDistrital() {
 
           {editingPastorId && (
             <label className="text-sm">
-              Tarjeta de predicador (obreros sin licencia)
+              <span className="flex items-center gap-1">Tarjeta de predicador (obreros sin licencia)<InfoTip texto="Fecha de expedición de la credencial que autoriza a predicar a un obrero que todavía no tiene licencia ministerial." /></span>
               <input
                 type="date"
                 className="input-field mt-1.5"
@@ -1637,7 +1638,7 @@ export default function PastoralDistrital() {
         </form>
 
         <form ref={transferFormRef} onSubmit={handleTransfer} className="card p-5 grid gap-3 items-end">
-          <h2 className="font-medium">Trasladar pastor</h2>
+          <h2 className="font-medium flex items-center gap-1.5">Trasladar pastor<InfoTip texto="Mueve al pastor a la nueva congregación de inmediato: la congregación anterior queda vacante y el pastor pasa a figurar en la nueva." /></h2>
 
           <label className="text-sm">
             Pastor

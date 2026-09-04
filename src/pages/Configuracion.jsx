@@ -6,6 +6,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { geocodeAddress } from '../lib/geocoding'
 import UndoToast from '../components/UndoToast'
+import InfoTip from '../components/InfoTip'
 
 function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
   const [valor, setValor] = useState('')
@@ -187,10 +188,10 @@ export default function Configuracion() {
       <form onSubmit={guardarPreferencias} className="card p-5 max-w-3xl">
         <div className="mb-5"><h2 className="font-medium">Preferencias de la congregación</h2><p className="text-sm text-secondary mt-1">Define cómo se comportan las alertas y los registros de tu equipo.</p></div>
         <div className="grid sm:grid-cols-2 gap-4">
-          <label className="text-sm">Umbral de alerta por disminución (%)<input type="number" min="1" max="100" required className="input-field mt-1.5" value={preferencias.umbral_alerta} onChange={(e) => setPreferencias({ ...preferencias, umbral_alerta: Number(e.target.value) })} /></label>
-          <label className="text-sm">Módulo predeterminado<select className="input-field mt-1.5" value={preferencias.modulo_predeterminado} onChange={(e) => setPreferencias({ ...preferencias, modulo_predeterminado: e.target.value })}><option value="">Sin preferencia</option>{modulos.filter((modulo) => modulo.activo !== false).map((modulo) => <option key={modulo.id} value={modulo.id}>{modulo.nombre}</option>)}</select></label>
+          <label className="text-sm flex items-center gap-1">Umbral de alerta por disminución (%)<InfoTip texto="Si la asistencia baja este porcentaje o más frente al registro anterior, el sistema genera una alerta para que la revises." /><input type="number" min="1" max="100" required className="input-field mt-1.5 w-full" value={preferencias.umbral_alerta} onChange={(e) => setPreferencias({ ...preferencias, umbral_alerta: Number(e.target.value) })} /></label>
+          <label className="text-sm flex items-center gap-1">Módulo predeterminado<InfoTip texto="El módulo que se abre primero al entrar a registrar asistencia, para ahorrar clics al equipo que más lo usa." /><select className="input-field mt-1.5 w-full" value={preferencias.modulo_predeterminado} onChange={(e) => setPreferencias({ ...preferencias, modulo_predeterminado: e.target.value })}><option value="">Sin preferencia</option>{modulos.filter((modulo) => modulo.activo !== false).map((modulo) => <option key={modulo.id} value={modulo.id}>{modulo.nombre}</option>)}</select></label>
         </div>
-        <div className="flex flex-col gap-3 mt-5"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_responsable} onChange={(e) => setPreferencias({ ...preferencias, exigir_responsable: e.target.checked })} /> Exigir responsable al registrar asistencia</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_novedades} onChange={(e) => setPreferencias({ ...preferencias, exigir_novedades: e.target.checked })} /> Solicitar novedades en cada registro</label></div>
+        <div className="flex flex-col gap-3 mt-5"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_responsable} onChange={(e) => setPreferencias({ ...preferencias, exigir_responsable: e.target.checked })} /> Exigir responsable al registrar asistencia<InfoTip texto="Si lo activas, nadie podrá guardar un registro de asistencia sin indicar quién lo hizo." /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_novedades} onChange={(e) => setPreferencias({ ...preferencias, exigir_novedades: e.target.checked })} /> Solicitar novedades en cada registro<InfoTip texto="Si lo activas, cada registro de asistencia deberá incluir una nota (aunque sea 'sin novedad') antes de poder guardarse." /></label></div>
         <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button>{notice && <p role="status" className="text-sm text-success">{notice}</p>}</div>
       </form>
 

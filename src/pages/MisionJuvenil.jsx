@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import Pager from "../components/Pager";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(
   BarElement,
@@ -44,11 +45,12 @@ const ESTADOS = {
 };
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "", info }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start gap-1.5">
         {label}
+        {info && <InfoTip texto={info} />}
       </p>
       <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
       <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
@@ -468,7 +470,7 @@ export default function MisionJuvenil() {
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric label="Instituciones" value={instituciones.length} progress={instituciones.length ? Math.round((establishedInstitutions / instituciones.length) * 100) : 0} detail={`${establishedInstitutions} con grupo establecido`} insight={instituciones.length ? "Fortalece las instituciones que aún están en contacto inicial." : "Registra la primera institución para iniciar el trabajo."} />
         <Metric label="Estudiantes en proceso" value={activeSympathizers} progress={students.length ? Math.round((activeSympathizers / students.length) * 100) : 0} detail={`${activeSympathizers} de ${students.length} estudiantes`} insight={activeSympathizers ? "Revisa quién necesita avanzar a REFAM o discipulado." : "Aún no hay estudiantes en proceso activo."} />
-        <Metric label="Grupos REFAM" value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={`${studentsPerGroup} estudiantes por grupo`} insight={activeGroups ? "Comprueba que cada grupo tenga líder y continuidad de lecciones." : "Crea un grupo para organizar el acompañamiento."} />
+        <Metric label="Grupos REFAM" value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={`${studentsPerGroup} estudiantes por grupo`} insight={activeGroups ? "Comprueba que cada grupo tenga líder y continuidad de lecciones." : "Crea un grupo para organizar el acompañamiento."} info="REFAM (Reunión Familiar y de Amistad) son los grupos pequeños donde los estudiantes reciben lecciones bíblicas, dentro o cerca de la institución." />
         <Metric label="Asistencia promedio" value={average} progress={attendanceRate} detail={`${registros.length} registros de actividad`} insight={average ? "Compara la asistencia con el número de estudiantes para detectar continuidad." : "Registra actividades para conocer la participación juvenil."} />
         <Metric label="Bautizados" value={baptized} tone="text-success" progress={baptismRate} detail={`${baptismRate}% de estudiantes activos`} insight={baptized ? "Asegura la continuidad de cada bautizado hacia el discipulado." : "Acompaña el proceso espiritual y la preparación bautismal."} />
         <Metric label="Sellados" value={sealed} progress={activeStudents ? Math.round((sealed / activeStudents) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua, independiente del proceso REFAM." />
@@ -504,10 +506,11 @@ export default function MisionJuvenil() {
               ))}
             </select>
           </label>
-          <label className="text-xs text-secondary">
+          <label className="text-xs text-secondary flex items-center gap-1">
             Estado espiritual
+            <InfoTip texto="Filtra por el avance de cada estudiante: simpatizante, asistente a REFAM, en discipulado o ya bautizado. Ese estado se define al registrar o editar cada estudiante." />
             <select
-              className="input-field mt-1.5"
+              className="input-field mt-1.5 w-full"
               value={estadoFiltro}
               onChange={(event) => setEstadoFiltro(event.target.value)}
             >
@@ -563,7 +566,7 @@ export default function MisionJuvenil() {
                 <th className="py-2">Institución</th>
                 <th className="py-2">Grado / semestre</th>
                 <th className="py-2">Estado</th>
-                <th className="py-2">Hitos</th>
+                <th className="py-2"><span className="flex items-center gap-1.5">Hitos<InfoTip texto="Bautizado y sellado son hitos independientes. Una vez marcados aquí no hay botón para deshacerlos." /></span></th>
               </tr>
             </thead>
             <tbody>

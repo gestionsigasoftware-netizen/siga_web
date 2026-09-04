@@ -13,6 +13,7 @@ import { construirPiramide, piramideChartData, piramideChartOptions } from '../l
 import { construirCicloVida } from '../lib/cicloVida'
 import ChartEmpty from '../components/ChartEmpty'
 import Pager from '../components/Pager'
+import InfoTip from '../components/InfoTip'
 
 ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
@@ -160,13 +161,13 @@ function calcularRiesgoApartamiento(personas, hoy = new Date()) {
     .sort((a, b) => b.senales.length - a.senales.length)
 }
 
-function StatTile({ label, value, tone = 'default', series = [], insight }) {
+function StatTile({ label, value, tone = 'default', series = [], insight, tip }) {
   const text = { default: 'text-ink', danger: 'text-danger', success: 'text-success' }[tone]
   const marker = { default: 'bg-accent', danger: 'bg-danger', success: 'bg-success' }[tone]
   return (
     <div className={`summary-card summary-card-${tone} stat-tile`}>
       <div className="flex items-center justify-between gap-3">
-        <p className={`text-[10px] uppercase tracking-[0.16em] ${tone === 'default' ? 'text-secondary' : text}`}>{label}</p>
+        <p className={`text-[10px] uppercase tracking-[0.16em] flex items-center gap-1.5 ${tone === 'default' ? 'text-secondary' : text}`}>{label}{tip && <InfoTip texto={tip} />}</p>
         <span className={`summary-marker ${marker}`} aria-hidden="true" />
       </div>
       <p className={`text-3xl font-semibold tracking-tight mt-3 ${text}`}>{value}</p>
@@ -211,11 +212,11 @@ function DistritalStatTile({ label, value, tone = 'default' }) {
 
 const MADUREZ_LABELS_DASH = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local' }
 
-function InsightCard({ title, value, detail, insight, tone = 'default' }) {
+function InsightCard({ title, value, detail, insight, tone = 'default', tip }) {
   const toneClass = { default: 'bg-accent-bg text-accent', danger: 'bg-danger-bg text-danger', success: 'bg-success-bg text-success', warning: 'bg-warning-bg text-warning' }[tone]
   return (
     <div className="card p-5">
-      <p className="text-xs uppercase tracking-[0.14em] text-secondary">{title}</p>
+      <p className="text-xs uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{title}{tip && <InfoTip texto={tip} />}</p>
       <div className="flex items-baseline gap-2 mt-2">
         <p className="text-2xl font-semibold">{value}</p>
         {detail && <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${toneClass}`}>{detail}</span>}
@@ -372,16 +373,19 @@ function DashboardDistrital({ rolPrincipal }) {
             detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
             tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
             insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados en el distrito.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una vigilia o campamento distrital.' : '.'}`}
+            tip="Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
           />
           <InsightCard
             title="Eficacia de REFAM"
             value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
             insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
+            tip="Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
           />
           <InsightCard
             title="Embudo Uno Más → REFAM"
             value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
             insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron en el distrito.`}
+            tip="Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
           />
           <InsightCard
             title="Movimiento de membresía (3 meses)"
@@ -613,16 +617,19 @@ function DashboardNacional() {
             detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
             tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
             insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados a nivel nacional.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una campaña nacional de llenura.' : '.'}`}
+            tip="Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
           />
           <InsightCard
             title="Eficacia de REFAM"
             value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
             insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
+            tip="Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
           />
           <InsightCard
             title="Embudo Uno Más → REFAM"
             value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
             insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron a nivel nacional.`}
+            tip="Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
           />
           <InsightCard
             title="Movimiento de membresía (3 meses)"
@@ -1010,7 +1017,7 @@ export default function Dashboard() {
       <section className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div><p className="eyebrow">Categoría seleccionada</p><h2 className="font-medium mt-1">Conteo para toma de decisiones</h2><p className="text-sm text-secondary mt-1">Selecciona una categoría para consultar el total de la {nombreFrecuenciaDetalle} elegido.</p></div>
-          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> Aplicar frecuencia a todos</label>
+          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> Aplicar frecuencia a todos<InfoTip texto="Si lo desmarcas, puedes ver esta categoría en un periodo distinto (por ejemplo semanal) al de las demás gráficas del panel." /></label>
         </div>
         {!aplicarFrecuenciaTodos && (
           <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label="Seleccionar frecuencia de la categoría">
@@ -1031,7 +1038,7 @@ export default function Dashboard() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <StatTile label={`Asistentes del ${nombrePeriodo}`} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? `${cantidadRegistros(registrosPeriodo)} actividades alimentan este resultado.` : 'Esperando los primeros registros.'} />
-        <StatTile label="Alertas activas" value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? 'Hay señales que requieren atención.' : 'No hay asuntos pendientes hoy.'} />
+        <StatTile label="Alertas activas" value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? 'Hay señales que requieren atención.' : 'No hay asuntos pendientes hoy.'} tip="Situaciones que SIGAP detecta solas: familias sin asociar, bautismos pendientes, inasistencia individual o comités sin integrantes." />
         <StatTile label="Promedio por actividad" value={registros.length ? promedioPeriodo : '—'} tone="success" series={averageSeries} insight={variacion === null ? 'Aún no hay un periodo comparable.' : `${variacion >= 0 ? 'Crecimiento' : 'Descenso'} del ${Math.abs(variacion)}% frente al periodo anterior.`} />
       </div>
 

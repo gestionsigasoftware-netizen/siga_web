@@ -3,6 +3,7 @@ import { Mail, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 export default function Perfil() {
   const { user, updatePassword, updateProfile } = useAuth()
@@ -88,7 +89,7 @@ export default function Perfil() {
         {nameNotice && <p role="status" className="text-sm text-success mt-3">{nameNotice}</p>}
       </section>
       <section className="card p-6"><div className="flex items-center gap-3 mb-5"><ShieldCheck className="w-5 h-5 text-success" /><div><h2 className="font-medium">Permisos asignados</h2><p className="text-xs text-secondary mt-1">Roles activos de esta cuenta.</p></div></div><div className="flex gap-2 flex-wrap">{roles.length ? roles.map((role) => <span key={role.id} className="text-xs bg-accent-bg text-accent-dark rounded px-3 py-2">{role.nivel}{role.congregaciones?.nombre ? ` · ${role.congregaciones.nombre}` : ''}</span>) : <p className="text-sm text-muted">No hay roles activos.</p>}</div></section>
-      <section className="card p-6"><h2 className="font-medium mb-4">Cambiar contraseña</h2><form onSubmit={changePassword} className="flex flex-col sm:flex-row gap-3"><input required type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nueva contraseña segura" className="input-field" /><button className="btn-primary justify-center">Actualizar</button></form>{error && <p role="alert" className="text-sm text-danger mt-3">{error}</p>}{notice && <p role="status" className="text-sm text-success mt-3">{notice}</p>}</section>
+      <section className="card p-6"><h2 className="font-medium mb-4 flex items-center gap-1.5">Cambiar contraseña<InfoTip texto="Debe tener al menos 8 caracteres, con una mayúscula, un número y un símbolo." /></h2><form onSubmit={changePassword} className="flex flex-col sm:flex-row gap-3"><input required type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nueva contraseña segura" className="input-field" /><button className="btn-primary justify-center">Actualizar</button></form>{error && <p role="alert" className="text-sm text-danger mt-3">{error}</p>}{notice && <p role="status" className="text-sm text-success mt-3">{notice}</p>}</section>
     </div>
   )
 }

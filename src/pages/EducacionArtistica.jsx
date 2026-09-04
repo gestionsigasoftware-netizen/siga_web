@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -22,10 +23,10 @@ const DISCIPLINAS = { danza: "Danza", teatro: "Teatro", artes_visuales: "Artes v
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "", tip }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p>
       <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
       <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
@@ -240,7 +241,7 @@ export default function EducacionArtistica() {
         <Metric label="Asistencia promedio" value={promedioSesion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={`${todasSesiones.length} sesiones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sesiones registradas" value={todasSesiones.length} progress={todasSesiones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasSesiones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay sesiones registradas en el periodo."} />
         <Metric label="Disciplina líder" value={disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={integrantesActivos.length ? Math.round((disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={`${disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} integrantes`} insight="Compara danza, teatro y artes visuales para balancear el ministerio." />
-        <Metric label="Grupos por integrante" value={integrantesPorGrupo} progress={integrantesActivos.length ? Math.min(100, integrantesPorGrupo * 20) : 0} detail="Promedio de cobertura" insight="Grupos muy grandes pueden necesitar dividirse para dar mejor formación." />
+        <Metric label="Grupos por integrante" value={integrantesPorGrupo} progress={integrantesActivos.length ? Math.min(100, integrantesPorGrupo * 20) : 0} detail="Promedio de cobertura" insight="Grupos muy grandes pueden necesitar dividirse para dar mejor formación." tip="Promedio de integrantes que tiene cada grupo activo." />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
@@ -296,7 +297,7 @@ export default function EducacionArtistica() {
               <button type="button" key={grupo.id} onClick={() => loadSesiones(grupo.id)} className={`py-3 text-left ${selectedGrupoId === grupo.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{grupo.nombre}</p>
-                  <span className="text-xs text-accent">Sesión {grupo.sesion_actual}</span>
+                  <span className="text-xs text-accent flex items-center gap-1">Sesión {grupo.sesion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una sesión nueva; no se puede editar a mano." /></span>
                 </div>
                 <p className="text-xs text-secondary mt-1">{DISCIPLINAS[grupo.disciplina]} · {grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin instructor"}</p>
               </button>

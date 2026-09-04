@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import InfoTip from "../components/InfoTip";
 
 const ALLOWED_LEVELS = ["nacional", "super_admin"];
 
-function Metric({ label, value, detail }) {
+function Metric({ label, value, detail, tip }) {
   return (
     <div className="stat-tile">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p>
       <p className="text-2xl font-semibold mt-3">{value}</p>
       {detail && <p className="text-xs text-muted mt-1">{detail}</p>}
     </div>
@@ -116,7 +117,7 @@ function OtorgarAccesoJerarquico({ esSuperAdmin, distritos }) {
             </div>
           )}
         </div>
-        <label className="text-sm">Nivel a otorgar<select className="input-field mt-1.5" value={nivel} onChange={(event) => setNivel(event.target.value)}><option value="distrital">Distrital</option>{esSuperAdmin && <option value="nacional">Nacional</option>}</select></label>
+        <label className="text-sm"><span className="flex items-center gap-1">Nivel a otorgar<InfoTip texto="Distrital: puede administrar solo su distrito. Nacional: puede ver y administrar los 36 distritos del país." /></span><select className="input-field mt-1.5" value={nivel} onChange={(event) => setNivel(event.target.value)}><option value="distrital">Distrital</option>{esSuperAdmin && <option value="nacional">Nacional</option>}</select></label>
         {nivel === "distrital" && <label className="text-sm">Distrito<select required className="input-field mt-1.5" value={distritoId} onChange={(event) => setDistritoId(event.target.value)}><option value="">Seleccionar...</option>{distritos.map((distrito) => <option key={distrito.distrito_id} value={distrito.distrito_id}>{formatDistritoLabel(distrito.nombre, distrito.numero)}</option>)}</select></label>}
         <label className="text-sm sm:col-span-2">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
         <button disabled={saving || !selectedPerson} className="btn-primary justify-center sm:w-fit sm:col-span-2">{saving ? "Otorgando..." : "Otorgar acceso"}</button>
@@ -168,14 +169,14 @@ export default function GestionPastoralNacional() {
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Metric label="Pastores en todo el país" value={totalPastores} detail={`${totalOrdenacion} ordenados`} />
-        <Metric label="Congregaciones vacantes" value={totalVacantes} />
-        <Metric label="Cargos distritales vacantes" value={totalCargosVacantes} detail="Sobre 6 cargos por distrito" />
+        <Metric label="Congregaciones vacantes" value={totalVacantes} tip="Congregaciones que hoy no tienen un pastor asignado." />
+        <Metric label="Cargos distritales vacantes" value={totalCargosVacantes} detail="Sobre 6 cargos por distrito" tip="Puestos sin ocupar de los 6 cargos oficiales de la junta distrital: Supervisor, Secretario, Tesorero, dos Presbíteros y Veedor." />
         <Metric label="Distritos" value={distritos.length} />
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Escalafón ministerial por distrito</h2>
+          <h2 className="font-medium flex items-center gap-1.5">Escalafón ministerial por distrito<InfoTip texto="Es el orden de crecimiento ministerial de un pastor: empieza como Obrero y va ascendiendo hasta la Ordenación. Cada distrito decide cuándo ascender a cada pastor." /></h2>
           <p className="text-sm text-secondary mt-1">Obrero → Licencia Local → Licencia General → Ordenación Ministerial.</p>
         </div>
         {distritos.length === 0 ? (
@@ -191,7 +192,7 @@ export default function GestionPastoralNacional() {
                   <th className="font-normal px-5 py-3">Licencia general</th>
                   <th className="font-normal px-5 py-3">Ordenación</th>
                   <th className="font-normal px-5 py-3">Congregaciones vacantes</th>
-                  <th className="font-normal px-5 py-3">Cargos distritales ocupados</th>
+                  <th className="font-normal px-5 py-3"><span className="flex items-center gap-1.5">Cargos distritales ocupados<InfoTip texto="Cuenta todos los cargos vigentes de la junta distrital. Puede pasar de 6 si el distrito tiene además cargos de tipo 'Otro' además de los 6 oficiales." /></span></th>
                 </tr>
               </thead>
               <tbody>

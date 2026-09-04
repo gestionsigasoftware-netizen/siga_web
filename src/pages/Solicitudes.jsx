@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
+import InfoTip from '../components/InfoTip'
 
 const TIPO_LABELS = { administrativa: 'Administrativa', queja: 'Queja', sugerencia: 'Sugerencia', recurso: 'Recurso', otro: 'Otro' }
 const ESTADO_LABELS = { pendiente: 'Pendiente', en_proceso: 'En proceso', resuelto: 'Resuelto', cerrado: 'Cerrado' }
@@ -161,7 +162,7 @@ export default function Solicitudes() {
           )}
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-sm">Tipo<select className="input-field mt-1.5" value={tipo} onChange={(event) => setTipo(event.target.value)}>{Object.entries(TIPO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className="text-sm">Prioridad<select className="input-field mt-1.5" value={prioridad} onChange={(event) => setPrioridad(event.target.value)}>{Object.entries(PRIORIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className="text-sm flex items-center gap-1">Prioridad<InfoTip texto="Marcar 'Alta' resalta la solicitud en la lista de quien la recibe, para que la atienda primero." /><select className="input-field mt-1.5 w-full" value={prioridad} onChange={(event) => setPrioridad(event.target.value)}>{Object.entries(PRIORIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           </div>
           <label className="text-sm">Asunto<input required maxLength={140} value={asunto} onChange={(event) => setAsunto(event.target.value)} className="input-field mt-1.5" /></label>
           <label className="text-sm">Descripción<textarea required minLength={10} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} className="input-field mt-1.5 min-h-28" /></label>
@@ -205,7 +206,7 @@ export default function Solicitudes() {
             </div>
             <p className="text-sm text-secondary leading-6 mb-4">{seleccionada.descripcion}</p>
             <div className="flex items-center gap-2 mb-5">
-              <span className="text-xs text-muted">Estado:</span>
+              <span className="text-xs text-muted flex items-center gap-1">Estado:<InfoTip texto="Cambia al instante para las dos partes, sin necesidad de guardar aparte." /></span>
               {Object.entries(ESTADO_LABELS).map(([value, label]) => (
                 <button type="button" key={value} onClick={() => cambiarEstado(seleccionada, value)} className={`text-xs px-2.5 py-1 rounded border ${seleccionada.estado === value ? 'bg-accent text-white border-accent' : 'border-border text-secondary'}`}>{label}</button>
               ))}

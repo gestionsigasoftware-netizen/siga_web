@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Database } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 function formatDistritoLabel(nombre, numero) {
   return numero ? `Distrito ${numero} · ${nombre}` : nombre
@@ -93,7 +94,7 @@ export default function SaludDatos() {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <section className="card p-5">
-        <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-accent" /><h2 className="font-medium">Promedio {nivel === 'local' ? 'de tu congregación' : nivel === 'distrital' ? 'de tu distrito' : 'nacional'}</h2></div>
+        <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-accent" /><h2 className="font-medium">Promedio {nivel === 'local' ? 'de tu congregación' : nivel === 'distrital' ? 'de tu distrito' : 'nacional'}</h2><InfoTip texto="Porcentaje de personas activas con ese dato registrado. Verde: 80% o más completo. Amarillo: 50-79%. Rojo: menos de 50%." /></div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {promedios.map((campo) => <Barra key={campo.key} etiqueta={campo.label} valor={campo.valor} />)}
         </div>

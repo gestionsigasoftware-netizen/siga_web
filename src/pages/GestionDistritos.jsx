@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import GeoMap from '../components/charts/GeoMap'
+import InfoTip from '../components/InfoTip'
 
 const CONG_PAGE_SIZE = 50
 
@@ -160,7 +161,7 @@ export default function GestionDistritos() {
           <h2 className="font-medium">{editingId ? 'Editar distrito' : 'Nuevo distrito'}</h2>
           {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
         </div>
-        <label className="text-sm">Número<input type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
+        <label className="text-sm"><span className="flex items-center gap-1">Número<InfoTip texto="Número oficial del distrito dentro de los 36 de la IPUC en Colombia. No puede repetirse entre distritos." /></span><input type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
         <label className="text-sm sm:col-span-2">Nombre<input required className="input-field mt-1.5" value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} /></label>
         <button disabled={saving} className="btn-primary">
           {editingId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -226,7 +227,7 @@ export default function GestionDistritos() {
                   <th className="font-normal px-5 py-3">Congregación</th>
                   <th className="font-normal px-5 py-3">Distrito actual</th>
                   <th className="font-normal px-5 py-3">Nuevo distrito</th>
-                  <th className="font-normal px-5 py-3 text-right">Acciones</th>
+                  <th className="font-normal px-5 py-3 text-right"><span className="flex items-center justify-end gap-1.5">Acciones<InfoTip texto="Al mover una congregación, sus estadísticas y comités empiezan a contar para el distrito nuevo, no para el actual." /></span></th>
                 </tr>
               </thead>
               <tbody>

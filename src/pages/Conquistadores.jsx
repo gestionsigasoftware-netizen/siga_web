@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
+import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -23,10 +24,10 @@ const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_INACTIVIDAD = 60;
 const CHART_OPTIONS = chartOptions();
 
-function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
+function Metric({ label, value, detail, insight, progress = 0, tone = "", tip }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-secondary min-h-[2rem] flex items-start gap-1.5">{label}{tip && <InfoTip texto={tip} />}</p>
       <p className={`text-2xl font-semibold mt-3 min-h-[2.25rem] ${tone}`}>{value}</p>
       <div className="mt-3 h-1.5 w-full rounded-full bg-surface-2 overflow-hidden flex-shrink-0" aria-hidden="true">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
@@ -196,7 +197,7 @@ export default function Conquistadores() {
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Miembros activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${miembros.length} registrados en total`} insight={activos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer miembro para iniciar el trabajo."} />
-        <Metric label="Líderes en formación" value={lideres.length} progress={activos.length ? Math.round((lideres.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((lideres.length / activos.length) * 100) : 0}% de los activos`} insight="Líderes comprometidos con la evangelización juvenil del distrito." />
+        <Metric label="Líderes en formación" value={lideres.length} progress={activos.length ? Math.round((lideres.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((lideres.length / activos.length) * 100) : 0}% de los activos`} insight="Líderes comprometidos con la evangelización juvenil del distrito." tip="Marcar a alguien como líder aquí es solo un registro del comité; no le da permisos adicionales en el sistema." />
         <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sin seguimiento reciente" value={miembrosSinSeguimiento.length} tone={miembrosSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activos.length ? Math.round((miembrosSinSeguimiento.length / activos.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={miembrosSinSeguimiento.length > 0 ? "Revisa la lista y programa un contacto." : "Todos los miembros tienen seguimiento reciente."} />
       </section>

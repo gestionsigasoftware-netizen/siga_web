@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
+import InfoTip from '../components/InfoTip'
 
 const EMPTY_PREFERENCES = { recibir_notificaciones: true, recibir_alertas: true, formato_fecha: 'DD/MM/AAAA' }
 
@@ -93,8 +94,8 @@ export default function ConfiguracionSistema() {
         <p className="text-sm text-secondary mt-1 mb-5">Los avisos que recibes y el formato de tus fechas.</p>
         <div className="flex flex-col gap-3">
           <p className="text-xs uppercase tracking-[0.14em] text-accent">Avisos que quieres recibir</p>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferences.recibir_notificaciones} onChange={(event) => updatePreference({ recibir_notificaciones: event.target.checked })} /> Recibir notificaciones de actividad</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferences.recibir_alertas} onChange={(event) => updatePreference({ recibir_alertas: event.target.checked })} /> Recibir alertas pastorales</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferences.recibir_notificaciones} onChange={(event) => updatePreference({ recibir_notificaciones: event.target.checked })} /> Recibir notificaciones de actividad<InfoTip texto="Avisos generales del sistema: registros, aprobaciones y novedades de tu congregación." /></label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferences.recibir_alertas} onChange={(event) => updatePreference({ recibir_alertas: event.target.checked })} /> Recibir alertas pastorales<InfoTip texto="Avisos sobre personas que necesitan seguimiento pastoral, como ausencias prolongadas o casos marcados como prioritarios." /></label>
           <label className="text-sm pt-2">Formato regional de fecha<select className="input-field mt-1.5" value={preferences.formato_fecha} onChange={(event) => updatePreference({ formato_fecha: event.target.value })}><option value="DD/MM/AAAA">Día / mes / año (DD/MM/AAAA)</option><option value="MM/DD/AAAA">Mes / día / año (MM/DD/AAAA)</option></select></label>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-5">
@@ -108,7 +109,7 @@ export default function ConfiguracionSistema() {
           <StatusCard icon={Globe2} title="Idioma y región" description="El idioma de la interfaz es Español. El formato de fecha elegido se muestra aquí." value={preferences.formato_fecha === 'MM/DD/AAAA' ? 'Español · MM/DD' : 'Español · DD/MM'} />
           <StatusCard icon={Bell} title="Notificaciones" description="Resumen de las preferencias que acabas de configurar." value={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'Preferencias activas' : 'Todas desactivadas'} tone={preferences.recibir_notificaciones || preferences.recibir_alertas ? 'success' : 'muted'} />
           <StatusCard icon={LockKeyhole} title="Seguridad" description={`Correo ${correoVerificado ? 'verificado' : 'sin verificar'}. Cuenta creada el ${cuentaCreada}.`} value={`Último acceso: ${ultimoAcceso}`} tone={correoVerificado ? 'success' : 'muted'} />
-          <StatusCard icon={Database} title="Vinculación al censo" description={nombrePersonaVinculada ? 'Tu cuenta está conectada al registro de feligresía de tu congregación.' : 'Esta cuenta todavía no está vinculada a ninguna persona del censo.'} value={nombrePersonaVinculada || 'Sin vincular'} tone={nombrePersonaVinculada ? 'success' : 'muted'} />
+          <StatusCard icon={Database} title={<span className="flex items-center gap-1">Vinculación al censo<InfoTip texto="Si tu cuenta no está vinculada a una persona del censo, tu nombre no aparecerá correctamente como responsable en los registros que hagas." /></span>} description={nombrePersonaVinculada ? 'Tu cuenta está conectada al registro de feligresía de tu congregación.' : 'Esta cuenta todavía no está vinculada a ninguna persona del censo.'} value={nombrePersonaVinculada || 'Sin vincular'} tone={nombrePersonaVinculada ? 'success' : 'muted'} />
         </div>
       </section>
     </div>

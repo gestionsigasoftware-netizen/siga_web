@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
+import InfoTip from "../components/InfoTip";
+
+const DESCRIPCIONES_COLUMNA = {
+  escuela_dominical_ninos: "Niños activos inscritos en Escuela Dominical, no el número de maestros ni de clases.",
+  damas_dorcas_beneficiarias: "Personas beneficiadas por Damas Dorcas (ayudas, visitas, apoyo), no el número de mujeres que integran el comité.",
+  obra_carcelaria_internos: "Internos activos alcanzados por el ministerio carcelario, no los voluntarios que van a las cárceles.",
+  obra_social_casos: "Casos activos atendidos por Obra Social (una familia o persona en apoyo), no el número de voluntarios.",
+  red_familias_casos: "Casos activos en seguimiento por Red de Familias, no el número de familias que integran el comité.",
+};
 
 const ALLOWED_LEVELS = ["nacional", "super_admin"];
 
@@ -54,7 +63,7 @@ export default function ComitesNacional() {
       <section className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {columnas.map(([campo, label]) => (
           <div key={campo} className="stat-tile">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{label}</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{label}{DESCRIPCIONES_COLUMNA[campo] && <InfoTip texto={DESCRIPCIONES_COLUMNA[campo]} />}</p>
             <p className="text-2xl font-semibold mt-3">{sumar(campo)}</p>
           </div>
         ))}

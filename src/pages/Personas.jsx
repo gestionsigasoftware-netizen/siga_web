@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Search, UserRound, Phone, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import InfoTip from '../components/InfoTip'
 
 export default function Personas() {
   const pageSize = 50
@@ -60,7 +61,7 @@ export default function Personas() {
 
       <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="stat-tile">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Total</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Total<InfoTip texto="Cuenta las personas que coinciden con la búsqueda actual, no siempre el total de tu congregación." /></p>
           <p className="mt-3 text-2xl font-semibold">{totalPersonas}</p>
         </div>
         <div className="stat-tile">
