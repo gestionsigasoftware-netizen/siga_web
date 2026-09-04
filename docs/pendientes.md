@@ -2,6 +2,24 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-04): "Equipo de trabajo" nunca pedia zona/centro de
+	reclusion al asignar la responsabilidad operativa de Evangelismo,
+	Mision Juvenil u Obra Carcelaria, pese a que la RLS de `amigos`
+	(`tengo_acceso_zona`) lo exige para poder registrar un Amigo -- sin
+	esto, un capturador puro nunca podia quedar habilitado. Se agrego
+	`asignaciones_cargo.centro_id` (ya existia `zona_id`), el formulario
+	de invitar/actualizar cargo ahora pide el catalogo correspondiente
+	por congregacion/distrito, y se puede corregir un cargo ya activo sin
+	retirarlo primero. Verificado de punta a punta (BD, no solo mensaje
+	en pantalla) para Evangelismo (zona) y Obra Carcelaria (centro); se
+	corrigieron los cargos existentes de Puerto Tejada Cauca Central.
+	Sigue pendiente revisar el resto de congregaciones a nivel nacional
+	(query de apoyo incluido en el doc). Ver
+	`docs/zona-centro-en-responsabilidad-operativa-2026-09-04.md`.
+	Ademas, con la zona ya disponible, se agrego "Registrar amigo nuevo"
+	desde la PWA (Evangelismo/Mision Juvenil), guardando en la misma
+	tabla `amigos` que usa "Amigos en ruta" en la web -- ver
+	`siga-pwa-nacional/docs/captura-amigo-2026-09-04.md`.
 - Resuelto (2026-09-03): el contenedor de contenido de MainLayout
 	(`mx-auto max-w-[1220px] flex-1`, el que envuelve TODAS las pantallas
 	via Outlet) no llegaba a su ancho real -- por ser un item flex sin

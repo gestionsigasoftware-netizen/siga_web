@@ -51,23 +51,49 @@ previo real, no solo una mejora de UX.
 
 ## Verificación
 
-`npm run build` corre limpio. Pendiente probar de punta a punta una vez
-desplegada la Edge Function actualizada y ejecutado el script SQL.
+`npm run build` corre limpio. Probado de punta a punta tras el
+despliegue: se asignó zona a un cargo de Evangelismo y centro a uno de
+Obra Carcelaria desde "Equipo de trabajo", y en ambos casos se confirmó
+directo en la base de datos (no solo por el mensaje de éxito en
+pantalla) que `zona_id`/`centro_id` quedaron guardados correctamente,
+incluyendo el caso de **actualizar** un cargo que ya existía sin
+retirarlo primero.
+
+También se revisaron y corrigieron los cargos existentes de Evangelismo
+y Misión Juvenil de **Puerto Tejada Cauca Central** (la única
+congregación visible con la cuenta de prueba, por diseño de la RLS):
+ambos tenían `zona_id` en null y ya quedaron con zona asignada.
+
+**Importante -- alcance nacional pendiente**: la cuenta usada para esta
+verificación solo ve su propia congregación. Cualquier otra
+congregación con cargos de Evangelismo/Misión Juvenil creados antes de
+este cambio probablemente sigue con `zona_id` en null y necesita la
+misma revisión manual (entrar a "Equipo de trabajo" de esa congregación,
+reasignar el cargo con su zona real -- no hace falta retirarlo primero).
 
 ## Acción requerida del usuario
 
 1. Ejecutar `supabase/asignaciones_cargo_centro.sql` en el SQL Editor
-   de Supabase.
-2. **Desplegar la Edge Function actualizada** (no se pudo hacer desde
-   aquí, requiere sesión del CLI de Supabase que no está disponible en
-   este entorno). Dos formas:
-   - **Dashboard de Supabase** → Edge Functions → `invitar-usuario` →
-     reemplazar el código por el contenido actual de
-     `supabase/functions/invitar-usuario/index.ts` → Deploy.
-   - **CLI**, si lo tienes instalado y logueado en tu propia terminal:
-     `supabase functions deploy invitar-usuario` desde la raíz del
-     proyecto.
-3. Después de eso, revisar si hay cargos existentes de Evangelismo/
-   Misión Juvenil sin zona (probablemente todos) y volver a invitar a
-   esas personas para completarles la zona -- el sistema ya lo permite
-   sin retirarles el acceso primero.
+   de Supabase. **Hecho** (confirmado).
+2. **Desplegar la Edge Function actualizada**. **Hecho** (confirmado --
+   el flujo de actualizar zona/centro en un cargo ya existente funciona
+   en producción/dev).
+3. Revisar, a nivel nacional, si hay más cargos de Evangelismo/Misión
+   Juvenil sin zona (fuera de Puerto Tejada Cauca Central, ya
+   corregida) y volver a invitar a esas personas para completarles la
+   zona -- el sistema ya lo permite sin retirarles el acceso primero.
+   Query de apoyo para identificarlos (SQL Editor de Supabase, con una
+   cuenta que vea todas las congregaciones):
+
+   ```sql
+   select ac.id, p.nombres, p.apellidos, m.nombre_modulo,
+          cong.nombre as congregacion
+   from asignaciones_cargo ac
+   join cargos c on c.id = ac.cargo_id
+   join modulos m on m.id = c.modulo_id
+   join congregaciones cong on cong.id = m.congregacion_id
+   join personas p on p.id = ac.persona_id
+   where ac.fecha_fin is null
+     and ac.zona_id is null
+     and m.nombre_modulo in ('Evangelismo', 'Mision Juvenil', 'Misión Juvenil');
+   ```
