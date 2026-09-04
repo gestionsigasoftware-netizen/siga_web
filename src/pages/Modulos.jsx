@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ChevronDown, Edit3, Layers3, Plus, Power, Search, X } from 'lucide-react'
+import { Check, ChevronDown, Edit3, Layers3, Plus, Power, Search, Sparkles, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 
@@ -22,6 +22,10 @@ export default function Modulos() {
   const [editingActivityId, setEditingActivityId] = useState(null)
   const [editingName, setEditingName] = useState('')
   const [editingActivityName, setEditingActivityName] = useState('')
+  const [caracteresCulto, setCaracteresCulto] = useState([])
+  const [nuevoCaracterCulto, setNuevoCaracterCulto] = useState('')
+  const [editingCaracterCultoId, setEditingCaracterCultoId] = useState(null)
+  const [editingCaracterCultoName, setEditingCaracterCultoName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -30,11 +34,15 @@ export default function Modulos() {
     if (!congregacionId) return
     setLoading(true)
     setError(null)
-    const { data, error: loadError } = await supabase.from('modulos').select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').eq('congregacion_id', congregacionId).order('created_at')
-    if (loadError) setError(`No se pudieron cargar los módulos: ${loadError.message}`)
-    const loaded = data ?? []
+    const [modulosResult, caracteresResult] = await Promise.all([
+      supabase.from('modulos').select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').eq('congregacion_id', congregacionId).order('created_at'),
+      supabase.from('caracteres_culto').select('id, nombre, activo').eq('congregacion_id', congregacionId).order('nombre'),
+    ])
+    if (modulosResult.error) setError(`No se pudieron cargar los módulos: ${modulosResult.error.message}`)
+    const loaded = modulosResult.data ?? []
     setModulos(loaded)
     setSeleccionado((current) => loaded.find((module) => module.id === current?.id) ?? loaded[0] ?? null)
+    setCaracteresCulto(caracteresResult.data ?? [])
     setLoading(false)
   }
 
@@ -104,6 +112,34 @@ export default function Modulos() {
     else load()
   }
 
+  async function agregarCaracterCulto(event) {
+    event.preventDefault()
+    const value = nuevoCaracterCulto.trim()
+    if (!value) return
+    if (caracteresCulto.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError('Ya existe un carácter de culto con ese nombre.'); return }
+    setSaving(true); setError(null)
+    const { error: insertError } = await supabase.from('caracteres_culto').insert({ congregacion_id: congregacionId, nombre: value })
+    setSaving(false)
+    if (insertError) { setError(`No se pudo crear el carácter: ${insertError.message}`); return }
+    setNuevoCaracterCulto(''); load()
+  }
+
+  async function saveCaracterCulto(item) {
+    const value = editingCaracterCultoName.trim()
+    if (!value) return
+    setSaving(true); setError(null)
+    const { error: updateError } = await supabase.from('caracteres_culto').update({ nombre: value }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    setSaving(false)
+    if (updateError) { setError(`No se pudo actualizar el carácter: ${updateError.message}`); return }
+    setEditingCaracterCultoId(null); load()
+  }
+
+  async function toggleCaracterCulto(item) {
+    const { error: updateError } = await supabase.from('caracteres_culto').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (updateError) setError(`No se pudo cambiar el estado del carácter: ${updateError.message}`)
+    else load()
+  }
+
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando módulos y actividades...</div>
   if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar módulos y actividades.</div>
 
@@ -115,7 +151,14 @@ export default function Modulos() {
       <section className="card p-5"><div className="flex justify-between items-center mb-4"><div><h2 className="font-medium">Módulos activos</h2><p className="text-xs text-secondary mt-1">Organiza las áreas de captura.</p></div><Layers3 className="w-5 h-5 text-accent" /></div><form onSubmit={agregarModulo} className="flex gap-2 mb-3"><input required className="input-field" placeholder="Nuevo módulo" value={nombre} onChange={(event) => setNombre(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar módulo"><Plus className="w-4 h-4" /></button></form><div className="flex items-center gap-2 border border-border rounded px-3 py-2 mb-4"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar módulos" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar módulo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div><div className="flex flex-col gap-2">{filteredModules.map((module) => { const bloqueado = esModuloSistema(module); return <div key={module.id} className={`module-item ${seleccionado?.id === module.id ? 'module-item-active' : ''} ${module.activo === false ? 'opacity-55' : ''}`}><button type="button" onClick={() => setSeleccionado(module)} className="flex-1 text-left"><span className="flex justify-between items-center"><span className="text-sm font-medium">{module.nombre_modulo}</span><ChevronDown className="w-4 h-4 text-muted" /></span><span className="text-xs text-secondary">{bloqueado ? 'Administrado desde su propio módulo · ' : ''}{module.tipos_actividad?.filter((type) => type.activo !== false).length ?? 0} actividades activas</span></button><div className="flex items-center gap-2 ml-2">{bloqueado ? null : <><button type="button" aria-label={`Editar ${module.nombre_modulo}`} title="Editar módulo" onClick={() => { setEditingModuleId(module.id); setEditingName(module.nombre_modulo) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label="Cambiar estado" title={module.activo === false ? 'Reactivar módulo' : 'Desactivar módulo'} onClick={() => toggleModule(module)} className={module.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-4 h-4" /></button></>}</div></div> })}</div>{filteredModules.length === 0 && <p className="text-sm text-muted text-center py-5">No hay módulos que coincidan.</p>}</section>
       <section className="card p-5"><h2 className="font-medium">{seleccionado?.nombre_modulo ?? 'Selecciona un módulo'}</h2><p className="text-xs text-secondary mt-1 mb-4">Tipos de actividad disponibles para el registro.</p>{seleccionado ? <><form onSubmit={agregarActividad} className="grid sm:grid-cols-[1fr_0.8fr_auto] gap-2 mb-4"><input required className="input-field" placeholder="Ej. Culto dominical" value={actividad} onChange={(event) => setActividad(event.target.value)} /><input className="input-field" placeholder="Característica (opcional)" value={caracter} onChange={(event) => setCaracter(event.target.value)} /><button disabled={saving} className="btn-secondary px-3" aria-label="Agregar actividad"><Plus className="w-4 h-4" /></button></form><div className="flex flex-col gap-2">{visibleActivities.map((type) => <div key={type.id} className="activity-item"><div className="min-w-0"><p className="text-sm font-medium truncate">{type.nombre}</p>{type.caracter && <span className="text-[10px] uppercase tracking-[0.1em] text-accent">{type.caracter}</span>}</div><div className="flex items-center gap-2"><button type="button" aria-label={`Editar ${type.nombre}`} title="Editar actividad" onClick={() => { setEditingActivityId(type.id); setEditingActivityName(type.nombre) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label="Desactivar actividad" title="Desactivar actividad" onClick={() => toggleActivity(type)} className="text-muted hover:text-danger"><Power className="w-4 h-4" /></button></div></div>)}</div>{visibleActivities.length === 0 && <p className="text-sm text-muted py-8 text-center">Aún no hay actividades activas.</p>}</> : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Elige un módulo de la lista</div>}</section>
     </div>
+    <section className="card p-5">
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Caracteres de culto</h2><p className="text-xs text-secondary mt-1">Ej. Enseñanza, Alabanza, Evangelismo. Se eligen al capturar la asistencia, sin importar el módulo — así "Culto Martes" puede ser "Enseñanza" una semana y "Alabanza" otra.</p></div><Sparkles className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <form onSubmit={agregarCaracterCulto} className="flex gap-2 my-4"><input required className="input-field" placeholder="Nuevo carácter (ej. Alabanza)" value={nuevoCaracterCulto} onChange={(event) => setNuevoCaracterCulto(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar carácter de culto"><Plus className="w-4 h-4" /></button></form>
+      <div className="flex flex-wrap gap-2">{caracteresCulto.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingCaracterCultoId(item.id); setEditingCaracterCultoName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleCaracterCulto(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
+      {caracteresCulto.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay caracteres de culto configurados.</p>}
+    </section>
     {editingModuleId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveModuleName(modulos.find((module) => module.id === editingModuleId)) }} className="modal-panel"><h2 className="font-medium">Editar módulo</h2><input autoFocus required className="input-field mt-4" value={editingName} onChange={(event) => setEditingName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingModuleId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingActivityId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveActivity(seleccionado.tipos_actividad.find((type) => type.id === editingActivityId)) }} className="modal-panel"><h2 className="font-medium">Editar actividad</h2><input autoFocus required className="input-field mt-4" value={editingActivityName} onChange={(event) => setEditingActivityName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingActivityId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
+    {editingCaracterCultoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveCaracterCulto(caracteresCulto.find((item) => item.id === editingCaracterCultoId)) }} className="modal-panel"><h2 className="font-medium">Editar carácter de culto</h2><input autoFocus required className="input-field mt-4" value={editingCaracterCultoName} onChange={(event) => setEditingCaracterCultoName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingCaracterCultoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
   </div>
 }
