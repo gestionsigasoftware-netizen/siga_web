@@ -2,6 +2,61 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-04): los 8 pendientes menores de la ronda de QA de
+	produccion, todos solucionados en una sola tanda:
+	1. **Bug sistemico de fecha por huso horario** (el mas importante de
+		 los 8, aunque estaba catalogado como "menor"): `new Date().toISOString().slice(0,10)`
+		 para guardar "la fecha de hoy" convierte primero a UTC -- entre las
+		 7pm y la medianoche hora Bogota (justo cuando pasan la mayoria de
+		 cultos) esto adelantaba la fecha guardada un dia. No era solo de
+		 Ruta Evangelistica: aparecia **99 veces en 26 archivos** de toda la
+		 app. Se creo `src/lib/fechaBogota.js` (`hoyBogota()`, `fechaBogota()`,
+		 `inicioDiaBogota()`, con desplazamiento fijo de -5h ya que Colombia
+		 no tiene horario de verano) y se reemplazaron los 99 usos. Tambien
+		 se corrigio un bug relacionado en `calcularEstadoSuscripcion()`
+		 (mezclaba fecha parseada en UTC con mutacion en hora local).
+		 Verificado con calculo directo (no solo build) simulando el
+		 escenario real de las 9:30pm Bogota.
+	2. PWA: se agregaron las *future flags* de React Router v7 al
+		 `BrowserRouter` (`siga-pwa-nacional/src/App.jsx`), igual que ya
+		 tenia la web.
+	3. Acento corregido: `ruta_estaciones.nombre` de "Uno Mas" a "Uno Más"
+		 en `supabase/ruta_evangelistica.sql` (insert para congregaciones
+		 nuevas + update para las que ya tenian la fila sembrada sin
+		 acento). **Accion requerida del usuario**: re-ejecutar ese archivo
+		 en el SQL Editor para aplicar el update a congregaciones existentes.
+	4. Warning `validateDOMNesting` (boton dentro de boton) corregido en
+		 Escuela Dominical, Musica, Ed. Artistica y Ed. Teologica: la fila
+		 clicable de la lista de grupos/clases (que contenia un InfoTip, o
+		 sea un boton dentro de otro boton) paso de `<button>` a
+		 `<div role="button" tabIndex={0}>` con el mismo manejo de teclado
+		 (Enter/Espacio) para no perder accesibilidad.
+	5. Hardening preparado pero **NO aplicado todavia**:
+		 `supabase/ruta_procesos_responsable_obligatorio.sql` (NOT NULL en
+		 `responsable_persona_id`). Se encontro una fila real bloqueante en
+		 Puerto Tejada Cauca Central, pero es un dato sembrado por el propio
+		 usuario (`supabase/seed_datos_pruebas.sql`), asi que se deja para
+		 que el usuario limpie esa semilla cuando decida y luego ejecute
+		 esta migracion.
+	6. Sesion de la web ya no sobrevive el cierre de la ventana/pestaña:
+		 `src/lib/supabase.js` ahora usa `sessionStorage` en vez de
+		 `localStorage` para el cliente de Supabase (verificado con
+		 Playwright: recargar mantiene la sesion, una pestaña nueva no).
+		 **Decision explicita**: la PWA se deja igual (localStorage) porque
+		 vive instalada en el telefono personal de quien captura, no en un
+		 equipo compartido.
+	7. 401 intermitente justo tras login: `getMisRoles()`
+		 (`src/lib/supabase.js`) usaba `auth.getUser()` (revalida contra el
+		 servidor, viaje de red extra) para solo obtener el id del usuario
+		 ya autenticado -- se cambio a `auth.getSession()` (local, sin red),
+		 eliminando una llamada de red innecesaria justo en el momento mas
+		 propenso a la carrera. RLS ya revalida el JWT del lado del servidor
+		 en la consulta que sigue, asi que no se pierde seguridad.
+	8. Higiene de entorno: se mataron 6 procesos node huerfanos de rondas
+		 de QA anteriores (puertos 5174-5177 y 5183-5184) y se agrego
+		 `strictPort: true` a los `vite.config.js` de ambos repos para que
+		 un servidor mal levantado falle rapido en vez de derivar de puerto
+		 en silencio.
 - Ronda de QA de produccion completa (2026-09-04): 5 subagentes en
 	paralelo probaron toda la web e incluso la PWA (Ruta Evangelistica,
 	fixes recientes de sesion, pantallas distritales/nacionales,

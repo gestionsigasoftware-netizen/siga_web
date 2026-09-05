@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays, ClipboardCheck, Home, Plus, UsersRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
@@ -72,9 +73,9 @@ export default function RedFamilias() {
   useEffect(() => { if (!congregacionId) return; supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'red_familias.editar' }).then(({ data }) => setCanEdit(Boolean(data))) }, [congregacionId])
 
   const openCases = cases.filter((item) => item.estado !== 'cerrado')
-  const overdueCases = openCases.filter((item) => item.proxima_fecha && item.proxima_fecha < new Date().toISOString().slice(0, 10))
+  const overdueCases = openCases.filter((item) => item.proxima_fecha && item.proxima_fecha < hoyBogota())
   const pendingVisits = visits.filter((item) => item.estado === 'programada')
-  const upcomingVisits = pendingVisits.filter((item) => item.fecha_programada >= new Date().toISOString().slice(0, 10))
+  const upcomingVisits = pendingVisits.filter((item) => item.fecha_programada >= hoyBogota())
   const totalPeopleInFamilies = new Set(cases.map((item) => item.persona_id).filter(Boolean)).size
   const activityTotalFamilies = activities.reduce((sum, item) => sum + Number(item.familias_alcanzadas || 0), 0)
 
@@ -82,7 +83,7 @@ export default function RedFamilias() {
   async function saveVisit(event) { event.preventDefault(); if (!visitForm.familia_id || !visitForm.fecha_programada || !visitForm.motivo.trim()) return; setSaving(true); setError(null); const result = await supabase.from('red_familias_visitas').insert({ ...visitForm, congregacion_id: congregacionId, caso_id: visitForm.caso_id || null, responsable_id: visitForm.responsable_id || null }); setSaving(false); if (result.error) { setError(`No se pudo programar la visita: ${result.error.message}`); return }; setVisitForm(EMPTY_VISIT); setNotice('Visita programada.'); load() }
   async function saveActivity(event) { event.preventDefault(); if (!activityForm.nombre.trim() || !activityForm.fecha) return; setSaving(true); setError(null); const result = await supabase.from('red_familias_actividades').insert({ ...activityForm, congregacion_id: congregacionId, responsable_id: activityForm.responsable_id || null, asistentes: Number(activityForm.asistentes || 0), familias_alcanzadas: Number(activityForm.familias_alcanzadas || 0) }); setSaving(false); if (result.error) { setError(`No se pudo registrar la actividad: ${result.error.message}`); return }; setActivityForm(EMPTY_ACTIVITY); setNotice('Actividad registrada.'); load() }
   async function updateCaseState(item, estado) { setSaving(true); const result = await supabase.from('red_familias_casos').update({ estado }).eq('id', item.id).eq('congregacion_id', congregacionId); setSaving(false); if (result.error) { setError(`No se pudo actualizar el caso: ${result.error.message}`); return }; setNotice(`Acompañamiento ${CASE_STATES[estado].toLowerCase()}.`); load() }
-  async function updateVisitState(item, estado) { setSaving(true); const result = await supabase.from('red_familias_visitas').update({ estado, fecha_realizada: estado === 'realizada' ? new Date().toISOString().slice(0, 10) : null }).eq('id', item.id).eq('congregacion_id', congregacionId); setSaving(false); if (result.error) { setError(`No se pudo actualizar la visita: ${result.error.message}`); return }; setNotice('Estado de visita actualizado.'); load() }
+  async function updateVisitState(item, estado) { setSaving(true); const result = await supabase.from('red_familias_visitas').update({ estado, fecha_realizada: estado === 'realizada' ? hoyBogota() : null }).eq('id', item.id).eq('congregacion_id', congregacionId); setSaving(false); if (result.error) { setError(`No se pudo actualizar la visita: ${result.error.message}`); return }; setNotice('Estado de visita actualizado.'); load() }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Red de Familias...</div>
   if (!congregacionId) return <div className="card p-8 text-center text-sm text-secondary">Tu usuario no tiene una congregación local asignada.</div>

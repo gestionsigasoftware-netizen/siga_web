@@ -4,6 +4,7 @@ import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } fro
 import { ArrowLeft, ArrowRightLeft, BookOpen, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
@@ -11,7 +12,7 @@ import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const CHART_OPTIONS = chartOptions();
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = hoyBogota();
 
 const CONFIG = {
   esfob: {

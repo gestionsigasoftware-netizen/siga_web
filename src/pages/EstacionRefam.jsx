@@ -4,6 +4,7 @@ import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } fro
 import { ArrowLeft, ArrowRightLeft, HeartHandshake, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
@@ -31,7 +32,7 @@ export default function EstacionRefam() {
   const [asistenciaPorParticipante, setAsistenciaPorParticipante] = useState({});
   const [progresoPorParticipante, setProgresoPorParticipante] = useState({});
   const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "", responsableId: "" });
-  const [refamReunionForm, setRefamReunionForm] = useState({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
+  const [refamReunionForm, setRefamReunionForm] = useState({ fecha: hoyBogota(), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
   const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
   const [trasladoDestino, setTrasladoDestino] = useState({});
   const [loading, setLoading] = useState(true);
@@ -177,7 +178,7 @@ export default function EstacionRefam() {
     const payload = {
       congregacion_id: congregacionId,
       grupo_id: selectedRefamGrupoId,
-      fecha_ingreso: new Date().toISOString().slice(0, 10),
+      fecha_ingreso: hoyBogota(),
       amigo_id: refamParticipanteForm.tipo === "amigo" ? refamParticipanteForm.sujeto_id : null,
       persona_id: refamParticipanteForm.tipo === "persona" ? refamParticipanteForm.sujeto_id : null,
       leccion_actual_id: refamLecciones[0]?.id || null,
@@ -228,7 +229,7 @@ export default function EstacionRefam() {
       if (asistenciaResult.error) { setError(`La reunión se registró, pero no se pudo guardar la asistencia individual: ${asistenciaResult.error.message}`); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
     }
     setNotice("Reunión REFAM registrada.");
-    setRefamReunionForm({ fecha: new Date().toISOString().slice(0, 10), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
+    setRefamReunionForm({ fecha: hoyBogota(), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
   }
 

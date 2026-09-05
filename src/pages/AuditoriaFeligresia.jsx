@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ClipboardList, Filter, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
@@ -70,15 +71,15 @@ export default function AuditoriaFeligresia() {
   }
 
   function exportCsv() {
-    descargarCsv({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.csv`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
+    descargarCsv({ filename: `auditoria-feligresia-${hoyBogota()}.csv`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
   }
 
   function exportExcel() {
-    descargarExcel({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
+    descargarExcel({ filename: `auditoria-feligresia-${hoyBogota()}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
   }
 
   function exportPdf() {
-    descargarPdf({ filename: `auditoria-feligresia-${new Date().toISOString().slice(0, 10)}.pdf`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
+    descargarPdf({ filename: `auditoria-feligresia-${hoyBogota()}.pdf`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
   }
 
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Validando permisos...</div>

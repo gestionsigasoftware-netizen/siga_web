@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { BookOpen, Building2, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import Pager from "../components/Pager";
@@ -112,7 +113,7 @@ export default function MisionJuvenil() {
   });
   const [selectedGrupoId, setSelectedGrupoId] = useState(null);
   const [lecciones, setLecciones] = useState([]);
-  const [leccionForm, setLeccionForm] = useState({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+  const [leccionForm, setLeccionForm] = useState({ tema: "", fecha: hoyBogota(), notas: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
   const [lideres, setLideres] = useState([]);
   const [liderForm, setLiderForm] = useState({ persona_id: "", rol: "gestor" });
@@ -156,7 +157,7 @@ export default function MisionJuvenil() {
         )
         .eq("congregacion_id", congregacionId)
         .ilike("modulos.nombre_modulo", "Mision Juvenil")
-        .gte("fecha", start.toISOString().slice(0, 10))
+        .gte("fecha", fechaBogota(start))
         .order("fecha"),
       supabase
         .from("personas")
@@ -231,7 +232,7 @@ export default function MisionJuvenil() {
     }
     setSaving(false);
     setNotice("Lección registrada con asistencia individual.");
-    setLeccionForm({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+    setLeccionForm({ tema: "", fecha: hoyBogota(), notas: "" });
     setAsistenciaMarcada({});
     loadLecciones(selectedGrupoId);
     load();
@@ -353,7 +354,7 @@ export default function MisionJuvenil() {
   async function marcarHitoEstudiante(student, campo, fechaCampo) {
     if (!canEdit) return;
     setSaving(true);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyBogota();
     const result = await supabase.from("mision_estudiantes").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", student.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }

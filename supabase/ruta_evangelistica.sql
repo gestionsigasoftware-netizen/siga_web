@@ -20,7 +20,7 @@ select c.id, e.codigo, e.nombre, e.descripcion, e.orden
 from congregaciones c
 cross join (values
   ('metodos', 'Metodos', 'Caracterizacion y diagnostico del territorio.', 1),
-  ('uno_mas', 'Uno Mas', 'Sensibilizacion y tarea de todos.', 2),
+  ('uno_mas', 'Uno Más', 'Sensibilizacion y tarea de todos.', 2),
   ('bis', 'BIS', 'Bienvenida, integracion y seguimiento.', 3),
   ('refam', 'REFAM', 'Evangelismo en los hogares mediante lecciones.', 4),
   ('esfob', 'ESFOB / EFOB', 'Formacion bautismal y preparacion doctrinal.', 5),
@@ -30,6 +30,11 @@ where not exists (
   select 1 from ruta_estaciones r
   where r.congregacion_id = c.id and r.codigo = e.codigo
 );
+
+-- Corrige congregaciones que ya tenian la fila sembrada antes de que se
+-- agregara el acento (sin esto, el insert de arriba no la toca porque
+-- el "where not exists" ya la ve como existente).
+update ruta_estaciones set nombre = 'Uno Más' where codigo = 'uno_mas' and nombre = 'Uno Mas';
 
 create table if not exists ruta_procesos (
   id uuid primary key default gen_random_uuid(),

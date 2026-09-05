@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { AlertTriangle, Heart, Plus, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -58,7 +59,7 @@ export default function DamasDorcas() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [beneficiariaForm, setBeneficiariaForm] = useState({ nombres: "", apellidos: "", telefono: "", direccion: "", responsable_persona_id: "" });
-  const [actividadForm, setActividadForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "visita", descripcion: "", responsable_persona_id: "" });
+  const [actividadForm, setActividadForm] = useState({ fecha: hoyBogota(), tipo: "visita", descripcion: "", responsable_persona_id: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
 
   async function load() {
@@ -73,7 +74,7 @@ export default function DamasDorcas() {
     start.setDate(start.getDate() - Number(periodo));
     const [b, a, s, p] = await Promise.all([
       supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, bautizado, fecha_bautismo, sellado, fecha_sellado, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
-      supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
+      supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("damas_dorcas_asistencia").select("id, actividad_id, beneficiaria_id, asistio, damas_dorcas_actividades!inner(congregacion_id, fecha)").eq("damas_dorcas_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
     ]);
@@ -126,7 +127,7 @@ export default function DamasDorcas() {
     }
     setSaving(false);
     setNotice("Actividad registrada con asistencia individual.");
-    setActividadForm({ fecha: new Date().toISOString().slice(0, 10), tipo: "visita", descripcion: "", responsable_persona_id: "" });
+    setActividadForm({ fecha: hoyBogota(), tipo: "visita", descripcion: "", responsable_persona_id: "" });
     setAsistenciaMarcada({});
     load();
   }
@@ -134,7 +135,7 @@ export default function DamasDorcas() {
   async function marcarHito(beneficiaria, campo, fechaCampo) {
     if (!canEdit) return;
     setSaving(true); setError(null);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyBogota();
     const result = await supabase.from("damas_dorcas_beneficiarias").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", beneficiaria.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
@@ -154,7 +155,7 @@ export default function DamasDorcas() {
   const activas = beneficiarias.filter((item) => item.estado === "activa");
   const bautizadas = activas.filter((item) => item.bautizado);
   const selladas = activas.filter((item) => item.sellado);
-  const actividadesUltimoMes = actividades.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const actividadesUltimoMes = actividades.filter((item) => item.fecha >= fechaBogota(new Date(Date.now() - 30 * 86400000)));
 
   // Tendencia: actividades por fecha en el periodo
   const trend = [...new Set(actividades.map((item) => item.fecha))].sort().map((fecha) => ({

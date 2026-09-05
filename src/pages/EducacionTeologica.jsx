@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { BookOpenCheck, GraduationCap, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -60,7 +61,7 @@ export default function EducacionTeologica() {
   const [integranteForm, setIntegranteForm] = useState({ persona_id: "", grupo_id: "" });
   const [selectedGrupoId, setSelectedGrupoId] = useState(null);
   const [sesiones, setSesiones] = useState([]);
-  const [sesionForm, setSesionForm] = useState({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+  const [sesionForm, setSesionForm] = useState({ tema: "", fecha: hoyBogota(), notas: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
 
   async function load() {
@@ -77,7 +78,7 @@ export default function EducacionTeologica() {
       supabase.from("teologica_grupos").select("id, nombre, nivel, instructor_persona_id, sesion_actual, activo, personas:instructor_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombre"),
       supabase.from("teologica_integrantes").select("id, persona_id, grupo_id, estado, certificado, fecha_certificado, personas(nombres, apellidos)").eq("congregacion_id", congregacionId),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
-      supabase.from("teologica_sesiones").select("id, grupo_id, numero, tema, fecha, asistentes, teologica_grupos!inner(congregacion_id, nombre)").eq("teologica_grupos.congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha"),
+      supabase.from("teologica_sesiones").select("id, grupo_id, numero, tema, fecha, asistentes, teologica_grupos!inner(congregacion_id, nombre)").eq("teologica_grupos.congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha"),
     ]);
     const failed = [g, i, p, s].find((item) => item.error);
     if (failed) setError("No se pudo cargar Educación Teológica. Intenta nuevamente o contacta al administrador.");
@@ -127,7 +128,7 @@ export default function EducacionTeologica() {
     }
     setSaving(false);
     setNotice("Sesión registrada con asistencia individual.");
-    setSesionForm({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+    setSesionForm({ tema: "", fecha: hoyBogota(), notas: "" });
     setAsistenciaMarcada({});
     loadSesiones(selectedGrupoId);
     load();
@@ -175,7 +176,7 @@ export default function EducacionTeologica() {
   async function marcarCertificado(integrante) {
     if (!canEdit) return;
     setSaving(true); setError(null);
-    const result = await supabase.from("teologica_integrantes").update({ certificado: true, fecha_certificado: new Date().toISOString().slice(0, 10) }).eq("id", integrante.id).eq("congregacion_id", congregacionId);
+    const result = await supabase.from("teologica_integrantes").update({ certificado: true, fecha_certificado: hoyBogota() }).eq("id", integrante.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo registrar la certificación: ${result.error.message}`); return; }
     setNotice("Certificación registrada.");
@@ -305,13 +306,13 @@ export default function EducacionTeologica() {
           </div>
           <div className="flex flex-col divide-y divide-border mt-4">
             {grupos.map((grupo) => (
-              <button type="button" key={grupo.id} onClick={() => loadSesiones(grupo.id)} className={`py-3 text-left ${selectedGrupoId === grupo.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
+              <div role="button" tabIndex={0} key={grupo.id} onClick={() => loadSesiones(grupo.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadSesiones(grupo.id); } }} className={`py-3 text-left cursor-pointer ${selectedGrupoId === grupo.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{grupo.nombre}</p>
                   <span className="text-xs text-accent flex items-center gap-1">Sesión {grupo.sesion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una sesión nueva; no se puede editar a mano." /></span>
                 </div>
                 <p className="text-xs text-secondary mt-1">{NIVELES[grupo.nivel]} · {grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin instructor"}</p>
-              </button>
+              </div>
             ))}
             {!grupos.length && <p className="text-sm text-muted py-6">Aún no hay grupos registrados.</p>}
           </div>

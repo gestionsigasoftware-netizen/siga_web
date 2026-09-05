@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Search, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
@@ -161,7 +162,7 @@ export default function EquipoCongregacion() {
   async function endAssignment(assignment) {
     if (!window.confirm(`Retirar el perfil de ${assignment.personas?.nombres || 'esta persona'}?`)) return
     setBusyAssignmentId(assignment.id)
-    const result = await supabase.from('asignaciones_acceso').update({ fecha_fin: new Date().toISOString().slice(0, 10) }).eq('id', assignment.id).eq('congregacion_id', congregacionId)
+    const result = await supabase.from('asignaciones_acceso').update({ fecha_fin: hoyBogota() }).eq('id', assignment.id).eq('congregacion_id', congregacionId)
     setBusyAssignmentId(null)
     if (result.error) { setMessage({ type: 'error', text: 'No se pudo retirar el perfil.' }); return }
     setMessage({ type: 'success', text: 'Perfil retirado. El historial se conserva.' })
@@ -171,7 +172,7 @@ export default function EquipoCongregacion() {
   async function endCargoAssignment(assignment) {
     if (!window.confirm(`Retirar la responsabilidad de ${assignment.cargos?.modulos?.nombre_modulo || 'este módulo'} a ${assignment.personas?.nombres || 'esta persona'}?`)) return
     setBusyCargoAssignmentId(assignment.id)
-    const result = await supabase.from('asignaciones_cargo').update({ fecha_fin: new Date().toISOString().slice(0, 10) }).eq('id', assignment.id)
+    const result = await supabase.from('asignaciones_cargo').update({ fecha_fin: hoyBogota() }).eq('id', assignment.id)
     setBusyCargoAssignmentId(null)
     if (result.error) { setMessage({ type: 'error', text: 'No se pudo retirar la responsabilidad operativa.' }); return }
     setMessage({ type: 'success', text: 'Responsabilidad operativa retirada. El historial se conserva.' })

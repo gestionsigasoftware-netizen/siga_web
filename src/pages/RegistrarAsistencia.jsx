@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
@@ -22,7 +23,7 @@ export default function RegistrarAsistencia() {
   const [responsables, setResponsables] = useState([])
   const [responsableId, setResponsableId] = useState('')
   const [novedades, setNovedades] = useState('')
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [fecha, setFecha] = useState(hoyBogota())
   const [motivoCaptura, setMotivoCaptura] = useState('')
   const [canCapture, setCanCapture] = useState(false)
   const [captureRules, setCaptureRules] = useState({ exigir_responsable: true, exigir_novedades: false })

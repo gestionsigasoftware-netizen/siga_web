@@ -13,6 +13,7 @@ import {
 import { ArrowLeft, ArrowRight, MapPinned, Plus, Target, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import { geocodeAddress } from "../lib/geocoding";
@@ -109,7 +110,7 @@ export default function Evangelismo() {
     try {
       const start = new Date();
       start.setDate(start.getDate() - Number(periodo));
-      const startKey = start.toISOString().slice(0, 10);
+      const startKey = fechaBogota(start);
       const [
         moduleResult,
         zonesResult,
@@ -393,7 +394,7 @@ export default function Evangelismo() {
     if (!procesoId) {
       const procesoResult = await supabase
         .from("ruta_procesos")
-        .insert({ congregacion_id: congregacionId, estacion_id: metodosEstacion.id, persona_id: diagnosticoForm.responsable_persona_id, responsable_persona_id: diagnosticoForm.responsable_persona_id, fecha_inicio: diagnosticoForm.periodo_inicio || new Date().toISOString().slice(0, 10) })
+        .insert({ congregacion_id: congregacionId, estacion_id: metodosEstacion.id, persona_id: diagnosticoForm.responsable_persona_id, responsable_persona_id: diagnosticoForm.responsable_persona_id, fecha_inicio: diagnosticoForm.periodo_inicio || hoyBogota() })
         .select("id")
         .single();
       if (procesoResult.error) { setError(`No se pudo iniciar el proceso de Métodos: ${procesoResult.error.message}`); return; }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { supabase } from "../lib/supabase";
+import { fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -44,7 +45,7 @@ export default function ImpactoMisionero() {
   async function load() {
     setLoading(true);
     setError(null);
-    const desde12m = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const desde12m = fechaBogota(new Date(Date.now() - 365 * 86400000));
     const scoped = (query) => (esLocal ? query.eq("congregacion_id", congregacionId) : query);
     const [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult] = await Promise.all([
       scoped(supabase.from("obra_carcelaria_internos").select("estado, bautizado, sellado")),

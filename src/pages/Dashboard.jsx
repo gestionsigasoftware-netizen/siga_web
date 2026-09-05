@@ -6,6 +6,7 @@ import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, C
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
+import { fechaBogota } from "../lib/fechaBogota";
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset } from '../lib/chartTheme'
@@ -254,7 +255,7 @@ function DashboardDistrital({ rolPrincipal }) {
   useEffect(() => {
     if (!distritoId) return
     let active = true
-    const desde60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+    const desde60 = fechaBogota(new Date(Date.now() - 60 * 86400000))
     Promise.all([
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
       supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, congregaciones!inner(distrito_id)').eq('estado_membresia', 'activo').eq('congregaciones.distrito_id', distritoId),
@@ -516,7 +517,7 @@ function DashboardNacional() {
 
   useEffect(() => {
     let active = true
-    const desde60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+    const desde60 = fechaBogota(new Date(Date.now() - 60 * 86400000))
     Promise.all([
       supabase.rpc('resumen_nacional'),
       supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado').eq('estado_membresia', 'activo'),
@@ -785,7 +786,7 @@ export default function Dashboard() {
         alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
-        rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)) : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', fechaBogota(new Date(Date.now() - 90 * 86400000))) : Promise.resolve({ data: [], error: null }),
         rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
@@ -807,7 +808,7 @@ export default function Dashboard() {
           desde.setFullYear(desde.getFullYear() - 6)
           return supabase.rpc('resumen_dashboard', {
             p_congregacion_id: rolPrincipal.nivel === 'local' ? rolPrincipal.congregacion_id : null,
-            p_desde: desde.toISOString().slice(0, 10),
+            p_desde: fechaBogota(desde),
           }).then(({ data, error }) => ({
             data: (data ?? []).map((registro) => ({ ...registro, id: registro.fecha })),
             error,

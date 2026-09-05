@@ -20,6 +20,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -34,10 +35,10 @@ const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_ALERTA_INPEC = 30;
 const CHART_OPTIONS = chartOptions();
 
-const EMPTY_INTERNO = { nombres: "", apellidos: "", centro_id: "", patio: "", fecha_ingreso_ministerio: new Date().toISOString().slice(0, 10), observaciones: "" };
+const EMPTY_INTERNO = { nombres: "", apellidos: "", centro_id: "", patio: "", fecha_ingreso_ministerio: hoyBogota(), observaciones: "" };
 const EMPTY_DELEGADO = { persona_id: "", centro_id: "", permiso_inpec_vigente: false, permiso_inpec_vencimiento: "", observaciones: "" };
-const EMPTY_CULTO = { centro_id: "", fecha: new Date().toISOString().slice(0, 10), patio: "", asistentes_total: "", estudios_biblicos_entregados: "", responsable_persona_id: "", notas: "" };
-const EMPTY_FAMILIAR = { interno_id: "", familia_id: "", contacto_nombre: "", parentesco: "", telefono: "", fecha_visita: new Date().toISOString().slice(0, 10), tipo_apoyo: "visita", responsable_persona_id: "", notas: "" };
+const EMPTY_CULTO = { centro_id: "", fecha: hoyBogota(), patio: "", asistentes_total: "", estudios_biblicos_entregados: "", responsable_persona_id: "", notas: "" };
+const EMPTY_FAMILIAR = { interno_id: "", familia_id: "", contacto_nombre: "", parentesco: "", telefono: "", fecha_visita: hoyBogota(), tipo_apoyo: "visita", responsable_persona_id: "", notas: "" };
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "", info }) {
   return (
@@ -106,7 +107,7 @@ export default function ObraCarcelaria() {
       supabase.from("centros_reclusion").select("id, nombre, tipo, ciudad, activo").eq("activo", true).order("nombre"),
       supabase.from("obra_carcelaria_internos").select("id, nombres, apellidos, centro_id, patio, fecha_ingreso_ministerio, estado, bautizado, fecha_bautismo, sellado, fecha_sellado, fecha_liberacion, observaciones, centros_reclusion(nombre)").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("obra_carcelaria_delegados").select("id, persona_id, centro_id, permiso_inpec_vigente, permiso_inpec_vencimiento, observaciones, activo, personas(nombres, apellidos), centros_reclusion(nombre)").eq("congregacion_id", congregacionId).order("created_at", { ascending: false }),
-      supabase.from("obra_carcelaria_cultos").select("id, centro_id, fecha, patio, asistentes_total, estudios_biblicos_entregados, responsable_persona_id, notas, centros_reclusion(nombre)").eq("congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
+      supabase.from("obra_carcelaria_cultos").select("id, centro_id, fecha, patio, asistentes_total, estudios_biblicos_entregados, responsable_persona_id, notas, centros_reclusion(nombre)").eq("congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("obra_carcelaria_asistencia").select("id, culto_id, interno_id, asistio, obra_carcelaria_cultos!inner(congregacion_id, fecha)").eq("obra_carcelaria_cultos.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("obra_carcelaria_seguimiento_familiar").select("id, interno_id, familia_id, contacto_nombre, parentesco, telefono, fecha_visita, tipo_apoyo, responsable_persona_id, notas, obra_carcelaria_internos(nombres, apellidos)").eq("congregacion_id", congregacionId).order("fecha_visita", { ascending: false }),
       supabase.from("obra_carcelaria_reinsercion").select("id, interno_id, congregacion_origen_id, congregacion_destino_id, fecha_asignacion, estado, notas, obra_carcelaria_internos(nombres, apellidos), origen:congregacion_origen_id(nombre), destino:congregacion_destino_id(nombre)").or(`congregacion_origen_id.eq.${congregacionId},congregacion_destino_id.eq.${congregacionId}`).order("fecha_asignacion", { ascending: false }),
@@ -154,7 +155,7 @@ export default function ObraCarcelaria() {
   async function marcarHito(interno, campo, fechaCampo) {
     if (!canEdit) return;
     setSaving(true); setError(null);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyBogota();
     const result = await supabase.from("obra_carcelaria_internos").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", interno.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
@@ -163,7 +164,7 @@ export default function ObraCarcelaria() {
   async function marcarEstado(interno, estado) {
     if (!canEdit) return;
     setSaving(true); setError(null);
-    const payload = { estado, fecha_liberacion: estado === "liberado" ? new Date().toISOString().slice(0, 10) : interno.fecha_liberacion };
+    const payload = { estado, fecha_liberacion: estado === "liberado" ? hoyBogota() : interno.fecha_liberacion };
     const result = await supabase.from("obra_carcelaria_internos").update(payload).eq("id", interno.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar el estado: ${result.error.message}`); return; }
@@ -252,10 +253,10 @@ export default function ObraCarcelaria() {
   const liberados = internos.filter((item) => item.estado === "liberado");
   const delegadosHabilitados = delegados.filter((item) => item.activo && item.permiso_inpec_vigente);
   const hoy = new Date();
-  const en30dias = new Date(Date.now() + DIAS_ALERTA_INPEC * 86400000).toISOString().slice(0, 10);
+  const en30dias = fechaBogota(new Date(Date.now() + DIAS_ALERTA_INPEC * 86400000));
   const delegadosAlerta = delegados.filter((item) => item.activo && (!item.permiso_inpec_vigente || !item.permiso_inpec_vencimiento || item.permiso_inpec_vencimiento <= en30dias));
 
-  const cultosUltimoMes = cultos.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const cultosUltimoMes = cultos.filter((item) => item.fecha >= fechaBogota(new Date(Date.now() - 30 * 86400000)));
   const estudiosUltimoMes = cultosUltimoMes.reduce((sum, item) => sum + Number(item.estudios_biblicos_entregados || 0), 0);
   const asistenciaAcumulada = cultos.reduce((sum, item) => sum + Number(item.asistentes_total || 0), 0);
 

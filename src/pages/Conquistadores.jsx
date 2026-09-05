@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { AlertTriangle, Flag, Plus, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -58,7 +59,7 @@ export default function Conquistadores() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [miembroForm, setMiembroForm] = useState({ persona_id: "", rol: "miembro" });
-  const [actividadForm, setActividadForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
+  const [actividadForm, setActividadForm] = useState({ fecha: hoyBogota(), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
 
   async function load() {
@@ -73,7 +74,7 @@ export default function Conquistadores() {
     start.setDate(start.getDate() - Number(periodo));
     const [m, a, s, p] = await Promise.all([
       supabase.from("conquistadores_miembros").select("id, persona_id, rol, estado, fecha_ingreso, personas:persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("fecha_ingreso", { ascending: false }),
-      supabase.from("conquistadores_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
+      supabase.from("conquistadores_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("conquistadores_asistencia").select("id, actividad_id, miembro_id, asistio, conquistadores_actividades!inner(congregacion_id, fecha)").eq("conquistadores_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
     ]);
@@ -123,7 +124,7 @@ export default function Conquistadores() {
     }
     setSaving(false);
     setNotice("Actividad registrada con asistencia individual.");
-    setActividadForm({ fecha: new Date().toISOString().slice(0, 10), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
+    setActividadForm({ fecha: hoyBogota(), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
     setAsistenciaMarcada({});
     load();
   }
@@ -139,7 +140,7 @@ export default function Conquistadores() {
 
   const activos = miembros.filter((item) => item.estado === "activo");
   const lideres = activos.filter((item) => item.rol === "lider");
-  const actividadesUltimoMes = actividades.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const actividadesUltimoMes = actividades.filter((item) => item.fecha >= fechaBogota(new Date(Date.now() - 30 * 86400000)));
 
   const trend = [...new Set(actividades.map((item) => item.fecha))].sort().map((fecha) => ({
     fecha,

@@ -4,6 +4,7 @@ import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } fro
 import { ArrowLeft, ArrowRightLeft, Plus, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
@@ -30,7 +31,7 @@ export default function EstacionBis() {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [trasladoDestino, setTrasladoDestino] = useState({});
-  const [atencionForm, setAtencionForm] = useState({ responsable_persona_id: "", fecha_visita: new Date().toISOString().slice(0, 10), primera_visita: true, recibimiento: "", necesidad_inmediata: "", contacto_posterior: "", resultado_contacto: "", integrado: false, derivado_a: "", notas: "" });
+  const [atencionForm, setAtencionForm] = useState({ responsable_persona_id: "", fecha_visita: hoyBogota(), primera_visita: true, recibimiento: "", necesidad_inmediata: "", contacto_posterior: "", resultado_contacto: "", integrado: false, derivado_a: "", notas: "" });
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -126,7 +127,7 @@ export default function EstacionBis() {
 
   function seleccionar(proceso) {
     setSelectedId(proceso.id);
-    setAtencionForm({ responsable_persona_id: "", fecha_visita: new Date().toISOString().slice(0, 10), primera_visita: (atencionesPorProceso[proceso.id] || []).length === 0, recibimiento: "", necesidad_inmediata: "", contacto_posterior: "", resultado_contacto: "", integrado: false, derivado_a: "", notas: "" });
+    setAtencionForm({ responsable_persona_id: "", fecha_visita: hoyBogota(), primera_visita: (atencionesPorProceso[proceso.id] || []).length === 0, recibimiento: "", necesidad_inmediata: "", contacto_posterior: "", resultado_contacto: "", integrado: false, derivado_a: "", notas: "" });
   }
 
   async function guardarAtencion(event) {
@@ -141,7 +142,7 @@ export default function EstacionBis() {
       proceso_id: selectedId,
       amigo_id: proceso.amigo_id,
       responsable_persona_id: atencionForm.responsable_persona_id || null,
-      fecha_visita: atencionForm.fecha_visita || new Date().toISOString().slice(0, 10),
+      fecha_visita: atencionForm.fecha_visita || hoyBogota(),
       primera_visita: atencionForm.primera_visita,
       recibimiento: atencionForm.recibimiento.trim() || null,
       necesidad_inmediata: atencionForm.necesidad_inmediata.trim() || null,

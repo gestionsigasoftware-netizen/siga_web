@@ -4,6 +4,7 @@ import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
@@ -86,7 +87,7 @@ function PersonFormEditor({ form, setForm, families, committees, cargoHistory, s
 
 function CommitteeAnalytics({ people, committees, cargos, audit }) {
   const { formato_fecha } = usePreferencias()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyBogota()
   const active = committees.filter((committee) => committee.activo && (!committee.fecha_fin || committee.fecha_fin >= today))
   const memberships = active.flatMap((committee) => (committee.membresias_comite ?? []).filter((member) => member.estado !== 'historico' && !member.fecha_fin).map((member) => ({ ...member, committee })))
   const required = active.reduce((total, committee) => total + cargos.filter((cargo) => cargo.obligatorio).length, 0)
@@ -96,7 +97,7 @@ function CommitteeAnalytics({ people, committees, cargos, audit }) {
   const serving = new Set(memberships.map((member) => member.persona_id))
   const withoutMembers = active.filter((committee) => !memberships.some((member) => member.committee.id === committee.id)).length
   const withoutResponsible = active.filter((committee) => !committee.responsable_id).length
-  const expiring = memberships.filter((member) => member.fecha_fin && member.fecha_fin >= today && member.fecha_fin <= new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)).length
+  const expiring = memberships.filter((member) => member.fecha_fin && member.fecha_fin >= today && member.fecha_fin <= fechaBogota(new Date(Date.now() + 90 * 86400000))).length
   function committeeExportHeaders() {
     return { headers: ['Comité', 'Código', 'Estado', 'Vigencia', 'Integrantes', 'Cargos obligatorios', 'Cargos cubiertos'], rows: active.map((committee) => { const current = memberships.filter((member) => member.committee.id === committee.id); const requiredCargos = cargos.filter((cargo) => cargo.obligatorio); return [committee.nombre, committee.codigo, 'Activo', committee.fecha_fin || 'Sin fecha final', current.length, requiredCargos.length, requiredCargos.filter((cargo) => current.some((member) => member.cargo_id === cargo.id)).length] }) }
   }
@@ -123,7 +124,7 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const [ageFilter, setAgeFilter] = useState('todas')
   const [historyMonths, setHistoryMonths] = useState('12')
   const today = new Date()
-  const todayKey = today.toISOString().slice(0, 10)
+  const todayKey = fechaBogota(today)
   const filteredPeople = people.filter((person) => {
     const age = calcularEdad(person.fecha_nacimiento, today)
     const matchesStatus = statusFilter === 'todos' || person.estado_membresia === statusFilter
@@ -136,13 +137,13 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const activeTotal = activePeople.length
   const baptized = activePeople.filter((person) => person.bautizado).length
   const withFamily = activePeople.filter((person) => person.familia_id).length
-  const withoutAttendance = activePeople.filter((person) => !person.fecha_ultima_asistencia || person.fecha_ultima_asistencia < new Date(today.getTime() - 90 * 86400000).toISOString().slice(0, 10)).length
+  const withoutAttendance = activePeople.filter((person) => !person.fecha_ultima_asistencia || person.fecha_ultima_asistencia < fechaBogota(new Date(today.getTime() - 90 * 86400000))).length
   const pending = followups.filter((item) => item.estado === 'pendiente').length
   const overdue = followups.filter((item) => item.estado === 'pendiente' && item.proxima_fecha && item.proxima_fecha < todayKey).length
   const activeMemberships = committees.filter((committee) => committee.activo).flatMap((committee) => committee.membresias_comite ?? []).filter((member) => !member.fecha_fin && filteredPeople.some((person) => person.id === member.persona_id))
   const committeePeople = new Set(activeMemberships.map((member) => member.persona_id)).size
   const activeCharges = cargoHistory.filter((item) => !item.fecha_fin && filteredPeople.some((person) => person.id === item.persona_id)).length
-  const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()).toISOString().slice(0, 10)
+  const yearAgo = fechaBogota(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()))
   const newPeople = filteredPeople.filter((person) => person.fecha_ingreso && person.fecha_ingreso >= yearAgo).length
   const ages = activePeople.map((person) => calcularEdad(person.fecha_nacimiento, today)).filter((age) => age !== null)
   const ageGroups = [['0-12', 0], ['13-17', 0], ['18-29', 0], ['30-59', 0], ['60+', 0]]
@@ -167,7 +168,7 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const admissionsHistory = Array.from({ length: months }, (_, index) => {
     const start = new Date(today.getFullYear(), today.getMonth() - months + index + 1, 1)
     const end = new Date(today.getFullYear(), today.getMonth() - months + index + 2, 1)
-    return { label: start.toLocaleDateString('es-CO', { month: 'short', year: months > 12 ? '2-digit' : undefined }), total: filteredPeople.filter((person) => person.fecha_ingreso && person.fecha_ingreso >= start.toISOString().slice(0, 10) && person.fecha_ingreso < end.toISOString().slice(0, 10)).length }
+    return { label: start.toLocaleDateString('es-CO', { month: 'short', year: months > 12 ? '2-digit' : undefined }), total: filteredPeople.filter((person) => person.fecha_ingreso && person.fecha_ingreso >= fechaBogota(start) && person.fecha_ingreso < fechaBogota(end)).length }
   })
   const chartOptions = buildChartOptions()
   const widowed = activePeople.filter((person) => person.estado_civil === 'viudo').length
@@ -370,7 +371,7 @@ export default function FeligresiaAdmin() {
   }, [congregacionId])
   useEffect(() => { setPeoplePage(0) }, [personStatus, search])
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyBogota()
   const committees = allCommittees.filter((committee) => {
     const active = committee.activo && (!committee.fecha_fin || committee.fecha_fin >= today)
     const validityMatch = committeeValidityFilter === 'todos' || (committeeValidityFilter === 'vigentes' && active) || (committeeValidityFilter === 'vencidos' && committee.fecha_fin && committee.fecha_fin < today)
@@ -482,7 +483,7 @@ export default function FeligresiaAdmin() {
     if (!committeeName.trim()) { setError('Escribe un nombre para el comité.'); return }
     if (committeeEnd && committeeStart && committeeEnd < committeeStart) { setError('La fecha final no puede ser anterior a la fecha inicial.'); return }
     setSaving(true); setError(null); setNotice(null)
-    const result = await supabase.from('comites').insert({ congregacion_id: congregacionId, nombre: committeeName.trim(), codigo: committeeCode.trim() || null, tipo_id: committeeType || null, descripcion: committeeDescription.trim() || null, proposito: committeePurpose.trim() || null, fecha_inicio: committeeStart || new Date().toISOString().slice(0, 10), fecha_fin: committeeEnd || null, responsable_id: committeeResponsible || null, observaciones: committeeNotes.trim() || null })
+    const result = await supabase.from('comites').insert({ congregacion_id: congregacionId, nombre: committeeName.trim(), codigo: committeeCode.trim() || null, tipo_id: committeeType || null, descripcion: committeeDescription.trim() || null, proposito: committeePurpose.trim() || null, fecha_inicio: committeeStart || hoyBogota(), fecha_fin: committeeEnd || null, responsable_id: committeeResponsible || null, observaciones: committeeNotes.trim() || null })
     setSaving(false)
     if (result.error) { setError(`No se pudo crear el comité: ${result.error.message}`); return }
     setCommitteeName(''); setCommitteeCode(''); setCommitteeType(''); setCommitteeDescription(''); setCommitteePurpose(''); setCommitteeStart(''); setCommitteeEnd(''); setCommitteeResponsible(''); setCommitteeNotes(''); setNotice('Comité creado correctamente.'); load()
@@ -542,7 +543,7 @@ export default function FeligresiaAdmin() {
     if (!canEdit) { setError('Tu perfil no permite gestionar integrantes.'); return }
     setDialog({ title: 'Retirar integrante', message: 'La membresía se cerrará conservando el historial.', confirmLabel: 'Retirar', onConfirm: async () => {
       setSaving(true); setError(null)
-      const result = await supabase.from('membresias_comite').update({ fecha_fin: new Date().toISOString().slice(0, 10), estado: 'historico', motivo_retiro: 'Retiro registrado desde Feligresía', usuario_cambio_id: (await supabase.auth.getUser()).data.user?.id || null }).eq('id', member.id)
+      const result = await supabase.from('membresias_comite').update({ fecha_fin: hoyBogota(), estado: 'historico', motivo_retiro: 'Retiro registrado desde Feligresía', usuario_cambio_id: (await supabase.auth.getUser()).data.user?.id || null }).eq('id', member.id)
       setSaving(false)
       if (result.error) { setError(`No se pudo retirar el integrante: ${result.error.message}`); return }
       setDialog(null); setNotice('Integrante retirado del comité.'); load()
@@ -550,7 +551,7 @@ export default function FeligresiaAdmin() {
   }
 
   function editCommitteeMember(member) {
-    setDialog({ title: 'Editar responsabilidad', fields: [{ name: 'cargo_id', label: 'Cargo normalizado', value: member.cargo_id || '', type: 'select', options: committeeCargoCatalog.map((cargo) => ({ value: cargo.id, label: cargo.nombre })) }, { name: 'cargo', label: 'Cargo histórico o texto libre', value: member.cargo || '' }, { name: 'reemplazo_persona_id', label: 'Reemplazar por otra persona (opcional)', value: '', type: 'select', options: [{ value: '', label: 'Sin reemplazo' }, ...analyticsPeople.filter((person) => person.id !== member.persona_id && person.estado_membresia === 'activo').map((person) => ({ value: person.id, label: `${person.nombres} ${person.apellidos}` }))] }, { name: 'fecha_efectiva', label: 'Fecha efectiva del reemplazo', value: new Date().toISOString().slice(0, 10), type: 'date' }, { name: 'motivo', label: 'Motivo del cambio', value: '' }], onSubmit: async (values) => {
+    setDialog({ title: 'Editar responsabilidad', fields: [{ name: 'cargo_id', label: 'Cargo normalizado', value: member.cargo_id || '', type: 'select', options: committeeCargoCatalog.map((cargo) => ({ value: cargo.id, label: cargo.nombre })) }, { name: 'cargo', label: 'Cargo histórico o texto libre', value: member.cargo || '' }, { name: 'reemplazo_persona_id', label: 'Reemplazar por otra persona (opcional)', value: '', type: 'select', options: [{ value: '', label: 'Sin reemplazo' }, ...analyticsPeople.filter((person) => person.id !== member.persona_id && person.estado_membresia === 'activo').map((person) => ({ value: person.id, label: `${person.nombres} ${person.apellidos}` }))] }, { name: 'fecha_efectiva', label: 'Fecha efectiva del reemplazo', value: hoyBogota(), type: 'date' }, { name: 'motivo', label: 'Motivo del cambio', value: '' }], onSubmit: async (values) => {
       setSaving(true); setError(null)
       let result
       try {
@@ -573,7 +574,7 @@ export default function FeligresiaAdmin() {
     const data = new FormData(event.currentTarget)
     const action = data.get('accion')?.toString().trim()
     if (!action) return
-    const fecha = data.get('fecha') || new Date().toISOString().slice(0, 10)
+    const fecha = data.get('fecha') || hoyBogota()
     const proximaFecha = data.get('proxima_fecha') || null
     if (proximaFecha && proximaFecha < fecha) { setError('El próximo contacto no puede ser anterior a la fecha realizada.'); return }
     setSaving(true); setError(null)
@@ -601,7 +602,7 @@ export default function FeligresiaAdmin() {
     const nombreCargo = data.get('nombre_cargo')?.toString().trim()
     if (!nombreCargo) return
     setSaving(true); setError(null)
-    const fechaInicio = data.get('fecha_inicio') || new Date().toISOString().slice(0, 10)
+    const fechaInicio = data.get('fecha_inicio') || hoyBogota()
     const fechaFin = data.get('fecha_fin') || null
     if (fechaFin && fechaFin < fechaInicio) { setSaving(false); setError('La fecha de finalización no puede ser anterior a la fecha de inicio.'); return }
     let result
@@ -638,7 +639,7 @@ export default function FeligresiaAdmin() {
         persona_id: selected.id,
         congregacion_id: congregacionId,
         tipo,
-        fecha: data.get('fecha') || new Date().toISOString().slice(0, 10),
+        fecha: data.get('fecha') || hoyBogota(),
         observaciones: data.get('observaciones')?.toString().trim() || null,
       }))
     } catch (requestError) {
@@ -695,7 +696,7 @@ export default function FeligresiaAdmin() {
 
   async function attendPastoralAlert(alert) {
     if (!canEdit) { setError('Tu perfil solo permite consultar alertas.'); return }
-    setDialog({ title: 'Atender alerta pastoral', message: alert.detalle, fields: [{ name: 'accion', label: 'Acción realizada', value: '', required: true }, { name: 'fecha', label: 'Fecha realizada', value: new Date().toISOString().slice(0, 10), required: true, type: 'date' }, { name: 'proxima_fecha', label: 'Próximo contacto (opcional)', value: '', type: 'date' }, { name: 'notas', label: 'Notas', value: '' }], onSubmit: (values) => saveAlertAttention(alert, values) })
+    setDialog({ title: 'Atender alerta pastoral', message: alert.detalle, fields: [{ name: 'accion', label: 'Acción realizada', value: '', required: true }, { name: 'fecha', label: 'Fecha realizada', value: hoyBogota(), required: true, type: 'date' }, { name: 'proxima_fecha', label: 'Próximo contacto (opcional)', value: '', type: 'date' }, { name: 'notas', label: 'Notas', value: '' }], onSubmit: (values) => saveAlertAttention(alert, values) })
   }
 
   async function saveAlertAttention(alert, values) {
@@ -714,7 +715,7 @@ export default function FeligresiaAdmin() {
   async function updateFollowupStatus(followup, estado) {
     if (!canEdit) { setError('Tu perfil solo permite consultar seguimientos.'); return }
     if (estado === 'pendiente' && !followup.proxima_fecha) {
-      setDialog({ title: 'Reabrir seguimiento', message: 'Un seguimiento pendiente necesita una próxima fecha de contacto.', fields: [{ name: 'proxima_fecha', label: 'Próximo contacto', value: new Date().toISOString().slice(0, 10), required: true, type: 'date' }], onSubmit: (values) => saveFollowupReopen(followup, values.proxima_fecha) })
+      setDialog({ title: 'Reabrir seguimiento', message: 'Un seguimiento pendiente necesita una próxima fecha de contacto.', fields: [{ name: 'proxima_fecha', label: 'Próximo contacto', value: hoyBogota(), required: true, type: 'date' }], onSubmit: (values) => saveFollowupReopen(followup, values.proxima_fecha) })
       return
     }
     setSaving(true); setError(null)
@@ -770,21 +771,21 @@ export default function FeligresiaAdmin() {
   async function exportPeopleCsv() {
     const data = await fetchPeopleForExport()
     if (!data) return
-    descargarCsv({ filename: `censo-${new Date().toISOString().slice(0, 10)}.csv`, titulo: 'Censo de feligresía', ...data })
+    descargarCsv({ filename: `censo-${hoyBogota()}.csv`, titulo: 'Censo de feligresía', ...data })
     setNotice('Censo exportado correctamente.')
   }
 
   async function exportPeopleExcel() {
     const data = await fetchPeopleForExport()
     if (!data) return
-    await descargarExcel({ filename: `censo-${new Date().toISOString().slice(0, 10)}.xlsx`, hoja: 'Censo', titulo: 'Censo de feligresía', ...data })
+    await descargarExcel({ filename: `censo-${hoyBogota()}.xlsx`, hoja: 'Censo', titulo: 'Censo de feligresía', ...data })
     setNotice('Censo exportado correctamente.')
   }
 
   async function exportPeoplePdf() {
     const data = await fetchPeopleForExport()
     if (!data) return
-    await descargarPdf({ filename: `censo-${new Date().toISOString().slice(0, 10)}.pdf`, titulo: 'Censo de feligresía', orientacion: 'landscape', ...data })
+    await descargarPdf({ filename: `censo-${hoyBogota()}.pdf`, titulo: 'Censo de feligresía', orientacion: 'landscape', ...data })
     setNotice('Censo exportado correctamente.')
   }
 
@@ -934,7 +935,7 @@ function PastoralSection({ alerts, followups, people, saving, onAttend, onUpdate
   const [alertPriority, setAlertPriority] = useState('todos')
   const [showHistory, setShowHistory] = useState(false)
   const [expandedAlertGroups, setExpandedAlertGroups] = useState(() => new Set())
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyBogota()
   const normalizedSearch = agendaSearch.trim().toLowerCase()
   const agenda = followups.filter((item) => {
     if (agendaStatus !== 'todos' && item.estado !== agendaStatus) return false
@@ -971,11 +972,11 @@ function AdminDialog({ dialog, saving, error, close }) {
 
 function PastoralFollowupPanel({ person, followups, saving, onSubmit, embedded = false }) {
   const personFollowups = followups.filter((item) => item.persona_id === person?.id)
-  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-4 w-[min(24rem,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><div className="flex items-start justify-between gap-3 mb-3"><div><h2 className="font-medium">Seguimiento pastoral</h2><p className="text-xs text-secondary mt-1">{person.nombres} {person.apellidos}</p></div><span className="text-xs text-muted">{personFollowups.length} registros</span></div><form onSubmit={onSubmit} className="flex flex-col gap-2 border-b border-border pb-4"><select name="tipo_alerta" className="input-field text-sm" defaultValue=""><option value="">Tipo de situación...</option><option value="familia">Familia</option><option value="bautismo">Bautismo</option><option value="asistencia_persona">Asistencia</option><option value="general">General</option></select><input required name="accion" className="input-field text-sm" placeholder="Acción realizada" /><div className="grid grid-cols-2 gap-2"><label className="text-xs text-secondary">Fecha realizada<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={new Date().toISOString().slice(0, 10)} /></label><label className="text-xs text-secondary">Próximo contacto<input name="proxima_fecha" type="date" className="input-field text-sm mt-1" /></label></div><textarea name="notas" className="input-field text-sm min-h-16" placeholder="Notas del acompañamiento" /><button disabled={saving} className="btn-primary justify-center">{saving ? 'Guardando...' : 'Registrar seguimiento'}</button></form><div className="flex flex-col divide-y divide-border">{personFollowups.length ? personFollowups.map((item) => <div key={item.id} className="py-3"><div className="flex justify-between gap-2"><p className="text-sm font-medium">{item.accion}</p><span className={`text-xs ${item.estado === 'completado' ? 'text-success' : item.estado === 'cancelado' ? 'text-muted' : 'text-accent'}`}>{item.estado || 'pendiente'}</span></div><p className="text-xs text-muted mt-1">{item.fecha}{item.proxima_fecha ? ` · Próximo: ${item.proxima_fecha}` : ''}{item.tipo_alerta ? ` · ${item.tipo_alerta}` : ''}</p>{item.notas && <p className="text-xs text-secondary mt-1">{item.notas}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay seguimientos registrados.</p>}</div></section>
+  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-4 w-[min(24rem,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><div className="flex items-start justify-between gap-3 mb-3"><div><h2 className="font-medium">Seguimiento pastoral</h2><p className="text-xs text-secondary mt-1">{person.nombres} {person.apellidos}</p></div><span className="text-xs text-muted">{personFollowups.length} registros</span></div><form onSubmit={onSubmit} className="flex flex-col gap-2 border-b border-border pb-4"><select name="tipo_alerta" className="input-field text-sm" defaultValue=""><option value="">Tipo de situación...</option><option value="familia">Familia</option><option value="bautismo">Bautismo</option><option value="asistencia_persona">Asistencia</option><option value="general">General</option></select><input required name="accion" className="input-field text-sm" placeholder="Acción realizada" /><div className="grid grid-cols-2 gap-2"><label className="text-xs text-secondary">Fecha realizada<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={hoyBogota()} /></label><label className="text-xs text-secondary">Próximo contacto<input name="proxima_fecha" type="date" className="input-field text-sm mt-1" /></label></div><textarea name="notas" className="input-field text-sm min-h-16" placeholder="Notas del acompañamiento" /><button disabled={saving} className="btn-primary justify-center">{saving ? 'Guardando...' : 'Registrar seguimiento'}</button></form><div className="flex flex-col divide-y divide-border">{personFollowups.length ? personFollowups.map((item) => <div key={item.id} className="py-3"><div className="flex justify-between gap-2"><p className="text-sm font-medium">{item.accion}</p><span className={`text-xs ${item.estado === 'completado' ? 'text-success' : item.estado === 'cancelado' ? 'text-muted' : 'text-accent'}`}>{item.estado || 'pendiente'}</span></div><p className="text-xs text-muted mt-1">{item.fecha}{item.proxima_fecha ? ` · Próximo: ${item.proxima_fecha}` : ''}{item.tipo_alerta ? ` · ${item.tipo_alerta}` : ''}</p>{item.notas && <p className="text-xs text-secondary mt-1">{item.notas}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay seguimientos registrados.</p>}</div></section>
 }
 function CargoPanel({ person, cargos, saving, onSubmit, onEdit, embedded = false }) {
   const personCargos = cargos.filter((item) => item.persona_id === person?.id)
-  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-[calc(75vh+1rem)] w-[min(24rem,calc(100vw-2rem))] max-h-[30vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><h2 className="font-medium">Historial de cargos</h2><form onSubmit={onSubmit} className="grid grid-cols-2 gap-2 mt-3"><input required name="nombre_cargo" className="input-field text-sm col-span-2" placeholder="Nombre del cargo" /><input name="area" className="input-field text-sm" placeholder="Área" /><label className="text-xs text-secondary">Desde<input required name="fecha_inicio" type="date" aria-label="Fecha desde" className="input-field text-sm mt-1" defaultValue={new Date().toISOString().slice(0, 10)} /></label><label className="text-xs text-secondary">Hasta (opcional)<input name="fecha_fin" type="date" aria-label="Fecha hasta opcional" className="input-field text-sm mt-1" /></label><input name="observaciones" className="input-field text-sm col-span-2" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm col-span-2 justify-center">{saving ? 'Guardando...' : 'Registrar cargo'}</button></form><div className="divide-y divide-border mt-3">{personCargos.map((item) => <div key={item.id} className="flex items-center justify-between gap-2 py-2"><div><p className="text-xs font-medium">{item.nombre_cargo}{item.area ? ` · ${item.area}` : ''}</p><p className="text-xs text-muted">{item.fecha_inicio}{item.fecha_fin ? ` hasta ${item.fecha_fin}` : ' · Actual'}</p></div><button type="button" onClick={() => onEdit(item)} className="text-xs text-accent">Editar</button></div>)}</div></section>
+  return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-[calc(75vh+1rem)] w-[min(24rem,calc(100vw-2rem))] max-h-[30vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><h2 className="font-medium">Historial de cargos</h2><form onSubmit={onSubmit} className="grid grid-cols-2 gap-2 mt-3"><input required name="nombre_cargo" className="input-field text-sm col-span-2" placeholder="Nombre del cargo" /><input name="area" className="input-field text-sm" placeholder="Área" /><label className="text-xs text-secondary">Desde<input required name="fecha_inicio" type="date" aria-label="Fecha desde" className="input-field text-sm mt-1" defaultValue={hoyBogota()} /></label><label className="text-xs text-secondary">Hasta (opcional)<input name="fecha_fin" type="date" aria-label="Fecha hasta opcional" className="input-field text-sm mt-1" /></label><input name="observaciones" className="input-field text-sm col-span-2" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm col-span-2 justify-center">{saving ? 'Guardando...' : 'Registrar cargo'}</button></form><div className="divide-y divide-border mt-3">{personCargos.map((item) => <div key={item.id} className="flex items-center justify-between gap-2 py-2"><div><p className="text-xs font-medium">{item.nombre_cargo}{item.area ? ` · ${item.area}` : ''}</p><p className="text-xs text-muted">{item.fecha_inicio}{item.fecha_fin ? ` hasta ${item.fecha_fin}` : ' · Actual'}</p></div><button type="button" onClick={() => onEdit(item)} className="text-xs text-accent">Editar</button></div>)}</div></section>
 }
 
 const MOVIMIENTO_LABELS = { alta_bautismo: 'Alta por bautismo', alta_recibimiento: 'Alta por recibimiento (carta)', baja_traslado: 'Baja por traslado', baja_disciplina: 'Baja por disciplina', baja_exclusion: 'Baja por exclusión', reactivacion: 'Reactivación' }
@@ -993,7 +994,7 @@ function MembershipMovementsPanel({ person, movimientosMembresia, saving, onSubm
       <input className="input-field text-sm" placeholder="Observaciones (opcional)" value={trasladoObservaciones} onChange={(event) => setTrasladoObservaciones(event.target.value)} />
       <button type="button" disabled={savingTraslado || !trasladoDestinoId} onClick={onIniciarTraslado} className="btn-primary text-sm justify-center">{savingTraslado ? 'Iniciando...' : 'Iniciar traslado'}</button>
     </div>
-    <h2 className="font-medium mt-4">Movimientos de membresía</h2><p className="text-xs text-secondary mt-1">Altas y bajas oficiales para la auditoría de estadísticas.</p><form onSubmit={onSubmit} className="flex flex-col gap-2 mt-3 border-b border-border pb-4"><select required name="tipo" className="input-field text-sm" defaultValue=""><option value="" disabled>Tipo de movimiento...</option>{Object.entries(MOVIMIENTO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><label className="text-xs text-secondary">Fecha<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={new Date().toISOString().slice(0, 10)} /></label><input name="observaciones" className="input-field text-sm" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm justify-center">{saving ? 'Guardando...' : 'Registrar movimiento'}</button></form><div className="divide-y divide-border">{personMovements.length ? personMovements.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{MOVIMIENTO_LABELS[item.tipo] || item.tipo}</p><p className="text-xs text-muted mt-1">{item.fecha}{item.congregaciones_relacionada?.nombre ? ` · ${item.congregaciones_relacionada.nombre}` : ''}</p>{item.observaciones && <p className="text-xs text-secondary mt-1">{item.observaciones}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay movimientos registrados.</p>}</div></section>
+    <h2 className="font-medium mt-4">Movimientos de membresía</h2><p className="text-xs text-secondary mt-1">Altas y bajas oficiales para la auditoría de estadísticas.</p><form onSubmit={onSubmit} className="flex flex-col gap-2 mt-3 border-b border-border pb-4"><select required name="tipo" className="input-field text-sm" defaultValue=""><option value="" disabled>Tipo de movimiento...</option>{Object.entries(MOVIMIENTO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><label className="text-xs text-secondary">Fecha<input required name="fecha" type="date" className="input-field text-sm mt-1" defaultValue={hoyBogota()} /></label><input name="observaciones" className="input-field text-sm" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm justify-center">{saving ? 'Guardando...' : 'Registrar movimiento'}</button></form><div className="divide-y divide-border">{personMovements.length ? personMovements.map((item) => <div key={item.id} className="py-3"><p className="text-sm font-medium">{MOVIMIENTO_LABELS[item.tipo] || item.tipo}</p><p className="text-xs text-muted mt-1">{item.fecha}{item.congregaciones_relacionada?.nombre ? ` · ${item.congregaciones_relacionada.nombre}` : ''}</p>{item.observaciones && <p className="text-xs text-secondary mt-1">{item.observaciones}</p>}</div>) : <p className="text-xs text-muted py-4">Aún no hay movimientos registrados.</p>}</div></section>
 }
 function Metric({ label, value, accent, info }) {
   return (

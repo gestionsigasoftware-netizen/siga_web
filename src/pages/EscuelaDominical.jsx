@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { BookOpen, GraduationCap, Plus, Target, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -62,7 +63,7 @@ export default function EscuelaDominical() {
   const [maestroForm, setMaestroForm] = useState({ persona_id: "", rol: "maestro" });
   const [selectedClaseId, setSelectedClaseId] = useState(null);
   const [lecciones, setLecciones] = useState([]);
-  const [leccionForm, setLeccionForm] = useState({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+  const [leccionForm, setLeccionForm] = useState({ tema: "", fecha: hoyBogota(), notas: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
 
   async function load() {
@@ -80,7 +81,7 @@ export default function EscuelaDominical() {
       supabase.from("escuela_dominical_ninos").select("id, nombres, apellidos, clase_id, fecha_nacimiento, acudiente_nombre, acudiente_telefono, estado, bautizado, fecha_bautismo, sellado, fecha_sellado").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("escuela_dominical_maestros").select("id, persona_id, rol, activo, personas(nombres, apellidos)").eq("congregacion_id", congregacionId).order("created_at", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
-      supabase.from("escuela_dominical_lecciones").select("id, clase_id, numero, tema, fecha, asistentes, escuela_dominical_clases!inner(congregacion_id, nombre)").eq("escuela_dominical_clases.congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha"),
+      supabase.from("escuela_dominical_lecciones").select("id, clase_id, numero, tema, fecha, asistentes, escuela_dominical_clases!inner(congregacion_id, nombre)").eq("escuela_dominical_clases.congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha"),
     ]);
     const failed = [c, n, m, p, l].find((item) => item.error);
     if (failed) setError("No se pudo cargar Escuela Dominical. Intenta nuevamente o contacta al administrador.");
@@ -131,7 +132,7 @@ export default function EscuelaDominical() {
     }
     setSaving(false);
     setNotice("Lección registrada con asistencia individual.");
-    setLeccionForm({ tema: "", fecha: new Date().toISOString().slice(0, 10), notas: "" });
+    setLeccionForm({ tema: "", fecha: hoyBogota(), notas: "" });
     setAsistenciaMarcada({});
     loadLecciones(selectedClaseId);
     load();
@@ -190,7 +191,7 @@ export default function EscuelaDominical() {
   async function marcarHito(nino, campo, fechaCampo) {
     if (!canEdit) return;
     setSaving(true); setError(null);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyBogota();
     const result = await supabase.from("escuela_dominical_ninos").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", nino.id).eq("congregacion_id", congregacionId);
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
@@ -334,13 +335,13 @@ export default function EscuelaDominical() {
           </div>
           <div className="flex flex-col divide-y divide-border mt-4">
             {clases.map((clase) => (
-              <button type="button" key={clase.id} onClick={() => loadLecciones(clase.id)} className={`py-3 text-left ${selectedClaseId === clase.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
+              <div role="button" tabIndex={0} key={clase.id} onClick={() => loadLecciones(clase.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadLecciones(clase.id); } }} className={`py-3 text-left cursor-pointer ${selectedClaseId === clase.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{clase.nombre}</p>
                   <span className="text-xs text-accent flex items-center gap-1">Lección {clase.leccion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una lección nueva; no se puede editar a mano." /></span>
                 </div>
                 <p className="text-xs text-secondary mt-1">{clase.etapa || "Sin etapa"} · {clase.personas ? `${clase.personas.nombres} ${clase.personas.apellidos}` : "Sin maestro líder"}</p>
-              </button>
+              </div>
             ))}
             {!clases.length && <p className="text-sm text-muted py-6">Aún no hay clases registradas.</p>}
           </div>

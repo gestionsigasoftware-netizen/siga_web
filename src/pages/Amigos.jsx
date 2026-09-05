@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
@@ -36,7 +37,7 @@ const EMPTY_FORM = {
   direccion: "",
   sector: "",
   invitado_por: "",
-  fecha_primer_contacto: new Date().toISOString().slice(0, 10),
+  fecha_primer_contacto: hoyBogota(),
   etapa_id: "",
   zona_id: "",
   evangelismo_metodologia_id: "",
@@ -269,7 +270,7 @@ export default function Amigos() {
     setAmigos((current) => [data, ...current]);
     setForm({
       ...EMPTY_FORM,
-      fecha_primer_contacto: new Date().toISOString().slice(0, 10),
+      fecha_primer_contacto: hoyBogota(),
     });
     setShowForm(false);
     selectFriend(data);
@@ -325,7 +326,7 @@ export default function Amigos() {
     const values = {
       estado_espiritual: becomingBaptized ? "bautizado" : "en_ruta",
       convertido: becomingBaptized,
-      ...(becomingBaptized ? { bautizado: true, fecha_bautismo: selected.fecha_bautismo || new Date().toISOString().slice(0, 10) } : {}),
+      ...(becomingBaptized ? { bautizado: true, fecha_bautismo: selected.fecha_bautismo || hoyBogota() } : {}),
     };
     const { error: updateError } = await supabase
       .from("amigos")
@@ -350,7 +351,7 @@ export default function Amigos() {
     if (!canEdit) { setError("Tu perfil no permite modificar el estado espiritual."); return; }
     setSaving(true);
     setError(null);
-    const values = { sellado: true, fecha_sellado: new Date().toISOString().slice(0, 10) };
+    const values = { sellado: true, fecha_sellado: hoyBogota() };
     const { error: updateError } = await supabase
       .from("amigos")
       .update(values)
@@ -377,7 +378,7 @@ export default function Amigos() {
       p_apellidos: transferName.apellidos,
       p_fecha_nacimiento: editForm.fecha_nacimiento || null,
       p_estado_civil: editForm.estado_civil || "soltero",
-      p_fecha_ingreso: new Date().toISOString().slice(0, 10),
+      p_fecha_ingreso: hoyBogota(),
     });
     setSaving(false);
     if (transferError) {
@@ -1071,7 +1072,7 @@ function FriendStageHistory({ history, loading }) {
 }
 
 function FriendInsights({ amigos, etapas, zonas, metodologias }) {
-  const oldContactDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const oldContactDate = fechaBogota(new Date(Date.now() - 30 * 86400000))
   const withoutRecentContact = amigos.filter((friend) => !friend.convertido && friend.fecha_primer_contacto && friend.fecha_primer_contacto < oldContactDate).length
   const sealedNotBaptized = amigos.filter((friend) => !friend.convertido && friend.sellado).length
   const countBy = (key, items) => items.map((item) => ({ ...item, total: amigos.filter((friend) => friend[key] === item.id && !friend.convertido).length })).filter((item) => item.total > 0).sort((left, right) => right.total - left.total)

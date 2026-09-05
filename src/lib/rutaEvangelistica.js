@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { hoyBogota, inicioDiaBogota } from "./fechaBogota";
 
 // Umbrales fijos de "sin avance" por estacion -- decision del usuario:
 // valores fijos que yo propongo, no configurables por congregacion.
@@ -15,9 +16,9 @@ export const UMBRAL_DIAS_ESTACION = {
 
 export function diasDesde(fecha) {
   if (!fecha) return null;
-  const inicio = new Date(`${fecha}T00:00:00`);
+  const inicio = inicioDiaBogota(fecha);
   if (Number.isNaN(inicio.getTime())) return null;
-  return Math.floor((new Date() - inicio) / 86400000);
+  return Math.floor((Date.now() - inicio.getTime()) / 86400000);
 }
 
 export async function getEstacion(congregacionId, codigo) {
@@ -59,7 +60,7 @@ export async function iniciarOMoverEstacion({
   fechaInicio,
   notas,
 }) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyBogota();
   const columna = amigoId ? "amigo_id" : "persona_id";
   const valor = amigoId || personaId;
   const { data: activo, error: activoError } = await supabase

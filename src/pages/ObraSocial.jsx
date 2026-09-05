@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { AlertTriangle, HandHeart, Plus } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
@@ -63,7 +64,7 @@ export default function ObraSocial() {
   const [canEdit, setCanEdit] = useState(false);
   const [casoForm, setCasoForm] = useState({ familia_id: "", red_familias_caso_id: "", tipo_necesidad: "economica", prioridad: "media", responsable_persona_id: "", notas: "" });
   const [selectedCasoId, setSelectedCasoId] = useState(null);
-  const [ayudaForm, setAyudaForm] = useState({ fecha: new Date().toISOString().slice(0, 10), tipo: "material", descripcion: "", responsable_persona_id: "" });
+  const [ayudaForm, setAyudaForm] = useState({ fecha: hoyBogota(), tipo: "material", descripcion: "", responsable_persona_id: "" });
 
   async function load() {
     if (!congregacionId) {
@@ -77,7 +78,7 @@ export default function ObraSocial() {
     start.setDate(start.getDate() - Number(periodo));
     const [c, ay, p, f, rf] = await Promise.all([
       supabase.from("obra_social_casos").select("id, familia_id, red_familias_caso_id, tipo_necesidad, prioridad, estado, responsable_persona_id, fecha_apertura, notas, familias:familia_id(nombre_familia)").eq("congregacion_id", congregacionId).order("fecha_apertura", { ascending: false }),
-      supabase.from("obra_social_ayudas").select("id, caso_id, fecha, tipo, descripcion, responsable_persona_id, obra_social_casos!inner(congregacion_id)").eq("obra_social_casos.congregacion_id", congregacionId).gte("fecha", start.toISOString().slice(0, 10)).order("fecha", { ascending: false }),
+      supabase.from("obra_social_ayudas").select("id, caso_id, fecha, tipo, descripcion, responsable_persona_id, obra_social_casos!inner(congregacion_id)").eq("obra_social_casos.congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("familias").select("id, nombre_familia").eq("congregacion_id", congregacionId).order("nombre_familia"),
       supabase.from("red_familias_casos").select("id, familia_id, tipo_necesidad, estado, familias(nombre_familia)").eq("congregacion_id", congregacionId).order("fecha_apertura", { ascending: false }),
@@ -136,7 +137,7 @@ export default function ObraSocial() {
     setSaving(false);
     if (result.error) { setError(`No se pudo registrar la ayuda: ${result.error.message}`); return; }
     setNotice("Ayuda registrada.");
-    setAyudaForm({ fecha: new Date().toISOString().slice(0, 10), tipo: "material", descripcion: "", responsable_persona_id: "" });
+    setAyudaForm({ fecha: hoyBogota(), tipo: "material", descripcion: "", responsable_persona_id: "" });
     load();
   }
 
@@ -152,7 +153,7 @@ export default function ObraSocial() {
   const casosAbiertos = casos.filter((item) => ["identificada", "en_apoyo"].includes(item.estado));
   const casosResueltos = casos.filter((item) => ["resuelta", "cerrada"].includes(item.estado));
   const casosAltaPrioridad = casosAbiertos.filter((item) => item.prioridad === "alta");
-  const ayudasUltimoMes = ayudas.filter((item) => item.fecha >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const ayudasUltimoMes = ayudas.filter((item) => item.fecha >= fechaBogota(new Date(Date.now() - 30 * 86400000)));
 
   const trend = [...new Set(ayudas.map((item) => item.fecha))].sort().map((fecha) => ({
     fecha,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CreditCard, Landmark, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -55,7 +56,7 @@ export default function Suscripciones() {
     setForm({
       plan: actual?.plan || 'mensual',
       monto: actual?.monto || '',
-      fecha_proximo_pago: actual?.fecha_proximo_pago || new Date().toISOString().slice(0, 10),
+      fecha_proximo_pago: actual?.fecha_proximo_pago || hoyBogota(),
       dias_gracia: actual?.dias_gracia ?? 5,
     })
   }

@@ -3,6 +3,7 @@ import { Bar, Line } from 'react-chartjs-2'
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js'
 import { FileBarChart2, Filter } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import { chartOptions as buildChartOptions, trendDataset, distributionDataset } from '../lib/chartTheme'
 import ChartEmpty from '../components/ChartEmpty'
@@ -45,7 +46,7 @@ export default function ReportesOptimizado() {
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const desde = periodo === 'all' ? '2000-01-01' : (() => { const date = new Date(); date.setDate(date.getDate() - Number(periodo)); return date.toISOString().slice(0, 10) })()
+    const desde = periodo === 'all' ? '2000-01-01' : (() => { const date = new Date(); date.setDate(date.getDate() - Number(periodo)); return fechaBogota(date) })()
     const summaryRequest = supabase.rpc('resumen_reportes', { p_congregacion_id: congregacionId || null, p_desde: desde })
     let detailRequest = supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, nombre_actividad, congregacion_id, congregaciones(id, nombre), modulos(id, nombre_modulo), tipos_actividad(nombre)', { count: 'exact' }).order('fecha', { ascending: false }).order('id', { ascending: false }).range(detailPage * PAGE_SIZE, detailPage * PAGE_SIZE + PAGE_SIZE - 1)
     if (congregacionId) detailRequest = detailRequest.eq('congregacion_id', congregacionId)

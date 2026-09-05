@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
 
-const TODAY = new Date().toISOString().slice(0, 10)
+const TODAY = hoyBogota()
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
 const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
 const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
@@ -171,7 +172,7 @@ export default function PastoralDistrital() {
   const [resumenRuta, setResumenRuta] = useState([])
   const [personasDistrito, setPersonasDistrito] = useState([])
   const [cargosDistritales, setCargosDistritales] = useState([])
-  const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: new Date().toISOString().slice(0, 10) })
+  const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
   const [savingCargo, setSavingCargo] = useState(false)
   const [tablePages, setTablePages] = useState({})
 
@@ -335,14 +336,14 @@ export default function PastoralDistrital() {
       setError(result.error.code === '23505' ? 'Ya hay una persona vigente en ese cargo. Termina su periodo antes de asignar uno nuevo.' : 'No se pudo asignar el cargo.')
       return
     }
-    setCargoForm({ persona_id: '', cargo: 'supervisor', fecha_inicio: new Date().toISOString().slice(0, 10) })
+    setCargoForm({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
     load()
   }
 
   async function terminarCargo(item) {
     setSavingCargo(true)
     setError(null)
-    const result = await supabase.from('cargos_distritales').update({ fecha_fin: new Date().toISOString().slice(0, 10) }).eq('id', item.id)
+    const result = await supabase.from('cargos_distritales').update({ fecha_fin: hoyBogota() }).eq('id', item.id)
     setSavingCargo(false)
     if (result.error) { setError('No se pudo terminar el cargo.'); return }
     load()
