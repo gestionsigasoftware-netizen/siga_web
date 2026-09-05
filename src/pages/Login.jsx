@@ -78,7 +78,26 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f0e9] text-ink p-4 md:p-6">
+    <div className="login-ambient min-h-screen text-ink p-4 md:p-6">
+      <style>{`
+        /* Fondo fuera de la tarjeta de login: el mismo beige de marca,
+           pero con un leve tinte calido (lado dorado, familia warning)
+           y uno frio (lado azul, familia accent) que migran despacio de
+           un lado a otro -- decorativo, nunca toca la tarjeta en si. */
+        .login-ambient {
+          background: linear-gradient(115deg, #f7ecd9 0%, #f3f0e9 35%, #f3f0e9 65%, #eaf0f7 100%);
+          background-size: 220% 220%;
+          animation: login-ambient-shift 26s ease-in-out infinite;
+        }
+        @keyframes login-ambient-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .login-ambient { animation: none; background-position: 50% 50%; }
+        }
+      `}</style>
       <div className="min-h-0 lg:min-h-[calc(100vh-3rem)] max-w-xl lg:max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] overflow-hidden rounded-card bg-surface-2 shadow-[0_24px_80px_rgba(21,27,34,0.12)]">
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
