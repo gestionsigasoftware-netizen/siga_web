@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-05): `PUERTO TEJADA CAUCA CENTRAL` (congregacion
+	real) tenia `es_demo = true` por error. Como `seed_datos_prueba.sql`
+	y `limpiar_datos_prueba.sql` eligen la congregacion demo con
+	`where es_demo = true order by created_at limit 1`, toda esta sesion
+	esos scripts venian apuntando a la congregacion real en vez de a una
+	separada -- el filtro por marcador `SIGA_PRUEBA_CARGA` en cada
+	`delete` evito que se borraran datos reales (confirmado: los 100
+	registros de auditoria `DELETE membresias_comite` que vio el usuario
+	eran de comites de prueba ya limpiados, no de los 3 comites reales de
+	Puerto Tejada, que nunca tuvieron el marcador). Corregido:
+	`es_demo` ahora es `false` en Puerto Tejada. **Accion pendiente**:
+	antes de la proxima ronda de pruebas de carga, crear una congregacion
+	demo nueva y separada (`select crear_congregacion_demo('...')` desde
+	el SQL Editor) para que `seed_datos_prueba.sql`/`limpiar_datos_prueba.sql`
+	tengan donde apuntar -- ahora mismo no existe ninguna `es_demo=true`.
 - Resuelto (2026-09-04): los 8 pendientes menores de la ronda de QA de
 	produccion, todos solucionados en una sola tanda:
 	1. **Bug sistemico de fecha por huso horario** (el mas importante de
