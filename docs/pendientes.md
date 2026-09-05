@@ -2,6 +2,28 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-05): en el login (web y PWA), un error de red (sin
+	internet) mostraba el mismo mensaje que credenciales incorrectas --
+	`signIn()` distingue ahora `AuthRetryableFetchError`/`navigator.onLine`
+	de una respuesta real del servidor. Verificado con Playwright
+	(offline real vs. credenciales malas con conexion, mensajes
+	distintos) en ambos repos.
+- Decision de negocio (2026-09-05): cuando alguien se entrega durante
+	un culto regular en salon (intramural, lo atiende Ujieres) en vez de
+	una actividad de campo, se registra igual en el mismo formulario
+	"Amigo nuevo" de la PWA -- no se crea un formulario aparte para
+	Ujieres. Ese formulario ya es generico (no es exclusivo de
+	Evangelismo por nombre, se habilita para cualquier cargo cuyo modulo
+	tenga `requiere_zona = true`) y Ujieres no maneja zonas por diseño
+	(es intramural). Quien debe registrar al amigo en ese caso es
+	alguien con cargo de Evangelismo presente en el culto (decision de
+	"Equipo de trabajo" del pastor, no de software). Se agrego
+	**'Culto en salon'** al catalogo de metodologia de Evangelismo en
+	`supabase/evangelismo.sql` (el mismo `do $$` que ya crea el modulo y
+	su catalogo para todas las congregaciones, de forma idempotente).
+	**Accion requerida del usuario**: re-ejecutar `supabase/evangelismo.sql`
+	completo en el SQL Editor para que la opcion nueva aparezca (seguro,
+	no duplica nada existente).
 - Resuelto (2026-09-05): `PUERTO TEJADA CAUCA CENTRAL` (congregacion
 	real) tenia `es_demo = true` por error. Como `seed_datos_prueba.sql`
 	y `limpiar_datos_prueba.sql` eligen la congregacion demo con

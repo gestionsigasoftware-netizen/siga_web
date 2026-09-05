@@ -2,6 +2,14 @@
 -- Ejecutar despues de schema.sql, accesos.sql y feligresia.sql.
 -- La PWA es la fuente de asistencia: registros_actividad + zonas + tipos_actividad.
 -- La web administra catalogos y consulta los datos para toma de decisiones.
+--
+-- Actualizado 2026-09-05: se agrego 'Culto en salon' como metodologia --
+-- para cuando alguien se entrega durante un culto regular (intramural,
+-- capturado por Ujieres) y no durante una actividad de campo. Quien lo
+-- registra sigue siendo alguien con cargo de Evangelismo (con zona),
+-- no el ujier -- ver docs/pendientes.md. Re-ejecutar este archivo
+-- completo es seguro (idempotente, el "not exists" evita duplicados y
+-- lo agrega retroactivamente a todas las congregaciones existentes).
 
 -- Crea el modulo por congregacion sin duplicar la captura de la PWA.
 do $$
@@ -19,7 +27,7 @@ begin
     else
       update modulos set alcance = 'extramural', requiere_zona = true where id = v_modulo_id;
     end if;
-    foreach v_metodo in array array['REFAM', 'Culto de barrio', 'Culto relampago', 'Celula', 'Discipulado', 'Visita'] loop
+    foreach v_metodo in array array['REFAM', 'Culto de barrio', 'Culto relampago', 'Celula', 'Discipulado', 'Visita', 'Culto en salon'] loop
       insert into tipos_actividad (modulo_id, nombre, caracter)
       select v_modulo_id, v_metodo, 'Evangelismo'
       where not exists (select 1 from tipos_actividad where modulo_id = v_modulo_id and lower(nombre) = lower(v_metodo));
