@@ -23,6 +23,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
@@ -70,6 +71,7 @@ export default function ObraCarcelaria() {
   const [asistencias, setAsistencias] = useState([]);
   const [seguimientos, setSeguimientos] = useState([]);
   const [reinserciones, setReinserciones] = useState([]);
+  const [internosVinculados, setInternosVinculados] = useState(new Set());
   const [personas, setPersonas] = useState([]);
   const [familias, setFamilias] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +93,8 @@ export default function ObraCarcelaria() {
   const [cultoForm, setCultoForm] = useState(EMPTY_CULTO);
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
   const [familiarForm, setFamiliarForm] = useState(EMPTY_FAMILIAR);
+  const [vinculandoId, setVinculandoId] = useState(null);
+  const [responsableVinculoId, setResponsableVinculoId] = useState("");
 
   async function load() {
     if (!congregacionId) {
@@ -102,7 +106,7 @@ export default function ObraCarcelaria() {
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
-    const [cong, cen, i, d, cu, a, sf, r, p, f] = await Promise.all([
+    const [cong, cen, i, d, cu, a, sf, r, p, f, am] = await Promise.all([
       supabase.from("congregaciones").select("distrito_id").eq("id", congregacionId).single(),
       supabase.from("centros_reclusion").select("id, nombre, tipo, ciudad, activo").eq("activo", true).order("nombre"),
       supabase.from("obra_carcelaria_internos").select("id, nombres, apellidos, centro_id, patio, fecha_ingreso_ministerio, estado, bautizado, fecha_bautismo, sellado, fecha_sellado, fecha_liberacion, observaciones, centros_reclusion(nombre)").eq("congregacion_id", congregacionId).order("nombres"),
@@ -113,8 +117,9 @@ export default function ObraCarcelaria() {
       supabase.from("obra_carcelaria_reinsercion").select("id, interno_id, congregacion_origen_id, congregacion_destino_id, fecha_asignacion, estado, notas, obra_carcelaria_internos(nombres, apellidos), origen:congregacion_origen_id(nombre), destino:congregacion_destino_id(nombre)").or(`congregacion_origen_id.eq.${congregacionId},congregacion_destino_id.eq.${congregacionId}`).order("fecha_asignacion", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("familias").select("id, nombre_familia").eq("congregacion_id", congregacionId).order("nombre_familia"),
+      supabase.from("amigos").select("obra_carcelaria_interno_id").eq("congregacion_id", congregacionId).not("obra_carcelaria_interno_id", "is", null),
     ]);
-    const failed = [cong, cen, i, d, cu, a, sf, r, p, f].find((item) => item.error);
+    const failed = [cong, cen, i, d, cu, a, sf, r, p, f, am].find((item) => item.error);
     if (failed) setError("No se pudo cargar Obra Carcelaria. Intenta nuevamente o contacta al administrador.");
     setCentros(cen.data ?? []);
     setInternos(i.data ?? []);
@@ -125,6 +130,7 @@ export default function ObraCarcelaria() {
     setReinserciones(r.data ?? []);
     setPersonas(p.data ?? []);
     setFamilias(f.data ?? []);
+    setInternosVinculados(new Set((am.data ?? []).map((row) => row.obra_carcelaria_interno_id)));
     setLoading(false);
   }
 
@@ -243,6 +249,43 @@ export default function ObraCarcelaria() {
     setSaving(false);
     if (result.error) { setError(`No se pudo actualizar la reinserción: ${result.error.message}`); return; }
     setNotice(`Reinserción marcada como ${ESTADO_REINSERCION_LABELS[estado].toLowerCase()}.`); load();
+  }
+
+  // Un interno reinsertado no tenia ningun siguiente paso una vez
+  // contactado por la congregacion receptora -- esto lo conecta con el
+  // unico mecanismo real de seguimiento individual que ya existe
+  // (amigos + Ruta Evangelistica), sin inventar uno nuevo. Si ya se
+  // bautizo estando preso, entra directo listo para incorporar a
+  // Feligresia desde Amigos; si no, entra a BIS (ya fue contactado, no
+  // necesita la sensibilizacion de Uno Mas) con responsable obligatorio,
+  // igual que cualquier otra alta a la ruta.
+  async function vincularRutaEvangelistica(item) {
+    const interno = internos.find((row) => row.id === item.interno_id);
+    if (!interno) { setError("No se encontró la ficha del interno."); return; }
+    if (!interno.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    setSaving(true); setError(null);
+    const nombreCompleto = `${interno.nombres} ${interno.apellidos}`.trim();
+    const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
+      congregacion_id: item.congregacion_destino_id,
+      nombres: nombreCompleto,
+      fecha_primer_contacto: hoyBogota(),
+      obra_carcelaria_interno_id: interno.id,
+      ...(interno.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: interno.fecha_bautismo } : {}),
+    }).select("id").single();
+    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (interno.bautizado) {
+      setSaving(false);
+      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setVinculandoId(null); setResponsableVinculoId(""); load();
+      return;
+    }
+    const { data: estacionBis, error: estacionError } = await getEstacion(item.congregacion_destino_id, "bis");
+    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación receptora."); return; }
+    const movResult = await iniciarOMoverEstacion({ congregacionId: item.congregacion_destino_id, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
+    setSaving(false);
+    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
+    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Obra Carcelaria...</div>;
@@ -557,23 +600,47 @@ export default function ObraCarcelaria() {
           {reinserciones.length ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"><span className="inline-flex items-center gap-1">Ruta Evangelística<InfoTip texto="Una vez contactado, vincula al interno con el mismo seguimiento individual que usa toda la congregación: si ya se bautizó estando preso, queda listo para incorporar a Feligresía; si no, entra a BIS." /></span></th></tr></thead>
                 <tbody>
-                  {reinserciones.map((item) => (
-                    <tr key={item.id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.obra_carcelaria_internos?.nombres} {item.obra_carcelaria_internos?.apellidos}</td>
-                      <td className="px-4 py-2.5 text-secondary">{item.origen?.nombre}</td>
-                      <td className="px-4 py-2.5 text-secondary">{item.destino?.nombre}</td>
-                      <td className="px-4 py-2.5"><span className="text-xs px-2 py-1 rounded bg-surface-1">{ESTADO_REINSERCION_LABELS[item.estado]}</span></td>
-                      <td className="px-4 py-2.5 text-right">
-                        {canEdit && item.congregacion_destino_id === congregacionId && (
-                          <select className="input-field text-xs py-1" value={item.estado} onChange={(event) => actualizarReinsercion(item, event.target.value)}>
-                            {Object.entries(ESTADO_REINSERCION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                          </select>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {reinserciones.map((item) => {
+                    const interno = internos.find((row) => row.id === item.interno_id);
+                    const yaVinculado = internosVinculados.has(item.interno_id);
+                    const puedeVincular = canEdit && item.congregacion_destino_id === congregacionId && item.estado !== "asignado" && !yaVinculado;
+                    return (
+                      <tr key={item.id} className="border-t border-border align-top">
+                        <td className="px-4 py-2.5 font-medium">{item.obra_carcelaria_internos?.nombres} {item.obra_carcelaria_internos?.apellidos}</td>
+                        <td className="px-4 py-2.5 text-secondary">{item.origen?.nombre}</td>
+                        <td className="px-4 py-2.5 text-secondary">{item.destino?.nombre}</td>
+                        <td className="px-4 py-2.5">
+                          {canEdit && item.congregacion_destino_id === congregacionId ? (
+                            <select className="input-field text-xs py-1" value={item.estado} onChange={(event) => actualizarReinsercion(item, event.target.value)}>
+                              {Object.entries(ESTADO_REINSERCION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            </select>
+                          ) : <span className="text-xs px-2 py-1 rounded bg-surface-1">{ESTADO_REINSERCION_LABELS[item.estado]}</span>}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : puedeVincular ? (
+                            vinculandoId === item.id ? (
+                              <div className="flex flex-col gap-1.5 min-w-[180px]">
+                                <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
+                                  <option value="">Responsable...</option>
+                                  {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+                                </select>
+                                <div className="flex gap-1.5">
+                                  <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item)}>Confirmar</button>
+                                  <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (interno?.bautizado ? vincularRutaEvangelistica(item) : setVinculandoId(item.id))}>
+                                Vincular
+                              </button>
+                            )
+                          ) : <span className="text-xs text-muted">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

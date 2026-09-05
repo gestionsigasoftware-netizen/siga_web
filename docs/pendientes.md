@@ -2,6 +2,23 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-05): la reinsercion post-penitenciaria
+	(`obra_carcelaria_reinsercion`: asignado -> contactado -> activo/
+	inactivo/reincidencia) no tenia ningun siguiente paso una vez
+	contactado -- no conectaba con `amigos`, la Ruta Evangelistica ni
+	Feligresia. Se agrego `amigos.obra_carcelaria_interno_id`
+	(`supabase/reinsercion_ruta_evangelistica.sql`) y un boton
+	"Vincular" en la pestaña Reinserción de `ObraCarcelaria.jsx`: si el
+	interno ya se bautizo estando preso, crea el amigo directo con
+	`estado_espiritual='bautizado'` (listo para incorporar a Feligresia
+	desde Amigos, sin pasar por estaciones); si no, exige responsable y
+	lo agrega a BIS (ya fue contactado, no necesita la sensibilizacion
+	de Uno Mas) via `iniciarOMoverEstacion`. Reutiliza el unico mecanismo
+	de seguimiento individual que ya existe, no crea uno nuevo.
+	Verificado de punta a punta con datos reales de prueba (ambos
+	caminos: bautizado y no bautizado) y limpiado sin residuos.
+	**Accion requerida del usuario**: ya ejecutada (confirmo haber
+	corrido `supabase/reinsercion_ruta_evangelistica.sql`).
 - Resuelto (2026-09-05, `siga-pwa-nacional`): Obra Carcelaria no tenia
 	forma de registrar un interno nuevo desde la PWA -- solo capturaba
 	el conteo agregado del culto (`CapturaCarcelaria.jsx`), sin ningun
