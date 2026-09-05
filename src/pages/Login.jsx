@@ -80,12 +80,12 @@ export default function Login() {
   return (
     <div className="login-ambient min-h-screen text-ink p-4 md:p-6">
       <style>{`
-        /* Fondo fuera de la tarjeta de login: el mismo beige de marca,
-           pero con un leve tinte calido (lado dorado, familia warning)
-           y uno frio (lado azul, familia accent) que migran despacio de
-           un lado a otro -- decorativo, nunca toca la tarjeta en si. */
+        /* Fondo fuera de la tarjeta de login: dos colores de marca bien
+           marcados -- dorado (familia warning) y azul (familia accent)
+           -- que migran despacio de un lado a otro. Decorativo, nunca
+           toca la tarjeta en si. */
         .login-ambient {
-          background: linear-gradient(115deg, #f7ecd9 0%, #f3f0e9 35%, #f3f0e9 65%, #eaf0f7 100%);
+          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 45%, #f3f0e9 55%, #8fbdec 100%);
           background-size: 220% 220%;
           animation: login-ambient-shift 26s ease-in-out infinite;
         }
