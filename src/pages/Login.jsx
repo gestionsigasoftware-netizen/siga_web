@@ -38,7 +38,14 @@ export default function Login() {
     setNotice(null)
     const { error } = await signIn(email, password)
     setLoading(false)
-    if (error) { setError('Usuario o contraseña incorrectos.'); return }
+    if (error) {
+      // AuthRetryableFetchError = el fetch en si fallo (sin internet),
+      // no una respuesta del servidor -- sin esto, "sin conexion" se
+      // mostraba igual que "usuario o contraseña incorrectos".
+      const sinConexion = error.name === 'AuthRetryableFetchError' || !navigator.onLine
+      setError(sinConexion ? 'No hay conexión a internet. Verifica tu conexión e intenta de nuevo.' : 'Usuario o contraseña incorrectos.')
+      return
+    }
     navigate('/app')
   }
 
