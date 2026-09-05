@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-05, `siga-pwa-nacional`): Obra Carcelaria no tenia
+	forma de registrar un interno nuevo desde la PWA -- solo capturaba
+	el conteo agregado del culto (`CapturaCarcelaria.jsx`), sin ningun
+	camino para un interno que se entrega ese dia (se quedaba en papel).
+	No podia reutilizar "Amigo nuevo" porque ese boton se habilita por
+	`requiere_zona=true` y Obra Carcelaria trabaja por centro de
+	reclusion, no por zona (`requiere_zona=false` a proposito). Se
+	agrego un formulario paralelo "Interno nuevo"
+	(`CapturaInternoNuevo.jsx`, ruta `/captura-interno/:asignacionId`,
+	boton en Home.jsx gateado por `esModuloObraCarcelaria(...)`) que
+	escribe a `obra_carcelaria_internos` (nombres, apellidos, centro,
+	patio, fecha, observaciones), con el mismo soporte offline que el
+	resto de capturas. Verificado de punta a punta (Playwright + insert
+	real en base de datos + limpieza).
 - Resuelto (2026-09-05): en el login (web y PWA), un error de red (sin
 	internet) mostraba el mismo mensaje que credenciales incorrectas --
 	`signIn()` distingue ahora `AuthRetryableFetchError`/`navigator.onLine`
