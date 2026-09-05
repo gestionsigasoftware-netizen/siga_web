@@ -2,6 +2,29 @@
 
 ## Prioridad critica antes de produccion
 
+- Ronda de QA de produccion completa (2026-09-04): 5 subagentes en
+	paralelo probaron toda la web e incluso la PWA (Ruta Evangelistica,
+	fixes recientes de sesion, pantallas distritales/nacionales,
+	FECP/Feligresia/comites, y login/navegacion) con una congregacion
+	de prueba aislada. **Sin hallazgos bloqueantes.** Informe completo
+	en `docs/qa-produccion-2026-09-04.md`. Pendiente de esa ronda:
+	- No hay pantalla real de "404 / no encontrado" (web y PWA
+		redirigen en silencio a `/` o `/app` para cualquier URL invalida).
+	- No existe forma de borrar una congregacion creada por error desde
+		"Registrar nueva congregacion" (`/pastoral-distrital`) -- sin
+		politica RLS de DELETE sobre congregaciones/personas/pastores.
+	- Menores: warning `validateDOMNesting` de InfoTip en 4 paginas
+		(Escuela Dominical, Musica, Ed. Artistica, Ed. Teologica); PWA sin
+		las *future flags* de React Router v7 (2 warnings de consola por
+		navegacion); 401 intermitente justo tras login (no reproducible
+		siempre); rol activo persiste en `localStorage` en vez de
+		`sessionStorage` (a confirmar si es el comportamiento deseado).
+- Resuelto (2026-09-04): cero fantasma en "Umbral de alerta"
+	(`src/pages/Configuracion.jsx`) -- convertia a `Number()` en cada
+	tecla, dejaba "034" en vez de "34" al escribir tras borrar. Mismo
+	patron ya arreglado antes en otros 4 archivos, aqui con la variante
+	de conversion en cada `onChange`. Verificado con Playwright
+	(escribir letra por letra + guardar + recargar). Commit `58ddf10`.
 - Resuelto (2026-09-04): seis mejoras a la Ruta Evangelistica en una
 	sola tanda: (1) responsable obligatorio al iniciar en cualquier
 	estacion, (2) linea de tiempo completa del amigo en su ficha, (3)
