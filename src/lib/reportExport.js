@@ -342,24 +342,36 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
   // Grafico embebido del primer desglose disponible -- da una lectura
   // visual inmediata que ni el Excel (barras dentro de celda) puede
   // igualar en impacto para un documento pensado para imprimir/compartir.
+  // Se ajusta al espacio que realmente queda debajo de las tarjetas en
+  // esta misma pagina (aunque quede mas chico) en vez de a un tamaño fijo
+  // que empuje el grafico a una pagina nueva y deje un vacio enorme
+  // debajo de las tarjetas.
   const primerDesglose = resumen?.desgloses?.[0] ?? resumen?.desglose
   if (primerDesglose?.items?.length) {
     try {
       const itemsGrafico = primerDesglose.items.slice(0, 8)
       const chartUrl = await generarGraficoPng(itemsGrafico.map((item) => item.label), itemsGrafico.map((item) => item.valor))
-      const anchoGrafico = pageWidth - 28
-      const altoGrafico = anchoGrafico * (380 / 900)
-      if (y + altoGrafico > pageHeight - 30) { doc.addPage(); y = 20 }
       doc.setFontSize(10)
       doc.setTextColor(17, 24, 32)
       doc.text(primerDesglose.titulo || 'Desglose', 14, y)
       y += 4
+      const relacionAspecto = 380 / 900
+      const anchoDisponible = pageWidth - 28
+      const altoDisponible = Math.max(35, pageHeight - 20 - y)
+      let anchoGrafico = anchoDisponible
+      let altoGrafico = anchoGrafico * relacionAspecto
+      if (altoGrafico > altoDisponible) { altoGrafico = altoDisponible; anchoGrafico = altoGrafico / relacionAspecto }
       doc.addImage(chartUrl, 'PNG', 14, y, anchoGrafico, altoGrafico)
-      y += altoGrafico + 8
     } catch {
       // Si el grafico falla por alguna razon, el PDF sigue siendo util sin el.
     }
   }
+
+  // La tabla de datos siempre arranca en una hoja nueva cuando hay un
+  // resumen -- separa la "hoja de un vistazo" (tarjetas + grafico) de la
+  // tabla cruda, en vez de dejarlas compitiendo por espacio en la misma
+  // pagina.
+  if (resumen) { doc.addPage(); y = 20 }
 
   const filasFormateadas = rows.map((row) => row.map(formatoNumero))
 

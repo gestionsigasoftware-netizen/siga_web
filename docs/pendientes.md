@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): el PDF con resumen (tarjetas + grafico)
+	quedaba en 3 hojas con un vacio grande en la hoja 1 debajo de las
+	tarjetas -- el grafico usaba un tamaño fijo a todo el ancho de la
+	pagina, y si eso no cabia en el espacio restante se iba entero a la
+	hoja 2, dejando la hoja 1 a medio llenar. Corregido en
+	`src/lib/reportExport.js`: el grafico ahora se ajusta al espacio
+	real que queda debajo de las tarjetas en la hoja 1 (se reduce de
+	tamaño si hace falta, conservando proporcion), y la tabla de datos
+	cruda siempre arranca en una hoja nueva cuando hay resumen -- separa
+	claramente "hoja de un vistazo" de "tabla completa". Verificado
+	contando los objetos de pagina reales del PDF generado: bajo de 3 a
+	2 paginas.
+
 - Resuelto (2026-09-06): segunda pasada sobre `src/lib/reportExport.js`
 	para subir los exports de "buenos" a "premium", tras pedirle a Claude
 	una evaluacion honesta y sugerencias:
