@@ -12,14 +12,14 @@ cp .env.example .env
 ```
 
 En el **SQL Editor** de Supabase, ejecuta en este orden exacto:
-1. `supabase/schema.sql` — estructura completa + RLS
-2. `supabase/vistas_dashboard.sql` — vistas que consume el Dashboard
-3. `supabase/accesos.sql` — perfiles, permisos y equipos de trabajo
-4. `supabase/migracion_produccion.sql` — endurecimiento RLS + validaciones de datos
-5. `supabase/feligresia.sql` — censo local, familias, comités e historial pastoral
-6. `supabase/configuracion.sql` — preferencias personales y configuración por congregación
-7. `supabase/notificaciones.sql` — centro realtime y avisos automáticos
-8. `supabase/red_familias.sql` — casos, visitas y actividades DEFAM
+1. `supabase/schema/schema.sql` — estructura completa + RLS
+2. `supabase/reportes/vistas_dashboard.sql` — vistas que consume el Dashboard
+3. `supabase/schema/accesos.sql` — perfiles, permisos y equipos de trabajo
+4. `supabase/schema/migracion_produccion.sql` — endurecimiento RLS + validaciones de datos
+5. `supabase/modulos/feligresia.sql` — censo local, familias, comités e historial pastoral
+6. `supabase/schema/configuracion.sql` — preferencias personales y configuración por congregación
+7. `supabase/modulos/notificaciones.sql` — centro realtime y avisos automáticos
+8. `supabase/modulos/red_familias.sql` — casos, visitas y actividades DEFAM
 
 ```bash
 npm run dev
