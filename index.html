@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google Search no reconoce de forma confiable un favicon solo en SVG
+         para el icono de resultados -- necesita un PNG cuadrado real. Se
+         deja el SVG primero para navegadores modernos (mas nitido) y los
+         PNG como respaldo, con "sizes" para que el buscador (y los
+         navegadores que no soportan SVG) elijan el correcto. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png" />
     <title>SIGAP — Sistema Integrado de Gestión y Analítica Pastoral</title>
     <meta name="description" content="SIGAP es un sistema de gestión pastoral: censo de feligresía, comités, evangelismo y reportes, con una vista adecuada para cada nivel — local, distrital y nacional." />
     <link rel="canonical" href="https://sigap.com.co/" />
