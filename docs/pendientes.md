@@ -2,6 +2,23 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): nuevo modulo **SEPRI** (Seguridad y Prevencion
+	del Riesgo). Investigado en fuentes publicas de la IPUC (no hay
+	documentacion interna disponible aqui) -- a diferencia de otros
+	comites que SIGAP ya cubre, SEPRI no tiene beneficiarios: es un
+	flujo de aprobacion de eventos (toda actividad, sobre todo fuera del
+	templo, debe presentarse con 30 dias de anticipacion a la Secretaria
+	Distrital). Construido: `sepri_solicitudes_evento` (solicitud +
+	aprobacion, mismo patron de notificaciones que
+	`solicitudes_jerarquicas.sql`) y `sepri_delegados` (calcado de
+	`obra_carcelaria_delegados`). Pagina nueva `/sepri` (local) +
+	seccion de aprobacion en Pastoral Distrital. Ver
+	`docs/funcionalidades/sepri-2026-09-06.md` para el detalle completo,
+	incluyendo un bug real encontrado y corregido (tipo de notificacion
+	invalido) y la verificacion de punta a punta del flujo completo
+	local->distrital->local. **Accion requerida del usuario**: ya
+	ejecutada (`supabase/modulos/sepri.sql`).
+
 - Resuelto (2026-09-06): el PDF con resumen (tarjetas + grafico)
 	quedaba en 3 hojas con un vacio grande en la hoja 1 debajo de las
 	tarjetas -- el grafico usaba un tamaño fijo a todo el ancho de la

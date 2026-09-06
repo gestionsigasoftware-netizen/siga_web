@@ -23,6 +23,7 @@ import {
   Repeat,
   Baby,
   LockKeyhole,
+  ShieldAlert,
   Music,
   Palette,
   BookOpenCheck,
@@ -142,6 +143,12 @@ export default function Sidebar() {
       to: "/obra-carcelaria",
       label: "Obra Carcelaria",
       icon: LockKeyhole,
+      show: nivel === "local",
+    },
+    {
+      to: "/sepri",
+      label: "SEPRI",
+      icon: ShieldAlert,
       show: nivel === "local",
     },
     {

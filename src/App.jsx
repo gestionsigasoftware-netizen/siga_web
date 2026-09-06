@@ -39,6 +39,7 @@ const GestionDistritos = lazy(() => import("./pages/GestionDistritos"));
 const EscuelaDominical = lazy(() => import("./pages/EscuelaDominical"));
 const DamasDorcas = lazy(() => import("./pages/DamasDorcas"));
 const ObraCarcelaria = lazy(() => import("./pages/ObraCarcelaria"));
+const Sepri = lazy(() => import("./pages/Sepri"));
 const Musica = lazy(() => import("./pages/Musica"));
 const EducacionArtistica = lazy(() => import("./pages/EducacionArtistica"));
 const EducacionTeologica = lazy(() => import("./pages/EducacionTeologica"));
@@ -99,6 +100,7 @@ export default function App() {
           <Route path="/escuela-dominical" element={<EscuelaDominical />} />
           <Route path="/damas-dorcas" element={<DamasDorcas />} />
           <Route path="/obra-carcelaria" element={<ObraCarcelaria />} />
+          <Route path="/sepri" element={<Sepri />} />
           <Route path="/musica" element={<Musica />} />
           <Route path="/educacion-artistica" element={<EducacionArtistica />} />
           <Route path="/educacion-teologica" element={<EducacionTeologica />} />

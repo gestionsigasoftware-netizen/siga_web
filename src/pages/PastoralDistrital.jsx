@@ -172,6 +172,8 @@ export default function PastoralDistrital() {
   const [resumenRuta, setResumenRuta] = useState([])
   const [personasDistrito, setPersonasDistrito] = useState([])
   const [cargosDistritales, setCargosDistritales] = useState([])
+  const [sepriSolicitudes, setSepriSolicitudes] = useState([])
+  const [sepriNotas, setSepriNotas] = useState({})
   const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
   const [savingCargo, setSavingCargo] = useState(false)
   const [tablePages, setTablePages] = useState({})
@@ -242,7 +244,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult, sepriResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -285,6 +287,7 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_ruta_evangelistica_distrital', { p_distrito_id: distritoId }),
       supabase.from('personas').select('id, nombres, apellidos, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
       supabase.from('cargos_distritales').select('id, persona_id, nombres, apellidos, cargo, fecha_inicio, fecha_fin, observaciones').eq('distrito_id', distritoId).order('fecha_inicio', { ascending: false }),
+      supabase.from('sepri_solicitudes_evento').select('id, congregacion_id, nombre_evento, fecha_evento, ubicacion, lugar, asistentes_esperados, poliza_contratada, estado, notas_distrital, descripcion, created_at, congregaciones(nombre)').eq('distrito_id', distritoId).order('created_at', { ascending: false }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -314,6 +317,7 @@ export default function PastoralDistrital() {
     setResumenRuta(rutaResult.data ?? [])
     setPersonasDistrito(personasResult.data ?? [])
     setCargosDistritales(cargosResult.data ?? [])
+    setSepriSolicitudes(sepriResult.data ?? [])
     setLoading(false)
   }
 
@@ -346,6 +350,14 @@ export default function PastoralDistrital() {
     const result = await supabase.from('cargos_distritales').update({ fecha_fin: hoyBogota() }).eq('id', item.id)
     setSavingCargo(false)
     if (result.error) { setError('No se pudo terminar el cargo.'); return }
+    load()
+  }
+
+  async function resolverSepri(item, estado) {
+    setError(null)
+    const result = await supabase.from('sepri_solicitudes_evento').update({ estado, notas_distrital: sepriNotas[item.id]?.trim() || null }).eq('id', item.id)
+    if (result.error) { setError(`No se pudo actualizar la solicitud: ${result.error.message}`); return }
+    setNotice(`Solicitud ${estado === 'aprobado' ? 'aprobada' : 'rechazada'}.`)
     load()
   }
 
@@ -1401,6 +1413,49 @@ export default function PastoralDistrital() {
           <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenRuta.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
           </>
         })()}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium flex items-center gap-1.5">SEPRI — Solicitudes de eventos<InfoTip texto="Toda actividad fuera del templo debe presentarse con 30 días de anticipación para tu aprobación. La columna 'Anticipación' te muestra de un vistazo si la congregación cumplió ese plazo." /></h2>
+          <p className="text-sm text-secondary mt-1">Aprobación de eventos de las congregaciones de tu distrito.</p>
+        </div>
+        {sepriSolicitudes.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay solicitudes SEPRI en tu distrito.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Evento</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Anticipación</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
+              <tbody>
+                {sepriSolicitudes.map((item) => {
+                  const evento = new Date(`${item.fecha_evento}T00:00:00Z`)
+                  const creado = new Date(item.created_at)
+                  const dias = Math.round((evento.getTime() - Date.UTC(creado.getUTCFullYear(), creado.getUTCMonth(), creado.getUTCDate())) / 86400000)
+                  return (
+                    <tr key={item.id} className="border-t border-border align-top">
+                      <td className="px-4 py-2.5 font-medium">{item.congregaciones?.nombre}</td>
+                      <td className="px-4 py-2.5">{item.nombre_evento}<p className="text-xs text-secondary">{item.ubicacion === 'dentro_templo' ? 'Dentro del templo' : 'Fuera del templo'}{item.lugar ? ` · ${item.lugar}` : ''}{item.poliza_contratada ? ' · Con póliza' : ''}</p></td>
+                      <td className="px-4 py-2.5 text-secondary">{item.fecha_evento}</td>
+                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${dias >= 30 ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{dias} días</span></td>
+                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${item.estado === 'pendiente' ? 'bg-warning-bg text-warning' : item.estado === 'aprobado' ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{item.estado === 'pendiente' ? 'Pendiente' : item.estado === 'aprobado' ? 'Aprobado' : 'Rechazado'}</span></td>
+                      <td className="px-4 py-2.5">
+                        {item.estado === 'pendiente' ? (
+                          <div className="flex flex-col gap-1.5 min-w-[180px]">
+                            <input className="input-field text-xs py-1" placeholder="Notas (opcional)" value={sepriNotas[item.id] ?? ''} onChange={(event) => setSepriNotas({ ...sepriNotas, [item.id]: event.target.value })} />
+                            <div className="flex gap-1.5">
+                              <button type="button" className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'aprobado')}>Aprobar</button>
+                              <button type="button" className="btn-secondary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'rechazado')}>Rechazar</button>
+                            </div>
+                          </div>
+                        ) : item.notas_distrital ? <p className="text-xs text-secondary max-w-[180px]">{item.notas_distrital}</p> : null}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>
