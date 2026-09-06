@@ -2,6 +2,31 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): los Excel exportados eran solo columnas
+	sueltas, y los PDF se veian con la informacion muy pegada. En
+	`src/lib/reportExport.js` (compartido por Reportes, Auditoria de
+	Feligresia y el censo/analisis de comites de Feligresia -- los unicos
+	3 lugares que exportan Excel en toda la app):
+	- **PDF**: mas relleno en las celdas, mas separacion entre el
+	  membrete/titulo/tabla, tema `grid` con bordes suaves -- cambio
+	  universal, aplica a los 4 lugares que exportan PDF sin tocar cada
+	  pantalla.
+	- **Excel**: se agrego una hoja "Resumen" (primera al abrir el
+	  archivo) con tarjetas de indicadores (numeros grandes, como las del
+	  Dashboard) y un desglose con **barras de datos nativas de Excel**
+	  (formato condicional) -- ExcelJS no soporta graficos de verdad
+	  (`addChart` no existe en la libreria), asi que esto es lo mas
+	  cercano a un "dashboard" real que se puede lograr de forma
+	  confiable. La hoja de datos crudos se mantiene igual para quien
+	  quiera filtrar/hacer tablas dinamicas. Conectado en los 3 export
+	  de Excel existentes (Reportes, Auditoria de Feligresia, censo y
+	  analisis de comites en Feligresia), cada uno con KPIs y desglose
+	  relevantes a sus propios datos.
+	Verificado de punta a punta: descarga real via Playwright + lectura
+	del .xlsx resultante con ExcelJS confirmando la hoja Resumen, los
+	valores reales de los KPIs, y el formato condicional de barras de
+	datos escrito correctamente; hoja de datos crudos confirmada intacta.
+
 - Resuelto (2026-09-05): la reinsercion post-penitenciaria
 	(`obra_carcelaria_reinsercion`: asignado -> contactado -> activo/
 	inactivo/reincidencia) no tenia ningun siguiente paso una vez

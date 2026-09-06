@@ -106,8 +106,19 @@ export default function ReportesOptimizado() {
     descargarCsv({ filename: exportFilename('csv'), titulo: 'Reporte de actividad', meta: exportMeta(), ...exportHeaders() })
   }
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: 'Actividades registradas', value: activities },
+        { label: 'Asistentes acumulados', value: total },
+        { label: 'Promedio por actividad', value: activities ? Math.round(total / activities) : 0 },
+      ],
+      desglose: { titulo: 'Asistentes por módulo', items: byModule.map((item) => ({ label: item.nombre, valor: item.total })) },
+    }
+  }
+
   function exportExcel() {
-    descargarExcel({ filename: exportFilename('xlsx'), hoja: 'Reporte', titulo: 'Reporte de actividad', meta: exportMeta(), ...exportHeaders() })
+    descargarExcel({ filename: exportFilename('xlsx'), hoja: 'Reporte', titulo: 'Reporte de actividad', meta: exportMeta(), resumen: exportResumen(), ...exportHeaders() })
   }
 
   function exportPdf() {

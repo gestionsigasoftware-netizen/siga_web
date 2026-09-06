@@ -68,27 +68,24 @@ export function descargarCsv({ filename, titulo, meta = [], headers, rows }) {
   descargarBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename)
 }
 
-export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos }) {
-  const { default: ExcelJS } = await import('exceljs')
-  const workbook = new ExcelJS.Workbook()
-  workbook.creator = BRAND.sigla
-  workbook.created = new Date()
-  const sheet = workbook.addWorksheet(hoja)
-
-  try {
-    const logo = await cargarLogo()
-    const imageId = workbook.addImage({ base64: logo, extension: 'png' })
-    sheet.addImage(imageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 84, height: 59 } })
-  } catch {
-    // Sin logo el export sigue siendo util — no se bloquea la descarga por esto.
+// Membrete (logo + nombre + titulo + meta) compartido entre la hoja de
+// Resumen y la de Datos -- antes solo existia en una hoja, esto evita
+// duplicar la lógica al agregar una segunda.
+function escribirMembrete(workbook, sheet, logo, { titulo, subtitulo, meta }) {
+  if (logo) {
+    try {
+      const imageId = workbook.addImage({ base64: logo, extension: 'png' })
+      sheet.addImage(imageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 84, height: 59 } })
+    } catch {
+      // Sin logo el export sigue siendo util — no se bloquea la descarga por esto.
+    }
   }
-
   sheet.getColumn(1).width = 15
   sheet.mergeCells('B1:F1')
   sheet.getCell('B1').value = BRAND.nombre
   sheet.getCell('B1').font = { bold: true, size: 13, color: { argb: BRAND.colorArgb } }
   sheet.mergeCells('B2:F2')
-  sheet.getCell('B2').value = titulo || hoja
+  sheet.getCell('B2').value = titulo || subtitulo
   sheet.getCell('B2').font = { size: 11, color: { argb: 'FF52514E' } }
 
   let fila = 4
@@ -99,7 +96,78 @@ export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = 
   })
   sheet.getCell(`B${fila}`).value = `Generado: ${marcaTiempo()}`
   sheet.getCell(`B${fila}`).font = { size: 9, italic: true, color: { argb: 'FF898781' } }
-  fila += 2
+  return fila + 2
+}
+
+// Barras de datos (formato condicional nativo de Excel) sobre la
+// columna de valores -- es lo mas cercano a un grafico real que soporta
+// ExcelJS (no tiene API para insertar graficos de verdad), pero da una
+// señal visual inmediata de magnitud relativa sin salir de la celda.
+function agregarBarrasDatos(sheet, ref) {
+  sheet.addConditionalFormatting({
+    ref,
+    rules: [{
+      type: 'dataBar', priority: 1, gradient: true, showValue: true, border: false,
+      cfvo: [{ type: 'min' }, { type: 'max' }],
+      color: { argb: BRAND.colorArgb },
+    }],
+  })
+}
+
+// Hoja "Resumen": tarjetas de indicadores (numero grande + etiqueta,
+// como las del Dashboard de la web) y un desglose con barras de datos.
+// Sin esto, un Excel exportado era solo columnas sueltas — con esto
+// alguien que abre el archivo ve de entrada los numeros que importan,
+// no una tabla cruda que hay que interpretar a mano.
+function escribirResumen(sheet, resumen, filaInicio) {
+  let fila = filaInicio
+  if (resumen.kpis?.length) {
+    resumen.kpis.forEach((kpi) => {
+      sheet.getCell(`B${fila}`).value = kpi.label
+      sheet.getCell(`B${fila}`).font = { size: 10, color: { argb: 'FF52514E' } }
+      const celdaValor = sheet.getCell(`D${fila}`)
+      celdaValor.value = kpi.value
+      celdaValor.font = { bold: true, size: 16, color: { argb: BRAND.colorArgb } }
+      celdaValor.alignment = { horizontal: 'left' }
+      sheet.getRow(fila).height = 22
+      fila += 1
+    })
+    fila += 1
+  }
+  if (resumen.desglose?.items?.length) {
+    sheet.getCell(`B${fila}`).value = resumen.desglose.titulo || 'Desglose'
+    sheet.getCell(`B${fila}`).font = { bold: true, size: 11, color: { argb: 'FF111820' } }
+    fila += 1
+    const inicioTabla = fila
+    resumen.desglose.items.forEach((item) => {
+      sheet.getCell(`B${fila}`).value = item.label
+      sheet.getCell(`B${fila}`).font = { size: 10 }
+      sheet.getCell(`D${fila}`).value = item.valor
+      sheet.getCell(`D${fila}`).font = { size: 10 }
+      fila += 1
+    })
+    agregarBarrasDatos(sheet, `D${inicioTabla}:D${fila - 1}`)
+  }
+  sheet.getColumn(2).width = 32
+  sheet.getColumn(4).width = 16
+  return fila
+}
+
+export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos, resumen }) {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = BRAND.sigla
+  workbook.created = new Date()
+  const logo = await cargarLogo().catch(() => null)
+
+  if (resumen) {
+    const resumenSheet = workbook.addWorksheet('Resumen')
+    const filaTrasMembrete = escribirMembrete(workbook, resumenSheet, logo, { titulo, subtitulo: hoja, meta })
+    escribirResumen(resumenSheet, resumen, filaTrasMembrete)
+  }
+
+  const sheet = workbook.addWorksheet(hoja)
+  let fila = escribirMembrete(workbook, sheet, logo, { titulo, subtitulo: hoja, meta })
 
   const headerRow = sheet.getRow(fila)
   headers.forEach((label, index) => {
@@ -144,27 +212,28 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
 
   doc.setDrawColor(11, 74, 140)
   doc.setLineWidth(0.6)
-  doc.line(14, 27, pageWidth - 14, 27)
+  doc.line(14, 29, pageWidth - 14, 29)
 
-  doc.setFontSize(12)
+  doc.setFontSize(13)
   doc.setTextColor(17, 24, 32)
-  doc.text(titulo || 'Informe estadístico', 14, 35)
+  doc.text(titulo || 'Informe estadístico', 14, 39)
 
-  doc.setFontSize(8.5)
+  doc.setFontSize(9)
   doc.setTextColor(82, 81, 78)
-  let y = 41
-  meta.forEach((linea) => { doc.text(linea, 14, y); y += 4.5 })
+  let y = 46
+  meta.forEach((linea) => { doc.text(linea, 14, y); y += 5.5 })
   doc.text(`Generado: ${marcaTiempo()}`, 14, y)
-  y += 4
+  y += 6
 
   autoTable(doc, {
-    startY: y + 3,
+    startY: y,
     head: [headers],
     body: rows,
-    styles: { fontSize: 8.5, cellPadding: 2.4 },
-    headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [245, 246, 248] },
-    margin: { left: 14, right: 14, top: 20 },
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 4, lineColor: [223, 224, 226], lineWidth: 0.15, valign: 'middle' },
+    headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold', cellPadding: 4.5 },
+    alternateRowStyles: { fillColor: [247, 248, 249] },
+    margin: { left: 14, right: 14, top: 22, bottom: 18 },
   })
 
   const totalPaginas = doc.internal.getNumberOfPages()

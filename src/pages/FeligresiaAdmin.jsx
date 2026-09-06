@@ -104,8 +104,20 @@ function CommitteeAnalytics({ people, committees, cargos, audit }) {
   function committeeExportCsv() {
     descargarCsv({ filename: `comites-analisis-${today}.csv`, titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
   }
+  function committeeExportResumen() {
+    return {
+      kpis: [
+        { label: 'Comités activos', value: active.length },
+        { label: 'Integrantes vigentes', value: memberships.length },
+        { label: 'Cargos obligatorios cubiertos', value: `${covered}/${required}` },
+        { label: 'Sin integrantes', value: withoutMembers },
+        { label: 'Sin responsable vigente', value: withoutResponsible },
+      ],
+      desglose: { titulo: 'Integrantes por comité', items: active.map((committee) => ({ label: committee.nombre, valor: memberships.filter((member) => member.committee.id === committee.id).length })) },
+    }
+  }
   function committeeExportExcel() {
-    descargarExcel({ filename: `comites-analisis-${today}.xlsx`, hoja: 'Comités', titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
+    descargarExcel({ filename: `comites-analisis-${today}.xlsx`, hoja: 'Comités', titulo: 'Análisis de comités', meta: ['Nivel: local'], resumen: committeeExportResumen(), ...committeeExportHeaders() })
   }
   function committeeExportPdf() {
     descargarPdf({ filename: `comites-analisis-${today}.pdf`, titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
@@ -765,7 +777,19 @@ export default function FeligresiaAdmin() {
     const headers = ['Nombres', 'Apellidos', 'Teléfono', 'Fecha nacimiento', 'Género', 'Estado civil', 'Estado', 'Bautizado', 'Fecha bautismo', 'Sellado con el Espíritu Santo', 'Fecha sellado', 'Fecha ingreso', 'Última asistencia', 'Familia', 'Parentesco']
     const rows = (result.data ?? []).map((person) => [person.nombres, person.apellidos, person.telefono, person.fecha_nacimiento, GENERO_LABELS[person.genero] || '', MARITAL_STATUSES[person.estado_civil] || person.estado_civil, STATES[person.estado_membresia], person.bautizado ? 'Sí' : 'No', person.fecha_bautismo, person.sellado_espiritu_santo ? 'Sí' : 'No', person.fecha_sellado, person.fecha_ingreso, person.fecha_ultima_asistencia, person.familias?.nombre_familia, FAMILY_RELATIONSHIPS[person.parentesco_familiar] || person.parentesco_familiar])
     const meta = [personStatus !== 'todos' ? `Estado: ${STATES[personStatus] || personStatus}` : 'Estado: Todos', deferredSearch.trim() ? `Búsqueda: ${deferredSearch.trim()}` : null].filter(Boolean)
-    return { headers, rows, meta }
+    const personas = result.data ?? []
+    const porEstado = {}
+    personas.forEach((person) => { const label = STATES[person.estado_membresia] || person.estado_membresia; porEstado[label] = (porEstado[label] || 0) + 1 })
+    const resumen = {
+      kpis: [
+        { label: 'Personas en el censo', value: personas.length },
+        { label: 'Bautizados', value: personas.filter((person) => person.bautizado).length },
+        { label: 'Sellados con el Espíritu Santo', value: personas.filter((person) => person.sellado_espiritu_santo).length },
+        { label: 'Con familia asignada', value: personas.filter((person) => person.familias?.nombre_familia).length },
+      ],
+      desglose: { titulo: 'Personas por estado', items: Object.entries(porEstado).map(([label, valor]) => ({ label, valor })) },
+    }
+    return { headers, rows, meta, resumen }
   }
 
   async function exportPeopleCsv() {

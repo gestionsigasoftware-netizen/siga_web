@@ -74,8 +74,27 @@ export default function AuditoriaFeligresia() {
     descargarCsv({ filename: `auditoria-feligresia-${hoyBogota()}.csv`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
   }
 
+  function exportResumen() {
+    const porEntidad = {}
+    const porAccion = {}
+    entries.forEach((entry) => {
+      const entidad = ENTITY_LABELS[entry.entidad] || entry.entidad
+      const accion = ACTION_LABELS[entry.accion] || entry.accion
+      porEntidad[entidad] = (porEntidad[entidad] || 0) + 1
+      porAccion[accion] = (porAccion[accion] || 0) + 1
+    })
+    return {
+      kpis: [
+        { label: 'Cambios en esta página', value: entries.length },
+        { label: 'Total de cambios (todas las páginas)', value: total },
+        ...Object.entries(porAccion).map(([label, value]) => ({ label, value })),
+      ],
+      desglose: { titulo: 'Cambios por entidad', items: Object.entries(porEntidad).map(([label, valor]) => ({ label, valor })) },
+    }
+  }
+
   function exportExcel() {
-    descargarExcel({ filename: `auditoria-feligresia-${hoyBogota()}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), ...exportHeaders() })
+    descargarExcel({ filename: `auditoria-feligresia-${hoyBogota()}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), resumen: exportResumen(), ...exportHeaders() })
   }
 
   function exportPdf() {
