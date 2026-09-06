@@ -2,6 +2,37 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): segunda pasada sobre `src/lib/reportExport.js`
+	para subir los exports de "buenos" a "premium", tras pedirle a Claude
+	una evaluacion honesta y sugerencias:
+	- **Bug real encontrado y corregido en CSV**: todas las celdas se
+		exportaban entre comillas, incluidos los numeros -- eso hacia que
+		Excel tratara la columna de asistentes como texto (sin poder
+		sumarla, promediarla ni ordenarla numericamente). Ahora solo el
+		texto se entrecomilla.
+	- **Excel**: tabla nativa (`addTable`, no una tabla "a mano") con
+		filtro desplegable por columna, bandas de color y **fila de
+		totales con suma automatica** en columnas numericas; formato de
+		miles (`numFmt`) auto-detectado; encabezado congelado al hacer
+		scroll; color de pestaña distinto para Resumen vs. Datos; el
+		Resumen ahora soporta **varios desgloses lado a lado** (paneles),
+		no solo uno.
+	- **PDF**: tarjetas de indicadores (KPIs) antes de la tabla, igual
+		que el Resumen del Excel; **grafico de barras embebido de verdad**
+		(Chart.js renderizado a PNG fuera de pantalla, ya que jsPDF no
+		dibuja graficos pero si inserta imagenes); numeros con separador
+		de miles; mecanismo generico `resaltarFila` para marcar en rojo
+		filas importantes (aplicado en Auditoria de Feligresia para
+		resaltar eliminaciones).
+	Conectado en los 3 lugares que exportan Excel/PDF (Reportes,
+	Auditoria de Feligresia, censo y comites de Feligresia), cada uno
+	con 2 desgloses relevantes a sus datos donde tenia sentido.
+	Verificado de punta a punta: descarga real + lectura del .xlsx con
+	ExcelJS confirmando paneles lado a lado, tabla nativa, formato de
+	numero, panes congelados, y resaltado de filas DELETE en rojo; PDF
+	generado sin errores con el grafico embebido (tamaño de archivo
+	subio de forma consistente con la imagen incluida).
+
 - Resuelto (2026-09-06): los Excel exportados eran solo columnas
 	sueltas, y los PDF se veian con la informacion muy pegada. En
 	`src/lib/reportExport.js` (compartido por Reportes, Auditoria de

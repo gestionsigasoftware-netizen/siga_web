@@ -49,13 +49,23 @@ function descargarBlob(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
+// Formato humano en español (punto de miles) — se usa en el PDF, donde
+// autoTable imprime el valor tal cual se lo demos (a diferencia de Excel,
+// que aplica el formato de numero el mismo al mostrar la celda).
+function formatoNumero(value) {
+  return typeof value === 'number' ? value.toLocaleString('es-CO') : value
+}
+
 // CSV: ';' porque Excel en configuracion regional Colombia/español usa ','
 // como separador decimal (con ',' como delimitador de columnas, cualquier
 // celda numerica con decimales rompe las columnas). BOM para que tildes y
 // "ñ" se vean bien al abrir en Excel. \r\n porque es lo que Excel espera
-// en Windows.
+// en Windows. Los numeros NO se entrecomillan -- entrecomillar un numero
+// hace que Excel lo trate como texto (alineado a la izquierda, sin poder
+// sumarlo ni ordenarlo numericamente), justo lo contrario de lo que
+// alguien espera al abrir una columna de "Asistentes".
 export function descargarCsv({ filename, titulo, meta = [], headers, rows }) {
-  const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+  const escape = (value) => (typeof value === 'number' ? String(value) : `"${String(value ?? '').replace(/"/g, '""')}"`)
   const encabezado = [
     [`${BRAND.sigla} — ${BRAND.nombre}`],
     ...(titulo ? [[titulo]] : []),
@@ -115,10 +125,13 @@ function agregarBarrasDatos(sheet, ref) {
 }
 
 // Hoja "Resumen": tarjetas de indicadores (numero grande + etiqueta,
-// como las del Dashboard de la web) y un desglose con barras de datos.
-// Sin esto, un Excel exportado era solo columnas sueltas — con esto
-// alguien que abre el archivo ve de entrada los numeros que importan,
-// no una tabla cruda que hay que interpretar a mano.
+// como las del Dashboard de la web) y hasta varios desgloses lado a lado
+// (cada uno con barras de datos) -- sin esto, un Excel exportado era
+// solo columnas sueltas; con esto alguien que abre el archivo ve de
+// entrada los numeros que importan, no una tabla cruda que hay que
+// interpretar a mano. `desgloses` acepta un arreglo de
+// { titulo, items: [{label, valor}] }; por compatibilidad tambien acepta
+// un unico `desglose` (objeto, no arreglo).
 function escribirResumen(sheet, resumen, filaInicio) {
   let fila = filaInicio
   if (resumen.kpis?.length) {
@@ -128,68 +141,148 @@ function escribirResumen(sheet, resumen, filaInicio) {
       const celdaValor = sheet.getCell(`D${fila}`)
       celdaValor.value = kpi.value
       celdaValor.font = { bold: true, size: 16, color: { argb: BRAND.colorArgb } }
+      if (typeof kpi.value === 'number') celdaValor.numFmt = '#,##0'
       celdaValor.alignment = { horizontal: 'left' }
       sheet.getRow(fila).height = 22
       fila += 1
     })
     fila += 1
   }
-  if (resumen.desglose?.items?.length) {
-    sheet.getCell(`B${fila}`).value = resumen.desglose.titulo || 'Desglose'
-    sheet.getCell(`B${fila}`).font = { bold: true, size: 11, color: { argb: 'FF111820' } }
-    fila += 1
-    const inicioTabla = fila
-    resumen.desglose.items.forEach((item) => {
-      sheet.getCell(`B${fila}`).value = item.label
-      sheet.getCell(`B${fila}`).font = { size: 10 }
-      sheet.getCell(`D${fila}`).value = item.valor
-      sheet.getCell(`D${fila}`).font = { size: 10 }
-      fila += 1
+
+  const desgloses = resumen.desgloses ?? (resumen.desglose ? [resumen.desglose] : [])
+  if (desgloses.length) {
+    // Cada desglose ocupa un bloque de 2 columnas (etiqueta + valor) con
+    // una columna de separacion -- hasta 3 por fila antes de bajar a la
+    // siguiente, para que se vean como paneles uno junto al otro en vez
+    // de una lista larga vertical.
+    const ANCHO_BLOQUE = 4
+    const POR_FILA = 3
+    const filaBloqueInicio = fila
+    let maxFilaUsada = fila
+    desgloses.forEach((desglose, indice) => {
+      const columnaBase = 2 + (indice % POR_FILA) * ANCHO_BLOQUE
+      const filaBase = filaBloqueInicio + Math.floor(indice / POR_FILA) * 200 // separacion generosa entre filas de bloques
+      let filaDesglose = filaBase
+      const colLetra = (n) => sheet.getColumn(n).letter
+      sheet.getCell(`${colLetra(columnaBase)}${filaDesglose}`).value = desglose.titulo || 'Desglose'
+      sheet.getCell(`${colLetra(columnaBase)}${filaDesglose}`).font = { bold: true, size: 11, color: { argb: 'FF111820' } }
+      filaDesglose += 1
+      const inicioTabla = filaDesglose
+      desglose.items.forEach((item) => {
+        sheet.getCell(`${colLetra(columnaBase)}${filaDesglose}`).value = item.label
+        sheet.getCell(`${colLetra(columnaBase)}${filaDesglose}`).font = { size: 10 }
+        const celda = sheet.getCell(`${colLetra(columnaBase + 1)}${filaDesglose}`)
+        celda.value = item.valor
+        celda.font = { size: 10 }
+        if (typeof item.valor === 'number') celda.numFmt = '#,##0'
+        filaDesglose += 1
+      })
+      if (desglose.items.length) agregarBarrasDatos(sheet, `${colLetra(columnaBase + 1)}${inicioTabla}:${colLetra(columnaBase + 1)}${filaDesglose - 1}`)
+      sheet.getColumn(columnaBase).width = 28
+      sheet.getColumn(columnaBase + 1).width = 14
+      maxFilaUsada = Math.max(maxFilaUsada, filaDesglose)
     })
-    agregarBarrasDatos(sheet, `D${inicioTabla}:D${fila - 1}`)
+    fila = maxFilaUsada
   }
-  sheet.getColumn(2).width = 32
-  sheet.getColumn(4).width = 16
   return fila
 }
 
-export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos, resumen }) {
+export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos, resumen, resaltarFila }) {
   const { default: ExcelJS } = await import('exceljs')
   const workbook = new ExcelJS.Workbook()
   workbook.creator = BRAND.sigla
   workbook.created = new Date()
   const logo = await cargarLogo().catch(() => null)
 
+  // Columnas donde TODAS las filas traen un numero real -- se les aplica
+  // formato de miles y, en la tabla nativa, funcion de suma en la fila
+  // de totales. Detectado solo, sin que cada pantalla tenga que declarar
+  // que columna es numerica.
+  const columnasNumericas = headers.map((_, index) => rows.length > 0 && rows.every((row) => typeof row[index] === 'number'))
+
   if (resumen) {
     const resumenSheet = workbook.addWorksheet('Resumen')
+    resumenSheet.properties.tabColor = { argb: BRAND.colorArgb }
     const filaTrasMembrete = escribirMembrete(workbook, resumenSheet, logo, { titulo, subtitulo: hoja, meta })
     escribirResumen(resumenSheet, resumen, filaTrasMembrete)
   }
 
   const sheet = workbook.addWorksheet(hoja)
-  let fila = escribirMembrete(workbook, sheet, logo, { titulo, subtitulo: hoja, meta })
+  sheet.properties.tabColor = { argb: 'FF52514E' }
+  const filaMembrete = escribirMembrete(workbook, sheet, logo, { titulo, subtitulo: hoja, meta })
 
-  const headerRow = sheet.getRow(fila)
-  headers.forEach((label, index) => {
-    const cell = headerRow.getCell(index + 1)
-    cell.value = label
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.colorArgb } }
-    cell.alignment = { vertical: 'middle' }
+  // Tabla nativa de Excel (no una tabla "a mano" con estilos por celda):
+  // da filtro desplegable en cada columna, bandas de color automaticas y
+  // una fila de totales con suma automatica en las columnas numericas,
+  // todo sin que el usuario tenga que configurar nada.
+  const nombreTabla = `Tabla${hoja.replace(/[^a-zA-Z0-9]/g, '') || 'Datos'}`
+  sheet.addTable({
+    name: nombreTabla,
+    ref: `A${filaMembrete}`,
+    headerRow: true,
+    totalsRow: columnasNumericas.some(Boolean),
+    style: { theme: 'TableStyleMedium2', showRowStripes: true },
+    columns: headers.map((label, index) => ({
+      name: label,
+      filterButton: true,
+      totalsRowFunction: columnasNumericas[index] ? 'sum' : undefined,
+      totalsRowLabel: index === 0 && columnasNumericas.some(Boolean) ? 'Total' : undefined,
+    })),
+    rows,
   })
-  headerRow.commit()
-
-  rows.forEach((valores) => sheet.addRow(valores))
 
   headers.forEach((label, index) => {
     sheet.getColumn(index + 1).width = anchos?.[index] ?? Math.max(14, String(label).length + 2)
+    if (columnasNumericas[index]) sheet.getColumn(index + 1).numFmt = '#,##0'
   })
+
+  // Encabezado siempre visible al hacer scroll en reportes largos.
+  sheet.views = [{ state: 'frozen', ySplit: filaMembrete }]
+
+  if (resaltarFila) {
+    rows.forEach((valores, index) => {
+      if (!resaltarFila(valores, index)) return
+      const fila = sheet.getRow(filaMembrete + 1 + index)
+      fila.eachCell({ includeEmpty: true }, (cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFBE9E7' } }
+        cell.font = { ...(cell.font || {}), color: { argb: 'FFB3261E' } }
+      })
+    })
+  }
 
   const buffer = await workbook.xlsx.writeBuffer()
   descargarBlob(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename)
 }
 
-export async function descargarPdf({ filename, titulo, meta = [], headers, rows, orientacion = 'portrait' }) {
+// Grafico de barras renderizado en un canvas fuera de pantalla y
+// exportado a PNG -- jsPDF no dibuja graficos, pero si puede insertar
+// una imagen, y Chart.js (ya usado en toda la app) puede generar esa
+// imagen sin necesidad de tenerlo montado en el DOM visible.
+async function generarGraficoPng(labels, valores) {
+  const { Chart, BarController, BarElement, CategoryScale, LinearScale } = await import('chart.js')
+  Chart.register(BarController, BarElement, CategoryScale, LinearScale)
+  const canvas = document.createElement('canvas')
+  canvas.width = 900
+  canvas.height = 380
+  const chart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: valores, backgroundColor: BRAND.colorHex, borderRadius: 4, maxBarThickness: 46 }] },
+    options: {
+      responsive: false,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 13 } } },
+        y: { beginAtZero: true, ticks: { font: { size: 12 } } },
+      },
+    },
+  })
+  const dataUrl = chart.toBase64Image()
+  chart.destroy()
+  return dataUrl
+}
+
+export async function descargarPdf({ filename, titulo, meta = [], headers, rows, orientacion = 'portrait', resumen, resaltarFila }) {
   const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF({ orientation: orientacion, unit: 'mm', format: 'letter' })
@@ -223,17 +316,68 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
   let y = 46
   meta.forEach((linea) => { doc.text(linea, 14, y); y += 5.5 })
   doc.text(`Generado: ${marcaTiempo()}`, 14, y)
-  y += 6
+  y += 7
+
+  // Tarjetas de indicadores -- el mismo "de un vistazo" que ya tiene el
+  // Excel, para que el PDF no sea solo membrete + tabla cruda.
+  if (resumen?.kpis?.length) {
+    const kpis = resumen.kpis.slice(0, 4)
+    const espacio = 4
+    const anchoTarjeta = (pageWidth - 28 - espacio * (kpis.length - 1)) / kpis.length
+    const altoTarjeta = 18
+    kpis.forEach((kpi, index) => {
+      const x = 14 + index * (anchoTarjeta + espacio)
+      doc.setFillColor(245, 246, 248)
+      doc.roundedRect(x, y, anchoTarjeta, altoTarjeta, 2, 2, 'F')
+      doc.setFontSize(13)
+      doc.setTextColor(11, 74, 140)
+      doc.text(String(formatoNumero(kpi.value)), x + 4, y + 8)
+      doc.setFontSize(7.5)
+      doc.setTextColor(82, 81, 78)
+      doc.text(doc.splitTextToSize(kpi.label, anchoTarjeta - 8), x + 4, y + 13.5)
+    })
+    y += altoTarjeta + 8
+  }
+
+  // Grafico embebido del primer desglose disponible -- da una lectura
+  // visual inmediata que ni el Excel (barras dentro de celda) puede
+  // igualar en impacto para un documento pensado para imprimir/compartir.
+  const primerDesglose = resumen?.desgloses?.[0] ?? resumen?.desglose
+  if (primerDesglose?.items?.length) {
+    try {
+      const itemsGrafico = primerDesglose.items.slice(0, 8)
+      const chartUrl = await generarGraficoPng(itemsGrafico.map((item) => item.label), itemsGrafico.map((item) => item.valor))
+      const anchoGrafico = pageWidth - 28
+      const altoGrafico = anchoGrafico * (380 / 900)
+      if (y + altoGrafico > pageHeight - 30) { doc.addPage(); y = 20 }
+      doc.setFontSize(10)
+      doc.setTextColor(17, 24, 32)
+      doc.text(primerDesglose.titulo || 'Desglose', 14, y)
+      y += 4
+      doc.addImage(chartUrl, 'PNG', 14, y, anchoGrafico, altoGrafico)
+      y += altoGrafico + 8
+    } catch {
+      // Si el grafico falla por alguna razon, el PDF sigue siendo util sin el.
+    }
+  }
+
+  const filasFormateadas = rows.map((row) => row.map(formatoNumero))
 
   autoTable(doc, {
     startY: y,
     head: [headers],
-    body: rows,
+    body: filasFormateadas,
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 4, lineColor: [223, 224, 226], lineWidth: 0.15, valign: 'middle' },
     headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold', cellPadding: 4.5 },
     alternateRowStyles: { fillColor: [247, 248, 249] },
     margin: { left: 14, right: 14, top: 22, bottom: 18 },
+    didParseCell: (data) => {
+      if (data.section === 'body' && resaltarFila?.(rows[data.row.index], data.row.index)) {
+        data.cell.styles.fillColor = [253, 231, 227]
+        data.cell.styles.textColor = [179, 38, 30]
+      }
+    },
   })
 
   const totalPaginas = doc.internal.getNumberOfPages()

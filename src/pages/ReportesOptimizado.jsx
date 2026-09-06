@@ -113,7 +113,10 @@ export default function ReportesOptimizado() {
         { label: 'Asistentes acumulados', value: total },
         { label: 'Promedio por actividad', value: activities ? Math.round(total / activities) : 0 },
       ],
-      desglose: { titulo: 'Asistentes por módulo', items: byModule.map((item) => ({ label: item.nombre, valor: item.total })) },
+      desgloses: [
+        { titulo: 'Asistentes por módulo', items: byModule.map((item) => ({ label: item.nombre, valor: item.total })) },
+        { titulo: 'Asistentes por congregación', items: byCongregation.slice(0, 8).map((item) => ({ label: item.nombre, valor: item.total })) },
+      ],
     }
   }
 
@@ -122,7 +125,7 @@ export default function ReportesOptimizado() {
   }
 
   function exportPdf() {
-    descargarPdf({ filename: exportFilename('pdf'), titulo: 'Reporte de actividad', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
+    descargarPdf({ filename: exportFilename('pdf'), titulo: 'Reporte de actividad', meta: exportMeta(), orientacion: 'landscape', resumen: exportResumen(), ...exportHeaders() })
   }
 
   const chartOptions = buildChartOptions()

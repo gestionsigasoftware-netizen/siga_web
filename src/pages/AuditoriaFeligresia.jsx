@@ -89,16 +89,25 @@ export default function AuditoriaFeligresia() {
         { label: 'Total de cambios (todas las páginas)', value: total },
         ...Object.entries(porAccion).map(([label, value]) => ({ label, value })),
       ],
-      desglose: { titulo: 'Cambios por entidad', items: Object.entries(porEntidad).map(([label, valor]) => ({ label, valor })) },
+      desgloses: [
+        { titulo: 'Cambios por entidad', items: Object.entries(porEntidad).map(([label, valor]) => ({ label, valor })) },
+      ],
     }
   }
 
+  // Una eliminacion es el tipo de cambio mas importante de notar en una
+  // auditoria -- se resalta en rojo tanto en el Excel como en el PDF en
+  // vez de dejarlo mezclado con creaciones y actualizaciones.
+  function esFilaDelete(_valores, index) {
+    return entries[index]?.accion === 'DELETE'
+  }
+
   function exportExcel() {
-    descargarExcel({ filename: `auditoria-feligresia-${hoyBogota()}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), resumen: exportResumen(), ...exportHeaders() })
+    descargarExcel({ filename: `auditoria-feligresia-${hoyBogota()}.xlsx`, hoja: 'Auditoría', titulo: 'Auditoría de Feligresía', meta: exportMeta(), resumen: exportResumen(), resaltarFila: esFilaDelete, ...exportHeaders() })
   }
 
   function exportPdf() {
-    descargarPdf({ filename: `auditoria-feligresia-${hoyBogota()}.pdf`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), orientacion: 'landscape', ...exportHeaders() })
+    descargarPdf({ filename: `auditoria-feligresia-${hoyBogota()}.pdf`, titulo: 'Auditoría de Feligresía', meta: exportMeta(), orientacion: 'landscape', resumen: exportResumen(), resaltarFila: esFilaDelete, ...exportHeaders() })
   }
 
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Validando permisos...</div>

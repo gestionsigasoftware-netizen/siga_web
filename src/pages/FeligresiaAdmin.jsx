@@ -113,14 +113,16 @@ function CommitteeAnalytics({ people, committees, cargos, audit }) {
         { label: 'Sin integrantes', value: withoutMembers },
         { label: 'Sin responsable vigente', value: withoutResponsible },
       ],
-      desglose: { titulo: 'Integrantes por comité', items: active.map((committee) => ({ label: committee.nombre, valor: memberships.filter((member) => member.committee.id === committee.id).length })) },
+      desgloses: [
+        { titulo: 'Integrantes por comité', items: active.map((committee) => ({ label: committee.nombre, valor: memberships.filter((member) => member.committee.id === committee.id).length })) },
+      ],
     }
   }
   function committeeExportExcel() {
     descargarExcel({ filename: `comites-analisis-${today}.xlsx`, hoja: 'Comités', titulo: 'Análisis de comités', meta: ['Nivel: local'], resumen: committeeExportResumen(), ...committeeExportHeaders() })
   }
   function committeeExportPdf() {
-    descargarPdf({ filename: `comites-analisis-${today}.pdf`, titulo: 'Análisis de comités', meta: ['Nivel: local'], ...committeeExportHeaders() })
+    descargarPdf({ filename: `comites-analisis-${today}.pdf`, titulo: 'Análisis de comités', meta: ['Nivel: local'], resumen: committeeExportResumen(), ...committeeExportHeaders() })
   }
   const insights = []
   if (withoutMembers) insights.push(`${withoutMembers} comité${withoutMembers === 1 ? '' : 's'} activo${withoutMembers === 1 ? '' : 's'} sin integrantes: confirmar continuidad o asignar equipo.`)
@@ -779,7 +781,13 @@ export default function FeligresiaAdmin() {
     const meta = [personStatus !== 'todos' ? `Estado: ${STATES[personStatus] || personStatus}` : 'Estado: Todos', deferredSearch.trim() ? `Búsqueda: ${deferredSearch.trim()}` : null].filter(Boolean)
     const personas = result.data ?? []
     const porEstado = {}
-    personas.forEach((person) => { const label = STATES[person.estado_membresia] || person.estado_membresia; porEstado[label] = (porEstado[label] || 0) + 1 })
+    const porGenero = {}
+    personas.forEach((person) => {
+      const estado = STATES[person.estado_membresia] || person.estado_membresia
+      porEstado[estado] = (porEstado[estado] || 0) + 1
+      const genero = GENERO_LABELS[person.genero] || 'Sin especificar'
+      porGenero[genero] = (porGenero[genero] || 0) + 1
+    })
     const resumen = {
       kpis: [
         { label: 'Personas en el censo', value: personas.length },
@@ -787,7 +795,10 @@ export default function FeligresiaAdmin() {
         { label: 'Sellados con el Espíritu Santo', value: personas.filter((person) => person.sellado_espiritu_santo).length },
         { label: 'Con familia asignada', value: personas.filter((person) => person.familias?.nombre_familia).length },
       ],
-      desglose: { titulo: 'Personas por estado', items: Object.entries(porEstado).map(([label, valor]) => ({ label, valor })) },
+      desgloses: [
+        { titulo: 'Personas por estado', items: Object.entries(porEstado).map(([label, valor]) => ({ label, valor })) },
+        { titulo: 'Personas por género', items: Object.entries(porGenero).map(([label, valor]) => ({ label, valor })) },
+      ],
     }
     return { headers, rows, meta, resumen }
   }
