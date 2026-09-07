@@ -14,6 +14,13 @@ export const UMBRAL_DIAS_ESTACION = {
   discipulado: 180,
 };
 
+// Un recien bautizado que ya inicio Discipulado se marca como "en formacion"
+// en el censo de Feligresia durante esta ventana -- pasado este umbral deja
+// de mostrarse la marca y se considera disponible para servicio, como
+// cualquier otro feligres. Valor fijo, igual que el resto de umbrales de la
+// ruta -- decision del usuario.
+export const UMBRAL_DIAS_NUEVO_BAUTIZADO = 30;
+
 export function diasDesde(fecha) {
   if (!fecha) return null;
   const inicio = inicioDiaBogota(fecha);
@@ -163,7 +170,7 @@ export async function trasladarEstacion({
   }
 
   if (detalleDestino && estacionDestino.codigo !== "refam") {
-    const payload = { congregacion_id: congregacionId, proceso_id: result.data.id };
+    const payload = { congregacion_id: congregacionId, proceso_id: result.data.id, fecha_inicio: hoyBogota() };
     if (estacionDestino.codigo === "esfob") {
       payload.amigo_id = amigoId;
       payload.responsable_persona_id = responsablePersonaId || null;

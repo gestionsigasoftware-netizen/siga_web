@@ -12,7 +12,11 @@
 	`rutaEvangelistica.js`) usado por las 4 pantallas de estacion; ademas
 	se bloqueo el traslado directo amigo->Discipulado (esquematicamente
 	invalido, requiere bautismo primero) y se agrego el boton "Marcar
-	bautizado" en ESFOB. Ver
+	bautizado" en ESFOB. Segunda parte el mismo dia: se agrego una marca
+	"Nuevo bautizado -- Nd en Discipulado" en el censo de Feligresia
+	(lista, ficha y panel de cargos) mientras la persona lleve menos de
+	30 dias en Discipulado, para que no se le asigne un cargo/comite
+	antes de tiempo. Ver
 	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
 
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia
