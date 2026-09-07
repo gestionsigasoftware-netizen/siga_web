@@ -22,7 +22,11 @@
 	graficos (tendencia, distribucion por estado) + tasa de exito a
 	Discipulado, generalizando el mismo patron que ya tenian REFAM/ESFOB
 	-- requirio `supabase/modulos/lecciones_discipulado.sql` (ya
-	ejecutada). Ver
+	ejecutada). Quinta parte: la seccion "Procesos activos" de
+	Discipulado paso de lista plana a lista+ficha (patron ya usado en
+	EstacionBis.jsx) -- la ficha muestra historial de lecciones y un
+	formulario de seguimiento (servicio actual, proxima accion, notas)
+	que antes no se podia editar despues de crear el proceso. Ver
 	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
 
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia

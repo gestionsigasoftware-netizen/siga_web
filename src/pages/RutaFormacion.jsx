@@ -60,6 +60,9 @@ export default function RutaFormacion({ mode }) {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [trasladoDestino, setTrasladoDestino] = useState({});
+  const [selectedId, setSelectedId] = useState(null);
+  const [progreso, setProgreso] = useState([]);
+  const [seguimientoForm, setSeguimientoForm] = useState({ servicio_actual: "", siguiente_accion: "", notas: "" });
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -229,6 +232,38 @@ export default function RutaFormacion({ mode }) {
     setSaving(false);
     if (updateResult.error) { setError(`Se registró la lección, pero no se pudo avanzar a la siguiente: ${updateResult.error.message}`); return; }
     setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : `Lección completada. Terminó el currículo de ${config.title}.`);
+    if (row.id === selectedId) refrescarProgreso(row.id);
+    load();
+  }
+
+  async function refrescarProgreso(procesoId) {
+    const { data } = await supabase
+      .from(config.progresoTabla)
+      .select(`id, fecha_completada, leccion:${config.leccionesTabla}(numero, titulo)`)
+      .eq(config.progresoColumna, procesoId)
+      .order("fecha_completada", { ascending: false });
+    setProgreso(data ?? []);
+  }
+
+  function seleccionarFicha(row) {
+    setSelectedId(row.id);
+    setSeguimientoForm({ servicio_actual: row.servicio_actual || "", siguiente_accion: row.siguiente_accion || "", notas: row.notas || "" });
+    refrescarProgreso(row.id);
+  }
+
+  async function guardarSeguimiento(event) {
+    event.preventDefault();
+    if (!canEdit || !selectedId) return;
+    setSaving(true);
+    setError(null);
+    const result = await supabase.from(config.table).update({
+      servicio_actual: seguimientoForm.servicio_actual.trim() || null,
+      siguiente_accion: seguimientoForm.siguiente_accion.trim() || null,
+      notas: seguimientoForm.notas.trim() || null,
+    }).eq("id", selectedId);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo guardar el seguimiento: ${result.error.message}`); return; }
+    setNotice("Seguimiento actualizado.");
     load();
   }
 
@@ -247,6 +282,7 @@ export default function RutaFormacion({ mode }) {
     return { ...row, person, dias, listo, zonaNombre: person?.zonas?.nombre || "Sin zona" };
   }), [rows, friends, people, mode, umbral]);
   const candidatos = filas.filter((row) => row.listo);
+  const seleccionado = filas.find((row) => row.id === selectedId);
   const zonaRows = useMemo(() => {
     if (mode !== "esfob") return [];
     const conteo = new Map();
@@ -348,27 +384,66 @@ export default function RutaFormacion({ mode }) {
           <div className="h-56 mt-4">{rows.length ? <Bar data={discipuladoStats.distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
         </div>
       </section>}
-      <section className="card p-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien. Puedes trasladarla a otra estación si aún no está lista para el bautismo." : "Discipulado es la última estación de la ruta -- aquí no se traslada a nadie a otra parte, solo se acompaña su continuidad y servicio."} /></h2></div></div>
-        {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p>
-              <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
-              <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {mode === "esfob" ? `${row.lecciones_completadas}/${row.lecciones_total} completadas` : `${row.lecciones_completadas || 0} completada${row.lecciones_completadas === 1 ? "" : "s"}`}</p>
+      {mode === "esfob" ? (
+        <section className="card p-5">
+          <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto="Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien. Puedes trasladarla a otra estación si aún no está lista para el bautismo." /></h2></div></div>
+          {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p>
+                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
+                <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas}/{row.lecciones_total} completadas</p>
+              </div>
+              <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
             </div>
-            <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{mode === "esfob" ? "Listo para trasladar" : "Revisar continuidad"}</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
-          </div>
-          {canEdit && <div className="flex flex-wrap items-center gap-2">
-            {row.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
-            {mode === "esfob" && row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
-            {mode === "esfob" && <>
+            {canEdit && <div className="flex flex-wrap items-center gap-2">
+              {row.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
+              {row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
               <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
               <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
-            </>}
-          </div>}
-        </div>; })}</div>}
-      </section>
+            </div>}
+          </div>; })}</div>}
+        </section>
+      ) : (
+        <section className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
+          <div className="card p-5">
+            <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto="Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial de lecciones y se registra su seguimiento (servicio, próxima acción, notas)." /></h2></div></div>
+            {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.mentor_persona_id); return (
+              <button key={row.id} type="button" onClick={() => seleccionarFicha(row)} className={`w-full text-left py-4 flex flex-col gap-1 ${selectedId === row.id ? "bg-accent-bg/40 -mx-5 px-5" : ""}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-sm">{row.person?.nombres} {row.person?.apellidos || ""}</p>
+                  {row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Revisar continuidad</span>}
+                </div>
+                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Mentor: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
+                <p className="text-xs text-secondary">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas || 0} completada{row.lecciones_completadas === 1 ? "" : "s"}</p>
+              </button>
+            ); })}</div>}
+          </div>
+          <div className="card p-5">
+            {selectedId && seleccionado ? (
+              <>
+                <p className="eyebrow">Ficha de seguimiento</p>
+                <h2 className="font-medium mt-1">{seleccionado.person?.nombres} {seleccionado.person?.apellidos || ""}</h2>
+                <div className="mt-3 p-3 bg-surface-1 rounded">
+                  <p className="text-sm font-medium">{seleccionado.leccion_actual ? `Lección #${seleccionado.leccion_actual.numero} — ${seleccionado.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"}</p>
+                  <p className="text-xs text-secondary mt-1">{seleccionado.lecciones_completadas || 0} lección{seleccionado.lecciones_completadas === 1 ? "" : "es"} completada{seleccionado.lecciones_completadas === 1 ? "" : "s"}</p>
+                  {canEdit && seleccionado.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(seleccionado)} disabled={saving} className="btn-secondary px-2 py-1 text-xs mt-2">Marcar lección completada</button>}
+                </div>
+                <div className="mt-4">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2">Historial de lecciones</p>
+                  {progreso.length ? <ul className="flex flex-col gap-1.5">{progreso.map((item) => <li key={item.id} className="text-xs text-secondary">#{item.leccion?.numero} — {item.leccion?.titulo} <span className="text-muted">· {item.fecha_completada}</span></li>)}</ul> : <p className="text-xs text-muted">Aún no hay lecciones completadas.</p>}
+                </div>
+                <form onSubmit={guardarSeguimiento} className="grid gap-3 mt-4 pt-4 border-t border-border">
+                  <label className="text-sm">Servicio actual<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. apoyo en evangelismo" value={seguimientoForm.servicio_actual} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, servicio_actual: event.target.value })} /></label>
+                  <label className="text-sm">Próxima acción<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. presentarlo al líder de zona" value={seguimientoForm.siguiente_accion} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, siguiente_accion: event.target.value })} /></label>
+                  <label className="text-sm">Notas<textarea disabled={!canEdit} className="input-field mt-1.5 min-h-20" value={seguimientoForm.notas} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, notas: event.target.value })} /></label>
+                  {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Guardar seguimiento"}</button>}
+                </form>
+              </>
+            ) : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Selecciona una persona de la lista</div>}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

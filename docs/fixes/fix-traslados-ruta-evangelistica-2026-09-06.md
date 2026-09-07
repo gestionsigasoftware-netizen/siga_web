@@ -224,6 +224,41 @@ catálogo → iniciar un proceso de Discipulado enganchado a la lección
 confirmar que la tasa de éxito se calcula correctamente sobre datos
 reales. Todo limpiado sin residuos. `npm run build` sin errores.
 
+## Arreglo (parte 5: ficha de seguimiento por persona en Discipulado)
+
+Con el catálogo de lecciones ya funcionando, el usuario notó que
+Discipulado seguía siendo una lista plana: cada fila solo tenía un
+botón "Marcar lección completada" en línea, sin manera de ver el
+historial de lecciones ya completadas ni de registrar seguimiento
+(servicio actual, próxima acción, notas) de esa persona -- campos que
+`discipulado_procesos` ya tenía en su esquema pero que nunca se podían
+editar después de crear el proceso.
+
+Se rediseñó la sección "Procesos activos" **solo para Discipulado**
+(ESFOB no cambió, sigue siendo la lista plana de siempre) con el mismo
+patrón de "lista + ficha" que ya usa `EstacionBis.jsx` para sus
+atenciones: una columna con la lista de personas (clic para
+seleccionar) y un panel a la derecha con la ficha de la persona
+elegida, que muestra:
+
+- Su lección actual y el botón "Marcar lección completada" (movido
+  aquí desde la fila de la lista).
+- El **historial completo** de lecciones ya completadas, con fecha
+  (nueva consulta a `discipulado_progreso_leccion` al seleccionar a la
+  persona).
+- Un formulario de seguimiento (servicio actual, próxima acción,
+  notas) que guarda directamente sobre `discipulado_procesos` --
+  campos que existían en el esquema desde el diseño original de la
+  Ruta Evangelística pero que nunca tuvieron una pantalla para
+  editarlos.
+
+**Verificación**: contra la base de datos real, con datos
+desechables -- se confirmó que el historial se lee vacío al
+iniciar, que los 3 campos de seguimiento se guardan correctamente, y
+que tras marcar una lección el historial la muestra con el join
+correcto (número, título, fecha). Sin residuos. `npm run build` sin
+errores.
+
 ## Nota para el usuario
 
 El amigo de prueba "Manuel Antonio García Rodríguez" (el de tu prueba
