@@ -122,8 +122,8 @@ export async function iniciarOMoverEstacion({
 // mapa es la fuente única de verdad de qué tabla de detalle tiene cada
 // estación y qué tipo de persona acepta.
 export const DETALLE_ESTACION = {
-  esfob: { tabla: "esfob_procesos", estadoActivo: "en_formacion", estadoSalida: "retirado", requiere: "amigo" },
-  discipulado: { tabla: "discipulado_procesos", estadoActivo: "activo", estadoSalida: "retirado", requiere: "persona" },
+  esfob: { tabla: "esfob_procesos", tablaLecciones: "esfob_lecciones", estadoActivo: "en_formacion", estadoSalida: "retirado", requiere: "amigo" },
+  discipulado: { tabla: "discipulado_procesos", tablaLecciones: "discipulado_lecciones", estadoActivo: "activo", estadoSalida: "retirado", requiere: "persona" },
   // refam_participantes exige un grupo_id (hogar/celula) que esta funcion
   // no puede adivinar -- por eso no crea la fila del destino, solo cierra
   // la de origen; avisa al llamador con `avisoRefam` para que le diga al
@@ -174,8 +174,13 @@ export async function trasladarEstacion({
     if (estacionDestino.codigo === "esfob") {
       payload.amigo_id = amigoId;
       payload.responsable_persona_id = responsablePersonaId || null;
+    } else if (estacionDestino.codigo === "discipulado") {
+      payload.persona_id = personaId;
+      payload.mentor_persona_id = responsablePersonaId || null;
+    }
+    if (detalleDestino.tablaLecciones) {
       const { data: primeraLeccion } = await supabase
-        .from("esfob_lecciones")
+        .from(detalleDestino.tablaLecciones)
         .select("id")
         .eq("congregacion_id", congregacionId)
         .eq("activo", true)
@@ -183,9 +188,6 @@ export async function trasladarEstacion({
         .limit(1)
         .maybeSingle();
       payload.leccion_actual_id = primeraLeccion?.id || null;
-    } else if (estacionDestino.codigo === "discipulado") {
-      payload.persona_id = personaId;
-      payload.mentor_persona_id = responsablePersonaId || null;
     }
     const detalleResult = await supabase.from(detalleDestino.tabla).insert(payload);
     if (detalleResult.error) return { ...result, detalleError: detalleResult.error };

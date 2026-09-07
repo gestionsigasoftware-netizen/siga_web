@@ -174,6 +174,56 @@ ajustó a "Revisar continuidad" para discipulado (ese indicador nunca
 fue una invitación a trasladar ahí, sino una señal de seguimiento
 pastoral por tiempo prolongado).
 
+## Arreglo (parte 4: catálogo de lecciones, gráficos y tasa de éxito en Discipulado)
+
+Ya con Manuel incorporado a Feligresía y viendo su ficha activa en
+Discipulado, el usuario notó que esa pantalla no tenía forma de
+registrar qué lecciones se le imparten durante su tiempo ahí, ni
+gráficos/insights/tasa de éxito como sí tienen las demás estaciones.
+
+Se generalizó el patrón de catálogo + progreso medible que ya existía
+para REFAM y ESFOB (`docs/rediseno...`/`lecciones_ruta_evangelistica.sql`)
+para que también aplique a Discipulado:
+
+- **`supabase/modulos/lecciones_discipulado.sql`** (nuevo): tabla
+  `discipulado_lecciones` (catálogo compartido por congregación, igual
+  patrón que REFAM/ESFOB), `discipulado_procesos.leccion_actual_id` +
+  `lecciones_completadas` (columnas nuevas), y
+  `discipulado_progreso_leccion` (historial de lecciones completadas
+  por proceso). A diferencia de ESFOB, **no** se agregó un
+  "lecciones_total" fijo -- Discipulado es continuo, su catálogo puede
+  seguir creciendo sin afectar procesos ya en curso.
+- **`Modulos.jsx`**: nueva sección "Lecciones de Discipulado", calcada
+  de "Lecciones ESFOB / EFOB" (alta con número automático, título,
+  descripción, editar, activar/desactivar).
+- **`RutaFormacion.jsx`**: se generalizó todo lo que antes era
+  exclusivo de `mode === "esfob"` (carga del catálogo, `leccion_actual`
+  embebido en la consulta, botón "Marcar lección completada") para que
+  funcione igual en `mode === "discipulado"`. Se agregaron además,
+  solo para Discipulado: gráfico de tendencia (discipulados iniciados
+  por mes), gráfico de distribución por estado, y la métrica **Tasa de
+  éxito** -- de los procesos ya finalizados (completados o retirados),
+  qué porcentaje terminó como "Completado" (muestra "—" sin datos
+  todavía). La etiqueta "Candidatos a trasladar" del panel general se
+  corrigió a "Requieren seguimiento" para no contradecir que Discipulado
+  ya no permite trasladar (parte 3 de este mismo fix).
+- **`src/lib/rutaEvangelistica.js`**: `trasladarEstacion()` ahora
+  engancha también la primera lección del catálogo al crear un proceso
+  de Discipulado por traslado (antes solo lo hacía para ESFOB).
+
+**Acción requerida del usuario, ya ejecutada**:
+`supabase/modulos/lecciones_discipulado.sql`.
+
+**Verificación**: contra la base de datos real (cuenta de prueba),
+confirmando que las 3 tablas/columnas nuevas existen tras la migración,
+y luego un flujo completo con datos desechables: crear 2 lecciones de
+catálogo → iniciar un proceso de Discipulado enganchado a la lección
+#1 → marcar esa lección completada (queda registrada en
+`discipulado_progreso_leccion`, avanza a la lección #2, suma 1 a
+`lecciones_completadas`) → cerrar el proceso como "completado" →
+confirmar que la tasa de éxito se calcula correctamente sobre datos
+reales. Todo limpiado sin residuos. `npm run build` sin errores.
+
 ## Nota para el usuario
 
 El amigo de prueba "Manuel Antonio García Rodríguez" (el de tu prueba

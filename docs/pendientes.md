@@ -16,7 +16,13 @@
 	"Nuevo bautizado -- Nd en Discipulado" en el censo de Feligresia
 	(lista, ficha y panel de cargos) mientras la persona lleve menos de
 	30 dias en Discipulado, para que no se le asigne un cargo/comite
-	antes de tiempo. Ver
+	antes de tiempo. Tercera parte: se quito "Trasladar a..." de
+	Discipulado (es la ultima estacion, no tiene a donde trasladar).
+	Cuarta parte: se agrego catalogo de lecciones + progreso medible +
+	graficos (tendencia, distribucion por estado) + tasa de exito a
+	Discipulado, generalizando el mismo patron que ya tenian REFAM/ESFOB
+	-- requirio `supabase/modulos/lecciones_discipulado.sql` (ya
+	ejecutada). Ver
 	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
 
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia

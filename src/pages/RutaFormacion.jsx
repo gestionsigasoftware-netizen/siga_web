@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bar } from "react-chartjs-2";
-import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from "chart.js";
+import { Bar, Line } from "react-chartjs-2";
+import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { ArrowLeft, ArrowRightLeft, BookOpen, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
-import { chartOptions, distributionDataset } from "../lib/chartTheme";
+import { chartOptions, distributionDataset, trendDataset } from "../lib/chartTheme";
 import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
+import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const CHART_OPTIONS = chartOptions();
 const TODAY = hoyBogota();
+const ESTADOS_DISCIPULADO = { activo: "Activo", completado: "Completado", pausado: "Pausado", retirado: "Retirado" };
 
 const CONFIG = {
   esfob: {
@@ -20,6 +22,9 @@ const CONFIG = {
     eyebrow: "Formación bautismal",
     description: "Acompaña la preparación doctrinal antes del pacto del bautismo.",
     table: "esfob_procesos",
+    leccionesTabla: "esfob_lecciones",
+    progresoTabla: "esfob_progreso_leccion",
+    progresoColumna: "esfob_proceso_id",
     defaultProgram: "ESFOB",
     activeState: "en_formacion",
     activeLabel: "En formación",
@@ -29,6 +34,9 @@ const CONFIG = {
     eyebrow: "Formar para enviar",
     description: "Acompaña al nuevo bautizado en su maduración y preparación para servir.",
     table: "discipulado_procesos",
+    leccionesTabla: "discipulado_lecciones",
+    progresoTabla: "discipulado_progreso_leccion",
+    progresoColumna: "discipulado_proceso_id",
     defaultProgram: "Discipulado Crecer",
     activeState: "activo",
     activeLabel: "Activos",
@@ -44,7 +52,7 @@ export default function RutaFormacion({ mode }) {
   const [people, setPeople] = useState([]);
   const [friends, setFriends] = useState([]);
   const [estaciones, setEstaciones] = useState([]);
-  const [esfobLecciones, setEsfobLecciones] = useState([]);
+  const [lecciones, setLecciones] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,11 +83,11 @@ export default function RutaFormacion({ mode }) {
     setLoading(true);
     setError(null);
     const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult] = await Promise.all([
-      supabase.from(config.table).select(mode === "esfob" ? "*, leccion_actual:esfob_lecciones(numero, titulo)" : "*").eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
+      supabase.from(config.table).select(`*, leccion_actual:${config.leccionesTabla}(numero, titulo)`).eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos, bautizado").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("amigos").select("id, nombres, zona_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
-      mode === "esfob" ? supabase.from("esfob_lecciones").select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero") : Promise.resolve({ data: [] }),
+      supabase.from(config.leccionesTabla).select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero"),
     ]);
     const failed = [processResult, peopleResult, friendsResult].find((result) => result.error);
     if (failed) setError(`No se pudo cargar ${config.title}. Intenta nuevamente o contacta al administrador.`);
@@ -87,7 +95,7 @@ export default function RutaFormacion({ mode }) {
     setPeople((peopleResult.data ?? []).filter((person) => mode === "esfob" || person.bautizado));
     setFriends(friendsResult.data ?? []);
     setEstaciones(estacionesResult.data ?? []);
-    setEsfobLecciones(leccionesResult.data ?? []);
+    setLecciones(leccionesResult.data ?? []);
     setLoading(false);
   }
 
@@ -136,9 +144,9 @@ export default function RutaFormacion({ mode }) {
           amigo_id: form.subjectId,
           responsable_persona_id: form.responsibleId || null,
           programa: form.program,
-          lecciones_total: esfobLecciones.length || 1,
+          lecciones_total: lecciones.length || 1,
           lecciones_completadas: 0,
-          leccion_actual_id: esfobLecciones[0]?.id || null,
+          leccion_actual_id: lecciones[0]?.id || null,
           fecha_inicio: form.date,
           notas: form.notes || null,
         }
@@ -148,6 +156,7 @@ export default function RutaFormacion({ mode }) {
           persona_id: form.subjectId,
           mentor_persona_id: form.responsibleId || null,
           programa: form.program,
+          leccion_actual_id: lecciones[0]?.id || null,
           fecha_inicio: form.date,
           servicio_actual: form.service || null,
           notas: form.notes || null,
@@ -202,24 +211,24 @@ export default function RutaFormacion({ mode }) {
     load();
   }
 
-  async function marcarLeccionEsfob(row) {
+  async function marcarLeccion(row) {
     if (!canEdit || !row.leccion_actual_id) return;
     setSaving(true);
     setError(null);
-    const insertResult = await supabase.from("esfob_progreso_leccion").insert({
-      esfob_proceso_id: row.id,
+    const insertResult = await supabase.from(config.progresoTabla).insert({
+      [config.progresoColumna]: row.id,
       leccion_id: row.leccion_actual_id,
-      responsable_persona_id: row.responsable_persona_id || null,
+      responsable_persona_id: row.responsable_persona_id || row.mentor_persona_id || null,
     });
     if (insertResult.error) { setSaving(false); setError(`No se pudo marcar la lección completada: ${insertResult.error.message}`); return; }
-    const siguiente = esfobLecciones.find((item) => item.numero === (row.leccion_actual?.numero || 0) + 1);
-    const updateResult = await supabase.from("esfob_procesos").update({
-      leccion_actual_id: siguiente?.id || null,
-      lecciones_completadas: Math.min(Number(row.lecciones_total || esfobLecciones.length || 1), Number(row.lecciones_completadas || 0) + 1),
-    }).eq("id", row.id);
+    const siguiente = lecciones.find((item) => item.numero === (row.leccion_actual?.numero || 0) + 1);
+    const updatePayload = mode === "esfob"
+      ? { leccion_actual_id: siguiente?.id || null, lecciones_completadas: Math.min(Number(row.lecciones_total || lecciones.length || 1), Number(row.lecciones_completadas || 0) + 1) }
+      : { leccion_actual_id: siguiente?.id || null, lecciones_completadas: Number(row.lecciones_completadas || 0) + 1 };
+    const updateResult = await supabase.from(config.table).update(updatePayload).eq("id", row.id);
     setSaving(false);
     if (updateResult.error) { setError(`Se registró la lección, pero no se pudo avanzar a la siguiente: ${updateResult.error.message}`); return; }
-    setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : "Lección completada. Terminó el currículo de ESFOB.");
+    setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : `Lección completada. Terminó el currículo de ${config.title}.`);
     load();
   }
 
@@ -253,6 +262,34 @@ export default function RutaFormacion({ mode }) {
       ? `${filas.length} persona${filas.length === 1 ? "" : "s"} activa${filas.length === 1 ? "" : "s"}, con un promedio de ${promedioDias} días.`
       : "Aún no hay procesos activos.";
 
+  // Analitica de Discipulado: tendencia de inicios, distribucion por
+  // estado y tasa de exito -- calculadas sobre `rows`, que ya trae TODO
+  // el historico (no solo los activos), sin necesidad de otra consulta.
+  const discipuladoStats = useMemo(() => {
+    if (mode !== "discipulado") return null;
+    const porMes = new Map();
+    rows.forEach((row) => {
+      const clave = row.fecha_inicio?.slice(0, 7);
+      if (clave) porMes.set(clave, (porMes.get(clave) || 0) + 1);
+    });
+    const meses = [...porMes.keys()].sort();
+    const trend = trendDataset(
+      meses.map((mes) => new Date(`${mes}-01T00:00:00`).toLocaleDateString("es-CO", { month: "short", year: "2-digit" })),
+      meses.map((mes) => porMes.get(mes)),
+      { label: "Discipulados iniciados" }
+    );
+    const distribucion = distributionDataset(
+      Object.entries(ESTADOS_DISCIPULADO).map(([key, label]) => ({ label, total: rows.filter((row) => row.estado === key).length })).filter((item) => item.total > 0),
+      { datasetLabel: "Personas" }
+    );
+    const finalizados = rows.filter((row) => row.estado === "completado" || row.estado === "retirado");
+    const tasaExito = finalizados.length ? Math.round((rows.filter((row) => row.estado === "completado").length / finalizados.length) * 100) : null;
+    return { meses, trend, distribucion, tasaExito };
+  }, [rows, mode]);
+  const insightLecciones = mode === "discipulado" && lecciones.length
+    ? `Currículo de Discipulado con ${lecciones.length} lección${lecciones.length === 1 ? "" : "es"} activa${lecciones.length === 1 ? "" : "s"}. ${totalLessons} completada${totalLessons === 1 ? "" : "s"} en total entre todas las personas.`
+    : null;
+
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando {config.title}...</div>;
 
   return (
@@ -275,27 +312,41 @@ export default function RutaFormacion({ mode }) {
         <label className="text-sm text-secondary flex items-center gap-1">{mode === "esfob" ? "Responsable" : "Mentor"}<InfoTip texto="Quién le va a dar seguimiento a esta persona en el proceso. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un responsable</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
         <label className="text-sm text-secondary">Programa<input className="input-field mt-1" value={form.program} onChange={(event) => updateForm("program", event.target.value)} required /></label>
         <label className="text-sm text-secondary">Fecha de inicio<input type="date" className="input-field mt-1" value={form.date} onChange={(event) => updateForm("date", event.target.value)} required /></label>
-        {mode === "esfob" ? (
-          <p className="text-sm text-secondary md:col-span-2 bg-surface-1 rounded p-3">
-            {esfobLecciones.length
-              ? `Empezará en la lección #1 (${esfobLecciones[0].titulo}) de las ${esfobLecciones.length} del catálogo. Se marcan completadas desde la lista de abajo.`
-              : "Aún no hay catálogo de lecciones ESFOB configurado -- ve a Módulos y actividades para crearlo. El proceso igual se puede iniciar."}
-          </p>
-        ) : <label className="text-sm text-secondary">Servicio actual<input className="input-field mt-1" value={form.service} onChange={(event) => updateForm("service", event.target.value)} placeholder="Ej. apoyo en evangelismo" /></label>}
+        {mode === "discipulado" && <label className="text-sm text-secondary">Servicio actual<input className="input-field mt-1" value={form.service} onChange={(event) => updateForm("service", event.target.value)} placeholder="Ej. apoyo en evangelismo" /></label>}
+        <p className="text-sm text-secondary md:col-span-2 bg-surface-1 rounded p-3">
+          {lecciones.length
+            ? `Empezará en la lección #1 (${lecciones[0].titulo}) de las ${lecciones.length} del catálogo. Se marcan completadas desde la lista de abajo.`
+            : `Aún no hay catálogo de lecciones de ${config.title} configurado -- ve a Módulos y actividades para crearlo. El proceso igual se puede iniciar.`}
+        </p>
         <label className="text-sm text-secondary md:col-span-2">Notas<textarea className="input-field mt-1 min-h-20" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} /></label>
         <div className="md:col-span-2 flex justify-end"><button className="btn-primary" type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar proceso"}</button></div>
       </form>}
-      <section className="grid sm:grid-cols-4 gap-3">
+      <section className={mode === "discipulado" ? "grid sm:grid-cols-3 lg:grid-cols-6 gap-3" : "grid sm:grid-cols-4 gap-3"}>
         <Metric label={config.activeLabel} value={active} />
         <Metric label="Completados" value={completed} tone="text-success" />
-        <Metric label={mode === "esfob" ? "Lecciones completadas" : "Personas acompañadas"} value={mode === "esfob" ? totalLessons : rows.length} />
-        <Metric label="Candidatos a trasladar" value={candidatos.length} tone="text-warning" tip={mode === "esfob" ? "Personas que ya completaron todas las lecciones del catálogo -- revisa si están listas para el bautismo." : `Personas que llevan más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`} />
+        {mode === "discipulado" && <Metric label="Personas acompañadas" value={rows.length} />}
+        <Metric label="Lecciones completadas" value={totalLessons} />
+        <Metric label={mode === "esfob" ? "Candidatos a trasladar" : "Requieren seguimiento"} value={candidatos.length} tone="text-warning" tip={mode === "esfob" ? "Personas que ya completaron todas las lecciones del catálogo -- revisa si están listas para el bautismo." : `Personas que llevan más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`} />
+        {mode === "discipulado" && <Metric label="Tasa de éxito" value={discipuladoStats.tasaExito === null ? "—" : `${discipuladoStats.tasaExito}%`} tone={discipuladoStats.tasaExito !== null && discipuladoStats.tasaExito < 70 ? "text-danger" : "text-success"} tip="De los procesos ya finalizados (completados o retirados), qué porcentaje terminó como 'Completado'. Sin procesos finalizados todavía se muestra '—'." />}
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
+      {insightLecciones && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightLecciones}</p>}
       {mode === "esfob" && <section className="card chart-card p-5">
         <p className="eyebrow">Cobertura territorial</p>
         <h2 className="font-medium mt-1">Personas en ESFOB por zona</h2>
         <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
+      </section>}
+      {mode === "discipulado" && <section className="grid lg:grid-cols-2 gap-4">
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Historial</p>
+          <h2 className="font-medium mt-1">Discipulados iniciados por mes</h2>
+          <div className="h-56 mt-4">{discipuladoStats.meses.length ? <Line data={discipuladoStats.trend} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
+        </div>
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Estado actual</p>
+          <h2 className="font-medium mt-1">Personas por estado</h2>
+          <div className="h-56 mt-4">{rows.length ? <Bar data={discipuladoStats.distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
+        </div>
       </section>}
       <section className="card p-5">
         <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien. Puedes trasladarla a otra estación si aún no está lista para el bautismo." : "Discipulado es la última estación de la ruta -- aquí no se traslada a nadie a otra parte, solo se acompaña su continuidad y servicio."} /></h2></div></div>
@@ -304,12 +355,12 @@ export default function RutaFormacion({ mode }) {
             <div>
               <p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p>
               <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
-              {mode === "esfob" && <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : esfobLecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas}/{row.lecciones_total} completadas</p>}
+              <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {mode === "esfob" ? `${row.lecciones_completadas}/${row.lecciones_total} completadas` : `${row.lecciones_completadas || 0} completada${row.lecciones_completadas === 1 ? "" : "s"}`}</p>
             </div>
             <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{mode === "esfob" ? "Listo para trasladar" : "Revisar continuidad"}</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
           </div>
           {canEdit && <div className="flex flex-wrap items-center gap-2">
-            {mode === "esfob" && row.leccion_actual_id && <button type="button" onClick={() => marcarLeccionEsfob(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
+            {row.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
             {mode === "esfob" && row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
             {mode === "esfob" && <>
               <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
