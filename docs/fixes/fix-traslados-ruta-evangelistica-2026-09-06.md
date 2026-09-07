@@ -287,6 +287,52 @@ desechables, se confirmó que `asignarLeccion()` engancha la lección
 elegida sin error, y que después el flujo de marcar-completada ya
 funciona con normalidad. Sin residuos. `npm run build` sin errores.
 
+## Arreglo (parte 7: bitácora de notas individuales por lección, en REFAM/ESFOB/Discipulado)
+
+El usuario notó que el campo "Notas" de la ficha de Discipulado se
+sobreescribe -- no sirve para llevar un registro de quién ha trabajado
+con la persona en cada lección, ni para el caso de cambiar de
+responsable a mitad de camino o de una congregación que reparte una
+misma lección entre varios responsables. Pidió verificar si REFAM y
+ESFOB tenían el mismo hueco antes de replicar la solución.
+
+Se confirmó que sí: ninguna de las 3 tablas de progreso
+(`refam_progreso_leccion`, `esfob_progreso_leccion`,
+`discipulado_progreso_leccion`) tenía una columna de notas, y lo que ya
+existía (`esfob_procesos.notas`, `refam_reuniones.novedades`) era una
+sola fila mutable o notas a nivel de todo el grupo, no una bitácora
+individual por persona y por lección.
+
+Construido en `supabase/modulos/notas_leccion_ruta_evangelistica.sql`:
+tres tablas nuevas (`refam_notas_leccion`, `esfob_notas_leccion`,
+`discipulado_notas_leccion`), cada una con `nota`,
+`responsable_persona_id` y `created_at` -- notas individuales,
+append-only (nunca se sobreescriben), ligadas a la lección que se
+estaba trabajando en ese momento.
+
+Frontend:
+
+- **`RutaFormacion.jsx`**: se unificó ESFOB al mismo layout de
+  lista+ficha que ya tenía Discipulado (antes ESFOB era una lista
+  plana) -- esto le da espacio a la nueva bitácora y de paso elimina
+  la duplicación de código entre los dos modos. "Marcar bautizado" y
+  "Trasladar a..." se movieron a la ficha; el resto de la ficha
+  (lección actual, historial, bitácora) ya era genérico vía `config`
+  y funciona igual para ambos modos sin cambios adicionales.
+- **`EstacionRefam.jsx`**: como los participantes viven anidados
+  dentro de cada grupo (no en una ficha aparte), se agregó un botón
+  "Ver notas" por participante que despliega el mismo panel de
+  bitácora en línea.
+
+**Verificación**: contra la base de datos real, con datos
+desechables en las 3 estaciones -- se confirmó que la nota se inserta
+sin error y se lee con el join correcto (lección + responsable) en
+REFAM, ESFOB y Discipulado. Sin residuos. `npm run build` sin errores.
+A diferencia de la migración de lecciones, esta es segura de desplegar
+sin ejecutar el SQL primero -- si la tabla no existe, la consulta de
+notas simplemente devuelve vacío en vez de romper la página (no va
+embebida en el `select` principal).
+
 ## Nota para el usuario
 
 El amigo de prueba "Manuel Antonio García Rodríguez" (el de tu prueba

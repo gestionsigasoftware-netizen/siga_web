@@ -31,7 +31,13 @@
 	Discipulado aun no tenia lecciones, asi que su leccion_actual_id
 	quedo en null para siempre y su ficha no mostraba boton de marcar --
 	se agrego un selector "Asignar leccion" para ese caso (catalogo con
-	contenido pero proceso sin leccion enganchada). Ver
+	contenido pero proceso sin leccion enganchada). Septima parte: se
+	agrego bitacora de notas individuales por leccion (append-only, con
+	autor y fecha) en las 3 estaciones que manejan lecciones -- REFAM,
+	ESFOB y Discipulado -- via
+	`supabase/modulos/notas_leccion_ruta_evangelistica.sql` (ya
+	ejecutada); de paso se unifico ESFOB al mismo layout de lista+ficha
+	de Discipulado. Ver
 	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
 
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia

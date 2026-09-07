@@ -25,6 +25,8 @@ const CONFIG = {
     leccionesTabla: "esfob_lecciones",
     progresoTabla: "esfob_progreso_leccion",
     progresoColumna: "esfob_proceso_id",
+    notasTabla: "esfob_notas_leccion",
+    notasColumna: "esfob_proceso_id",
     defaultProgram: "ESFOB",
     activeState: "en_formacion",
     activeLabel: "En formación",
@@ -37,6 +39,8 @@ const CONFIG = {
     leccionesTabla: "discipulado_lecciones",
     progresoTabla: "discipulado_progreso_leccion",
     progresoColumna: "discipulado_proceso_id",
+    notasTabla: "discipulado_notas_leccion",
+    notasColumna: "discipulado_proceso_id",
     defaultProgram: "Discipulado Crecer",
     activeState: "activo",
     activeLabel: "Activos",
@@ -64,6 +68,9 @@ export default function RutaFormacion({ mode }) {
   const [progreso, setProgreso] = useState([]);
   const [seguimientoForm, setSeguimientoForm] = useState({ servicio_actual: "", siguiente_accion: "", notas: "" });
   const [leccionParaAsignar, setLeccionParaAsignar] = useState("");
+  const [notasLeccion, setNotasLeccion] = useState([]);
+  const [nuevaNota, setNuevaNota] = useState("");
+  const [nuevaNotaResponsable, setNuevaNotaResponsable] = useState("");
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -246,11 +253,40 @@ export default function RutaFormacion({ mode }) {
     setProgreso(data ?? []);
   }
 
+  async function refrescarNotas(procesoId) {
+    const { data } = await supabase
+      .from(config.notasTabla)
+      .select(`id, nota, created_at, leccion:${config.leccionesTabla}(numero, titulo), responsable:personas(nombres, apellidos)`)
+      .eq(config.notasColumna, procesoId)
+      .order("created_at", { ascending: false });
+    setNotasLeccion(data ?? []);
+  }
+
   function seleccionarFicha(row) {
     setSelectedId(row.id);
     setSeguimientoForm({ servicio_actual: row.servicio_actual || "", siguiente_accion: row.siguiente_accion || "", notas: row.notas || "" });
     setLeccionParaAsignar("");
+    setNuevaNota("");
+    setNuevaNotaResponsable(row.responsable_persona_id || row.mentor_persona_id || "");
     refrescarProgreso(row.id);
+    refrescarNotas(row.id);
+  }
+
+  async function agregarNota(event) {
+    event.preventDefault();
+    if (!canEdit || !selectedId || !nuevaNota.trim() || !seleccionado?.leccion_actual_id) return;
+    setSaving(true);
+    setError(null);
+    const result = await supabase.from(config.notasTabla).insert({
+      [config.notasColumna]: selectedId,
+      leccion_id: seleccionado.leccion_actual_id,
+      nota: nuevaNota.trim(),
+      responsable_persona_id: nuevaNotaResponsable || null,
+    });
+    setSaving(false);
+    if (result.error) { setError(`No se pudo guardar la nota: ${result.error.message}`); return; }
+    setNuevaNota("");
+    refrescarNotas(selectedId);
   }
 
   // Cubre el caso de procesos que se crearon cuando el catalogo de
@@ -402,37 +438,16 @@ export default function RutaFormacion({ mode }) {
           <div className="h-56 mt-4">{rows.length ? <Bar data={discipuladoStats.distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
         </div>
       </section>}
-      {mode === "esfob" ? (
-        <section className="card p-5">
-          <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto="Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien. Puedes trasladarla a otra estación si aún no está lista para el bautismo." /></h2></div></div>
-          {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <p className="font-medium">{row.person?.nombres} {row.person?.apellidos || ""}</p>
-                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
-                <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas}/{row.lecciones_total} completadas</p>
-              </div>
-              <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
-            </div>
-            {canEdit && <div className="flex flex-wrap items-center gap-2">
-              {row.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
-              {row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
-              <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-              <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
-            </div>}
-          </div>; })}</div>}
-        </section>
-      ) : (
-        <section className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
+      <section className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
           <div className="card p-5">
-            <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto="Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial de lecciones y se registra su seguimiento (servicio, próxima acción, notas)." /></h2></div></div>
-            {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.mentor_persona_id); return (
+            <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial, se registran notas, y puedes trasladarla o marcarla bautizada." : "Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial de lecciones y se registra su seguimiento (servicio, próxima acción, notas)."} /></h2></div></div>
+            {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return (
               <button key={row.id} type="button" onClick={() => seleccionarFicha(row)} className={`w-full text-left py-4 flex flex-col gap-1 ${selectedId === row.id ? "bg-accent-bg/40 -mx-5 px-5" : ""}`}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-sm">{row.person?.nombres} {row.person?.apellidos || ""}</p>
-                  {row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Revisar continuidad</span>}
+                  {row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{mode === "esfob" ? "Listo para trasladar" : "Revisar continuidad"}</span>}
                 </div>
-                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Mentor: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
+                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · ${mode === "esfob" ? "Responsable" : "Mentor"}: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
                 <p className="text-xs text-secondary">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones"} · {row.lecciones_completadas || 0} completada{row.lecciones_completadas === 1 ? "" : "s"}</p>
               </button>
             ); })}</div>}
@@ -469,17 +484,47 @@ export default function RutaFormacion({ mode }) {
                   <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2">Historial de lecciones</p>
                   {progreso.length ? <ul className="flex flex-col gap-1.5">{progreso.map((item) => <li key={item.id} className="text-xs text-secondary">#{item.leccion?.numero} — {item.leccion?.titulo} <span className="text-muted">· {item.fecha_completada}</span></li>)}</ul> : <p className="text-xs text-muted">Aún no hay lecciones completadas.</p>}
                 </div>
-                <form onSubmit={guardarSeguimiento} className="grid gap-3 mt-4 pt-4 border-t border-border">
-                  <label className="text-sm">Servicio actual<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. apoyo en evangelismo" value={seguimientoForm.servicio_actual} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, servicio_actual: event.target.value })} /></label>
-                  <label className="text-sm">Próxima acción<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. presentarlo al líder de zona" value={seguimientoForm.siguiente_accion} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, siguiente_accion: event.target.value })} /></label>
-                  <label className="text-sm">Notas<textarea disabled={!canEdit} className="input-field mt-1.5 min-h-20" value={seguimientoForm.notas} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, notas: event.target.value })} /></label>
-                  {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Guardar seguimiento"}</button>}
-                </form>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2 flex items-center gap-1">Bitácora de la lección actual<InfoTip texto="Cada nota queda guardada con su autor y fecha, sin borrar las anteriores -- útil si cambia el responsable o si varias personas acompañan a la vez." /></p>
+                  {canEdit && (seleccionado.leccion_actual_id ? (
+                    <form onSubmit={agregarNota} className="flex flex-col gap-2 mb-3">
+                      <textarea className="input-field text-sm min-h-16" placeholder="Ej. Le costó el tema de hoy, repasar la próxima vez..." value={nuevaNota} onChange={(event) => setNuevaNota(event.target.value)} />
+                      <div className="flex items-center gap-2">
+                        <select aria-label="Quién anota" className="input-field text-xs flex-1" value={nuevaNotaResponsable} onChange={(event) => setNuevaNotaResponsable(event.target.value)}>
+                          <option value="">Sin autor</option>
+                          {people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}
+                        </select>
+                        <button type="submit" disabled={saving || !nuevaNota.trim()} className="btn-secondary px-3 text-xs whitespace-nowrap">Agregar nota</button>
+                      </div>
+                    </form>
+                  ) : <p className="text-xs text-muted mb-3">Asigna una lección arriba para poder anotar.</p>)}
+                  {notasLeccion.length ? <ul className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">{notasLeccion.map((item) => (
+                    <li key={item.id} className="text-xs bg-surface-1 rounded p-2.5">
+                      <p className="text-secondary">{item.nota}</p>
+                      <p className="text-muted mt-1">#{item.leccion?.numero} — {item.leccion?.titulo} · {item.responsable ? `${item.responsable.nombres} ${item.responsable.apellidos}` : "Sin autor"} · {new Date(item.created_at).toLocaleDateString("es-CO")}</p>
+                    </li>
+                  ))}</ul> : <p className="text-xs text-muted">Aún no hay notas registradas.</p>}
+                </div>
+                {mode === "esfob" ? (
+                  canEdit && <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
+                    {seleccionado.listo && <button type="button" onClick={() => marcarBautizado(seleccionado)} disabled={saving} className="btn-primary justify-center">Marcar bautizado</button>}
+                    <div className="flex items-center gap-2">
+                      <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[seleccionado.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [seleccionado.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+                      <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(seleccionado)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={guardarSeguimiento} className="grid gap-3 mt-4 pt-4 border-t border-border">
+                    <label className="text-sm">Servicio actual<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. apoyo en evangelismo" value={seguimientoForm.servicio_actual} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, servicio_actual: event.target.value })} /></label>
+                    <label className="text-sm">Próxima acción<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. presentarlo al líder de zona" value={seguimientoForm.siguiente_accion} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, siguiente_accion: event.target.value })} /></label>
+                    <label className="text-sm flex items-center gap-1">Notas generales<InfoTip texto="Un resumen general de la persona, distinto de la bitácora por lección de arriba -- este campo se sobreescribe cada vez que lo edites." /><textarea disabled={!canEdit} className="input-field mt-1.5 min-h-20 w-full" value={seguimientoForm.notas} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, notas: event.target.value })} /></label>
+                    {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Guardar seguimiento"}</button>}
+                  </form>
+                )}
               </>
             ) : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Selecciona una persona de la lista</div>}
           </div>
-        </section>
-      )}
+      </section>
     </div>
   );
 }

@@ -34,6 +34,10 @@ export default function EstacionRefam() {
   const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "", responsableId: "" });
   const [refamReunionForm, setRefamReunionForm] = useState({ fecha: hoyBogota(), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
   const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
+  const [notasAbiertasParticipanteId, setNotasAbiertasParticipanteId] = useState(null);
+  const [notasPorParticipante, setNotasPorParticipante] = useState({});
+  const [nuevaNotaRefam, setNuevaNotaRefam] = useState("");
+  const [nuevaNotaRefamResponsable, setNuevaNotaRefamResponsable] = useState("");
   const [trasladoDestino, setTrasladoDestino] = useState({});
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
@@ -167,7 +171,41 @@ export default function EstacionRefam() {
     setSaving(false);
     if (updateResult.error) { setError(`Se registró la lección, pero no se pudo avanzar a la siguiente: ${updateResult.error.message}`); return; }
     setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : "Lección completada. Terminó el currículo de REFAM.");
+    if (participante.id === notasAbiertasParticipanteId) refrescarNotasRefam(participante.id);
     loadRefamGrupoDetail(selectedRefamGrupoId);
+  }
+
+  async function refrescarNotasRefam(participanteId) {
+    const { data } = await supabase
+      .from("refam_notas_leccion")
+      .select("id, nota, created_at, leccion:refam_lecciones(numero, titulo), responsable:personas(nombres, apellidos)")
+      .eq("participante_id", participanteId)
+      .order("created_at", { ascending: false });
+    setNotasPorParticipante((current) => ({ ...current, [participanteId]: data ?? [] }));
+  }
+
+  function toggleNotasParticipante(participante) {
+    if (notasAbiertasParticipanteId === participante.id) { setNotasAbiertasParticipanteId(null); return; }
+    setNotasAbiertasParticipanteId(participante.id);
+    setNuevaNotaRefam("");
+    setNuevaNotaRefamResponsable("");
+    refrescarNotasRefam(participante.id);
+  }
+
+  async function agregarNotaRefam(participante) {
+    if (!canEdit || !nuevaNotaRefam.trim() || !participante.leccion_actual_id) return;
+    setSaving(true);
+    setError(null);
+    const result = await supabase.from("refam_notas_leccion").insert({
+      participante_id: participante.id,
+      leccion_id: participante.leccion_actual_id,
+      nota: nuevaNotaRefam.trim(),
+      responsable_persona_id: nuevaNotaRefamResponsable || null,
+    });
+    setSaving(false);
+    if (result.error) { setError(`No se pudo guardar la nota: ${result.error.message}`); return; }
+    setNuevaNotaRefam("");
+    refrescarNotasRefam(participante.id);
   }
 
   async function addRefamParticipante(event) {
@@ -307,12 +345,38 @@ export default function EstacionRefam() {
                   <label className="text-xs text-secondary flex items-center gap-1">Responsable de su seguimiento<InfoTip texto="Quién le va a dar seguimiento a esta persona mientras esté en REFAM. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.responsableId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, responsableId: event.target.value })}><option value="">Selecciona...</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
                   <button aria-label="Agregar participante" disabled={saving} className="btn-secondary px-3"><Plus className="w-4 h-4" /></button>
                 </form>}
-                {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {item.estado}</span></p>
-                    <p className="text-xs text-muted">{item.leccion_actual ? `Lección #${item.leccion_actual.numero} — ${item.leccion_actual.titulo}` : refamLecciones.length ? "Currículo completado" : "Sin catálogo de lecciones configurado"} · {progresoPorParticipante[item.id] || 0}/{refamLecciones.length} completadas · {asistenciaPorParticipante[item.id] || 0} reuniones</p>
+                {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {item.estado}</span></p>
+                      <p className="text-xs text-muted">{item.leccion_actual ? `Lección #${item.leccion_actual.numero} — ${item.leccion_actual.titulo}` : refamLecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones configurado"} · {progresoPorParticipante[item.id] || 0}/{refamLecciones.length} completadas · {asistenciaPorParticipante[item.id] || 0} reuniones</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {canEdit && item.leccion_actual_id && <button type="button" onClick={() => marcarLeccionCompletada(item)} disabled={saving} className="btn-secondary px-2 py-1 text-xs whitespace-nowrap">Marcar completada</button>}
+                      <button type="button" onClick={() => toggleNotasParticipante(item)} className="text-xs text-accent whitespace-nowrap">{notasAbiertasParticipanteId === item.id ? "Ocultar notas" : "Ver notas"}</button>
+                    </div>
                   </div>
-                  {canEdit && item.leccion_actual_id && <button type="button" onClick={() => marcarLeccionCompletada(item)} disabled={saving} className="btn-secondary px-2 py-1 text-xs whitespace-nowrap">Marcar completada</button>}
+                  {notasAbiertasParticipanteId === item.id && <div className="bg-surface-1 rounded p-3">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2 flex items-center gap-1">Bitácora de la lección actual<InfoTip texto="Cada nota queda guardada con su autor y fecha, sin borrar las anteriores -- útil si cambia el responsable o si varias personas acompañan a la vez." /></p>
+                    {canEdit && (item.leccion_actual_id ? (
+                      <div className="flex flex-col gap-2 mb-3">
+                        <textarea className="input-field text-sm min-h-16" placeholder="Ej. Le costó el tema de hoy, repasar la próxima vez..." value={nuevaNotaRefam} onChange={(event) => setNuevaNotaRefam(event.target.value)} />
+                        <div className="flex items-center gap-2">
+                          <select aria-label="Quién anota" className="input-field text-xs flex-1" value={nuevaNotaRefamResponsable} onChange={(event) => setNuevaNotaRefamResponsable(event.target.value)}>
+                            <option value="">Sin autor</option>
+                            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+                          </select>
+                          <button type="button" onClick={() => agregarNotaRefam(item)} disabled={saving || !nuevaNotaRefam.trim()} className="btn-secondary px-3 text-xs whitespace-nowrap">Agregar nota</button>
+                        </div>
+                      </div>
+                    ) : <p className="text-xs text-muted mb-3">Asigna una lección para poder anotar.</p>)}
+                    {(notasPorParticipante[item.id] || []).length ? <ul className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">{notasPorParticipante[item.id].map((nota) => (
+                      <li key={nota.id} className="text-xs bg-surface-2 rounded p-2.5">
+                        <p className="text-secondary">{nota.nota}</p>
+                        <p className="text-muted mt-1">#{nota.leccion?.numero} — {nota.leccion?.titulo} · {nota.responsable ? `${nota.responsable.nombres} ${nota.responsable.apellidos}` : "Sin autor"} · {new Date(nota.created_at).toLocaleDateString("es-CO")}</p>
+                      </li>
+                    ))}</ul> : <p className="text-xs text-muted">Aún no hay notas registradas.</p>}
+                  </div>}
                 </div>)}</div> : <p className="text-xs text-muted">Sin participantes aún.</p>}
               </div>
               <div>
