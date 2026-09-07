@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
-import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
@@ -171,8 +171,9 @@ export default function RutaFormacion({ mode }) {
     if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
     setSaving(true);
     setError(null);
-    const result = await iniciarOMoverEstacion({
+    const result = await trasladarEstacion({
       congregacionId,
+      estacionOrigenCodigo: mode,
       estacionDestino: destino,
       amigoId: mode === "esfob" ? row.amigo_id : null,
       personaId: mode === "discipulado" ? row.persona_id : null,
@@ -180,7 +181,24 @@ export default function RutaFormacion({ mode }) {
     });
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
-    setNotice(`Trasladado a ${destino.nombre}.`);
+    setNotice(result.avisoRefam ? `Trasladado a ${destino.nombre} -- ve a REFAM y agrégala a un grupo para que aparezca en su lista.` : `Trasladado a ${destino.nombre}.`);
+    load();
+  }
+
+  async function marcarBautizado(row) {
+    if (!canEdit || mode !== "esfob") return;
+    setSaving(true);
+    setError(null);
+    const fecha = TODAY;
+    const amigoResult = await supabase
+      .from("amigos")
+      .update({ estado_espiritual: "bautizado", convertido: true, bautizado: true, fecha_bautismo: fecha })
+      .eq("id", row.amigo_id);
+    if (amigoResult.error) { setSaving(false); setError(`No se pudo registrar el bautismo: ${amigoResult.error.message}`); return; }
+    const procesoResult = await supabase.from("esfob_procesos").update({ estado: "aprobado", fecha_aprobacion: fecha }).eq("id", row.id);
+    setSaving(false);
+    if (procesoResult.error) { setError(`Se registró el bautismo, pero no se pudo cerrar el proceso de ESFOB: ${procesoResult.error.message}`); return; }
+    setNotice("Bautismo registrado. Ahora incorpórala a Feligresía desde Amigos para poder iniciar su Discipulado.");
     load();
   }
 
@@ -292,7 +310,8 @@ export default function RutaFormacion({ mode }) {
           </div>
           {canEdit && <div className="flex flex-wrap items-center gap-2">
             {mode === "esfob" && row.leccion_actual_id && <button type="button" onClick={() => marcarLeccionEsfob(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
-            <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+            {mode === "esfob" && row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
+            <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (mode === "esfob" ? "persona" : "amigo")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
             <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
           </div>}
         </div>; })}</div>}

@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): traslados entre estaciones de la Ruta
+	Evangelistica no actualizaban las tablas de detalle
+	(`esfob_procesos`, `discipulado_procesos`, `refam_participantes`),
+	solo `ruta_procesos` -- la persona quedaba invisible en el destino y
+	"fantasma" en el origen. Reportado con evidencia real por el usuario
+	probando en su congregacion (Puerto Tejada Cauca Central). Arreglado
+	con un mecanismo centralizado (`trasladarEstacion()` en
+	`rutaEvangelistica.js`) usado por las 4 pantallas de estacion; ademas
+	se bloqueo el traslado directo amigo->Discipulado (esquematicamente
+	invalido, requiere bautismo primero) y se agrego el boton "Marcar
+	bautizado" en ESFOB. Ver
+	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
+
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia
 	de todos los demas modulos) ni consolidado distrital -- se agrego
 	tendencia + distribucion + insight en `Sepri.jsx`, y se conecto por

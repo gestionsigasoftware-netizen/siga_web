@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
-import { UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
@@ -118,10 +118,10 @@ export default function EstacionBis() {
     if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
     setSaving(true);
     setError(null);
-    const result = await iniciarOMoverEstacion({ congregacionId, estacionDestino: destino, amigoId: proceso.amigo_id, responsablePersonaId: proceso.responsable_persona_id });
+    const result = await trasladarEstacion({ congregacionId, estacionOrigenCodigo: "bis", estacionDestino: destino, amigoId: proceso.amigo_id, responsablePersonaId: proceso.responsable_persona_id });
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
-    setNotice(`Trasladado a ${destino.nombre}.`);
+    setNotice(result.avisoRefam ? `Trasladado a ${destino.nombre} -- ve a REFAM y agrégala a un grupo para que aparezca en su lista.` : `Trasladado a ${destino.nombre}.`);
     load();
   }
 
@@ -204,7 +204,7 @@ export default function EstacionBis() {
                 <button type="button" onClick={() => seleccionar(row)} className="text-left"><p className="font-medium text-sm">{row.amigos?.nombres || "Sin nombre"}</p><p className="text-xs text-secondary mt-0.5">{row.amigos?.zonas?.nombre || "Sin zona"} · {row.dias ?? 0} días{row.integrado ? " · Integrado" : ""} · {row.atenciones.length} atención{row.atenciones.length === 1 ? "" : "es"}</p></button>
                 {((row.dias ?? 0) > UMBRAL || row.integrado) && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}
               </div>
-              {canEdit && <div className="flex items-center gap-2"><select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "bis" && item.codigo !== "metodos").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button></div>}
+              {canEdit && <div className="flex items-center gap-2"><select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "bis" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button></div>}
             </div>
           ))}</div>}
         </div>

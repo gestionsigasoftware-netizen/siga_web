@@ -106,3 +106,85 @@ export async function iniciarOMoverEstacion({
   if (error) return { error };
   return { data, moved: Boolean(activo) };
 }
+
+// REFAM, ESFOB y Discipulado no solo viven en ruta_procesos -- tienen su
+// propia tabla de detalle (con campos que ruta_procesos no tiene: lecciones,
+// mentor, etc.) y sus pantallas leen de ESA tabla, no de ruta_procesos. Un
+// traslado que solo mueve ruta_procesos deja a la persona invisible en el
+// detalle del destino y "fantasma" (activa) en el detalle del origen. Este
+// mapa es la fuente única de verdad de qué tabla de detalle tiene cada
+// estación y qué tipo de persona acepta.
+export const DETALLE_ESTACION = {
+  esfob: { tabla: "esfob_procesos", estadoActivo: "en_formacion", estadoSalida: "retirado", requiere: "amigo" },
+  discipulado: { tabla: "discipulado_procesos", estadoActivo: "activo", estadoSalida: "retirado", requiere: "persona" },
+  // refam_participantes exige un grupo_id (hogar/celula) que esta funcion
+  // no puede adivinar -- por eso no crea la fila del destino, solo cierra
+  // la de origen; avisa al llamador con `avisoRefam` para que le diga al
+  // usuario que la agregue a un grupo desde la pantalla de REFAM.
+  refam: { tabla: "refam_participantes", estadoActivo: "activo", estadoSalida: "completado", requiere: null },
+};
+
+/**
+ * Traslado completo entre estaciones: mueve ruta_procesos (via
+ * iniciarOMoverEstacion) y ademas cierra la fila de detalle en el origen y
+ * crea la del destino cuando aplica. Bloquea el traslado si el destino
+ * exige un tipo de persona (amigo/persona) que esta no tiene -- por
+ * ejemplo, un amigo no puede entrar a Discipulado porque esa estacion
+ * requiere una persona ya bautizada e incorporada a Feligresia.
+ */
+export async function trasladarEstacion({
+  congregacionId,
+  estacionOrigenCodigo,
+  estacionDestino,
+  amigoId,
+  personaId,
+  responsablePersonaId,
+}) {
+  const detalleDestino = DETALLE_ESTACION[estacionDestino.codigo];
+  if (detalleDestino?.requiere === "amigo" && !amigoId) {
+    return { error: new Error(`${estacionDestino.nombre} es solo para amigos aún no bautizados. Esta persona ya está incorporada a Feligresía.`) };
+  }
+  if (detalleDestino?.requiere === "persona" && !personaId) {
+    return { error: new Error(`${estacionDestino.nombre} requiere que la persona ya esté bautizada e incorporada a Feligresía. Usa "Marcar bautizado" antes de trasladarla aquí.`) };
+  }
+
+  const result = await iniciarOMoverEstacion({ congregacionId, estacionDestino, amigoId, personaId, responsablePersonaId });
+  if (result.error) return result;
+
+  const detalleOrigen = DETALLE_ESTACION[estacionOrigenCodigo];
+  if (detalleOrigen) {
+    let cierre = supabase
+      .from(detalleOrigen.tabla)
+      .update({ estado: detalleOrigen.estadoSalida })
+      .eq("congregacion_id", congregacionId)
+      .eq("estado", detalleOrigen.estadoActivo);
+    cierre = amigoId ? cierre.eq("amigo_id", amigoId) : cierre.eq("persona_id", personaId);
+    await cierre;
+  }
+
+  if (detalleDestino && estacionDestino.codigo !== "refam") {
+    const payload = { congregacion_id: congregacionId, proceso_id: result.data.id };
+    if (estacionDestino.codigo === "esfob") {
+      payload.amigo_id = amigoId;
+      payload.responsable_persona_id = responsablePersonaId || null;
+      const { data: primeraLeccion } = await supabase
+        .from("esfob_lecciones")
+        .select("id")
+        .eq("congregacion_id", congregacionId)
+        .eq("activo", true)
+        .order("numero")
+        .limit(1)
+        .maybeSingle();
+      payload.leccion_actual_id = primeraLeccion?.id || null;
+    } else if (estacionDestino.codigo === "discipulado") {
+      payload.persona_id = personaId;
+      payload.mentor_persona_id = responsablePersonaId || null;
+    }
+    const detalleResult = await supabase.from(detalleDestino.tabla).insert(payload);
+    if (detalleResult.error) return { ...result, detalleError: detalleResult.error };
+  } else if (estacionDestino.codigo === "refam") {
+    return { ...result, avisoRefam: true };
+  }
+
+  return result;
+}
