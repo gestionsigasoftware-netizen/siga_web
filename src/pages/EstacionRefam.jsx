@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
-import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, getEstacionActivos, iniciarOMoverEstacion, reasignarComiteResponsable, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
@@ -298,6 +298,24 @@ export default function EstacionRefam() {
     load();
   }
 
+  // Cambia el comite responsable sin trasladar de estacion -- ej. una
+  // adolescente que cumple 18 años y pasa de Adolescentes a Jovenes,
+  // sin dejar REFAM. Distinto de trasladar(), que siempre exige un
+  // destino nuevo.
+  async function reasignarComite(proceso) {
+    if (!canEdit) return;
+    const nuevoComiteId = trasladoComite[proceso.id];
+    if (!nuevoComiteId) { setError("Selecciona el comité de seguimiento."); return; }
+    setSaving(true);
+    setError(null);
+    const result = await reasignarComiteResponsable({ procesoId: proceso.id, estacionCodigo: "refam", nuevoComiteId });
+    setSaving(false);
+    if (result.error) { setError(`No se pudo reasignar el comité: ${result.error.message}`); return; }
+    setNotice("Comité responsable reasignado.");
+    setTrasladoComite({ ...trasladoComite, [proceso.id]: "" });
+    load();
+  }
+
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando REFAM...</div>;
 
   return (
@@ -335,6 +353,7 @@ export default function EstacionRefam() {
               <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "refam" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (row.persona_id ? "amigo" : "persona")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
               <select aria-label="Reasignar a un comité (opcional)" title="Reasignar a un comité (opcional)" className="input-field text-xs w-40" value={trasladoComite[row.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [row.id]: event.target.value })}><option value="">Mantener responsable</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
               <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+              <button type="button" aria-label="Reasignar comité sin cambiar de estación" title="Cambia el comité responsable sin trasladar de estación" onClick={() => reasignarComite(row)} disabled={saving || !trasladoComite[row.id]} className="btn-secondary px-2 text-xs whitespace-nowrap">Reasignar comité</button>
             </div>}
           </div>
         ))}</div>}

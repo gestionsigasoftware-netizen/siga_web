@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): botón "Reasignar comité" independiente del
+	traslado, en REFAM, ESFOB y Discipulado -- cambia el comité
+	responsable sin cambiar de estación. Nueva función
+	`reasignarComiteResponsable` en `rutaEvangelistica.js` (actualiza
+	`ruta_procesos` y, en ESFOB/Discipulado, también la columna espejo
+	en su tabla de detalle, algo que el cortocircuito existente de
+	`iniciarOMoverEstacion` no hacía). Cierra el último ítem del plan de
+	cierre del rediseño Ruta Evangelística + comités iniciado el mismo
+	día. Ver `docs/fixes/reasignar-comite-2026-09-07.md`.
+
 - Resuelto (2026-09-07): botón "Vincular a la Ruta" ahora también
 	disponible desde la pestaña Internos de Obra Carcelaria (ingreso
 	inicial, interno aún preso), no solo desde Reinserción

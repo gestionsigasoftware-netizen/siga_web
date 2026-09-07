@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset, trendDataset } from "../lib/chartTheme";
-import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, iniciarOMoverEstacion, reasignarComiteResponsable, trasladarEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
@@ -214,6 +214,25 @@ export default function RutaFormacion({ mode }) {
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
     setNotice(result.avisoRefam ? `Trasladado a ${destino.nombre} -- ve a REFAM y agrégala a un grupo para que aparezca en su lista.` : `Trasladado a ${destino.nombre}.`);
+    load();
+  }
+
+  // Cambia el comite responsable sin trasladar de estacion -- ej. una
+  // persona que pasa de Jovenes a Caballeros al casarse, sin dejar
+  // ESFOB/Discipulado. Distinto de trasladar(), que siempre exige un
+  // destino nuevo. row.proceso_id es el id en ruta_procesos (esta
+  // tabla de detalle lo guarda desde que trasladarEstacion la crea).
+  async function reasignarComite(row) {
+    if (!canEdit) return;
+    const nuevoComiteId = trasladoComite[row.id];
+    if (!nuevoComiteId) { setError("Selecciona el comité de seguimiento."); return; }
+    setSaving(true);
+    setError(null);
+    const result = await reasignarComiteResponsable({ procesoId: row.proceso_id, estacionCodigo: mode, nuevoComiteId });
+    setSaving(false);
+    if (result.error) { setError(`No se pudo reasignar el comité: ${result.error.message}`); return; }
+    setNotice("Comité responsable reasignado.");
+    setTrasladoComite({ ...trasladoComite, [row.id]: "" });
     load();
   }
 
@@ -524,15 +543,24 @@ export default function RutaFormacion({ mode }) {
                       <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[seleccionado.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [seleccionado.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
                       <select aria-label="Reasignar a un comité (opcional)" title="Reasignar a un comité (opcional)" className="input-field text-xs w-40" value={trasladoComite[seleccionado.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [seleccionado.id]: event.target.value })}><option value="">Mantener responsable</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
                       <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(seleccionado)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+                      <button type="button" aria-label="Reasignar comité sin cambiar de estación" title="Cambia el comité responsable sin trasladar de estación" onClick={() => reasignarComite(seleccionado)} disabled={saving || !trasladoComite[seleccionado.id]} className="btn-secondary px-2 text-xs whitespace-nowrap">Reasignar comité</button>
                     </div>
                   </div>
                 ) : (
-                  <form onSubmit={guardarSeguimiento} className="grid gap-3 mt-4 pt-4 border-t border-border">
-                    <label className="text-sm">Servicio actual<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. apoyo en evangelismo" value={seguimientoForm.servicio_actual} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, servicio_actual: event.target.value })} /></label>
-                    <label className="text-sm">Próxima acción<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. presentarlo al líder de zona" value={seguimientoForm.siguiente_accion} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, siguiente_accion: event.target.value })} /></label>
-                    <label className="text-sm flex items-center gap-1">Notas generales<InfoTip texto="Un resumen general de la persona, distinto de la bitácora por lección de arriba -- este campo se sobreescribe cada vez que lo edites." /><textarea disabled={!canEdit} className="input-field mt-1.5 min-h-20 w-full" value={seguimientoForm.notas} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, notas: event.target.value })} /></label>
-                    {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Guardar seguimiento"}</button>}
-                  </form>
+                  <>
+                    <form onSubmit={guardarSeguimiento} className="grid gap-3 mt-4 pt-4 border-t border-border">
+                      <label className="text-sm">Servicio actual<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. apoyo en evangelismo" value={seguimientoForm.servicio_actual} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, servicio_actual: event.target.value })} /></label>
+                      <label className="text-sm">Próxima acción<input disabled={!canEdit} className="input-field mt-1.5" placeholder="Ej. presentarlo al líder de zona" value={seguimientoForm.siguiente_accion} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, siguiente_accion: event.target.value })} /></label>
+                      <label className="text-sm flex items-center gap-1">Notas generales<InfoTip texto="Un resumen general de la persona, distinto de la bitácora por lección de arriba -- este campo se sobreescribe cada vez que lo edites." /><textarea disabled={!canEdit} className="input-field mt-1.5 min-h-20 w-full" value={seguimientoForm.notas} onChange={(event) => setSeguimientoForm({ ...seguimientoForm, notas: event.target.value })} /></label>
+                      {canEdit && <button disabled={saving} className="btn-primary justify-center">{saving ? "Guardando..." : "Guardar seguimiento"}</button>}
+                    </form>
+                    {canEdit && (
+                      <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border">
+                        <select aria-label="Comité de seguimiento" className="input-field text-xs w-40" value={trasladoComite[seleccionado.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [seleccionado.id]: event.target.value })}><option value="">Comité de seguimiento...</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
+                        <button type="button" title="Cambia el comité responsable sin salir de Discipulado" onClick={() => reasignarComite(seleccionado)} disabled={saving || !trasladoComite[seleccionado.id]} className="btn-secondary px-3 text-xs whitespace-nowrap">Reasignar comité</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             ) : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Selecciona una persona de la lista</div>}

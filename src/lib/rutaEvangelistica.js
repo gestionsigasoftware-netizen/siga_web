@@ -252,3 +252,43 @@ export async function trasladarEstacion({
 
   return result;
 }
+
+// Cambia el comite responsable de una persona SIN moverla de estacion --
+// distinto de trasladarEstacion, que siempre exige un destino. Resuelve
+// el caso de "el comite de seguimiento debe poder cambiar sin que la
+// persona cambie de estacion" (ej. una adolescente que cumple 18 años y
+// pasa de Adolescentes a Jovenes, sin dejar REFAM). Solo aplica a
+// estaciones comite-only (REFAM/ESFOB/Discipulado); ademas de
+// ruta_procesos, actualiza la columna espejo en la tabla de detalle
+// (esfob_procesos/discipulado_procesos) cuando existe -- a diferencia
+// del cortocircuito de iniciarOMoverEstacion, que solo toca
+// ruta_procesos. REFAM no tiene columna espejo en refam_participantes,
+// asi que ahi basta con ruta_procesos.
+export async function reasignarComiteResponsable({ procesoId, estacionCodigo, nuevoComiteId }) {
+  if (TIPO_RESPONSABLE_ESTACION[estacionCodigo] !== "comite") {
+    return { error: new Error("Esta estación no acepta un comité como responsable.") };
+  }
+  if (!nuevoComiteId) {
+    return { error: new Error("Selecciona el comité de seguimiento.") };
+  }
+  const actualizarRuta = await supabase
+    .from("ruta_procesos")
+    .update({ responsable_comite_id: nuevoComiteId, responsable_persona_id: null })
+    .eq("id", procesoId);
+  if (actualizarRuta.error) return { error: actualizarRuta.error };
+
+  if (estacionCodigo === "esfob") {
+    const actualizarDetalle = await supabase
+      .from("esfob_procesos")
+      .update({ responsable_comite_id: nuevoComiteId, responsable_persona_id: null })
+      .eq("proceso_id", procesoId);
+    if (actualizarDetalle.error) return { error: actualizarDetalle.error };
+  } else if (estacionCodigo === "discipulado") {
+    const actualizarDetalle = await supabase
+      .from("discipulado_procesos")
+      .update({ mentor_comite_id: nuevoComiteId, mentor_persona_id: null })
+      .eq("proceso_id", procesoId);
+    if (actualizarDetalle.error) return { error: actualizarDetalle.error };
+  }
+  return { data: { procesoId, nuevoComiteId } };
+}
