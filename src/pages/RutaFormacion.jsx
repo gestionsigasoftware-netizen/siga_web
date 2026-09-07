@@ -102,7 +102,7 @@ export default function RutaFormacion({ mode }) {
     const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult, comitesResult] = await Promise.all([
       supabase.from(config.table).select(`*, leccion_actual:${config.leccionesTabla}(numero, titulo), responsable_comite:comites!${config.table}_${config.responsableComiteCampo}_fkey(nombre)`).eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos, bautizado").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
-      supabase.from("amigos").select("id, nombres, zona_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
+      supabase.from("amigos").select("id, nombres, zona_id, comite_origen_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
       supabase.from(config.leccionesTabla).select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero"),
       getComitesActivos(congregacionId),
@@ -429,7 +429,11 @@ export default function RutaFormacion({ mode }) {
       {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. El inicio y actualización de procesos requiere permiso de edición.</p>}
       {showForm && <form onSubmit={createProcess} className="card p-5 grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2"><p className="eyebrow">Nuevo proceso</p><h2 className="font-medium mt-1">Registrar {config.title}</h2></div>
-        <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => updateForm("subjectId", event.target.value)} required><option value="">Selecciona una persona</option>{(mode === "esfob" ? friends : people).map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos || ""}</option>)}</select></label>
+        <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => {
+          const subjectId = event.target.value;
+          const amigoElegido = mode === "esfob" ? friends.find((item) => item.id === subjectId) : null;
+          setForm({ ...form, subjectId, responsibleId: amigoElegido?.comite_origen_id || form.responsibleId });
+        }} required><option value="">Selecciona una persona</option>{(mode === "esfob" ? friends : people).map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos || ""}</option>)}</select></label>
         <label className="text-sm text-secondary flex items-center gap-1">{mode === "esfob" ? "Comité responsable" : "Comité mentor"}<InfoTip texto={`Qué comité local le va a dar seguimiento a esta persona en ${config.title} (por ejemplo, el comité que corresponda a su población). Es obligatorio para que siempre haya un comité encargado.`} /><select required className="input-field mt-1 w-full" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
         <label className="text-sm text-secondary">Programa<input className="input-field mt-1" value={form.program} onChange={(event) => updateForm("program", event.target.value)} required /></label>
         <label className="text-sm text-secondary">Fecha de inicio<input type="date" className="input-field mt-1" value={form.date} onChange={(event) => updateForm("date", event.target.value)} required /></label>

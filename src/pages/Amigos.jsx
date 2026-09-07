@@ -19,7 +19,7 @@ import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
-import { diasDesde } from "../lib/rutaEvangelistica";
+import { diasDesde, getComitesActivos } from "../lib/rutaEvangelistica";
 import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comitesPorPoblacion";
 import { descargarPdf } from "../lib/reportExport";
 import InfoTip from "../components/InfoTip";
@@ -52,9 +52,10 @@ const EMPTY_FORM = {
   fecha_nacimiento: "",
   estado_civil: "soltero",
   genero: "",
+  comite_origen_id: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre)";
+  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -68,6 +69,7 @@ export default function Amigos() {
   const [zonas, setZonas] = useState([]);
   const [metodologias, setMetodologias] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [comites, setComites] = useState([]);
   const [amigos, setAmigos] = useState([]);
   const [analysisAmigos, setAnalysisAmigos] = useState([]);
   const [page, setPage] = useState(0);
@@ -212,6 +214,7 @@ export default function Amigos() {
   useEffect(() => {
     if (!congregacionId) return;
     getRangosEdadComite(congregacionId).then(({ data }) => setRangosEdad(data ?? []));
+    getComitesActivos(congregacionId).then(({ data }) => setComites(data ?? []));
   }, [congregacionId]);
 
   const totalPages = Math.max(1, Math.ceil(totalAmigos / pageSize));
@@ -235,6 +238,7 @@ export default function Amigos() {
       fecha_nacimiento: friend.fecha_nacimiento || "",
       estado_civil: friend.estado_civil || "soltero",
       genero: friend.genero || "",
+      comite_origen_id: friend.comite_origen_id || "",
     });
     const nameParts = (friend.nombres || "").trim().split(/\s+/);
     setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
@@ -298,6 +302,7 @@ export default function Amigos() {
       evangelismo_metodologia_id: form.evangelismo_metodologia_id || null,
       fecha_nacimiento: form.fecha_nacimiento || null,
       genero: form.genero || null,
+      comite_origen_id: form.comite_origen_id || null,
       congregacion_id: congregacionId,
     };
     const { data, error: insertError } = await supabase
@@ -332,6 +337,7 @@ export default function Amigos() {
       evangelismo_metodologia_id: editForm.evangelismo_metodologia_id || null,
       fecha_nacimiento: editForm.fecha_nacimiento || null,
       genero: editForm.genero || null,
+      comite_origen_id: editForm.comite_origen_id || null,
     };
     const { data, error: updateError } = await supabase
       .from("amigos")
@@ -694,6 +700,24 @@ export default function Amigos() {
               ))}
             </select>
           </label>
+          <label className="text-sm flex items-center gap-1">
+            Comité que lo recibió
+            <InfoTip texto="El comité que lo atendió en el culto o actividad y le hará seguimiento -- para no perderlo de vista aunque todavía no llegue a REFAM. Opcional." />
+            <select
+              className="input-field mt-1.5 w-full"
+              value={form.comite_origen_id}
+              onChange={(event) =>
+                setForm({ ...form, comite_origen_id: event.target.value })
+              }
+            >
+              <option value="">Sin comité asignado</option>
+              {comites.map((comite) => (
+                <option key={comite.id} value={comite.id}>
+                  {comite.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
           <button disabled={saving} className="btn-secondary justify-center">
             {saving ? "Guardando..." : "Guardar amigo"}
           </button>
@@ -939,6 +963,22 @@ export default function Amigos() {
                   <option value="femenino">Femenino</option>
                 </select>
               </label>
+              <label className="text-sm flex items-center gap-1">
+                Comité que lo recibió
+                <InfoTip texto="El comité que lo atendió y le hace seguimiento desde el primer contacto -- para no perderlo de vista aunque todavía no llegue a REFAM. Opcional." />
+                <select
+                  className="input-field mt-1.5 w-full"
+                  value={editForm.comite_origen_id}
+                  onChange={(event) => setEditForm({ ...editForm, comite_origen_id: event.target.value })}
+                >
+                  <option value="">Sin comité asignado</option>
+                  {comites.map((comite) => (
+                    <option key={comite.id} value={comite.id}>
+                      {comite.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button disabled={saving} className="btn-primary justify-center">
                 <Pencil className="w-4 h-4" />
                 {saving ? "Guardando..." : "Guardar cambios"}
@@ -952,6 +992,12 @@ export default function Amigos() {
                     <h3 className="font-medium text-sm mt-1 flex items-center gap-1.5">Estación de acompañamiento<InfoTip texto="La estación indica en qué parte de la Ruta Evangelística está esta persona ahora mismo. Puede moverse a cualquier estación según su situación real, no tiene que ser en orden." /></h3>
                   </div>
                 </div>
+                {selected.comite_origen?.nombre && (
+                  <p className="text-xs text-secondary mt-2 flex items-center gap-1">
+                    Comité que lo recibió: <span className="font-medium text-ink">{selected.comite_origen.nombre}</span>
+                    <InfoTip texto="Comité que lo atendió y le hace seguimiento desde el primer contacto. Puedes cambiarlo desde 'Guardar cambios' arriba." />
+                  </p>
+                )}
                 {routeLoading ? (
                   <p className="text-xs text-muted mt-3">Cargando estación...</p>
                 ) : routeProcess ? (

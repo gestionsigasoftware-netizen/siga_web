@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): columna `amigos.comite_origen_id` -- deja
+	constancia desde el primer momento de qué comité recibió a alguien
+	que se convierte en un culto normal (conversión intramural, el caso
+	más común y el que más se pierde por seguir anotándose en papel).
+	Campo nuevo en `Amigos.jsx` (alta y edición) + precargado como
+	sugerencia del comité responsable al llegar a REFAM/ESFOB. No
+	reemplaza el responsable-persona de Uno Más/BIS ni el
+	responsable-comité de las estaciones siguientes. Ver
+	`docs/fixes/comite-origen-amigo-2026-09-07.md`.
+
 - Resuelto (2026-09-07): botón "Reasignar comité" independiente del
 	traslado, en REFAM, ESFOB y Discipulado -- cambia el comité
 	responsable sin cambiar de estación. Nueva función
