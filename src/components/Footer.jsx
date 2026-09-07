@@ -10,7 +10,7 @@ export default function Footer({ variant = 'public' }) {
     <footer className={`max-w-6xl mx-auto px-5 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${variant === 'app' ? 'border-t border-border mt-4' : ''}`}>
       <div className="text-muted">
         <p className="text-secondary">SIGAP — Sistema Integrado de Gestión y Analítica Pastoral</p>
-        <p className="mt-1">© {year} IPUC. Todos los derechos reservados. · By Jormelia Soft</p>
+        <p className="mt-1">© {year} Todos los derechos reservados. · By Jormelia Soft</p>
       </div>
       <span className="flex gap-4 flex-shrink-0 text-muted">
         <Link to="/legal" className="hover:text-ink">Privacidad y términos</Link>
