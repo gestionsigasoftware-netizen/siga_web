@@ -95,6 +95,7 @@ export default function Amigos() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
   const [rutaActivaPorAmigo, setRutaActivaPorAmigo] = useState({});
+  const [sinRutaCount, setSinRutaCount] = useState(0);
   const [routeProcess, setRouteProcess] = useState(null);
   const [routeHistory, setRouteHistory] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -175,6 +176,19 @@ export default function Amigos() {
     } else {
       setRutaActivaPorAmigo({});
     }
+    // "Sin ruta iniciada": amigos sin bautizar que todavia no tienen una
+    // fila activa/pausada en ruta_procesos -- a diferencia de "etapas
+    // configuradas" (un dato de catalogo, no accionable), esto si dice
+    // a quien falta arrancar en alguna estacion.
+    const { data: rutaCongregacion } = await supabase
+      .from("ruta_procesos")
+      .select("amigo_id")
+      .eq("congregacion_id", congregacionId)
+      .in("estado", ["activo", "pausado"])
+      .not("amigo_id", "is", null);
+    const amigosConRutaActiva = new Set((rutaCongregacion ?? []).map((item) => item.amigo_id));
+    const enRuta = (analysisResult.data ?? []).filter((amigo) => !amigo.convertido);
+    setSinRutaCount(enRuta.filter((amigo) => !amigosConRutaActiva.has(amigo.id)).length);
     setLoading(false);
   }
 
@@ -539,10 +553,10 @@ export default function Amigos() {
         </div>
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">
-            Etapas configuradas
-            <InfoTip texto="La 'etapa' es un paso interno de seguimiento dentro de esta ficha (por ejemplo, primer contacto o visita). Es distinta de la 'estación' de la Ruta Evangelística, que es más general (Uno Más, BIS, REFAM, etc.)." />
+            Sin ruta iniciada
+            <InfoTip texto="Amigos que todavía no tienen una estación activa en la Ruta Evangelística (Uno Más, BIS, REFAM, ESFOB, Discipulado) -- inícialos desde alguna de esas estaciones." />
           </p>
-          <p className="text-2xl font-semibold mt-3">{etapas.length}</p>
+          <p className={`text-2xl font-semibold mt-3 ${sinRutaCount ? "text-warning" : ""}`}>{sinRutaCount}</p>
         </div>
       </section>
       <FriendInsights amigos={analysisAmigos} etapas={etapas} zonas={zonas} metodologias={metodologias} />
@@ -614,23 +628,6 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Etapa inicial
-            <select
-              className="input-field mt-1.5"
-              value={form.etapa_id}
-              onChange={(event) =>
-                setForm({ ...form, etapa_id: event.target.value })
-              }
-            >
-              <option value="">Sin etapa</option>
-              {etapas.map((stage) => (
-                <option key={stage.id} value={stage.id}>
-                  {stage.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
             Zona responsable
             <select
               className="input-field mt-1.5"
@@ -660,6 +657,23 @@ export default function Amigos() {
               {metodologias.map((method) => (
                 <option key={method.id} value={method.id}>
                   {method.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Etapa inicial
+            <select
+              className="input-field mt-1.5"
+              value={form.etapa_id}
+              onChange={(event) =>
+                setForm({ ...form, etapa_id: event.target.value })
+              }
+            >
+              <option value="">Sin etapa</option>
+              {etapas.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.nombre}
                 </option>
               ))}
             </select>

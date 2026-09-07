@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): revision de UX en Amigos en ruta y Misiones y
+	Evangelismo (pedido explicito: "que recomiendes, haz lo que
+	recomiendes"). Se mantuvo el nombre "Amigos en ruta" (ya es preciso
+	tras el fix del badge). En Amigos.jsx: KPI "Etapas configuradas"
+	(dato de catalogo, no accionable) reemplazado por "Sin ruta
+	iniciada" (amigos sin bautizar sin estacion activa -- calculado
+	sobre toda la congregacion, no solo la pagina visible); "Etapa
+	inicial" bajo de prioridad visual en el formulario de alta; se quito
+	el InfoTip que parchaba la confusion etapa/estacion. En
+	MisionesEvangelismo.jsx: nueva tarjeta destacada "Amigos en ruta"
+	(listado maestro), separada de la grilla de 6 estaciones a
+	proposito. Ver
+	`docs/fixes/ux-amigos-y-misiones-evangelismo-2026-09-07.md`.
+
 - Resuelto (2026-09-07): la tarjeta de "Amigos en ruta" mostraba la
 	Etapa vieja (`etapas_seguimiento`: Contactado/Visitado/Asistido/En
 	seguimiento/Convertido -- sistema anterior a la Ruta Evangelistica,

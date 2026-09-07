@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, BarChart3, CheckCircle2, Compass, GraduationCap, HeartHandshake, MapPinned, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, Compass, GraduationCap, HeartHandshake, MapPinned, Route, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
@@ -238,6 +238,19 @@ export default function MisionesEvangelismo() {
           </section>
         </>
       )}
+      <Link to="/amigos" className="card p-5 flex items-center justify-between gap-4 hover:border-accent transition-colors">
+        <div className="flex items-start gap-3">
+          <span className="w-10 h-10 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0">
+            <Route className="w-5 h-5" />
+          </span>
+          <div>
+            <p className="eyebrow">Listado maestro</p>
+            <h2 className="font-medium mt-1">Amigos en ruta</h2>
+            <p className="text-sm text-secondary mt-2 max-w-xl">Ficha, notas, historial y estación actual de cada persona que pasa por las 6 estaciones de esta ruta -- no es una estación más, es donde se administra a cada quien.</p>
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-muted flex-shrink-0" />
+      </Link>
       <section className="grid md:grid-cols-2 gap-4" aria-label="Submódulos de Misiones y Evangelismo">
         {SUBMODULES.map(({ to, title, description, label, icon: Icon, info }) => {
           const content = (
