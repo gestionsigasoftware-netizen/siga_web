@@ -20,6 +20,7 @@ import { useMiRol } from "../hooks/useMiRol";
 import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
 import { diasDesde } from "../lib/rutaEvangelistica";
+import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comitesPorPoblacion";
 import { descargarPdf } from "../lib/reportExport";
 import InfoTip from "../components/InfoTip";
 
@@ -100,6 +101,7 @@ export default function Amigos() {
   const [routeProcess, setRouteProcess] = useState(null);
   const [routeHistory, setRouteHistory] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
+  const [rangosEdad, setRangosEdad] = useState([]);
   const notesRequest = useRef(0);
 
   async function load() {
@@ -206,6 +208,11 @@ export default function Amigos() {
   useEffect(() => {
     setPage(0);
   }, [filtro, busqueda]);
+
+  useEffect(() => {
+    if (!congregacionId) return;
+    getRangosEdadComite(congregacionId).then(({ data }) => setRangosEdad(data ?? []));
+  }, [congregacionId]);
 
   const totalPages = Math.max(1, Math.ceil(totalAmigos / pageSize));
   const filtrados = useMemo(() => amigos, [amigos]);
@@ -498,6 +505,11 @@ export default function Amigos() {
     return (
       <div className="card p-8 text-center text-sm text-secondary">{error}</div>
     );
+
+  const edadSelected = selected ? calcularEdad(selected.fecha_nacimiento) : null;
+  const comitesSugeridos = edadSelected !== null && edadSelected !== undefined
+    ? sugerirComites({ edad: edadSelected, genero: selected.genero, estadoCivil: editForm.estado_civil }, rangosEdad)
+    : [];
 
   return (
     <div className={`page-shell ${canEdit ? "" : "amigos-read-only"}`}>
@@ -985,6 +997,12 @@ export default function Amigos() {
                       ))}
                     </div>
                   </div>
+                )}
+                {comitesSugeridos.length > 0 && (
+                  <p className="text-xs text-secondary mt-3 flex items-center gap-1">
+                    Comités sugeridos: {comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean).join(", ")}
+                    <InfoTip texto="Sugerido según edad, género y estado civil, comparado con el catálogo de rangos de edad configurado en Módulos. Es solo informativo -- no traslada ni asigna a nadie automáticamente." />
+                  </p>
                 )}
               </section>
             <div className="mt-4 grid gap-2">

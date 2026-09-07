@@ -2,6 +2,14 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): sugerencia visible de comités por edad/sexo
+	en el Censo de Feligresía y en Amigos en ruta, usando el catálogo de
+	`rangos_edad_comite` ya construido. Puramente informativo. Ver
+	`docs/fixes/sugerencia-comites-visible-2026-09-07.md`. Segundo ítem
+	del plan de cierre; siguen pendientes: "Vincular" en la entrada
+	inicial de Obra Carcelaria y "Reasignar comité" independiente del
+	traslado.
+
 - Resuelto (2026-09-07): botón "Vincular" en Misión Juvenil, calcado
 	del que ya existía en Obra Carcelaria -- crea el `amigo` (enlazado
 	via `amigos.mision_juvenil_estudiante_id`) y lo agrega a BIS con
