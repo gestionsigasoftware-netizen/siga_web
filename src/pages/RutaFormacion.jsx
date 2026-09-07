@@ -63,6 +63,7 @@ export default function RutaFormacion({ mode }) {
   const [selectedId, setSelectedId] = useState(null);
   const [progreso, setProgreso] = useState([]);
   const [seguimientoForm, setSeguimientoForm] = useState({ servicio_actual: "", siguiente_accion: "", notas: "" });
+  const [leccionParaAsignar, setLeccionParaAsignar] = useState("");
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -248,7 +249,24 @@ export default function RutaFormacion({ mode }) {
   function seleccionarFicha(row) {
     setSelectedId(row.id);
     setSeguimientoForm({ servicio_actual: row.servicio_actual || "", siguiente_accion: row.siguiente_accion || "", notas: row.notas || "" });
+    setLeccionParaAsignar("");
     refrescarProgreso(row.id);
+  }
+
+  // Cubre el caso de procesos que se crearon cuando el catalogo de
+  // lecciones aun estaba vacio (leccion_actual_id quedo en null para
+  // siempre) -- deja elegir con cual lección seguir en vez de asumir
+  // siempre la #1, por si el responsable ya cubrió contenido antes.
+  async function asignarLeccion(row, leccionId) {
+    if (!canEdit || !leccionId) return;
+    setSaving(true);
+    setError(null);
+    const result = await supabase.from(config.table).update({ leccion_actual_id: leccionId }).eq("id", row.id);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo asignar la lección: ${result.error.message}`); return; }
+    setNotice("Lección asignada.");
+    setLeccionParaAsignar("");
+    load();
   }
 
   async function guardarSeguimiento(event) {
@@ -415,7 +433,7 @@ export default function RutaFormacion({ mode }) {
                   {row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Revisar continuidad</span>}
                 </div>
                 <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Mentor: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
-                <p className="text-xs text-secondary">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas || 0} completada{row.lecciones_completadas === 1 ? "" : "s"}</p>
+                <p className="text-xs text-secondary">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones"} · {row.lecciones_completadas || 0} completada{row.lecciones_completadas === 1 ? "" : "s"}</p>
               </button>
             ); })}</div>}
           </div>
@@ -425,9 +443,27 @@ export default function RutaFormacion({ mode }) {
                 <p className="eyebrow">Ficha de seguimiento</p>
                 <h2 className="font-medium mt-1">{seleccionado.person?.nombres} {seleccionado.person?.apellidos || ""}</h2>
                 <div className="mt-3 p-3 bg-surface-1 rounded">
-                  <p className="text-sm font-medium">{seleccionado.leccion_actual ? `Lección #${seleccionado.leccion_actual.numero} — ${seleccionado.leccion_actual.titulo}` : lecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"}</p>
-                  <p className="text-xs text-secondary mt-1">{seleccionado.lecciones_completadas || 0} lección{seleccionado.lecciones_completadas === 1 ? "" : "es"} completada{seleccionado.lecciones_completadas === 1 ? "" : "s"}</p>
-                  {canEdit && seleccionado.leccion_actual_id && <button type="button" onClick={() => marcarLeccion(seleccionado)} disabled={saving} className="btn-secondary px-2 py-1 text-xs mt-2">Marcar lección completada</button>}
+                  {seleccionado.leccion_actual_id ? (
+                    <>
+                      <p className="text-sm font-medium">Lección #{seleccionado.leccion_actual?.numero} — {seleccionado.leccion_actual?.titulo}</p>
+                      <p className="text-xs text-secondary mt-1">{seleccionado.lecciones_completadas || 0} lección{seleccionado.lecciones_completadas === 1 ? "" : "es"} completada{seleccionado.lecciones_completadas === 1 ? "" : "s"}</p>
+                      {canEdit && <button type="button" onClick={() => marcarLeccion(seleccionado)} disabled={saving} className="btn-secondary px-2 py-1 text-xs mt-2">Marcar lección completada</button>}
+                    </>
+                  ) : lecciones.length ? (
+                    <>
+                      <p className="text-sm font-medium">Sin lección asignada</p>
+                      <p className="text-xs text-secondary mt-1">{seleccionado.lecciones_completadas || 0} lección{seleccionado.lecciones_completadas === 1 ? "" : "es"} completada{seleccionado.lecciones_completadas === 1 ? "" : "s"} antes. Elige con cuál sigue:</p>
+                      {canEdit && <div className="flex items-center gap-2 mt-2">
+                        <select aria-label="Asignar lección" className="input-field text-xs flex-1" value={leccionParaAsignar} onChange={(event) => setLeccionParaAsignar(event.target.value)}>
+                          <option value="">Selecciona una lección...</option>
+                          {lecciones.map((item) => <option key={item.id} value={item.id}>#{item.numero} — {item.titulo}</option>)}
+                        </select>
+                        <button type="button" onClick={() => asignarLeccion(seleccionado, leccionParaAsignar)} disabled={saving || !leccionParaAsignar} className="btn-primary px-3 text-xs whitespace-nowrap">Asignar</button>
+                      </div>}
+                    </>
+                  ) : (
+                    <p className="text-sm text-secondary">Aún no hay catálogo de lecciones -- créalo desde Módulos y actividades.</p>
+                  )}
                 </div>
                 <div className="mt-4">
                   <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2">Historial de lecciones</p>

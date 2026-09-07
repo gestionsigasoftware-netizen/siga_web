@@ -259,6 +259,34 @@ que tras marcar una lección el historial la muestra con el join
 correcto (número, título, fecha). Sin residuos. `npm run build` sin
 errores.
 
+## Arreglo (parte 6: procesos sin lección asignada no podían registrar nada)
+
+El usuario probó la ficha con Manuel (el mismo de siempre) y no
+encontró dónde marcar una lección -- su ficha mostraba "Currículo
+completado" en vez del botón. Causa real: el proceso de Manuel se
+creó cuando el catálogo de Discipulado todavía no tenía ninguna
+lección cargada, así que `leccion_actual_id` quedó en `null` para
+siempre -- y el código solo mostraba "Marcar lección completada"
+cuando ya había una lección asignada, sin cubrir el caso de "catálogo
+con contenido, pero a esta persona nunca se le enganchó ninguna".
+
+Se agregó ese caso faltante en la ficha de Discipulado: cuando no hay
+`leccion_actual_id` pero el catálogo sí tiene lecciones activas, en
+vez del botón aparece un selector "Elige con cuál sigue" + botón
+"Asignar" (no se asume siempre la lección #1, por si el responsable ya
+cubrió contenido con esa persona antes de que existiera el catálogo).
+Una vez asignada, el flujo normal de "Marcar lección completada" ya
+funciona igual que con cualquier otro proceso. De paso se corrigió el
+texto "Currículo completado" -- ahí decía eso incluso cuando en
+realidad nunca se había asignado nada, lo cual era engañoso; ahora
+dice "Sin lección asignada".
+
+**Verificación**: se reprodujo exactamente el estado real de Manuel
+(proceso sin `leccion_actual_id`, catálogo con lecciones) con datos
+desechables, se confirmó que `asignarLeccion()` engancha la lección
+elegida sin error, y que después el flujo de marcar-completada ya
+funciona con normalidad. Sin residuos. `npm run build` sin errores.
+
 ## Nota para el usuario
 
 El amigo de prueba "Manuel Antonio García Rodríguez" (el de tu prueba

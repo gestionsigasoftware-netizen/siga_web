@@ -26,7 +26,12 @@
 	Discipulado paso de lista plana a lista+ficha (patron ya usado en
 	EstacionBis.jsx) -- la ficha muestra historial de lecciones y un
 	formulario de seguimiento (servicio actual, proxima accion, notas)
-	que antes no se podia editar despues de crear el proceso. Ver
+	que antes no se podia editar despues de crear el proceso. Sexta
+	parte: el proceso de Manuel se habia creado cuando el catalogo de
+	Discipulado aun no tenia lecciones, asi que su leccion_actual_id
+	quedo en null para siempre y su ficha no mostraba boton de marcar --
+	se agrego un selector "Asignar leccion" para ese caso (catalogo con
+	contenido pero proceso sin leccion enganchada). Ver
 	`docs/fixes/fix-traslados-ruta-evangelistica-2026-09-06.md`.
 
 - Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia
