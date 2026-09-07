@@ -50,9 +50,10 @@ const EMPTY_FORM = {
   evangelismo_metodologia_id: "",
   fecha_nacimiento: "",
   estado_civil: "soltero",
+  genero: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre)";
+  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -226,6 +227,7 @@ export default function Amigos() {
       evangelismo_metodologia_id: friend.evangelismo_metodologia_id || "",
       fecha_nacimiento: friend.fecha_nacimiento || "",
       estado_civil: friend.estado_civil || "soltero",
+      genero: friend.genero || "",
     });
     const nameParts = (friend.nombres || "").trim().split(/\s+/);
     setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
@@ -288,6 +290,7 @@ export default function Amigos() {
       zona_id: form.zona_id || null,
       evangelismo_metodologia_id: form.evangelismo_metodologia_id || null,
       fecha_nacimiento: form.fecha_nacimiento || null,
+      genero: form.genero || null,
       congregacion_id: congregacionId,
     };
     const { data, error: insertError } = await supabase
@@ -321,6 +324,7 @@ export default function Amigos() {
       zona_id: editForm.zona_id || null,
       evangelismo_metodologia_id: editForm.evangelismo_metodologia_id || null,
       fecha_nacimiento: editForm.fecha_nacimiento || null,
+      genero: editForm.genero || null,
     };
     const { data, error: updateError } = await supabase
       .from("amigos")
@@ -909,6 +913,19 @@ export default function Amigos() {
                     })
                   }
                 />
+              </label>
+              <label className="text-sm flex items-center gap-1">
+                Género
+                <InfoTip texto="Junto con la fecha de nacimiento, sirve para sugerir a qué comité le corresponde el seguimiento de esta persona." />
+                <select
+                  className="input-field mt-1.5 w-full"
+                  value={editForm.genero}
+                  onChange={(event) => setEditForm({ ...editForm, genero: event.target.value })}
+                >
+                  <option value="">Sin registrar</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                </select>
               </label>
               <button disabled={saving} className="btn-primary justify-center">
                 <Pencil className="w-4 h-4" />

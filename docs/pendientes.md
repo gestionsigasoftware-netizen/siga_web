@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): segunda pieza del rediseno "extramural
+	alimenta a intramural" -- catalogo de rangos de edad -> comite(s)
+	sugerido(s) (`supabase/catalogos/rangos_edad_comite.sql`), congregacion
+	por congregacion, permitiendo que varios comites apliquen al mismo
+	rango (ej. Señoritas + Jovenes + Damas Dorcas para una misma franja
+	de edad). Se agrego `amigos.genero` (no existia, solo `personas` lo
+	tenia) para que la sugerencia tambien aplique a los no convertidos.
+	Administracion en Modulos.jsx, calculo en
+	`src/lib/comitesPorPoblacion.js`. Todavia no se muestra ninguna
+	sugerencia en pantalla (siguiente pieza). Ver
+	`docs/fixes/rangos-edad-comite-2026-09-07.md`.
+
 - Resuelto (2026-09-07): primera pieza del rediseno "extramural
 	alimenta a intramural" que el usuario planteo (Mision Juvenil/Obra
 	Carcelaria deberian entregar su poblacion a los comites locales via

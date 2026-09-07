@@ -45,6 +45,12 @@ export default function Modulos() {
   const [editingLeccionDiscipuladoId, setEditingLeccionDiscipuladoId] = useState(null)
   const [editingLeccionDiscipuladoTitulo, setEditingLeccionDiscipuladoTitulo] = useState('')
   const [editingLeccionDiscipuladoDescripcion, setEditingLeccionDiscipuladoDescripcion] = useState('')
+  const [comites, setComites] = useState([])
+  const [rangosEdad, setRangosEdad] = useState([])
+  const RANGO_EDAD_VACIO = { nombre: '', edad_desde: '', edad_hasta: '', genero: '', estado_civil: '', comite_id: '' }
+  const [nuevoRangoEdad, setNuevoRangoEdad] = useState(RANGO_EDAD_VACIO)
+  const [editingRangoEdadId, setEditingRangoEdadId] = useState(null)
+  const [editingRangoEdad, setEditingRangoEdad] = useState(RANGO_EDAD_VACIO)
   const [ujieres, setUjieres] = useState([])
   const [nuevoUjier, setNuevoUjier] = useState('')
   const [bulkUjieres, setBulkUjieres] = useState('')
@@ -58,13 +64,15 @@ export default function Modulos() {
     if (!congregacionId) return
     setLoading(true)
     setError(null)
-    const [modulosResult, caracteresResult, ujieresResult, refamLeccionesResult, esfobLeccionesResult, discipuladoLeccionesResult] = await Promise.all([
+    const [modulosResult, caracteresResult, ujieresResult, refamLeccionesResult, esfobLeccionesResult, discipuladoLeccionesResult, comitesResult, rangosEdadResult] = await Promise.all([
       supabase.from('modulos').select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').eq('congregacion_id', congregacionId).order('created_at'),
       supabase.from('caracteres_culto').select('id, nombre, activo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('ujieres_congregacion').select('id, nombre, activo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('refam_lecciones').select('id, numero, titulo, descripcion, activo').eq('congregacion_id', congregacionId).order('numero'),
       supabase.from('esfob_lecciones').select('id, numero, titulo, descripcion, activo').eq('congregacion_id', congregacionId).order('numero'),
       supabase.from('discipulado_lecciones').select('id, numero, titulo, descripcion, activo').eq('congregacion_id', congregacionId).order('numero'),
+      supabase.from('comites').select('id, nombre').eq('congregacion_id', congregacionId).eq('activo', true).order('nombre'),
+      supabase.from('rangos_edad_comite').select('id, nombre, edad_desde, edad_hasta, genero, estado_civil, comite_id, activo, comites(nombre)').eq('congregacion_id', congregacionId).order('edad_desde'),
     ])
     if (modulosResult.error) setError(`No se pudieron cargar los módulos: ${modulosResult.error.message}`)
     const loaded = modulosResult.data ?? []
@@ -75,6 +83,8 @@ export default function Modulos() {
     setRefamLecciones(refamLeccionesResult.data ?? [])
     setEsfobLecciones(esfobLeccionesResult.data ?? [])
     setDiscipuladoLecciones(discipuladoLeccionesResult.data ?? [])
+    setComites(comitesResult.data ?? [])
+    setRangosEdad(rangosEdadResult.data ?? [])
     setLoading(false)
   }
 
@@ -298,6 +308,58 @@ export default function Modulos() {
     else load()
   }
 
+  async function agregarRangoEdad(event) {
+    event.preventDefault()
+    if (!nuevoRangoEdad.nombre.trim() || nuevoRangoEdad.edad_desde === '' || !nuevoRangoEdad.comite_id) return
+    setSaving(true); setError(null)
+    const { error: insertError } = await supabase.from('rangos_edad_comite').insert({
+      congregacion_id: congregacionId,
+      nombre: nuevoRangoEdad.nombre.trim(),
+      edad_desde: Number(nuevoRangoEdad.edad_desde),
+      edad_hasta: nuevoRangoEdad.edad_hasta === '' ? null : Number(nuevoRangoEdad.edad_hasta),
+      genero: nuevoRangoEdad.genero || null,
+      estado_civil: nuevoRangoEdad.estado_civil || null,
+      comite_id: nuevoRangoEdad.comite_id,
+    })
+    setSaving(false)
+    if (insertError) { setError(`No se pudo crear el rango de edad: ${insertError.message}`); return }
+    setNuevoRangoEdad(RANGO_EDAD_VACIO); load()
+  }
+
+  function editarRangoEdad(item) {
+    setEditingRangoEdadId(item.id)
+    setEditingRangoEdad({
+      nombre: item.nombre,
+      edad_desde: String(item.edad_desde),
+      edad_hasta: item.edad_hasta === null ? '' : String(item.edad_hasta),
+      genero: item.genero || '',
+      estado_civil: item.estado_civil || '',
+      comite_id: item.comite_id,
+    })
+  }
+
+  async function guardarRangoEdad(item) {
+    if (!editingRangoEdad.nombre.trim() || editingRangoEdad.edad_desde === '' || !editingRangoEdad.comite_id) return
+    setSaving(true); setError(null)
+    const { error: updateError } = await supabase.from('rangos_edad_comite').update({
+      nombre: editingRangoEdad.nombre.trim(),
+      edad_desde: Number(editingRangoEdad.edad_desde),
+      edad_hasta: editingRangoEdad.edad_hasta === '' ? null : Number(editingRangoEdad.edad_hasta),
+      genero: editingRangoEdad.genero || null,
+      estado_civil: editingRangoEdad.estado_civil || null,
+      comite_id: editingRangoEdad.comite_id,
+    }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    setSaving(false)
+    if (updateError) { setError(`No se pudo actualizar el rango de edad: ${updateError.message}`); return }
+    setEditingRangoEdadId(null); load()
+  }
+
+  async function toggleRangoEdad(item) {
+    const { error: updateError } = await supabase.from('rangos_edad_comite').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (updateError) setError(`No se pudo cambiar el estado del rango: ${updateError.message}`)
+    else load()
+  }
+
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando módulos y actividades...</div>
   if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar módulos y actividades.</div>
 
@@ -376,6 +438,27 @@ export default function Modulos() {
       </div>)}</div>
       {discipuladoLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay lecciones de Discipulado configuradas.</p>}
     </section>
+    <section className="card p-5">
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Rangos de edad y comités</h2><p className="text-xs text-secondary mt-1">Qué comité(s) corresponden a cada rango de edad -- puedes marcar más de un comité para el mismo rango (por ejemplo, Señoritas y Jóvenes a la vez), y afinar por género o estado civil si hace falta. Esto solo sugiere, nunca traslada a nadie automáticamente.</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      {comites.length === 0 && <p className="text-xs text-warning bg-warning-bg rounded p-2 my-3">Aún no hay comités activos en Feligresía -- crea al menos uno antes de poder configurar rangos de edad.</p>}
+      <form onSubmit={agregarRangoEdad} className="grid sm:grid-cols-2 lg:grid-cols-6 gap-2 my-4 items-end">
+        <label className="text-xs text-secondary lg:col-span-2">Nombre del rango<input required className="input-field mt-1" placeholder="Ej. Señoritas" value={nuevoRangoEdad.nombre} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, nombre: event.target.value })} /></label>
+        <label className="text-xs text-secondary">Edad desde<input required type="number" min="0" className="input-field mt-1" value={nuevoRangoEdad.edad_desde} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_desde: event.target.value })} /></label>
+        <label className="text-xs text-secondary flex items-center gap-1">Edad hasta<InfoTip texto="Déjalo vacío si no hay tope superior (por ejemplo, para un comité de adultos)." /><input type="number" min="0" className="input-field mt-1 w-full" placeholder="Sin tope" value={nuevoRangoEdad.edad_hasta} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_hasta: event.target.value })} /></label>
+        <label className="text-xs text-secondary">Género<select className="input-field mt-1" value={nuevoRangoEdad.genero} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, genero: event.target.value })}><option value="">Cualquiera</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option></select></label>
+        <label className="text-xs text-secondary">Estado civil<select className="input-field mt-1" value={nuevoRangoEdad.estado_civil} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, estado_civil: event.target.value })}><option value="">Cualquiera</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="union_libre">Unión libre</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></label>
+        <label className="text-xs text-secondary lg:col-span-2">Comité<select required className="input-field mt-1" value={nuevoRangoEdad.comite_id} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, comite_id: event.target.value })}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+        <button disabled={saving || comites.length === 0} className="btn-primary justify-center lg:col-span-1"><Plus className="w-4 h-4" />Agregar</button>
+      </form>
+      <div className="flex flex-col gap-2">{rangosEdad.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{item.nombre} <span className="text-xs text-muted font-normal">→ {item.comites?.nombre || 'Comité eliminado'}</span></p>
+          <p className="text-xs text-secondary mt-1">{item.edad_desde}{item.edad_hasta === null ? '+ años' : `–${item.edad_hasta} años`}{item.genero ? ` · ${item.genero}` : ''}{item.estado_civil ? ` · ${item.estado_civil}` : ''}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => editarRangoEdad(item)} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleRangoEdad(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+      </div>)}</div>
+      {rangosEdad.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay rangos de edad configurados.</p>}
+    </section>
     {editingModuleId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveModuleName(modulos.find((module) => module.id === editingModuleId)) }} className="modal-panel"><h2 className="font-medium">Editar módulo</h2><input autoFocus required className="input-field mt-4" value={editingName} onChange={(event) => setEditingName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingModuleId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingActivityId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveActivity(seleccionado.tipos_actividad.find((type) => type.id === editingActivityId)) }} className="modal-panel"><h2 className="font-medium">Editar actividad</h2><input autoFocus required className="input-field mt-4" value={editingActivityName} onChange={(event) => setEditingActivityName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingActivityId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingCaracterCultoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveCaracterCulto(caracteresCulto.find((item) => item.id === editingCaracterCultoId)) }} className="modal-panel"><h2 className="font-medium">Editar carácter de culto</h2><input autoFocus required className="input-field mt-4" value={editingCaracterCultoName} onChange={(event) => setEditingCaracterCultoName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingCaracterCultoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
@@ -383,5 +466,16 @@ export default function Modulos() {
     {editingLeccionRefamId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionRefam(refamLecciones.find((item) => item.id === editingLeccionRefamId)) }} className="modal-panel"><h2 className="font-medium">Editar lección REFAM</h2><input autoFocus required className="input-field mt-4" value={editingLeccionRefamTitulo} onChange={(event) => setEditingLeccionRefamTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionRefamDescripcion} onChange={(event) => setEditingLeccionRefamDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionRefamId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingLeccionEsfobId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionEsfob(esfobLecciones.find((item) => item.id === editingLeccionEsfobId)) }} className="modal-panel"><h2 className="font-medium">Editar lección ESFOB</h2><input autoFocus required className="input-field mt-4" value={editingLeccionEsfobTitulo} onChange={(event) => setEditingLeccionEsfobTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionEsfobDescripcion} onChange={(event) => setEditingLeccionEsfobDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionEsfobId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
     {editingLeccionDiscipuladoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionDiscipulado(discipuladoLecciones.find((item) => item.id === editingLeccionDiscipuladoId)) }} className="modal-panel"><h2 className="font-medium">Editar lección de Discipulado</h2><input autoFocus required className="input-field mt-4" value={editingLeccionDiscipuladoTitulo} onChange={(event) => setEditingLeccionDiscipuladoTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionDiscipuladoDescripcion} onChange={(event) => setEditingLeccionDiscipuladoDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionDiscipuladoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
+    {editingRangoEdadId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); guardarRangoEdad(rangosEdad.find((item) => item.id === editingRangoEdadId)) }} className="modal-panel"><h2 className="font-medium">Editar rango de edad</h2>
+      <label className="text-sm mt-4 block">Nombre<input autoFocus required className="input-field mt-1.5" value={editingRangoEdad.nombre} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, nombre: event.target.value })} /></label>
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <label className="text-sm">Edad desde<input required type="number" min="0" className="input-field mt-1.5" value={editingRangoEdad.edad_desde} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_desde: event.target.value })} /></label>
+        <label className="text-sm">Edad hasta<input type="number" min="0" className="input-field mt-1.5" placeholder="Sin tope" value={editingRangoEdad.edad_hasta} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_hasta: event.target.value })} /></label>
+        <label className="text-sm">Género<select className="input-field mt-1.5" value={editingRangoEdad.genero} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, genero: event.target.value })}><option value="">Cualquiera</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option></select></label>
+        <label className="text-sm">Estado civil<select className="input-field mt-1.5" value={editingRangoEdad.estado_civil} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, estado_civil: event.target.value })}><option value="">Cualquiera</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="union_libre">Unión libre</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></label>
+      </div>
+      <label className="text-sm mt-3 block">Comité<select required className="input-field mt-1.5" value={editingRangoEdad.comite_id} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, comite_id: event.target.value })}>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+      <div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingRangoEdadId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div>
+    </form></div>}
   </div>
 }
