@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): botón "Vincular a la Ruta" ahora también
+	disponible desde la pestaña Internos de Obra Carcelaria (ingreso
+	inicial, interno aún preso), no solo desde Reinserción
+	(post-liberación). Se refactorizó `vincularRutaEvangelistica` para
+	recibir `(interno, congregacionDestinoId)` en vez de un item de
+	reinserción. Ver
+	`docs/fixes/vincular-obra-carcelaria-entrada-inicial-2026-09-07.md`.
+	Tercer ítem del plan de cierre; solo queda "Reasignar comité"
+	independiente del traslado.
+
 - Resuelto (2026-09-07): sugerencia visible de comités por edad/sexo
 	en el Censo de Feligresía y en Amigos en ruta, usando el catálogo de
 	`rangos_edad_comite` ya construido. Puramente informativo. Ver

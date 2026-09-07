@@ -251,22 +251,25 @@ export default function ObraCarcelaria() {
     setNotice(`Reinserción marcada como ${ESTADO_REINSERCION_LABELS[estado].toLowerCase()}.`); load();
   }
 
-  // Un interno reinsertado no tenia ningun siguiente paso una vez
-  // contactado por la congregacion receptora -- esto lo conecta con el
-  // unico mecanismo real de seguimiento individual que ya existe
-  // (amigos + Ruta Evangelistica), sin inventar uno nuevo. Si ya se
-  // bautizo estando preso, entra directo listo para incorporar a
-  // Feligresia desde Amigos; si no, entra a BIS (ya fue contactado, no
-  // necesita la sensibilizacion de Uno Mas) con responsable obligatorio,
-  // igual que cualquier otra alta a la ruta.
-  async function vincularRutaEvangelistica(item) {
-    const interno = internos.find((row) => row.id === item.interno_id);
+  // Un interno no tenia ningun siguiente paso formal una vez contactado
+  // -- ni desde que se entrega estando preso, ni ya reinsertado en una
+  // congregacion receptora -- esto lo conecta con el unico mecanismo
+  // real de seguimiento individual que ya existe (amigos + Ruta
+  // Evangelistica), sin inventar uno nuevo. Si ya se bautizo estando
+  // preso, entra directo listo para incorporar a Feligresia desde
+  // Amigos; si no, entra a BIS (ya fue contactado, no necesita la
+  // sensibilizacion de Uno Mas) con responsable obligatorio, igual que
+  // cualquier otra alta a la ruta. Sirve tanto para el ingreso inicial
+  // (congregacionDestinoId = la que administra Obra Carcelaria, el
+  // interno sigue preso) como para la reinsercion post-liberacion
+  // (congregacionDestinoId = la congregacion receptora).
+  async function vincularRutaEvangelistica(interno, congregacionDestinoId) {
     if (!interno) { setError("No se encontró la ficha del interno."); return; }
     if (!interno.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
     setSaving(true); setError(null);
     const nombreCompleto = `${interno.nombres} ${interno.apellidos}`.trim();
     const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
-      congregacion_id: item.congregacion_destino_id,
+      congregacion_id: congregacionDestinoId,
       nombres: nombreCompleto,
       fecha_primer_contacto: hoyBogota(),
       obra_carcelaria_interno_id: interno.id,
@@ -279,9 +282,9 @@ export default function ObraCarcelaria() {
       setVinculandoId(null); setResponsableVinculoId(""); load();
       return;
     }
-    const { data: estacionBis, error: estacionError } = await getEstacion(item.congregacion_destino_id, "bis");
-    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación receptora."); return; }
-    const movResult = await iniciarOMoverEstacion({ congregacionId: item.congregacion_destino_id, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
+    const { data: estacionBis, error: estacionError } = await getEstacion(congregacionDestinoId, "bis");
+    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    const movResult = await iniciarOMoverEstacion({ congregacionId: congregacionDestinoId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
     setSaving(false);
     if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
     setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
@@ -405,7 +408,9 @@ export default function ObraCarcelaria() {
           <div className="card p-5">
             <p className="eyebrow">Censo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Internos<InfoTip texto="'Marcar liberado' registra la salida del centro y su fecha. Después, la asignación a una congregación receptora la hace el coordinador distrital en Pastoral Distrital." /></h2>
             <div className="overflow-x-auto mt-4 max-h-96 overflow-y-auto">
-              {internos.length ? internos.map((item) => (
+              {internos.length ? internos.map((item) => {
+                const yaVinculado = internosVinculados.has(item.id);
+                return (
                 <div key={item.id} className="border-b border-border py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -415,19 +420,39 @@ export default function ObraCarcelaria() {
                         <span className="text-[11px] px-2 py-0.5 rounded bg-surface-1">{ESTADO_INTERNO_LABELS[item.estado]}</span>
                         {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
                         {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
+                        {yaVinculado && <span className="text-[11px] px-2 py-0.5 rounded bg-success-bg text-success">Vinculado a la Ruta</span>}
                       </div>
                     </div>
                     {canEdit && <button type="button" className="text-xs text-accent flex-shrink-0" onClick={() => editInterno(item)}>Editar</button>}
                   </div>
                   {canEdit && item.estado === "activo" && (
-                    <div className="flex gap-2 mt-2 flex-wrap">
+                    <div className="flex gap-2 mt-2 flex-wrap items-start">
                       {!item.bautizado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>Marcar bautizado</button>}
                       {!item.sellado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>Marcar sellado</button>}
                       <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarEstado(item, "liberado")}>Marcar liberado</button>
+                      {!yaVinculado && (
+                        vinculandoId === item.id ? (
+                          <div className="flex flex-col gap-1.5 min-w-[180px]">
+                            <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
+                              <option value="">Responsable...</option>
+                              {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+                            </select>
+                            <div className="flex gap-1.5">
+                              <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item, congregacionId)}>Confirmar</button>
+                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item, congregacionId) : setVinculandoId(item.id))}>
+                            Vincular a la Ruta
+                          </button>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
-              )) : <Empty text="Aún no hay internos registrados." />}
+                );
+              }) : <Empty text="Aún no hay internos registrados." />}
             </div>
           </div>
 
@@ -627,12 +652,12 @@ export default function ObraCarcelaria() {
                                   {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                                 </select>
                                 <div className="flex gap-1.5">
-                                  <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item)}>Confirmar</button>
+                                  <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(interno, item.congregacion_destino_id)}>Confirmar</button>
                                   <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
                                 </div>
                               </div>
                             ) : (
-                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (interno?.bautizado ? vincularRutaEvangelistica(item) : setVinculandoId(item.id))}>
+                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (interno?.bautizado ? vincularRutaEvangelistica(interno, item.congregacion_destino_id) : setVinculandoId(item.id))}>
                                 Vincular
                               </button>
                             )
