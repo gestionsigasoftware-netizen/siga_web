@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): primera pieza del rediseno "extramural
+	alimenta a intramural" que el usuario planteo (Mision Juvenil/Obra
+	Carcelaria deberian entregar su poblacion a los comites locales via
+	la Ruta Evangelistica) -- comite como responsable en REFAM/ESFOB/
+	Discipulado (Uno Mas/BIS siguen solo-persona, es el acompanamiento
+	personal). Se encontraron y corrigieron dos problemas reales de
+	esquema durante la verificacion: `ruta_procesos.responsable_persona_id`
+	tenia NOT NULL de una migracion anterior (bloqueaba el caso comite
+	por completo), y un cortocircuito en `iniciarOMoverEstacion()` que
+	ignoraba el responsable al "re-agregar" a alguien ya activo en la
+	misma estacion (afectaba especialmente a REFAM). Ver
+	`docs/fixes/comite-como-responsable-ruta-evangelistica-2026-09-07.md`.
+	Discusion mas amplia (Mision Juvenil, Obra Carcelaria, mapeo
+	poblacion->comite) sigue en curso, no construida todavia.
+
 - Resuelto (2026-09-07): revision de UX en Amigos en ruta y Misiones y
 	Evangelismo (pedido explicito: "que recomiendes, haz lo que
 	recomiendes"). Se mantuvo el nombre "Amigos en ruta" (ya es preciso

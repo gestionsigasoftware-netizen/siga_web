@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
-import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
@@ -31,7 +31,9 @@ export default function EstacionRefam() {
   const [refamReuniones, setRefamReuniones] = useState([]);
   const [asistenciaPorParticipante, setAsistenciaPorParticipante] = useState({});
   const [progresoPorParticipante, setProgresoPorParticipante] = useState({});
-  const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "", responsableId: "" });
+  const [refamParticipanteForm, setRefamParticipanteForm] = useState({ tipo: "amigo", sujeto_id: "", comiteId: "" });
+  const [comites, setComites] = useState([]);
+  const [trasladoComite, setTrasladoComite] = useState({});
   const [refamReunionForm, setRefamReunionForm] = useState({ fecha: hoyBogota(), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
   const [asistenciaRefamMarcada, setAsistenciaRefamMarcada] = useState({});
   const [notasAbiertasParticipanteId, setNotasAbiertasParticipanteId] = useState(null);
@@ -57,7 +59,7 @@ export default function EstacionRefam() {
     setError(null);
     const estacionResult = await getEstacion(congregacionId, "refam");
     if (estacionResult.error || !estacionResult.data) { setError("No se encontró la estación REFAM."); setLoading(false); return; }
-    const [activosResult, zonasResult, personasResult, amigosResult, gruposResult, estacionesResult, leccionesResult] = await Promise.all([
+    const [activosResult, zonasResult, personasResult, amigosResult, gruposResult, estacionesResult, leccionesResult, comitesResult] = await Promise.all([
       getEstacionActivos(congregacionId, estacionResult.data.id),
       supabase.from("zonas").select("id, nombre").eq("congregacion_id", congregacionId).order("nombre"),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
@@ -65,6 +67,7 @@ export default function EstacionRefam() {
       supabase.from("refam_grupos").select("id, nombre, direccion, dia_reunion, activo, zona_id, anfitrion_persona_id, lider_persona_id, zonas(nombre), anfitrion:anfitrion_persona_id(nombres, apellidos), lider:lider_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombre"),
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
       supabase.from("refam_lecciones").select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero"),
+      getComitesActivos(congregacionId),
     ]);
     if (activosResult.error || zonasResult.error || personasResult.error || amigosResult.error || gruposResult.error) { setError("No se pudo cargar la estación REFAM."); setLoading(false); return; }
     setEstacion(estacionResult.data);
@@ -75,6 +78,7 @@ export default function EstacionRefam() {
     setRefamGrupos(gruposResult.data ?? []);
     setEstaciones(estacionesResult.data ?? []);
     setRefamLecciones(leccionesResult.data ?? []);
+    setComites(comitesResult.data ?? []);
     setLoading(false);
   }
 
@@ -210,7 +214,7 @@ export default function EstacionRefam() {
 
   async function addRefamParticipante(event) {
     event.preventDefault();
-    if (!canEdit || !selectedRefamGrupoId || !refamParticipanteForm.sujeto_id || !refamParticipanteForm.responsableId || !estacion) return;
+    if (!canEdit || !selectedRefamGrupoId || !refamParticipanteForm.sujeto_id || !refamParticipanteForm.comiteId || !estacion) return;
     setError(null);
     setSaving(true);
     const payload = {
@@ -231,12 +235,12 @@ export default function EstacionRefam() {
       estacionDestino: estacion,
       amigoId: payload.amigo_id,
       personaId: payload.persona_id,
-      responsablePersonaId: refamParticipanteForm.responsableId,
+      responsableComiteId: refamParticipanteForm.comiteId,
     });
     setSaving(false);
     if (rutaResult.error) { setError(`El participante se agregó al grupo, pero no se pudo sincronizar con la Ruta Evangelística: ${rutaResult.error.message}`); }
     else setNotice("Participante agregado al grupo y activo en la estación REFAM.");
-    setRefamParticipanteForm({ tipo: "amigo", sujeto_id: "", responsableId: "" });
+    setRefamParticipanteForm({ tipo: "amigo", sujeto_id: "", comiteId: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
     load();
   }
@@ -278,7 +282,16 @@ export default function EstacionRefam() {
     if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
     setSaving(true);
     setError(null);
-    const result = await trasladarEstacion({ congregacionId, estacionOrigenCodigo: "refam", estacionDestino: destino, amigoId: proceso.amigo_id, personaId: proceso.persona_id, responsablePersonaId: proceso.responsable_persona_id });
+    const nuevoComiteId = trasladoComite[proceso.id];
+    const result = await trasladarEstacion({
+      congregacionId,
+      estacionOrigenCodigo: "refam",
+      estacionDestino: destino,
+      amigoId: proceso.amigo_id,
+      personaId: proceso.persona_id,
+      responsablePersonaId: nuevoComiteId ? null : proceso.responsable_persona_id,
+      responsableComiteId: nuevoComiteId || proceso.responsable_comite_id || null,
+    });
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
     setNotice(`Trasladado a ${destino.nombre}.`);
@@ -315,10 +328,14 @@ export default function EstacionRefam() {
         {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay personas en esta estación.</p> : <div className="divide-y divide-border">{filas.map((row) => (
           <div key={row.id} className="py-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <div><p className="font-medium text-sm">{row.nombre}</p><p className="text-xs text-secondary mt-0.5">{row.zonaNombre} · {row.dias ?? 0} días</p></div>
+              <div><p className="font-medium text-sm">{row.nombre}</p><p className="text-xs text-secondary mt-0.5">{row.zonaNombre} · {row.dias ?? 0} días{row.responsable_comite ? ` · Responsable: Comité ${row.responsable_comite.nombre}` : row.responsable ? ` · Responsable: ${row.responsable.nombres} ${row.responsable.apellidos}` : ""}</p></div>
               {(row.dias ?? 0) > UMBRAL && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}
             </div>
-            {canEdit && <div className="flex items-center gap-2"><select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "refam" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (row.persona_id ? "amigo" : "persona")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button></div>}
+            {canEdit && <div className="flex flex-wrap items-center gap-2">
+              <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "refam" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (row.persona_id ? "amigo" : "persona")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+              <select aria-label="Reasignar a un comité (opcional)" title="Reasignar a un comité (opcional)" className="input-field text-xs w-40" value={trasladoComite[row.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [row.id]: event.target.value })}><option value="">Mantener responsable</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
+              <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+            </div>}
           </div>
         ))}</div>}
       </section>
@@ -342,7 +359,7 @@ export default function EstacionRefam() {
                 {canEdit && <form onSubmit={addRefamParticipante} className="grid sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] gap-2 mb-2 items-end">
                   <label className="text-xs text-secondary flex items-center gap-1">Tipo de participante<InfoTip texto="Elige 'Amigo' si la persona aún no se ha bautizado. Elige 'Persona' si ya es feligrés bautizado y también participa en este grupo REFAM." /><select className="input-field mt-1 w-full" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, tipo: event.target.value, sujeto_id: "" })}><option value="amigo">Amigo</option><option value="persona">Persona</option></select></label>
                   <label className="text-xs text-secondary">{refamParticipanteForm.tipo === "amigo" ? "Amigo" : "Persona"} a agregar<select required className="input-field mt-1" value={refamParticipanteForm.sujeto_id} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, sujeto_id: event.target.value })}><option value="">Selecciona...</option>{(refamParticipanteForm.tipo === "amigo" ? amigosDisponibles : personas).map((item) => <option key={item.id} value={item.id}>{item.nombres} {item.apellidos || ""}</option>)}</select></label>
-                  <label className="text-xs text-secondary flex items-center gap-1">Responsable de su seguimiento<InfoTip texto="Quién le va a dar seguimiento a esta persona mientras esté en REFAM. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.responsableId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, responsableId: event.target.value })}><option value="">Selecciona...</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+                  <label className="text-xs text-secondary flex items-center gap-1">Comité responsable de su seguimiento<InfoTip texto="Qué comité local le va a dar seguimiento a esta persona mientras esté en REFAM (por ejemplo, el comité de Jóvenes o Damas Dorcas, según a quién le corresponda). Es obligatorio para que siempre haya un comité encargado." /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.comiteId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, comiteId: event.target.value })}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
                   <button aria-label="Agregar participante" disabled={saving} className="btn-secondary px-3"><Plus className="w-4 h-4" /></button>
                 </form>}
                 {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex flex-col gap-2">

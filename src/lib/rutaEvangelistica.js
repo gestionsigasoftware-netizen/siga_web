@@ -28,6 +28,36 @@ export function diasDesde(fecha) {
   return Math.floor((Date.now() - inicio.getTime()) / 86400000);
 }
 
+// Que tipo de responsable acepta cada estacion -- decision del usuario
+// (2026-09-07): el responsable individual (persona) se reserva para el
+// acompañamiento personal de Uno Mas y BIS (un feligres concreto
+// visitando/llamando a un amigo); de ahi en adelante (REFAM, ESFOB,
+// Discipulado) el responsable general de la estacion debe ser un
+// comite completo, no una persona suelta -- son ellos quienes siguen
+// el acompañamiento real (visitas a hogares, continuidad) una vez la
+// persona ya esta mas establecida en la congregacion. El responsable
+// de cada leccion/nota individual (quien la enseño o la escribio) es
+// un concepto aparte, siempre una persona, y no se ve afectado por
+// esto.
+export const TIPO_RESPONSABLE_ESTACION = {
+  uno_mas: "persona",
+  bis: "persona",
+  refam: "comite",
+  esfob: "comite",
+  discipulado: "comite",
+};
+
+// Comites activos de la congregacion, para el selector de "responsable"
+// cuando se elige un comite en vez de una persona individual.
+export async function getComitesActivos(congregacionId) {
+  return supabase
+    .from("comites")
+    .select("id, nombre")
+    .eq("congregacion_id", congregacionId)
+    .eq("activo", true)
+    .order("nombre");
+}
+
 export async function getEstacion(congregacionId, codigo) {
   return supabase
     .from("ruta_estaciones")
@@ -41,7 +71,7 @@ export async function getEstacionActivos(congregacionId, estacionId) {
   return supabase
     .from("ruta_procesos")
     .select(
-      "id, amigo_id, persona_id, responsable_persona_id, fecha_inicio, notas, amigos(id, nombres, zona_id, zonas(nombre)), persona:personas!ruta_procesos_persona_id_fkey(id, nombres, apellidos), responsable:personas!ruta_procesos_responsable_persona_id_fkey(nombres, apellidos)"
+      "id, amigo_id, persona_id, responsable_persona_id, responsable_comite_id, fecha_inicio, notas, amigos(id, nombres, zona_id, zonas(nombre)), persona:personas!ruta_procesos_persona_id_fkey(id, nombres, apellidos), responsable:personas!ruta_procesos_responsable_persona_id_fkey(nombres, apellidos), responsable_comite:comites!ruta_procesos_responsable_comite_id_fkey(nombre)"
     )
     .eq("congregacion_id", congregacionId)
     .eq("estacion_id", estacionId)
@@ -64,6 +94,7 @@ export async function iniciarOMoverEstacion({
   amigoId,
   personaId,
   responsablePersonaId,
+  responsableComiteId,
   fechaInicio,
   notas,
 }) {
@@ -80,13 +111,33 @@ export async function iniciarOMoverEstacion({
     .limit(1)
     .maybeSingle();
   if (activoError) return { error: activoError };
+  // Cada estacion solo acepta un tipo de responsable (ver
+  // TIPO_RESPONSABLE_ESTACION) -- si el que llega no coincide (ej. una
+  // persona individual heredada de un traslado desde Uno Mas/BIS hacia
+  // REFAM/ESFOB/Discipulado, que ahora exigen comite), se descarta en
+  // vez de guardarlo mal. Queda sin responsable hasta que se le
+  // asigne uno del tipo correcto desde la pantalla de destino.
+  const tipoRequerido = TIPO_RESPONSABLE_ESTACION[estacionDestino.codigo];
+  if (tipoRequerido === "persona") responsableComiteId = null;
+  if (tipoRequerido === "comite") responsablePersonaId = null;
   if (activo && activo.estacion_id === estacionDestino.id) {
-    return { data: activo, moved: false };
+    // Ya esta activa en esta misma estacion (ej. REFAM: el traslado ya
+    // la movio aqui, y ahora "agregar participante" la engancha a un
+    // grupo especifico) -- si se paso un responsable nuevo, se
+    // actualiza el registro existente en vez de ignorarlo en silencio.
+    if (responsablePersonaId || responsableComiteId) {
+      const actualizar = await supabase
+        .from("ruta_procesos")
+        .update({ responsable_persona_id: responsablePersonaId || null, responsable_comite_id: responsableComiteId || null })
+        .eq("id", activo.id);
+      if (actualizar.error) return { error: actualizar.error };
+    }
+    return { data: activo, moved: false, responsablePersonaId, responsableComiteId };
   }
   // Un alta nueva siempre necesita un responsable claro para el
-  // seguimiento -- un traslado conserva el responsable que ya tenia,
-  // asi que no se vuelve a exigir aqui.
-  if (!activo && !responsablePersonaId) {
+  // seguimiento (una persona o un comite) -- un traslado conserva el
+  // responsable que ya tenia, asi que no se vuelve a exigir aqui.
+  if (!activo && !responsablePersonaId && !responsableComiteId) {
     return { error: new Error("Selecciona quién será el responsable de esta persona en la estación.") };
   }
   if (activo) {
@@ -104,6 +155,7 @@ export async function iniciarOMoverEstacion({
       amigo_id: amigoId || null,
       persona_id: personaId || null,
       responsable_persona_id: responsablePersonaId || null,
+      responsable_comite_id: responsableComiteId || null,
       fecha_inicio: fechaInicio || hoy,
       estado: "activo",
       notas: notas || null,
@@ -111,7 +163,7 @@ export async function iniciarOMoverEstacion({
     .select("id")
     .single();
   if (error) return { error };
-  return { data, moved: Boolean(activo) };
+  return { data, moved: Boolean(activo), responsablePersonaId, responsableComiteId };
 }
 
 // REFAM, ESFOB y Discipulado no solo viven en ruta_procesos -- tienen su
@@ -146,6 +198,7 @@ export async function trasladarEstacion({
   amigoId,
   personaId,
   responsablePersonaId,
+  responsableComiteId,
 }) {
   const detalleDestino = DETALLE_ESTACION[estacionDestino.codigo];
   if (detalleDestino?.requiere === "amigo" && !amigoId) {
@@ -155,7 +208,7 @@ export async function trasladarEstacion({
     return { error: new Error(`${estacionDestino.nombre} requiere que la persona ya esté bautizada e incorporada a Feligresía. Usa "Marcar bautizado" antes de trasladarla aquí.`) };
   }
 
-  const result = await iniciarOMoverEstacion({ congregacionId, estacionDestino, amigoId, personaId, responsablePersonaId });
+  const result = await iniciarOMoverEstacion({ congregacionId, estacionDestino, amigoId, personaId, responsablePersonaId, responsableComiteId });
   if (result.error) return result;
 
   const detalleOrigen = DETALLE_ESTACION[estacionOrigenCodigo];
@@ -173,10 +226,12 @@ export async function trasladarEstacion({
     const payload = { congregacion_id: congregacionId, proceso_id: result.data.id, fecha_inicio: hoyBogota() };
     if (estacionDestino.codigo === "esfob") {
       payload.amigo_id = amigoId;
-      payload.responsable_persona_id = responsablePersonaId || null;
+      payload.responsable_persona_id = result.responsablePersonaId || null;
+      payload.responsable_comite_id = result.responsableComiteId || null;
     } else if (estacionDestino.codigo === "discipulado") {
       payload.persona_id = personaId;
-      payload.mentor_persona_id = responsablePersonaId || null;
+      payload.mentor_persona_id = result.responsablePersonaId || null;
+      payload.mentor_comite_id = result.responsableComiteId || null;
     }
     if (detalleDestino.tablaLecciones) {
       const { data: primeraLeccion } = await supabase

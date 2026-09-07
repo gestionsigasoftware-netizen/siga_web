@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset, trendDataset } from "../lib/chartTheme";
-import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
+import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
@@ -27,6 +27,8 @@ const CONFIG = {
     progresoColumna: "esfob_proceso_id",
     notasTabla: "esfob_notas_leccion",
     notasColumna: "esfob_proceso_id",
+    responsablePersonaCampo: "responsable_persona_id",
+    responsableComiteCampo: "responsable_comite_id",
     defaultProgram: "ESFOB",
     activeState: "en_formacion",
     activeLabel: "En formación",
@@ -41,6 +43,8 @@ const CONFIG = {
     progresoColumna: "discipulado_proceso_id",
     notasTabla: "discipulado_notas_leccion",
     notasColumna: "discipulado_proceso_id",
+    responsablePersonaCampo: "mentor_persona_id",
+    responsableComiteCampo: "mentor_comite_id",
     defaultProgram: "Discipulado Crecer",
     activeState: "activo",
     activeLabel: "Activos",
@@ -57,6 +61,7 @@ export default function RutaFormacion({ mode }) {
   const [friends, setFriends] = useState([]);
   const [estaciones, setEstaciones] = useState([]);
   const [lecciones, setLecciones] = useState([]);
+  const [comites, setComites] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,6 +90,7 @@ export default function RutaFormacion({ mode }) {
     service: "",
     notes: "",
   });
+  const [trasladoComite, setTrasladoComite] = useState({});
 
   async function load() {
     if (!congregacionId) {
@@ -93,12 +99,13 @@ export default function RutaFormacion({ mode }) {
     }
     setLoading(true);
     setError(null);
-    const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult] = await Promise.all([
-      supabase.from(config.table).select(`*, leccion_actual:${config.leccionesTabla}(numero, titulo)`).eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
+    const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult, comitesResult] = await Promise.all([
+      supabase.from(config.table).select(`*, leccion_actual:${config.leccionesTabla}(numero, titulo), responsable_comite:comites!${config.table}_${config.responsableComiteCampo}_fkey(nombre)`).eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos, bautizado").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("amigos").select("id, nombres, zona_id, zonas(nombre)").eq("congregacion_id", congregacionId).eq("convertido", false).order("nombres"),
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
       supabase.from(config.leccionesTabla).select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero"),
+      getComitesActivos(congregacionId),
     ]);
     const failed = [processResult, peopleResult, friendsResult].find((result) => result.error);
     if (failed) setError(`No se pudo cargar ${config.title}. Intenta nuevamente o contacta al administrador.`);
@@ -107,6 +114,7 @@ export default function RutaFormacion({ mode }) {
     setFriends(friendsResult.data ?? []);
     setEstaciones(estacionesResult.data ?? []);
     setLecciones(leccionesResult.data ?? []);
+    setComites(comitesResult.data ?? []);
     setLoading(false);
   }
 
@@ -140,7 +148,7 @@ export default function RutaFormacion({ mode }) {
       estacionDestino: stationResult.data,
       amigoId: mode === "esfob" ? form.subjectId : null,
       personaId: mode === "discipulado" ? form.subjectId : null,
-      responsablePersonaId: form.responsibleId || null,
+      responsableComiteId: form.responsibleId || null,
       fechaInicio: form.date,
     });
     if (rutaResult.error) {
@@ -153,7 +161,7 @@ export default function RutaFormacion({ mode }) {
           congregacion_id: congregacionId,
           proceso_id: rutaResult.data.id,
           amigo_id: form.subjectId,
-          responsable_persona_id: form.responsibleId || null,
+          responsable_comite_id: rutaResult.responsableComiteId || null,
           programa: form.program,
           lecciones_total: lecciones.length || 1,
           lecciones_completadas: 0,
@@ -165,7 +173,7 @@ export default function RutaFormacion({ mode }) {
           congregacion_id: congregacionId,
           proceso_id: rutaResult.data.id,
           persona_id: form.subjectId,
-          mentor_persona_id: form.responsibleId || null,
+          mentor_comite_id: rutaResult.responsableComiteId || null,
           programa: form.program,
           leccion_actual_id: lecciones[0]?.id || null,
           fecha_inicio: form.date,
@@ -191,13 +199,17 @@ export default function RutaFormacion({ mode }) {
     if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
     setSaving(true);
     setError(null);
+    const nuevoComiteId = trasladoComite[row.id];
+    const responsableActualPersonaId = row[config.responsablePersonaCampo];
+    const responsableActualComiteId = row[config.responsableComiteCampo];
     const result = await trasladarEstacion({
       congregacionId,
       estacionOrigenCodigo: mode,
       estacionDestino: destino,
       amigoId: mode === "esfob" ? row.amigo_id : null,
       personaId: mode === "discipulado" ? row.persona_id : null,
-      responsablePersonaId: row.responsable_persona_id || row.mentor_persona_id || null,
+      responsablePersonaId: nuevoComiteId ? null : responsableActualPersonaId,
+      responsableComiteId: nuevoComiteId || responsableActualComiteId || null,
     });
     setSaving(false);
     if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
@@ -399,7 +411,7 @@ export default function RutaFormacion({ mode }) {
       {showForm && <form onSubmit={createProcess} className="card p-5 grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2"><p className="eyebrow">Nuevo proceso</p><h2 className="font-medium mt-1">Registrar {config.title}</h2></div>
         <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => updateForm("subjectId", event.target.value)} required><option value="">Selecciona una persona</option>{(mode === "esfob" ? friends : people).map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos || ""}</option>)}</select></label>
-        <label className="text-sm text-secondary flex items-center gap-1">{mode === "esfob" ? "Responsable" : "Mentor"}<InfoTip texto="Quién le va a dar seguimiento a esta persona en el proceso. Es obligatorio para que siempre haya alguien encargado." /><select required className="input-field mt-1 w-full" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un responsable</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select></label>
+        <label className="text-sm text-secondary flex items-center gap-1">{mode === "esfob" ? "Comité responsable" : "Comité mentor"}<InfoTip texto={`Qué comité local le va a dar seguimiento a esta persona en ${config.title} (por ejemplo, el comité que corresponda a su población). Es obligatorio para que siempre haya un comité encargado.`} /><select required className="input-field mt-1 w-full" value={form.responsibleId} onChange={(event) => updateForm("responsibleId", event.target.value)}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
         <label className="text-sm text-secondary">Programa<input className="input-field mt-1" value={form.program} onChange={(event) => updateForm("program", event.target.value)} required /></label>
         <label className="text-sm text-secondary">Fecha de inicio<input type="date" className="input-field mt-1" value={form.date} onChange={(event) => updateForm("date", event.target.value)} required /></label>
         {mode === "discipulado" && <label className="text-sm text-secondary">Servicio actual<input className="input-field mt-1" value={form.service} onChange={(event) => updateForm("service", event.target.value)} placeholder="Ej. apoyo en evangelismo" /></label>}
@@ -441,13 +453,13 @@ export default function RutaFormacion({ mode }) {
       <section className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
           <div className="card p-5">
             <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial, se registran notas, y puedes trasladarla o marcarla bautizada." : "Elige una persona para ver su ficha: ahí se marca su lección actual, se ve el historial de lecciones y se registra su seguimiento (servicio, próxima acción, notas)."} /></h2></div></div>
-            {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return (
+            {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); const responsibleComite = row.responsable_comite; return (
               <button key={row.id} type="button" onClick={() => seleccionarFicha(row)} className={`w-full text-left py-4 flex flex-col gap-1 ${selectedId === row.id ? "bg-accent-bg/40 -mx-5 px-5" : ""}`}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-sm">{row.person?.nombres} {row.person?.apellidos || ""}</p>
                   {row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{mode === "esfob" ? "Listo para trasladar" : "Revisar continuidad"}</span>}
                 </div>
-                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · ${mode === "esfob" ? "Responsable" : "Mentor"}: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
+                <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsibleComite ? ` · ${mode === "esfob" ? "Responsable" : "Mentor"}: Comité ${responsibleComite.nombre}` : responsible ? ` · ${mode === "esfob" ? "Responsable" : "Mentor"}: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
                 <p className="text-xs text-secondary">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : lecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones"} · {row.lecciones_completadas || 0} completada{row.lecciones_completadas === 1 ? "" : "s"}</p>
               </button>
             ); })}</div>}
@@ -508,8 +520,9 @@ export default function RutaFormacion({ mode }) {
                 {mode === "esfob" ? (
                   canEdit && <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
                     {seleccionado.listo && <button type="button" onClick={() => marcarBautizado(seleccionado)} disabled={saving} className="btn-primary justify-center">Marcar bautizado</button>}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[seleccionado.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [seleccionado.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+                      <select aria-label="Reasignar a un comité (opcional)" title="Reasignar a un comité (opcional)" className="input-field text-xs w-40" value={trasladoComite[seleccionado.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [seleccionado.id]: event.target.value })}><option value="">Mantener responsable</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
                       <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(seleccionado)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
                     </div>
                   </div>
