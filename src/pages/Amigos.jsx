@@ -24,13 +24,20 @@ import { descargarPdf } from "../lib/reportExport";
 import InfoTip from "../components/InfoTip";
 
 const RUTA_ESTACION_PATH = { uno_mas: "/uno-mas", bis: "/bis", refam: "/refam", esfob: "/esfob", discipulado: "/discipulado" };
-const TONO_ETAPA = [
-  "bg-surface-1 text-secondary",
-  "bg-warning-bg text-warning",
-  "bg-accent-bg text-accent",
-  "bg-warning-bg text-warning",
-  "bg-success-bg text-success",
-];
+// Tono por estación de la Ruta Evangelística -- reemplaza la vieja
+// insignia de "Etapa" (etapas_seguimiento) en la lista: la estación es
+// el estado que de verdad se usa día a día (traslados, lecciones,
+// notas), mientras que Etapa es opcional y muchos amigos quedan "Sin
+// etapa". Etapa se conserva en la base de datos y en Configuración
+// por si la PWA todavía la usa para capturar amigos en campo -- solo
+// deja de ser lo primero que se ve aquí.
+const TONO_ESTACION = {
+  uno_mas: "bg-surface-1 text-secondary",
+  bis: "bg-warning-bg text-warning",
+  refam: "bg-accent-bg text-accent",
+  esfob: "bg-warning-bg text-warning",
+  discipulado: "bg-success-bg text-success",
+};
 const EMPTY_FORM = {
   nombres: "",
   telefono: "",
@@ -87,6 +94,7 @@ export default function Amigos() {
     return () => clearTimeout(timer);
   }, [notice]);
   const [canEdit, setCanEdit] = useState(false);
+  const [rutaActivaPorAmigo, setRutaActivaPorAmigo] = useState({});
   const [routeProcess, setRouteProcess] = useState(null);
   const [routeHistory, setRouteHistory] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -156,6 +164,17 @@ export default function Amigos() {
     setTotalAmigos(friendResult.count ?? 0);
     setTotalConvertidos(convertedResult.count ?? 0);
     setAnalysisAmigos(analysisResult.data ?? []);
+    const friendIds = (friendResult.data ?? []).map((friend) => friend.id);
+    if (friendIds.length) {
+      const { data: rutaData } = await supabase
+        .from("ruta_procesos")
+        .select("amigo_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(codigo, nombre)")
+        .in("amigo_id", friendIds)
+        .in("estado", ["activo", "pausado"]);
+      setRutaActivaPorAmigo(Object.fromEntries((rutaData ?? []).map((item) => [item.amigo_id, item.estacion])));
+    } else {
+      setRutaActivaPorAmigo({});
+    }
     setLoading(false);
   }
 
@@ -720,11 +739,11 @@ export default function Amigos() {
                     </div>
                   </div>
                   <span
-                    className={`text-[10px] uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full whitespace-nowrap ${TONO_ETAPA[Math.max(0, (friend.etapas_seguimiento?.orden - 1) % TONO_ETAPA.length)] ?? TONO_ETAPA[0]}`}
+                    className={`text-[10px] uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full whitespace-nowrap ${friend.convertido ? "bg-success-bg text-success" : (TONO_ESTACION[rutaActivaPorAmigo[friend.id]?.codigo] ?? "bg-surface-1 text-secondary")}`}
                   >
                     {friend.convertido
                       ? "Convertido"
-                      : (friend.etapas_seguimiento?.nombre ?? "Sin etapa")}
+                      : (rutaActivaPorAmigo[friend.id]?.nombre ?? "Sin ruta iniciada")}
                   </span>
                 </button>
               ))}

@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): la tarjeta de "Amigos en ruta" mostraba la
+	Etapa vieja (`etapas_seguimiento`: Contactado/Visitado/Asistido/En
+	seguimiento/Convertido -- sistema anterior a la Ruta Evangelistica,
+	opcional, por eso muchos amigos aparecian "sin etapa"), mientras que
+	la Estacion real de la Ruta Evangelistica (la que de verdad se usa
+	dia a dia) solo se veia al entrar al detalle. Se cambio el badge de
+	la lista para mostrar la Estacion (con consulta por lote, no una por
+	tarjeta), sin tocar la base de datos ni el catalogo de Etapa en
+	Configuracion (no se pudo verificar si la PWA aun lo usa). Ver
+	`docs/fixes/amigos-badge-estacion-en-vez-de-etapa-2026-09-07.md`.
+
 - Resuelto (2026-09-06): traslados entre estaciones de la Ruta
 	Evangelistica no actualizaban las tablas de detalle
 	(`esfob_procesos`, `discipulado_procesos`, `refam_participantes`),
