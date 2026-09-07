@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import { Bar, Line } from "react-chartjs-2";
+import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { ShieldAlert, UserCheck, Plus, CalendarClock } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
+import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
+import ChartEmpty from "../components/ChartEmpty";
 import ExportButtons from "../components/ExportButtons";
 import InfoTip from "../components/InfoTip";
+
+ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const CHART_OPTIONS = chartOptions();
 
 const PLAZO_DIAS = 30;
 const ESTADO_LABELS = { pendiente: "Pendiente", aprobado: "Aprobado", rechazado: "Rechazado" };
@@ -136,6 +143,26 @@ export default function Sepri() {
   const delegadosActivos = delegados.filter((item) => item.activo);
   const delegadosVencidos = delegadosActivos.filter((item) => !item.certificacion_vigente || !item.fecha_vencimiento_certificacion || item.fecha_vencimiento_certificacion <= hoyBogota());
 
+  const porMes = new Map();
+  solicitudes.forEach((item) => {
+    const clave = item.created_at.slice(0, 7);
+    porMes.set(clave, (porMes.get(clave) || 0) + 1);
+  });
+  const mesesOrdenados = [...porMes.keys()].sort();
+  const trendData = trendDataset(
+    mesesOrdenados.map((mes) => new Date(`${mes}-01T00:00:00`).toLocaleDateString("es-CO", { month: "short", year: "2-digit" })),
+    mesesOrdenados.map((mes) => porMes.get(mes)),
+    { label: "Solicitudes" }
+  );
+  const distribucionEstado = distributionDataset(
+    Object.entries(ESTADO_LABELS).map(([key, label]) => ({ label, total: solicitudes.filter((item) => item.estado === key).length })).filter((item) => item.total > 0),
+    { datasetLabel: "Solicitudes" }
+  );
+  const rechazadas = solicitudes.filter((item) => item.estado === "rechazado").length;
+  const insightGeneral = solicitudes.length
+    ? `${cumplimiento === null ? "Aún no hay suficientes solicitudes resueltas para medir cumplimiento del plazo. " : cumplimiento >= 70 ? `${cumplimiento}% de las solicitudes cumplen el plazo de 30 días. ` : `Solo ${cumplimiento}% de las solicitudes cumplen el plazo de 30 días -- reforzar la planeación con anticipación. `}${rechazadas > 0 ? `${rechazadas} solicitud${rechazadas === 1 ? "" : "es"} rechazada${rechazadas === 1 ? "" : "s"}. ` : ""}${delegadosVencidos.length > 0 ? `${delegadosVencidos.length} delegado(s) con certificación por revisar.` : "Todos los delegados activos tienen certificación vigente."}`
+    : "Registra solicitudes y delegados para construir una lectura de la gestión de riesgo.";
+
   function exportResumen() {
     const porEstado = {};
     solicitudes.forEach((item) => { const label = ESTADO_LABELS[item.estado]; porEstado[label] = (porEstado[label] || 0) + 1; });
@@ -178,6 +205,25 @@ export default function Sepri() {
         <Metric label="Aprobadas (12 meses)" value={aprobadas12m.length} />
         <Metric label="Cumplimiento del plazo" value={cumplimiento === null ? "—" : `${cumplimiento}%`} tone={cumplimiento !== null && cumplimiento < 70 ? "text-danger" : "text-success"} info="Porcentaje de solicitudes de los últimos 12 meses presentadas con 30 días de anticipación o más, como exige el protocolo." />
         <Metric label="Delegados activos" value={delegadosActivos.length} tone={delegadosVencidos.length ? "text-danger" : "text-success"} detail={delegadosVencidos.length ? `${delegadosVencidos.length} con certificación por revisar` : undefined} />
+      </section>
+
+      <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
+
+      <section className="grid lg:grid-cols-2 gap-4">
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Historial</p>
+          <h2 className="font-medium mt-1">Solicitudes por mes</h2>
+          <div className="h-56 mt-4">
+            {mesesOrdenados.length ? <Line data={trendData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin solicitudes registradas todavía." />}
+          </div>
+        </div>
+        <div className="card chart-card p-5">
+          <p className="eyebrow">Estado actual</p>
+          <h2 className="font-medium mt-1">Solicitudes por estado</h2>
+          <div className="h-56 mt-4">
+            {solicitudes.length ? <Bar data={distribucionEstado} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin solicitudes registradas todavía." />}
+          </div>
+        </div>
       </section>
 
       <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de SEPRI" role="tablist">

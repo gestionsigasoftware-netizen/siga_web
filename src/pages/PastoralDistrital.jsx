@@ -173,6 +173,7 @@ export default function PastoralDistrital() {
   const [personasDistrito, setPersonasDistrito] = useState([])
   const [cargosDistritales, setCargosDistritales] = useState([])
   const [sepriSolicitudes, setSepriSolicitudes] = useState([])
+  const [sepriResumen, setSepriResumen] = useState([])
   const [sepriNotas, setSepriNotas] = useState({})
   const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
   const [savingCargo, setSavingCargo] = useState(false)
@@ -244,7 +245,7 @@ export default function PastoralDistrital() {
     setLoading(true)
     setError(null)
 
-    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult, sepriResult] = await Promise.all([
+    const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult, sepriResult, sepriResumenResult] = await Promise.all([
       supabase
         .from('pastores')
         .select('id, nombres, apellidos, telefono, familia_pastoral, observaciones, distrito_id, persona_id, licencia, fecha_tarjeta_predicador')
@@ -288,6 +289,7 @@ export default function PastoralDistrital() {
       supabase.from('personas').select('id, nombres, apellidos, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
       supabase.from('cargos_distritales').select('id, persona_id, nombres, apellidos, cargo, fecha_inicio, fecha_fin, observaciones').eq('distrito_id', distritoId).order('fecha_inicio', { ascending: false }),
       supabase.from('sepri_solicitudes_evento').select('id, congregacion_id, nombre_evento, fecha_evento, ubicacion, lugar, asistentes_esperados, poliza_contratada, estado, notas_distrital, descripcion, created_at, congregaciones(nombre)').eq('distrito_id', distritoId).order('created_at', { ascending: false }),
+      supabase.rpc('resumen_sepri_distrital', { p_distrito_id: distritoId }),
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
@@ -318,6 +320,7 @@ export default function PastoralDistrital() {
     setPersonasDistrito(personasResult.data ?? [])
     setCargosDistritales(cargosResult.data ?? [])
     setSepriSolicitudes(sepriResult.data ?? [])
+    setSepriResumen(sepriResumenResult.data ?? [])
     setLoading(false)
   }
 
@@ -1456,6 +1459,37 @@ export default function PastoralDistrital() {
             </table>
           </div>
         )}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium flex items-center gap-1.5">SEPRI por congregación<InfoTip texto="Cumplimiento del plazo de 30 días medido sobre las solicitudes de los últimos 12 meses en cada congregación. Un número bajo frente al total de solicitudes es una señal para reforzar la planeación con anticipación." /></h2>
+          <p className="text-sm text-secondary mt-1">Consolidado de gestión de riesgo por congregación de tu distrito.</p>
+        </div>
+        {sepriResumen.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay datos de SEPRI en tu distrito.</p>
+        ) : (() => {
+          const paged = paginate('sepri', sepriResumen)
+          return <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Pendientes</th><th className="font-normal px-4 py-2.5">Aprobadas (12m)</th><th className="font-normal px-4 py-2.5">A tiempo (12m)</th><th className="font-normal px-4 py-2.5">Delegados activos</th></tr></thead>
+              <tbody>
+                {paged.pageItems.map((item) => (
+                  <tr key={item.congregacion_id} className="border-t border-border">
+                    <td className="px-4 py-2.5 font-medium">{item.congregacion_nombre}</td>
+                    <td className={`px-4 py-2.5 ${Number(item.solicitudes_pendientes) > 0 ? 'text-warning' : ''}`}>{item.solicitudes_pendientes}</td>
+                    <td className="px-4 py-2.5">{item.solicitudes_aprobadas_12m}</td>
+                    <td className="px-4 py-2.5">{item.solicitudes_a_tiempo_12m}</td>
+                    <td className={`px-4 py-2.5 ${Number(item.delegados_activos) === 0 ? 'text-danger' : ''}`}>{item.delegados_activos}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriResumen.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          </>
+        })()}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>

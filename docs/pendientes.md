@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-06): SEPRI no tenia graficos/insight (a diferencia
+	de todos los demas modulos) ni consolidado distrital -- se agrego
+	tendencia + distribucion + insight en `Sepri.jsx`, y se conecto por
+	fin `resumen_sepri_distrital()` (existia desde el commit anterior
+	pero nunca se uso) a una tabla nueva "SEPRI por congregacion" en
+	Pastoral Distrital. De paso se documento un hallazgo de diseño:
+	`sepri_solicitudes_evento` no tiene politica RLS de DELETE (a
+	proposito, conserva el historial) -- limpiar datos de prueba ahi
+	requiere el SQL Editor, la anon-key falla en silencio (0 filas, sin
+	error). Ver `docs/funcionalidades/sepri-2026-09-06.md`.
+
 - Resuelto (2026-09-06): nuevo modulo **SEPRI** (Seguridad y Prevencion
 	del Riesgo). Investigado en fuentes publicas de la IPUC (no hay
 	documentacion interna disponible aqui) -- a diferencia de otros
