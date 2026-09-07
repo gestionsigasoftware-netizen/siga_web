@@ -160,6 +160,20 @@ Todos los datos de prueba se crearon y limpiaron en la misma corrida
 (sin quedar residuos, verificado con una consulta posterior). `npm run
 build` sin errores en ambas rondas.
 
+## Arreglo (parte 3: Discipulado ya no ofrece "Trasladar a...")
+
+Probando en vivo con Manuel (ya incorporado a Feligresía), el usuario
+notó que su fila activa en Discipulado seguía mostrando el selector
+"Trasladar a..." -- pero Discipulado es la última estación de la ruta
+("Formar para enviar"), no tiene un "siguiente paso" al que trasladar.
+Se quitó el control de traslado (selector + botón) del modo
+`discipulado` en `RutaFormacion.jsx` -- se mantiene tal cual en ESFOB,
+que sí puede necesitar volver a REFAM/BIS/Uno Más si alguien no está
+listo para el bautismo. La etiqueta "Listo para trasladar" también se
+ajustó a "Revisar continuidad" para discipulado (ese indicador nunca
+fue una invitación a trasladar ahí, sino una señal de seguimiento
+pastoral por tiempo prolongado).
+
 ## Nota para el usuario
 
 El amigo de prueba "Manuel Antonio García Rodríguez" (el de tu prueba

@@ -298,7 +298,7 @@ export default function RutaFormacion({ mode }) {
         <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
       </section>}
       <section className="card p-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien." : "Puedes trasladar a cualquier persona a la estación que corresponda, no solo a la siguiente en orden."} /></h2></div></div>
+        <div className="flex items-start gap-3 pb-4 border-b border-border"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center"><BookOpen className="w-4 h-4" /></span><div><p className="eyebrow">Seguimiento operativo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Procesos activos<InfoTip texto={mode === "esfob" ? "Cada persona avanza lección por lección desde la #1 del catálogo. Marca 'lección completada' solo cuando de verdad terminó -- así se sabe en cuál va cada quien. Puedes trasladarla a otra estación si aún no está lista para el bautismo." : "Discipulado es la última estación de la ruta -- aquí no se traslada a nadie a otra parte, solo se acompaña su continuidad y servicio."} /></h2></div></div>
         {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay procesos activos.</p> : <div className="divide-y divide-border">{filas.map((row) => { const responsible = findName(row.responsable_persona_id || row.mentor_persona_id); return <div key={row.id} className="py-4 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -306,13 +306,15 @@ export default function RutaFormacion({ mode }) {
               <p className="text-xs text-secondary">{row.programa} · {row.dias ?? 0} días{responsible ? ` · Responsable: ${responsible.nombres} ${responsible.apellidos}` : ""}</p>
               {mode === "esfob" && <p className="text-xs text-secondary mt-0.5">{row.leccion_actual ? `Lección #${row.leccion_actual.numero} — ${row.leccion_actual.titulo}` : esfobLecciones.length ? "Currículo completado" : "Sin catálogo de lecciones"} · {row.lecciones_completadas}/{row.lecciones_total} completadas</p>}
             </div>
-            <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
+            <div className="flex items-center gap-2">{row.listo && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{mode === "esfob" ? "Listo para trasladar" : "Revisar continuidad"}</span>}<span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{row.estado}</span></div>
           </div>
           {canEdit && <div className="flex flex-wrap items-center gap-2">
             {mode === "esfob" && row.leccion_actual_id && <button type="button" onClick={() => marcarLeccionEsfob(row)} disabled={saving} className="btn-secondary px-2 py-1 text-xs">Marcar lección completada</button>}
             {mode === "esfob" && row.listo && <button type="button" onClick={() => marcarBautizado(row)} disabled={saving} className="btn-primary px-2 py-1 text-xs">Marcar bautizado</button>}
-            <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (mode === "esfob" ? "persona" : "amigo")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-            <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+            {mode === "esfob" && <>
+              <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== mode && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== "persona").map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+              <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+            </>}
           </div>}
         </div>; })}</div>}
       </section>
