@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import Pager from "../components/Pager";
 import InfoTip from "../components/InfoTip";
 
@@ -118,6 +119,9 @@ export default function MisionJuvenil() {
   const [lideres, setLideres] = useState([]);
   const [liderForm, setLiderForm] = useState({ persona_id: "", rol: "gestor" });
   const [studentsPage, setStudentsPage] = useState(0);
+  const [estudiantesVinculados, setEstudiantesVinculados] = useState(new Set());
+  const [vinculandoId, setVinculandoId] = useState(null);
+  const [responsableVinculoId, setResponsableVinculoId] = useState("");
 
   async function load() {
     if (!congregacionId) {
@@ -129,7 +133,7 @@ export default function MisionJuvenil() {
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
-    const [i, s, g, r, p, l] = await Promise.all([
+    const [i, s, g, r, p, l, am] = await Promise.all([
       supabase
         .from("mision_instituciones")
         .select("*")
@@ -170,8 +174,13 @@ export default function MisionJuvenil() {
         .select("id, persona_id, rol, activo, personas(nombres, apellidos)")
         .eq("congregacion_id", congregacionId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("amigos")
+        .select("mision_juvenil_estudiante_id")
+        .eq("congregacion_id", congregacionId)
+        .not("mision_juvenil_estudiante_id", "is", null),
     ]);
-    const failed = [i, s, g, r, p, l].find((item) => item.error);
+    const failed = [i, s, g, r, p, l, am].find((item) => item.error);
     if (failed)
       setError(
         "No se pudo cargar Misión Juvenil. Intenta nuevamente o contacta al administrador.",
@@ -182,6 +191,7 @@ export default function MisionJuvenil() {
     setRegistros(r.data ?? []);
     setPersonas(p.data ?? []);
     setLideres(l.data ?? []);
+    setEstudiantesVinculados(new Set((am.data ?? []).map((row) => row.mision_juvenil_estudiante_id)));
     setLoading(false);
   }
 
@@ -360,6 +370,42 @@ export default function MisionJuvenil() {
     if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
     setNotice("Ficha actualizada.");
     load();
+  }
+
+  // Un estudiante de Mision Juvenil no tenia ningun siguiente paso una vez
+  // convertido -- esto lo conecta con el unico mecanismo real de
+  // seguimiento individual que ya existe (amigos + Ruta Evangelistica),
+  // igual que ya se hizo con Obra Carcelaria. El estado interno de Mision
+  // Juvenil (simpatizante/refam/discipulado/etc.) no mapea 1:1 con las
+  // estaciones de la Ruta, asi que siempre entra por BIS ("ya fue
+  // contactado, no necesita la sensibilizacion de Uno Mas") salvo que ya
+  // este bautizado, en cuyo caso queda listo para incorporar a Feligresia.
+  async function vincularRutaEvangelistica(student) {
+    if (!canEdit) return;
+    if (!student.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    setSaving(true); setError(null);
+    const nombreCompleto = `${student.nombres} ${student.apellidos}`.trim();
+    const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
+      congregacion_id: congregacionId,
+      nombres: nombreCompleto,
+      fecha_primer_contacto: hoyBogota(),
+      mision_juvenil_estudiante_id: student.id,
+      ...(student.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: student.fecha_bautismo } : {}),
+    }).select("id").single();
+    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (student.bautizado) {
+      setSaving(false);
+      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setVinculandoId(null); setResponsableVinculoId(""); load();
+      return;
+    }
+    const { data: estacionBis, error: estacionError } = await getEstacion(congregacionId, "bis");
+    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    const movResult = await iniciarOMoverEstacion({ congregacionId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
+    setSaving(false);
+    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
+    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
   async function createStudent(event) {
@@ -568,11 +614,14 @@ export default function MisionJuvenil() {
                 <th className="py-2">Grado / semestre</th>
                 <th className="py-2">Estado</th>
                 <th className="py-2"><span className="flex items-center gap-1.5">Hitos<InfoTip texto="Bautizado y sellado son hitos independientes. Una vez marcados aquí no hay botón para deshacerlos." /></span></th>
+                <th className="py-2"><span className="flex items-center gap-1.5">Ruta Evangelística<InfoTip texto="Vincula al estudiante con el mismo seguimiento individual que usa toda la congregación: si ya se bautizó, queda listo para incorporar a Feligresía; si no, entra a BIS." /></span></th>
               </tr>
             </thead>
             <tbody>
-              {studentsPageItems.map((student) => (
-                <tr key={student.id} className="border-b border-border">
+              {studentsPageItems.map((student) => {
+                const yaVinculado = estudiantesVinculados.has(student.id);
+                return (
+                <tr key={student.id} className="border-b border-border align-top">
                   <td className="py-2 font-medium">{student.nombres} {student.apellidos}</td>
                   <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || "Sin institución"}</td>
                   <td className="py-2 text-secondary">{student.grado_semestre || "Sin dato"}</td>
@@ -585,8 +634,29 @@ export default function MisionJuvenil() {
                       {canEdit && !student.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "sellado", "fecha_sellado")}>Marcar sellado</button>}
                     </div>
                   </td>
+                  <td className="py-2">
+                    {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : canEdit ? (
+                      vinculandoId === student.id ? (
+                        <div className="flex flex-col gap-1.5 min-w-[180px]">
+                          <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
+                            <option value="">Responsable...</option>
+                            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+                          </select>
+                          <div className="flex gap-1.5">
+                            <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(student)}>Confirmar</button>
+                            <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (student.bautizado ? vincularRutaEvangelistica(student) : setVinculandoId(student.id))}>
+                          Vincular
+                        </button>
+                      )
+                    ) : <span className="text-xs text-muted">—</span>}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {!students.length && <p className="text-sm text-secondary py-6 text-center">No hay estudiantes para los filtros seleccionados.</p>}

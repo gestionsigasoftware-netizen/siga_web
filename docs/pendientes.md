@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): botón "Vincular" en Misión Juvenil, calcado
+	del que ya existía en Obra Carcelaria -- crea el `amigo` (enlazado
+	via `amigos.mision_juvenil_estudiante_id`) y lo agrega a BIS con
+	responsable obligatorio, o lo deja listo para Feligresía si ya
+	estaba bautizado. El estado interno de Mision Juvenil no mapea 1:1
+	a las estaciones de la Ruta, por eso siempre usa BIS como entrada.
+	Ver `docs/fixes/vincular-mision-juvenil-2026-09-07.md`. Primer ítem
+	(el más complejo) del plan de cierre acordado con el usuario;
+	siguen pendientes: sugerencia visible de comités por edad/sexo,
+	"Vincular" en la entrada inicial de Obra Carcelaria, y "Reasignar
+	comité" independiente del traslado.
+
 - Resuelto (2026-09-07): segunda pieza del rediseno "extramural
 	alimenta a intramural" -- catalogo de rangos de edad -> comite(s)
 	sugerido(s) (`supabase/catalogos/rangos_edad_comite.sql`), congregacion
