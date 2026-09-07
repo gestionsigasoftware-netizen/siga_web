@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-07): "Registrar amigo nuevo" desde la PWA
+	(`siga-pwa-nacional`, proyecto hermano en `SIGA\siga movil\`) ahora
+	también funciona para Ujieres (intramural) -- antes solo estaba
+	habilitado para Evangelismo/Misión Juvenil (extramural). Requirió
+	agregar RLS nueva (`tengo_cargo_activo_congregacion`,
+	`supabase/modulos/tengo_cargo_activo_rls.sql`) porque un cargo sin
+	rol de pastor no podía insertar en `amigos` sin zona ni leer
+	`comites` -- políticas nuevas, sin tocar las existentes. El comité
+	de origen es opcional en esta pantalla (Ujieres no administra
+	personas). Ver
+	`docs/fixes/registrar-amigo-ujieres-pwa-2026-09-07.md`. Pendiente:
+	probar de extremo a extremo con una cuenta real de ujier (sin rol de
+	pastor) -- no se pudo simular aquí por falta de una segunda
+	identidad de prueba.
+
 - Resuelto (2026-09-07): columna `amigos.comite_origen_id` -- deja
 	constancia desde el primer momento de qué comité recibió a alguien
 	que se convierte en un culto normal (conversión intramural, el caso
