@@ -15,7 +15,29 @@ export default function InicioPublico() {
   if (!loading && user) return <Navigate to="/app" replace />
 
   return (
-    <main className="min-h-screen bg-[#f4f1eb] text-ink">
+    <main className="min-h-screen inicio-ambient text-ink">
+      <style>{`
+        /* Mismo efecto de Login (login-ambient) aplicado al fondo beige
+           de Inicio -- migra despacio entre tres colores de marca (dorado
+           warning, verde success, azul accent) en vez de solo dos, para
+           que se sienta más completo respecto a la paleta real de la
+           app. El verde (#8fca68) es el mismo tono que ya usa esta misma
+           página en el panel oscuro del hero, para no introducir un
+           color nuevo. Decorativo, nunca compite con el contenido. */
+        .inicio-ambient {
+          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 22%, #a9d98c 50%, #f3f0e9 78%, #8fbdec 100%);
+          background-size: 260% 260%;
+          animation: inicio-ambient-shift 30s ease-in-out infinite;
+        }
+        @keyframes inicio-ambient-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .inicio-ambient { animation: none; background-position: 50% 50%; }
+        }
+      `}</style>
       <nav className="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center" aria-label="Inicio de SIGAP">
           <img src={sigapLogo} alt="SIGAP" className="h-7 w-auto" />
