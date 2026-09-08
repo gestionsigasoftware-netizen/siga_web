@@ -18,14 +18,12 @@ export default function InicioPublico() {
     <main className="min-h-screen inicio-ambient text-ink">
       <style>{`
         /* Mismo efecto de Login (login-ambient) aplicado al fondo beige
-           de Inicio -- migra despacio entre tres colores de marca (dorado
-           warning, verde success, azul accent) en vez de solo dos, para
-           que se sienta más completo respecto a la paleta real de la
-           app. El verde (#8fca68) es el mismo tono que ya usa esta misma
-           página en el panel oscuro del hero, para no introducir un
-           color nuevo. Decorativo, nunca compite con el contenido. */
+           de Inicio -- migra despacio entre dorado (warning) y azul
+           (accent, el mismo #8fbdec que usa Login) en vez de solo dos
+           tramos, para que se sienta más completo respecto a la paleta
+           real de la app. Decorativo, nunca compite con el contenido. */
         .inicio-ambient {
-          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 22%, #a9d98c 50%, #f3f0e9 78%, #8fbdec 100%);
+          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 22%, #8fbdec 50%, #f3f0e9 78%, #8fbdec 100%);
           background-size: 260% 260%;
           animation: inicio-ambient-shift 30s ease-in-out infinite;
         }
