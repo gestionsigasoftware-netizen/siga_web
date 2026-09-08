@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-08): a partir de un testimonio real de un lider
+	distrital sobre como se recogen hoy las estadisticas en campo, se
+	construyo la "reconciliacion" de apartados como estadistica propia
+	(boton "Reconciliar" en la ficha de la persona + tarjeta nueva en
+	Dashboard) -- confirmado por el usuario que reconciliado = apartado
+	que vuelve a activo. Ver
+	`docs/fixes/reconciliacion-apartados-2026-09-08.md`.
+- Resuelto (2026-09-08): del mismo testimonio, se agregaron modalidades
+	de evangelismo y categorias demograficas sugeridas (evangelismo
+	hospitalario/medios de comunicacion/grupos especiales; poblacion
+	sorda/indigena-etnica) para estandarizar el reporte nacional. Ver
+	`docs/fixes/catalogos-sugeridos-testimonio-lider-distrital-2026-09-08.md`.
+	**Accion requerida del usuario**: ejecutar
+	`supabase/modulos/evangelismo.sql` y
+	`supabase/catalogos/poblaciones_especiales_demograficas.sql`.
 - Resuelto (2026-09-08): "Historial reciente" de comites (Feligresia,
 	pestaña Evolucion) mostraba datos crudos de auditoria
 	(`membresias_comite` / `DELETE` / UUID de usuario) sin traducir. Se

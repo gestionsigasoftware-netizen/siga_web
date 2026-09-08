@@ -10,6 +10,15 @@
 -- no el ujier -- ver docs/pendientes.md. Re-ejecutar este archivo
 -- completo es seguro (idempotente, el "not exists" evita duplicados y
 -- lo agrega retroactivamente a todas las congregaciones existentes).
+--
+-- Actualizado 2026-09-08: se agregaron 'Evangelismo hospitalario',
+-- 'Evangelismo en medios de comunicacion' y 'Evangelismo en grupos
+-- especiales' -- modalidades que ya se practican en campo (ver
+-- testimonio de lider distrital en docs/pendientes.md) pero que antes
+-- cada congregacion tenia que escribir a mano con su propio nombre, lo
+-- que rompia la comparacion a nivel distrital/nacional. No se agrego
+-- "carcelario" ni "estudiantil": son Obra Carcelaria y Mision Juvenil
+-- con otro nombre, agregarlos aqui seria redundante.
 
 -- Crea el modulo por congregacion sin duplicar la captura de la PWA.
 do $$
@@ -27,7 +36,7 @@ begin
     else
       update modulos set alcance = 'extramural', requiere_zona = true where id = v_modulo_id;
     end if;
-    foreach v_metodo in array array['REFAM', 'Culto de barrio', 'Culto relampago', 'Celula', 'Discipulado', 'Visita', 'Culto en salon'] loop
+    foreach v_metodo in array array['REFAM', 'Culto de barrio', 'Culto relampago', 'Celula', 'Discipulado', 'Visita', 'Culto en salon', 'Evangelismo hospitalario', 'Evangelismo en medios de comunicacion', 'Evangelismo en grupos especiales'] loop
       insert into tipos_actividad (modulo_id, nombre, caracter)
       select v_modulo_id, v_metodo, 'Evangelismo'
       where not exists (select 1 from tipos_actividad where modulo_id = v_modulo_id and lower(nombre) = lower(v_metodo));

@@ -747,7 +747,7 @@ export default function Dashboard() {
   const [showAllAlerts, setShowAllAlerts] = useState(false)
   const [alertasTotal, setAlertasTotal] = useState(0)
   const [resumenFeligresia, setResumenFeligresia] = useState(null)
-  const [movimientos3m, setMovimientos3m] = useState({ altas: 0, bajas: 0 })
+  const [movimientos3m, setMovimientos3m] = useState({ altas: 0, bajas: 0, reconciliaciones: 0 })
   const [frecuencia, setFrecuencia] = useState('mensual')
   const [frecuenciaDetalle, setFrecuenciaDetalle] = useState('mensual')
   const [aplicarFrecuenciaTodos, setAplicarFrecuenciaTodos] = useState(true)
@@ -799,6 +799,7 @@ export default function Dashboard() {
       const nuevosMovimientos3m = {
         altas: (movimientosData ?? []).filter((item) => item.tipo?.startsWith('alta_')).length,
         bajas: (movimientosData ?? []).filter((item) => item.tipo?.startsWith('baja_')).length,
+        reconciliaciones: (movimientosData ?? []).filter((item) => item.tipo === 'reactivacion').length,
       }
       setMovimientos3m(nuevosMovimientos3m)
 
@@ -1099,11 +1100,12 @@ export default function Dashboard() {
         const netoMensual3m = (movimientos3m.altas - movimientos3m.bajas) / 3
         const proyeccion12m = Math.max(0, Math.round(resumenFeligresia.personas_activas + netoMensual3m * 12))
         return (
-          <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <section className="grid grid-cols-2 lg:grid-cols-6 gap-3">
             <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
             <StatTile label="Bautizados" value={resumenFeligresia.bautizados} />
             <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
             <StatTile label="Apartados" value={resumenFeligresia.apartados} />
+            <StatTile label="Reconciliados" value={movimientos3m.reconciliaciones} tip="Personas apartadas que volvieron a estado Activo en los últimos 90 días." />
             <StatTile
               label="Proyección a 12 meses"
               value={resumenFeligresia.personas_activas ? proyeccion12m : '—'}

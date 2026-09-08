@@ -314,7 +314,8 @@ begin
     (v_congregacion_id, 'Niños', 1), (v_congregacion_id, 'Adolescentes', 2),
     (v_congregacion_id, 'Jóvenes', 3), (v_congregacion_id, 'Caballeros', 4),
     (v_congregacion_id, 'Damas', 5), (v_congregacion_id, 'Ancianos', 6),
-    (v_congregacion_id, 'Amigos', 7);
+    (v_congregacion_id, 'Amigos', 7), (v_congregacion_id, 'Población sorda', 8),
+    (v_congregacion_id, 'Población indígena / étnica', 9);
 
   insert into tipos_actividad (modulo_id, nombre, caracter) values
     (v_modulo_ujieres, 'Culto Martes', 'Enseñanza'),
