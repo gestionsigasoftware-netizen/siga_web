@@ -14,7 +14,7 @@ function rolActivoKey(userId) {
 
 function leerRolActivoGuardado(userId) {
   try {
-    return localStorage.getItem(rolActivoKey(userId))
+    return sessionStorage.getItem(rolActivoKey(userId))
   } catch {
     return null
   }
@@ -79,9 +79,9 @@ export function useMiRol() {
   function elegirRol(roleId) {
     if (!user) return
     try {
-      localStorage.setItem(rolActivoKey(user.id), roleId)
+      sessionStorage.setItem(rolActivoKey(user.id), roleId)
     } catch {
-      // localStorage no disponible: el rol activo solo dura esta renderización.
+      // sessionStorage no disponible: el rol activo solo dura esta renderización.
     }
     setRolActivoId(roleId)
     window.dispatchEvent(new CustomEvent('siga:rol-activo-cambiado'))
