@@ -87,25 +87,53 @@ export default function Login() {
   return (
     <div className="login-ambient min-h-screen text-ink p-4 md:p-6">
       <style>{`
-        /* Fondo fuera de la tarjeta de login: dos colores de marca bien
-           marcados -- dorado (familia warning) y azul (familia accent)
-           -- que migran despacio de un lado a otro. Decorativo, nunca
-           toca la tarjeta en si. */
-        .login-ambient {
-          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 45%, #f3f0e9 55%, #8fbdec 100%);
-          background-size: 220% 220%;
-          animation: login-ambient-shift 26s ease-in-out infinite;
+        /* Fondo ambiental refinado: manchas de color grandes y muy
+           difuminadas (blur) que se desplazan despacio -- dorado
+           (warning) y azul (accent), los mismos dos colores de marca de
+           siempre. Reemplaza el degradado animado anterior
+           (background-position sobre background-size grande), que
+           producia "banding" (bandas / efecto Mach band) visibles al
+           animarse -- un artefacto propio de esa tecnica, no de los
+           colores. Sin bordes duros, el blur elimina el banding por
+           completo. Nunca toca la tarjeta en si (queda por encima). */
+        .login-ambient { position: relative; overflow: hidden; }
+        .login-ambient::before,
+        .login-ambient::after {
+          content: '';
+          position: absolute;
+          width: min(55vw, 620px);
+          height: min(55vw, 620px);
+          border-radius: 50%;
+          filter: blur(120px);
+          opacity: 0.32;
+          pointer-events: none;
+          z-index: 0;
         }
-        @keyframes login-ambient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .login-ambient::before {
+          background: #f0c876;
+          top: -16%;
+          left: -10%;
+          animation: login-blob-a 36s ease-in-out infinite;
+        }
+        .login-ambient::after {
+          background: #8fbdec;
+          bottom: -18%;
+          right: -12%;
+          animation: login-blob-b 42s ease-in-out infinite;
+        }
+        @keyframes login-blob-a {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(6%, 8%); }
+        }
+        @keyframes login-blob-b {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(-7%, -6%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .login-ambient { animation: none; background-position: 50% 50%; }
+          .login-ambient::before, .login-ambient::after { animation: none; }
         }
       `}</style>
-      <div className="min-h-0 lg:min-h-[calc(100vh-3rem)] max-w-xl lg:max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] overflow-hidden rounded-card bg-surface-2 shadow-[0_24px_80px_rgba(21,27,34,0.12)]">
+      <div className="relative z-[1] min-h-0 lg:min-h-[calc(100vh-3rem)] max-w-xl lg:max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] overflow-hidden rounded-card bg-surface-2 shadow-[0_24px_80px_rgba(21,27,34,0.12)]">
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
           <div className="relative">

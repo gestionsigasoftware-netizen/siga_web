@@ -15,28 +15,56 @@ export default function InicioPublico() {
   if (!loading && user) return <Navigate to="/app" replace />
 
   return (
-    <main className="min-h-screen inicio-ambient text-ink">
+    <main className="min-h-screen bg-[#f3f0e9] text-ink">
       <style>{`
-        /* Mismo efecto de Login (login-ambient), con los mismos valores
-           exactos -- una version anterior con un color repetido en dos
-           puntos del degradado producia un artefacto visual de bandas
-           ("como lluvia") al animarse sobre un background-size grande.
-           Reutilizar la estructura ya probada de Login evita eso. */
-        .inicio-ambient {
-          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 45%, #f3f0e9 55%, #8fbdec 100%);
-          background-size: 220% 220%;
-          animation: inicio-ambient-shift 26s ease-in-out infinite;
+        /* Fondo ambiental refinado: manchas de color grandes y muy
+           difuminadas (blur) que se desplazan despacio, en vez de un
+           degradado animado con background-position -- esa tecnica
+           anterior (igual que la de Login) produce "banding" (bandas /
+           efecto Mach band) visibles al animarse, inherente a la
+           tecnica misma, no a los colores elegidos. Sin bordes duros,
+           el blur elimina el banding por completo. Confinado al
+           contenedor del hero (overflow:hidden) para no invadir la
+           seccion oscura de modulos de abajo. */
+        .inicio-ambient { position: relative; overflow: hidden; }
+        .inicio-ambient::before,
+        .inicio-ambient::after {
+          content: '';
+          position: absolute;
+          width: min(60vw, 640px);
+          height: min(60vw, 640px);
+          border-radius: 50%;
+          filter: blur(120px);
+          opacity: 0.32;
+          pointer-events: none;
+          z-index: 0;
         }
-        @keyframes inicio-ambient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .inicio-ambient::before {
+          background: #f0c876;
+          top: -18%;
+          left: -12%;
+          animation: inicio-blob-a 36s ease-in-out infinite;
+        }
+        .inicio-ambient::after {
+          background: #8fbdec;
+          bottom: -22%;
+          right: -14%;
+          animation: inicio-blob-b 42s ease-in-out infinite;
+        }
+        @keyframes inicio-blob-a {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(6%, 8%); }
+        }
+        @keyframes inicio-blob-b {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(-7%, -6%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .inicio-ambient { animation: none; background-position: 50% 50%; }
+          .inicio-ambient::before, .inicio-ambient::after { animation: none; }
         }
       `}</style>
-      <nav className="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
+      <div className="inicio-ambient">
+      <nav className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center" aria-label="Inicio de SIGAP">
           <img src={sigapLogo} alt="SIGAP" className="h-7 w-auto" />
         </Link>
@@ -46,7 +74,7 @@ export default function InicioPublico() {
         </div>
       </nav>
 
-      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+      <section className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
         <div>
           <p className="eyebrow">Inteligencia pastoral</p>
           <h1 className="text-4xl sm:text-6xl font-semibold leading-[1.05] mt-4 max-w-2xl">Cada nivel, la lectura que necesita para decidir.</h1>
@@ -65,6 +93,7 @@ export default function InicioPublico() {
           </div>
         </div>
       </section>
+      </div>
 
       <section className="relative overflow-hidden border-t border-white/10 bg-ink text-white">
         <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_15%_20%,rgba(42,120,214,0.28),transparent_38%),radial-gradient(circle_at_85%_80%,rgba(42,120,214,0.2),transparent_42%)]" />
