@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 
@@ -48,6 +48,7 @@ const ObraSocial = lazy(() => import("./pages/ObraSocial"));
 const ImpactoMisionero = lazy(() => import("./pages/ImpactoMisionero"));
 const GestionPastoralNacional = lazy(() => import("./pages/GestionPastoralNacional"));
 const ComitesNacional = lazy(() => import("./pages/ComitesNacional"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 export default function App() {
   return (
@@ -134,7 +135,7 @@ export default function App() {
           <Route path="/configuracion" element={<Configuracion />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
