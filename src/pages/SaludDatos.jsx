@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
+const saludDatosCache = new Map()
+
 function formatDistritoLabel(nombre, numero) {
   return numero ? `Distrito ${numero} · ${nombre}` : nombre
 }
@@ -40,13 +42,20 @@ export default function SaludDatos() {
 
   useEffect(() => {
     if (roleLoading || !rolPrincipal) return
-    setLoading(true)
+    const cacheKey = nivel === 'local' ? `local:${rolPrincipal.congregacion_id}` : nivel === 'distrital' ? `distrital:${rolPrincipal.distrito_id}` : (nivel === 'nacional' || nivel === 'super_admin') ? 'nacional' : null
+    const cached = cacheKey ? saludDatosCache.get(cacheKey) : null
+    if (cached) {
+      setFilas(cached.filas)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     if (nivel === 'local') {
       supabase.from('personas').select('fecha_nacimiento, genero, telefono, familia_id, fecha_ingreso').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo').then(({ data, error: loadError }) => {
         if (loadError) { setError('No se pudo cargar la salud de los datos.'); setLoading(false); return }
         const personas = data ?? []
-        setFilas([{
+        const filas = [{
           congregacion_id: rolPrincipal.congregacion_id,
           nombre: 'Tu congregación',
           total_activos: personas.length,
@@ -55,20 +64,26 @@ export default function SaludDatos() {
           con_telefono: personas.filter((p) => p.telefono).length,
           con_familia: personas.filter((p) => p.familia_id).length,
           con_fecha_ingreso: personas.filter((p) => p.fecha_ingreso).length,
-        }])
+        }]
+        setFilas(filas)
         setLoading(false)
+        if (cacheKey) saludDatosCache.set(cacheKey, { filas })
       })
     } else if (nivel === 'distrital') {
       supabase.rpc('resumen_salud_datos_distrital', { p_distrito_id: rolPrincipal.distrito_id }).then(({ data, error: loadError }) => {
         if (loadError) setError('No se pudo cargar la salud de los datos.')
-        setFilas(data ?? [])
+        const filas = data ?? []
+        setFilas(filas)
         setLoading(false)
+        if (cacheKey) saludDatosCache.set(cacheKey, { filas })
       })
     } else if (nivel === 'nacional' || nivel === 'super_admin') {
       supabase.rpc('resumen_salud_datos_nacional').then(({ data, error: loadError }) => {
         if (loadError) setError('No se pudo cargar la salud de los datos.')
-        setFilas((data ?? []).map((item) => ({ ...item, nombre: formatDistritoLabel(item.nombre, item.numero) })))
+        const filas = (data ?? []).map((item) => ({ ...item, nombre: formatDistritoLabel(item.nombre, item.numero) }))
+        setFilas(filas)
         setLoading(false)
+        if (cacheKey) saludDatosCache.set(cacheKey, { filas })
       })
     } else {
       setLoading(false)

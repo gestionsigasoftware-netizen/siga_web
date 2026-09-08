@@ -9,6 +9,8 @@ import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
 import ExportButtons from '../components/ExportButtons'
 import InfoTip from '../components/InfoTip'
 
+const auditoriaFeligresiaCache = new Map()
+
 const ADMIN_LEVELS = ['nacional', 'super_admin', 'distrital']
 const ENTITY_LABELS = { personas: 'Personas', familias: 'Familias', comites: 'Comités', membresias_comite: 'Membresías', historial_cargos: 'Cargos', seguimientos_pastorales: 'Seguimientos', estados_alerta_pastoral: 'Estados de alerta' }
 const ACTION_LABELS = { INSERT: 'Creación', UPDATE: 'Actualización', DELETE: 'Eliminación' }
@@ -33,7 +35,15 @@ export default function AuditoriaFeligresia() {
     const canAudit = rolPrincipal && (ADMIN_LEVELS.includes(rolPrincipal.nivel) || (rolPrincipal.nivel === 'local' && (!rolPrincipal.rol_local || rolPrincipal.rol_local === 'pastor')))
     if (!canAudit) { setLoading(false); return }
     async function load() {
-      setLoading(true)
+      const cacheKey = `${entity}:${action}:${fromDate}:${toDate}:${page}`
+      const cached = auditoriaFeligresiaCache.get(cacheKey)
+      if (cached) {
+        setEntries(cached.entries)
+        setTotal(cached.total)
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
       setError(null)
       let query = supabase.from('auditoria_feligresia').select('id, entidad, entidad_id, entidad_clave, accion, antes, despues, usuario_id, creado_en', { count: 'exact' }).order('creado_en', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1)
       if (entity !== 'todas') query = query.eq('entidad', entity)
@@ -43,8 +53,11 @@ export default function AuditoriaFeligresia() {
       try {
         const result = await Promise.race([query, new Promise((_, reject) => setTimeout(() => reject(new Error('La consulta tardó demasiado. Intenta nuevamente.')), 12000))])
         if (result.error) setError(result.error.code === '42P01' || result.error.code === 'PGRST205' ? 'La auditoría aún no está disponible. Contacta al administrador.' : 'No se pudo cargar la auditoría. Intenta nuevamente.')
-        setEntries(result.data ?? [])
-        setTotal(result.count ?? 0)
+        const freshEntries = result.data ?? []
+        const freshTotal = result.count ?? 0
+        setEntries(freshEntries)
+        setTotal(freshTotal)
+        auditoriaFeligresiaCache.set(cacheKey, { entries: freshEntries, total: freshTotal })
       } catch (requestError) {
         setEntries([])
         setTotal(0)

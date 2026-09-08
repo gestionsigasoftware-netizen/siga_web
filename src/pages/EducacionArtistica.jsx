@@ -19,6 +19,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const educacionArtisticaCache = new Map();
 
 const DISCIPLINAS = { danza: "Danza", teatro: "Teatro", artes_visuales: "Artes visuales", otro: "Otro" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
@@ -70,7 +71,17 @@ export default function EducacionArtistica() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = educacionArtisticaCache.get(cacheKey);
+    if (cached) {
+      setGrupos(cached.grupos);
+      setIntegrantes(cached.integrantes);
+      setPersonas(cached.personas);
+      setTodasSesiones(cached.todasSesiones);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -82,11 +93,16 @@ export default function EducacionArtistica() {
     ]);
     const failed = [g, i, p, s].find((item) => item.error);
     if (failed) setError("No se pudo cargar Educación Artística. Intenta nuevamente o contacta al administrador.");
-    setGrupos(g.data ?? []);
-    setIntegrantes(i.data ?? []);
-    setPersonas(p.data ?? []);
-    setTodasSesiones(s.data ?? []);
+    const freshGrupos = g.data ?? [];
+    const freshIntegrantes = i.data ?? [];
+    const freshPersonas = p.data ?? [];
+    const freshTodasSesiones = s.data ?? [];
+    setGrupos(freshGrupos);
+    setIntegrantes(freshIntegrantes);
+    setPersonas(freshPersonas);
+    setTodasSesiones(freshTodasSesiones);
     setLoading(false);
+    educacionArtisticaCache.set(cacheKey, { grupos: freshGrupos, integrantes: freshIntegrantes, personas: freshPersonas, todasSesiones: freshTodasSesiones });
   }
 
   async function loadSesiones(grupoId) {

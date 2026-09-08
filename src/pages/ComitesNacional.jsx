@@ -11,6 +11,8 @@ const DESCRIPCIONES_COLUMNA = {
   red_familias_casos: "Casos activos en seguimiento por Red de Familias, no el número de familias que integran el comité.",
 };
 
+const comitesNacionalCache = new Map();
+
 const ALLOWED_LEVELS = ["nacional", "super_admin"];
 
 function formatDistritoLabel(nombre, numero) {
@@ -25,10 +27,20 @@ export default function ComitesNacional() {
 
   useEffect(() => {
     if (!rolPrincipal || !ALLOWED_LEVELS.includes(rolPrincipal.nivel)) return;
+    const cacheKey = "global";
+    const cached = comitesNacionalCache.get(cacheKey);
+    if (cached) {
+      setDistritos(cached.distritos);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     supabase.rpc("resumen_comites_nacional").then(({ data, error: rpcError }) => {
       if (rpcError) setError("No se pudo cargar el consolidado nacional de comités.");
-      setDistritos(data ?? []);
+      const nuevosDistritos = data ?? [];
+      setDistritos(nuevosDistritos);
       setLoading(false);
+      comitesNacionalCache.set(cacheKey, { distritos: nuevosDistritos });
     });
   }, [rolPrincipal]);
 

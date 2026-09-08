@@ -11,6 +11,7 @@ import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, g
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+const estacionRefamCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const UMBRAL = UMBRAL_DIAS_ESTACION.refam;
 
@@ -55,7 +56,22 @@ export default function EstacionRefam() {
 
   async function load() {
     if (!congregacionId) { setLoading(false); return; }
-    setLoading(true);
+    const cacheKey = congregacionId;
+    const cached = estacionRefamCache.get(cacheKey);
+    if (cached) {
+      setEstacion(cached.estacion);
+      setActivos(cached.activos);
+      setZonas(cached.zonas);
+      setPersonas(cached.personas);
+      setAmigosDisponibles(cached.amigosDisponibles);
+      setRefamGrupos(cached.refamGrupos);
+      setEstaciones(cached.estaciones);
+      setRefamLecciones(cached.refamLecciones);
+      setComites(cached.comites);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const estacionResult = await getEstacion(congregacionId, "refam");
     if (estacionResult.error || !estacionResult.data) { setError("No se encontró la estación REFAM."); setLoading(false); return; }
@@ -70,16 +86,28 @@ export default function EstacionRefam() {
       getComitesActivos(congregacionId),
     ]);
     if (activosResult.error || zonasResult.error || personasResult.error || amigosResult.error || gruposResult.error) { setError("No se pudo cargar la estación REFAM."); setLoading(false); return; }
-    setEstacion(estacionResult.data);
-    setActivos(activosResult.data ?? []);
-    setZonas(zonasResult.data ?? []);
-    setPersonas(personasResult.data ?? []);
-    setAmigosDisponibles(amigosResult.data ?? []);
-    setRefamGrupos(gruposResult.data ?? []);
-    setEstaciones(estacionesResult.data ?? []);
-    setRefamLecciones(leccionesResult.data ?? []);
-    setComites(comitesResult.data ?? []);
+    const freshData = {
+      estacion: estacionResult.data,
+      activos: activosResult.data ?? [],
+      zonas: zonasResult.data ?? [],
+      personas: personasResult.data ?? [],
+      amigosDisponibles: amigosResult.data ?? [],
+      refamGrupos: gruposResult.data ?? [],
+      estaciones: estacionesResult.data ?? [],
+      refamLecciones: leccionesResult.data ?? [],
+      comites: comitesResult.data ?? [],
+    };
+    setEstacion(freshData.estacion);
+    setActivos(freshData.activos);
+    setZonas(freshData.zonas);
+    setPersonas(freshData.personas);
+    setAmigosDisponibles(freshData.amigosDisponibles);
+    setRefamGrupos(freshData.refamGrupos);
+    setEstaciones(freshData.estaciones);
+    setRefamLecciones(freshData.refamLecciones);
+    setComites(freshData.comites);
     setLoading(false);
+    estacionRefamCache.set(cacheKey, freshData);
   }
 
   useEffect(() => { load(); }, [congregacionId]);

@@ -36,6 +36,8 @@ const PERIODOS = [
 ];
 const CHART_OPTIONS = chartOptions();
 
+const evangelismoCache = new Map();
+
 function Metric({ label, value, detail, tone = "", info }) {
   return (
     <div className="stat-tile">
@@ -105,7 +107,21 @@ export default function Evangelismo() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = evangelismoCache.get(cacheKey);
+    if (cached) {
+      setModulo(cached.modulo);
+      setZonas(cached.zonas);
+      setMetodos(cached.metodos);
+      setRegistros(cached.registros);
+      setAmigos(cached.amigos);
+      setPersonas(cached.personas);
+      setMetodosEstacion(cached.metodosEstacion);
+      setDiagnosticos(cached.diagnosticos);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const start = new Date();
@@ -180,26 +196,37 @@ export default function Evangelismo() {
           "No se pudo cargar Evangelismo. Intenta nuevamente o contacta al administrador.",
         );
       const loadedModule = moduleResult.data;
+      const newZonas = (zonesResult.data ?? []).filter(
+        (zone) => !loadedModule?.id || zone.modulo_id === loadedModule.id,
+      );
+      const newMetodos = (loadedModule?.tipos_actividad ?? []).filter(
+        (method) => method.activo !== false,
+      );
+      const newRegistros = (recordsResult.data ?? []).filter(
+        (record) => !loadedModule?.id || record.modulo_id === loadedModule.id,
+      );
+      const newAmigos = friendsResult.data ?? [];
+      const newPersonas = peopleResult.data ?? [];
+      const newMetodosEstacion = estacionesResult.data ?? null;
+      const newDiagnosticos = diagnosticosResult.data ?? [];
       setModulo(loadedModule);
-      setZonas(
-        (zonesResult.data ?? []).filter(
-          (zone) => !loadedModule?.id || zone.modulo_id === loadedModule.id,
-        ),
-      );
-      setMetodos(
-        (loadedModule?.tipos_actividad ?? []).filter(
-          (method) => method.activo !== false,
-        ),
-      );
-      setRegistros(
-        (recordsResult.data ?? []).filter(
-          (record) => !loadedModule?.id || record.modulo_id === loadedModule.id,
-        ),
-      );
-      setAmigos(friendsResult.data ?? []);
-      setPersonas(peopleResult.data ?? []);
-      setMetodosEstacion(estacionesResult.data ?? null);
-      setDiagnosticos(diagnosticosResult.data ?? []);
+      setZonas(newZonas);
+      setMetodos(newMetodos);
+      setRegistros(newRegistros);
+      setAmigos(newAmigos);
+      setPersonas(newPersonas);
+      setMetodosEstacion(newMetodosEstacion);
+      setDiagnosticos(newDiagnosticos);
+      evangelismoCache.set(cacheKey, {
+        modulo: loadedModule,
+        zonas: newZonas,
+        metodos: newMetodos,
+        registros: newRegistros,
+        amigos: newAmigos,
+        personas: newPersonas,
+        metodosEstacion: newMetodosEstacion,
+        diagnosticos: newDiagnosticos,
+      });
     } catch (loadError) {
       setError(`No se pudo cargar Evangelismo: ${loadError.message}`);
     } finally {

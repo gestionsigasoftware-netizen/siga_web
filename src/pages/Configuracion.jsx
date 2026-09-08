@@ -8,6 +8,8 @@ import { geocodeAddress } from '../lib/geocoding'
 import UndoToast from '../components/UndoToast'
 import InfoTip from '../components/InfoTip'
 
+const configuracionCache = new Map()
+
 function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
   const [valor, setValor] = useState('')
   return (
@@ -68,7 +70,20 @@ export default function Configuracion() {
 
   async function loadAll() {
     if (!congregacionId) { setLoading(false); return }
-    setLoading(true)
+    const cacheKey = congregacionId
+    const cached = configuracionCache.get(cacheKey)
+    if (cached) {
+      setCategorias(cached.categorias)
+      setModulos(cached.modulos)
+      setEtapas(cached.etapas)
+      setTiposComite(cached.tiposComite)
+      setCargosComite(cached.cargosComite)
+      setOrganizacion(cached.organizacion)
+      setPreferencias(cached.preferencias)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     const [cat, mod, et, congregation, typeResult, committeeCargoResult] = await Promise.all([
       supabase.from('categorias_demograficas').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
@@ -80,16 +95,38 @@ export default function Configuracion() {
     ])
     const failedCatalog = cat.error ? 'categorías' : mod.error ? 'módulos' : et.error ? 'etapas' : typeResult.error ? 'tipos de comité' : committeeCargoResult.error ? 'cargos de comité' : congregation.error ? 'la información de la congregación' : null
     if (failedCatalog) setError(`No se pudieron cargar las ${failedCatalog}. Intenta nuevamente.`)
-    setCategorias(cat.data ?? [])
-    setModulos((mod.data ?? []).map((item) => ({ ...item, nombre: item.nombre_modulo })))
-    setEtapas(et.data ?? [])
-    setTiposComite(typeResult.data ?? [])
-    setCargosComite(committeeCargoResult.data ?? [])
-    if (congregation.data) setOrganizacion({ nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' })
+    const nuevasCategorias = cat.data ?? []
+    const nuevosModulos = (mod.data ?? []).map((item) => ({ ...item, nombre: item.nombre_modulo }))
+    const nuevasEtapas = et.data ?? []
+    const nuevosTiposComite = typeResult.data ?? []
+    const nuevosCargosComite = committeeCargoResult.data ?? []
+    setCategorias(nuevasCategorias)
+    setModulos(nuevosModulos)
+    setEtapas(nuevasEtapas)
+    setTiposComite(nuevosTiposComite)
+    setCargosComite(nuevosCargosComite)
+    let nuevaOrganizacion = organizacion
+    if (congregation.data) {
+      nuevaOrganizacion = { nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' }
+      setOrganizacion(nuevaOrganizacion)
+    }
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()
     if (configError) setError('No se pudieron cargar las preferencias de la congregación.')
-    if (config) setPreferencias({ ...config, modulo_predeterminado: config.modulo_predeterminado ?? '' })
+    let nuevasPreferencias = preferencias
+    if (config) {
+      nuevasPreferencias = { ...config, modulo_predeterminado: config.modulo_predeterminado ?? '' }
+      setPreferencias(nuevasPreferencias)
+    }
     setLoading(false)
+    configuracionCache.set(cacheKey, {
+      categorias: nuevasCategorias,
+      modulos: nuevosModulos,
+      etapas: nuevasEtapas,
+      tiposComite: nuevosTiposComite,
+      cargosComite: nuevosCargosComite,
+      organizacion: nuevaOrganizacion,
+      preferencias: nuevasPreferencias,
+    })
   }
 
   async function guardarPreferencias(event) {

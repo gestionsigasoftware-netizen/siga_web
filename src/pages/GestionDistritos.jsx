@@ -6,6 +6,8 @@ import Pager from '../components/Pager'
 import GeoMap from '../components/charts/GeoMap'
 import InfoTip from '../components/InfoTip'
 
+const gestionDistritosCache = new Map()
+
 const CONG_PAGE_SIZE = 50
 
 const ALLOWED_LEVELS = ['nacional', 'super_admin']
@@ -39,21 +41,37 @@ export default function GestionDistritos() {
   const [congPage, setCongPage] = useState(0)
 
   async function load() {
-    setLoading(true)
+    const cacheKey = 'global'
+    const cached = gestionDistritosCache.get(cacheKey)
+    if (cached) {
+      setDistritos(cached.distritos)
+      setCongregaciones(cached.congregaciones)
+      setConteos(cached.conteos)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     const [{ data: distritosData, error: distritosError }, { data: congregacionesData, error: congregacionesError }] = await Promise.all([
       supabase.from('distritos').select('id, numero, nombre, created_at').order('numero', { ascending: true, nullsFirst: false }).order('nombre'),
       supabase.from('congregaciones').select('id, nombre, ciudad, latitud, longitud, distrito_id, distritos(nombre, numero)').order('nombre'),
     ])
     if (distritosError || congregacionesError) setError('No se pudieron cargar los distritos.')
-    setDistritos(distritosData ?? [])
-    setCongregaciones(congregacionesData ?? [])
+    const nuevosDistritos = distritosData ?? []
+    const nuevasCongregaciones = congregacionesData ?? []
+    setDistritos(nuevosDistritos)
+    setCongregaciones(nuevasCongregaciones)
     const mapaConteos = new Map()
-    for (const congregacion of congregacionesData ?? []) {
+    for (const congregacion of nuevasCongregaciones) {
       mapaConteos.set(congregacion.distrito_id, (mapaConteos.get(congregacion.distrito_id) || 0) + 1)
     }
     setConteos(mapaConteos)
     setLoading(false)
+    gestionDistritosCache.set(cacheKey, {
+      distritos: nuevosDistritos,
+      congregaciones: nuevasCongregaciones,
+      conteos: mapaConteos,
+    })
   }
 
   useEffect(() => { load() }, [])

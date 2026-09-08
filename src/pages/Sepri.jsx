@@ -12,6 +12,7 @@ import ExportButtons from "../components/ExportButtons";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const sepriCache = new Map();
 const CHART_OPTIONS = chartOptions();
 
 const PLAZO_DIAS = 30;
@@ -66,7 +67,16 @@ export default function Sepri() {
 
   async function load() {
     if (!congregacionId) { setLoading(false); setError("Tu usuario no tiene una congregación local asignada."); return; }
-    setLoading(true);
+    const cacheKey = congregacionId;
+    const cached = sepriCache.get(cacheKey);
+    if (cached) {
+      setSolicitudes(cached.solicitudes);
+      setDelegados(cached.delegados);
+      setPersonas(cached.personas);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const [s, d, p] = await Promise.all([
       supabase.from("sepri_solicitudes_evento").select("id, nombre_evento, fecha_evento, ubicacion, lugar, asistentes_esperados, poliza_contratada, estado, notas_distrital, created_at, personas(nombres, apellidos)").eq("congregacion_id", congregacionId).order("created_at", { ascending: false }),
@@ -75,10 +85,14 @@ export default function Sepri() {
     ]);
     const failed = [s, d, p].find((item) => item.error);
     if (failed) setError("No se pudo cargar SEPRI. Intenta nuevamente o contacta al administrador.");
-    setSolicitudes(s.data ?? []);
-    setDelegados(d.data ?? []);
-    setPersonas(p.data ?? []);
+    const freshSolicitudes = s.data ?? [];
+    const freshDelegados = d.data ?? [];
+    const freshPersonas = p.data ?? [];
+    setSolicitudes(freshSolicitudes);
+    setDelegados(freshDelegados);
+    setPersonas(freshPersonas);
     setLoading(false);
+    sepriCache.set(cacheKey, { solicitudes: freshSolicitudes, delegados: freshDelegados, personas: freshPersonas });
   }
 
   useEffect(() => { load(); }, [congregacionId]);

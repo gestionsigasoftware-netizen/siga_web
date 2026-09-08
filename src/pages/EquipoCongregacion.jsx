@@ -7,6 +7,8 @@ import InfoTip from '../components/InfoTip'
 
 const esModuloCarcelaria = (nombreModulo) => /carcelari/i.test(nombreModulo || '')
 
+const equipoCongregacionCache = new Map()
+
 export default function EquipoCongregacion() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
@@ -40,7 +42,20 @@ export default function EquipoCongregacion() {
       setMessage({ type: 'error', text: 'Tu usuario no tiene una congregación local asignada.' })
       return
     }
-    setLoading(true)
+    const cacheKey = congregacionId
+    const cached = equipoCongregacionCache.get(cacheKey)
+    if (cached) {
+      setPeople(cached.people)
+      setProfiles(cached.profiles)
+      setModules(cached.modules)
+      setZonas(cached.zonas)
+      setCentros(cached.centros)
+      setAssignments(cached.assignments)
+      setCargoAssignments(cached.cargoAssignments)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setMessage((current) => (current?.text === 'Tu usuario no tiene una congregación local asignada.' ? null : current))
     const { data: congregacion } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
     const [peopleResult, profilesResult, modulesResult, zonasResult, centrosResult, assignmentsResult, cargoAssignmentsResult] = await Promise.all([
@@ -58,14 +73,28 @@ export default function EquipoCongregacion() {
     const loadedProfiles = profilesResult.data ?? []
     const peopleById = new Map(loadedPeople.map((person) => [person.id, person]))
     const profilesById = new Map(loadedProfiles.map((profile) => [profile.id, profile]))
+    const newModules = modulesResult.data ?? []
+    const newZonas = zonasResult.data ?? []
+    const newCentros = centrosResult.data ?? []
+    const newAssignments = (assignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id), perfiles_acceso: profilesById.get(assignment.perfil_id) }))
+    const newCargoAssignments = (cargoAssignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id) }))
     setPeople(loadedPeople)
     setProfiles(loadedProfiles)
-    setModules(modulesResult.data ?? [])
-    setZonas(zonasResult.data ?? [])
-    setCentros(centrosResult.data ?? [])
-    setAssignments((assignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id), perfiles_acceso: profilesById.get(assignment.perfil_id) })))
-    setCargoAssignments((cargoAssignmentsResult.data ?? []).map((assignment) => ({ ...assignment, personas: peopleById.get(assignment.persona_id) })))
+    setModules(newModules)
+    setZonas(newZonas)
+    setCentros(newCentros)
+    setAssignments(newAssignments)
+    setCargoAssignments(newCargoAssignments)
     setLoading(false)
+    equipoCongregacionCache.set(cacheKey, {
+      people: loadedPeople,
+      profiles: loadedProfiles,
+      modules: newModules,
+      zonas: newZonas,
+      centros: newCentros,
+      assignments: newAssignments,
+      cargoAssignments: newCargoAssignments,
+    })
   }
 
   useEffect(() => { load() }, [congregacionId])

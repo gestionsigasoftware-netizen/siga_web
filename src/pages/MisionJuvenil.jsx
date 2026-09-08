@@ -47,6 +47,8 @@ const ESTADOS = {
 };
 const CHART_OPTIONS = chartOptions();
 
+const misionJuvenilCache = new Map();
+
 function Metric({ label, value, detail, insight, progress = 0, tone = "", info }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
@@ -129,7 +131,20 @@ export default function MisionJuvenil() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = misionJuvenilCache.get(cacheKey);
+    if (cached) {
+      setInstituciones(cached.instituciones);
+      setEstudiantes(cached.estudiantes);
+      setGrupos(cached.grupos);
+      setRegistros(cached.registros);
+      setPersonas(cached.personas);
+      setLideres(cached.lideres);
+      setEstudiantesVinculados(cached.estudiantesVinculados);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -185,14 +200,24 @@ export default function MisionJuvenil() {
       setError(
         "No se pudo cargar Misión Juvenil. Intenta nuevamente o contacta al administrador.",
       );
-    setInstituciones(i.data ?? []);
-    setEstudiantes(s.data ?? []);
-    setGrupos(g.data ?? []);
-    setRegistros(r.data ?? []);
-    setPersonas(p.data ?? []);
-    setLideres(l.data ?? []);
-    setEstudiantesVinculados(new Set((am.data ?? []).map((row) => row.mision_juvenil_estudiante_id)));
+    const freshData = {
+      instituciones: i.data ?? [],
+      estudiantes: s.data ?? [],
+      grupos: g.data ?? [],
+      registros: r.data ?? [],
+      personas: p.data ?? [],
+      lideres: l.data ?? [],
+      estudiantesVinculados: new Set((am.data ?? []).map((row) => row.mision_juvenil_estudiante_id)),
+    };
+    setInstituciones(freshData.instituciones);
+    setEstudiantes(freshData.estudiantes);
+    setGrupos(freshData.grupos);
+    setRegistros(freshData.registros);
+    setPersonas(freshData.personas);
+    setLideres(freshData.lideres);
+    setEstudiantesVinculados(freshData.estudiantesVinculados);
     setLoading(false);
+    misionJuvenilCache.set(cacheKey, freshData);
   }
 
   async function loadLecciones(grupoId) {

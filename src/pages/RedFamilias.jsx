@@ -5,6 +5,8 @@ import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
+const redFamiliasCache = new Map()
+
 const CASE_TYPES = {
   acompanamiento_solicitado: 'Acompañamiento solicitado',
   visita_pendiente: 'Visita pendiente',
@@ -55,7 +57,15 @@ export default function RedFamilias() {
 
   async function load() {
     if (!congregacionId) { setLoading(false); return }
-    setLoading(true); setError(null)
+    const cacheKey = congregacionId
+    const cached = redFamiliasCache.get(cacheKey)
+    if (cached) {
+      setFamilies(cached.families); setPeople(cached.people); setCases(cached.cases); setVisits(cached.visits); setActivities(cached.activities)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
+    setError(null)
     const [familyResult, peopleResult, casesResult, visitsResult, activitiesResult] = await Promise.all([
       supabase.from('familias').select('id, nombre_familia, direccion, telefono').eq('congregacion_id', congregacionId).order('nombre_familia'),
       supabase.from('personas').select('id, nombres, apellidos, estado_membresia').eq('congregacion_id', congregacionId).order('nombres'),
@@ -65,8 +75,14 @@ export default function RedFamilias() {
     ])
     const failed = [familyResult, peopleResult, casesResult, visitsResult, activitiesResult].find((result) => result.error)
     if (failed) setError(`No se pudo cargar Red de Familias: ${failed.error.message}`)
-    setFamilies(familyResult.data ?? []); setPeople(peopleResult.data ?? []); setCases(casesResult.data ?? []); setVisits(visitsResult.data ?? []); setActivities(activitiesResult.data ?? [])
+    const newFamilies = familyResult.data ?? []
+    const newPeople = peopleResult.data ?? []
+    const newCases = casesResult.data ?? []
+    const newVisits = visitsResult.data ?? []
+    const newActivities = activitiesResult.data ?? []
+    setFamilies(newFamilies); setPeople(newPeople); setCases(newCases); setVisits(newVisits); setActivities(newActivities)
     setLoading(false)
+    redFamiliasCache.set(cacheKey, { families: newFamilies, people: newPeople, cases: newCases, visits: newVisits, activities: newActivities })
   }
 
   useEffect(() => { load() }, [congregacionId])

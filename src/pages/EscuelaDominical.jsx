@@ -19,6 +19,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const escuelaDominicalCache = new Map();
 
 const ETAPAS = ["Cuna", "Párvulos", "Primarios", "Preadolescentes"];
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
@@ -72,7 +73,18 @@ export default function EscuelaDominical() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = escuelaDominicalCache.get(cacheKey);
+    if (cached) {
+      setClases(cached.clases);
+      setNinos(cached.ninos);
+      setMaestros(cached.maestros);
+      setPersonas(cached.personas);
+      setTodasLecciones(cached.todasLecciones);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -85,12 +97,18 @@ export default function EscuelaDominical() {
     ]);
     const failed = [c, n, m, p, l].find((item) => item.error);
     if (failed) setError("No se pudo cargar Escuela Dominical. Intenta nuevamente o contacta al administrador.");
-    setClases(c.data ?? []);
-    setNinos(n.data ?? []);
-    setMaestros(m.data ?? []);
-    setPersonas(p.data ?? []);
-    setTodasLecciones(l.data ?? []);
+    const freshClases = c.data ?? [];
+    const freshNinos = n.data ?? [];
+    const freshMaestros = m.data ?? [];
+    const freshPersonas = p.data ?? [];
+    const freshTodasLecciones = l.data ?? [];
+    setClases(freshClases);
+    setNinos(freshNinos);
+    setMaestros(freshMaestros);
+    setPersonas(freshPersonas);
+    setTodasLecciones(freshTodasLecciones);
     setLoading(false);
+    escuelaDominicalCache.set(cacheKey, { clases: freshClases, ninos: freshNinos, maestros: freshMaestros, personas: freshPersonas, todasLecciones: freshTodasLecciones });
   }
 
   async function loadLecciones(claseId) {

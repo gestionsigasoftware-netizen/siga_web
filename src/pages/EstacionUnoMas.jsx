@@ -10,6 +10,7 @@ import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEsta
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+const estacionUnoMasCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const COMPROMISO_ESTADOS = { activo: "Activo", cumplido: "Cumplido", pausado: "Pausado", cerrado: "Cerrado" };
 const UMBRAL = UMBRAL_DIAS_ESTACION.uno_mas;
@@ -41,7 +42,19 @@ export default function EstacionUnoMas() {
 
   async function load() {
     if (!congregacionId) { setLoading(false); return; }
-    setLoading(true);
+    const cacheKey = congregacionId;
+    const cached = estacionUnoMasCache.get(cacheKey);
+    if (cached) {
+      setEstacion(cached.estacion);
+      setActivos(cached.activos);
+      setAmigosDisponibles(cached.amigosDisponibles);
+      setPersonas(cached.personas);
+      setEstaciones(cached.estaciones);
+      setCompromisos(cached.compromisos);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const estacionResult = await getEstacion(congregacionId, "uno_mas");
     if (estacionResult.error || !estacionResult.data) { setError("No se encontró la estación Uno Más."); setLoading(false); return; }
@@ -52,21 +65,30 @@ export default function EstacionUnoMas() {
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
     ]);
     if (activosResult.error || amigosResult.error || personasResult.error) { setError("No se pudo cargar la estación. Intenta nuevamente."); setLoading(false); return; }
-    setEstacion(estacionResult.data);
-    setActivos(activosResult.data ?? []);
-    setAmigosDisponibles(amigosResult.data ?? []);
-    setPersonas(personasResult.data ?? []);
-    setEstaciones(estacionesResult.data ?? []);
     const procesoIds = (activosResult.data ?? []).map((row) => row.id);
+    let compromisos = {};
     if (procesoIds.length) {
       const { data: compromisosData } = await supabase.from("uno_mas_compromisos").select("id, proceso_id, miembro_id, estado, fecha_ultimo_contacto, resultado, notas").in("proceso_id", procesoIds).order("created_at", { ascending: false });
       const mapa = {};
       (compromisosData ?? []).forEach((item) => { if (!mapa[item.proceso_id]) mapa[item.proceso_id] = item; });
-      setCompromisos(mapa);
-    } else {
-      setCompromisos({});
+      compromisos = mapa;
     }
+    const freshData = {
+      estacion: estacionResult.data,
+      activos: activosResult.data ?? [],
+      amigosDisponibles: amigosResult.data ?? [],
+      personas: personasResult.data ?? [],
+      estaciones: estacionesResult.data ?? [],
+      compromisos,
+    };
+    setEstacion(freshData.estacion);
+    setActivos(freshData.activos);
+    setAmigosDisponibles(freshData.amigosDisponibles);
+    setPersonas(freshData.personas);
+    setEstaciones(freshData.estaciones);
+    setCompromisos(freshData.compromisos);
     setLoading(false);
+    estacionUnoMasCache.set(cacheKey, freshData);
   }
 
   useEffect(() => { load(); }, [congregacionId]);

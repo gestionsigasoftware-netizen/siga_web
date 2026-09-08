@@ -11,6 +11,7 @@ import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEsta
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+const estacionBisCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const UMBRAL = UMBRAL_DIAS_ESTACION.bis;
 
@@ -41,7 +42,19 @@ export default function EstacionBis() {
 
   async function load() {
     if (!congregacionId) { setLoading(false); return; }
-    setLoading(true);
+    const cacheKey = congregacionId;
+    const cached = estacionBisCache.get(cacheKey);
+    if (cached) {
+      setEstacion(cached.estacion);
+      setActivos(cached.activos);
+      setAmigosDisponibles(cached.amigosDisponibles);
+      setPersonas(cached.personas);
+      setEstaciones(cached.estaciones);
+      setAtencionesPorProceso(cached.atencionesPorProceso);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const estacionResult = await getEstacion(congregacionId, "bis");
     if (estacionResult.error || !estacionResult.data) { setError("No se encontró la estación BIS."); setLoading(false); return; }
@@ -52,21 +65,30 @@ export default function EstacionBis() {
       supabase.from("ruta_estaciones").select("id, codigo, nombre, orden").eq("congregacion_id", congregacionId).order("orden"),
     ]);
     if (activosResult.error || amigosResult.error || personasResult.error) { setError("No se pudo cargar la estación. Intenta nuevamente."); setLoading(false); return; }
-    setEstacion(estacionResult.data);
-    setActivos(activosResult.data ?? []);
-    setAmigosDisponibles(amigosResult.data ?? []);
-    setPersonas(personasResult.data ?? []);
-    setEstaciones(estacionesResult.data ?? []);
     const procesoIds = (activosResult.data ?? []).map((row) => row.id);
+    let atencionesPorProceso = {};
     if (procesoIds.length) {
       const { data: atencionesData } = await supabase.from("bis_atenciones").select("id, proceso_id, fecha_visita, primera_visita, recibimiento, necesidad_inmediata, contacto_posterior, resultado_contacto, integrado, derivado_a, notas, responsable_persona_id").in("proceso_id", procesoIds).order("fecha_visita", { ascending: false });
       const mapa = {};
       (atencionesData ?? []).forEach((item) => { if (!mapa[item.proceso_id]) mapa[item.proceso_id] = []; mapa[item.proceso_id].push(item); });
-      setAtencionesPorProceso(mapa);
-    } else {
-      setAtencionesPorProceso({});
+      atencionesPorProceso = mapa;
     }
+    const freshData = {
+      estacion: estacionResult.data,
+      activos: activosResult.data ?? [],
+      amigosDisponibles: amigosResult.data ?? [],
+      personas: personasResult.data ?? [],
+      estaciones: estacionesResult.data ?? [],
+      atencionesPorProceso,
+    };
+    setEstacion(freshData.estacion);
+    setActivos(freshData.activos);
+    setAmigosDisponibles(freshData.amigosDisponibles);
+    setPersonas(freshData.personas);
+    setEstaciones(freshData.estaciones);
+    setAtencionesPorProceso(freshData.atencionesPorProceso);
     setLoading(false);
+    estacionBisCache.set(cacheKey, freshData);
   }
 
   useEffect(() => { load(); }, [congregacionId]);

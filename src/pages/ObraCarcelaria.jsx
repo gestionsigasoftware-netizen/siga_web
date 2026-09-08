@@ -29,6 +29,8 @@ import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
+const obraCarcelariaCache = new Map();
+
 const ESTADO_INTERNO_LABELS = { activo: "Activo", liberado: "Liberado", trasladado: "Trasladado", inactivo: "Inactivo" };
 const TIPO_APOYO_LABELS = { visita: "Visita", consejeria: "Consejería", espiritual: "Espiritual", material: "Material", otro: "Otro" };
 const ESTADO_REINSERCION_LABELS = { asignado: "Asignado", contactado: "Contactado", activo: "Activo", inactivo: "Inactivo", reincidencia: "Reincidencia" };
@@ -102,7 +104,23 @@ export default function ObraCarcelaria() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = obraCarcelariaCache.get(cacheKey);
+    if (cached) {
+      setCentros(cached.centros);
+      setInternos(cached.internos);
+      setDelegados(cached.delegados);
+      setCultos(cached.cultos);
+      setAsistencias(cached.asistencias);
+      setSeguimientos(cached.seguimientos);
+      setReinserciones(cached.reinserciones);
+      setPersonas(cached.personas);
+      setFamilias(cached.familias);
+      setInternosVinculados(cached.internosVinculados);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -121,17 +139,30 @@ export default function ObraCarcelaria() {
     ]);
     const failed = [cong, cen, i, d, cu, a, sf, r, p, f, am].find((item) => item.error);
     if (failed) setError("No se pudo cargar Obra Carcelaria. Intenta nuevamente o contacta al administrador.");
-    setCentros(cen.data ?? []);
-    setInternos(i.data ?? []);
-    setDelegados(d.data ?? []);
-    setCultos(cu.data ?? []);
-    setAsistencias(a.data ?? []);
-    setSeguimientos(sf.data ?? []);
-    setReinserciones(r.data ?? []);
-    setPersonas(p.data ?? []);
-    setFamilias(f.data ?? []);
-    setInternosVinculados(new Set((am.data ?? []).map((row) => row.obra_carcelaria_interno_id)));
+    const freshData = {
+      centros: cen.data ?? [],
+      internos: i.data ?? [],
+      delegados: d.data ?? [],
+      cultos: cu.data ?? [],
+      asistencias: a.data ?? [],
+      seguimientos: sf.data ?? [],
+      reinserciones: r.data ?? [],
+      personas: p.data ?? [],
+      familias: f.data ?? [],
+      internosVinculados: new Set((am.data ?? []).map((row) => row.obra_carcelaria_interno_id)),
+    };
+    setCentros(freshData.centros);
+    setInternos(freshData.internos);
+    setDelegados(freshData.delegados);
+    setCultos(freshData.cultos);
+    setAsistencias(freshData.asistencias);
+    setSeguimientos(freshData.seguimientos);
+    setReinserciones(freshData.reinserciones);
+    setPersonas(freshData.personas);
+    setFamilias(freshData.familias);
+    setInternosVinculados(freshData.internosVinculados);
     setLoading(false);
+    obraCarcelariaCache.set(cacheKey, freshData);
   }
 
   useEffect(() => { load(); }, [congregacionId, periodo]);

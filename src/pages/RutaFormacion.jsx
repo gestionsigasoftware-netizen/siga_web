@@ -12,6 +12,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const rutaFormacionCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const TODAY = hoyBogota();
 const ESTADOS_DISCIPULADO = { activo: "Activo", completado: "Completado", pausado: "Pausado", retirado: "Retirado" };
@@ -97,7 +98,19 @@ export default function RutaFormacion({ mode }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${mode}`;
+    const cached = rutaFormacionCache.get(cacheKey);
+    if (cached) {
+      setRows(cached.rows);
+      setPeople(cached.people);
+      setFriends(cached.friends);
+      setEstaciones(cached.estaciones);
+      setLecciones(cached.lecciones);
+      setComites(cached.comites);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const [processResult, peopleResult, friendsResult, estacionesResult, leccionesResult, comitesResult] = await Promise.all([
       supabase.from(config.table).select(`*, leccion_actual:${config.leccionesTabla}(numero, titulo), responsable_comite:comites!${config.table}_${config.responsableComiteCampo}_fkey(nombre)`).eq("congregacion_id", congregacionId).order("fecha_inicio", { ascending: false }),
@@ -109,13 +122,22 @@ export default function RutaFormacion({ mode }) {
     ]);
     const failed = [processResult, peopleResult, friendsResult].find((result) => result.error);
     if (failed) setError(`No se pudo cargar ${config.title}. Intenta nuevamente o contacta al administrador.`);
-    setRows(processResult.data ?? []);
-    setPeople((peopleResult.data ?? []).filter((person) => mode === "esfob" || person.bautizado));
-    setFriends(friendsResult.data ?? []);
-    setEstaciones(estacionesResult.data ?? []);
-    setLecciones(leccionesResult.data ?? []);
-    setComites(comitesResult.data ?? []);
+    const freshData = {
+      rows: processResult.data ?? [],
+      people: (peopleResult.data ?? []).filter((person) => mode === "esfob" || person.bautizado),
+      friends: friendsResult.data ?? [],
+      estaciones: estacionesResult.data ?? [],
+      lecciones: leccionesResult.data ?? [],
+      comites: comitesResult.data ?? [],
+    };
+    setRows(freshData.rows);
+    setPeople(freshData.people);
+    setFriends(freshData.friends);
+    setEstaciones(freshData.estaciones);
+    setLecciones(freshData.lecciones);
+    setComites(freshData.comites);
     setLoading(false);
+    rutaFormacionCache.set(cacheKey, freshData);
   }
 
   useEffect(() => { load(); }, [congregacionId, mode]);

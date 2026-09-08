@@ -7,6 +7,8 @@ import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import InfoTip from '../components/InfoTip'
 
+const solicitudesCache = new Map()
+
 const TIPO_LABELS = { administrativa: 'Administrativa', queja: 'Queja', sugerencia: 'Sugerencia', recurso: 'Recurso', otro: 'Otro' }
 const ESTADO_LABELS = { pendiente: 'Pendiente', en_proceso: 'En proceso', resuelto: 'Resuelto', cerrado: 'Cerrado' }
 const ESTADO_TONE = { pendiente: 'text-warning', en_proceso: 'text-accent', resuelto: 'text-success', cerrado: 'text-muted' }
@@ -47,11 +49,20 @@ export default function Solicitudes() {
   const [savingRespuesta, setSavingRespuesta] = useState(false)
 
   async function cargarSolicitudes() {
-    setLoading(true)
+    const cacheKey = `${nivel}:${rolPrincipal?.congregacion_id || ''}:${rolPrincipal?.distrito_id || ''}`
+    const cached = solicitudesCache.get(cacheKey)
+    if (cached) {
+      setSolicitudes(cached.solicitudes)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     const { data, error: loadError } = await supabase.from('solicitudes_jerarquicas').select('*').order('actualizado_en', { ascending: false }).limit(200)
     if (loadError) setError('No se pudieron cargar las solicitudes.')
-    setSolicitudes(data ?? [])
+    const solicitudesFrescas = data ?? []
+    setSolicitudes(solicitudesFrescas)
     setLoading(false)
+    solicitudesCache.set(cacheKey, { solicitudes: solicitudesFrescas })
   }
 
   useEffect(() => {

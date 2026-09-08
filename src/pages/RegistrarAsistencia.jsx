@@ -4,6 +4,8 @@ import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
+const registrarAsistenciaCache = new Map()
+
 function withRequestTimeout(request, milliseconds = 12000) {
   return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Intenta nuevamente.')), milliseconds))])
 }
@@ -36,8 +38,21 @@ export default function RegistrarAsistencia() {
 
   useEffect(() => {
     if (!congregacionId) { setLoadingPermission(false); setLoadingData(false); return }
-    setLoadingData(true)
-    setLoadingPermission(true)
+    const cacheKey = congregacionId
+    const cached = registrarAsistenciaCache.get(cacheKey)
+    if (cached) {
+      setModulos(cached.modulos)
+      setCategorias(cached.categorias)
+      setResponsables(cached.responsables)
+      if (cached.captureRules) setCaptureRules(cached.captureRules)
+      setRegistros(cached.registros)
+      setCanCapture(cached.canCapture)
+      setLoadingPermission(false)
+      setLoadingData(false)
+    } else {
+      setLoadingData(true)
+      setLoadingPermission(true)
+    }
     Promise.all([
       supabase.from('modulos').select('id, nombre_modulo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true),
       supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
@@ -49,14 +64,28 @@ export default function RegistrarAsistencia() {
     ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult]) => {
       const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult].find((result) => result.error)
       if (failed) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
-      setModulos(modulosResult.data ?? [])
-      setCategorias(categoriasResult.data ?? [])
-      setResponsables(responsablesResult.data ?? [])
-      if (configResult.data) setCaptureRules(configResult.data)
-      setRegistros(registrosResult.data ?? [])
-      setCanCapture(Boolean(capture.data || admin.data))
+      const newModulos = modulosResult.data ?? []
+      const newCategorias = categoriasResult.data ?? []
+      const newResponsables = responsablesResult.data ?? []
+      const newCaptureRules = configResult.data || null
+      const newRegistros = registrosResult.data ?? []
+      const newCanCapture = Boolean(capture.data || admin.data)
+      setModulos(newModulos)
+      setCategorias(newCategorias)
+      setResponsables(newResponsables)
+      if (newCaptureRules) setCaptureRules(newCaptureRules)
+      setRegistros(newRegistros)
+      setCanCapture(newCanCapture)
       setLoadingPermission(false)
       setLoadingData(false)
+      registrarAsistenciaCache.set(cacheKey, {
+        modulos: newModulos,
+        categorias: newCategorias,
+        responsables: newResponsables,
+        captureRules: newCaptureRules,
+        registros: newRegistros,
+        canCapture: newCanCapture,
+      })
     }).catch(() => {
       setError('No se pudo cargar la información de asistencia.')
       setLoadingPermission(false)

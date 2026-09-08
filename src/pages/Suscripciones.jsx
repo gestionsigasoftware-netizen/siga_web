@@ -8,6 +8,8 @@ import { usePreferencias } from '../hooks/usePreferencias'
 import { calcularEstadoSuscripcion } from '../lib/suscripciones'
 import InfoTip from '../components/InfoTip'
 
+const suscripcionesCache = new Map()
+
 const PLAN_LABELS = { mensual: 'Mensual', anual: 'Anual' }
 const ESTADO_LABELS = { activa: 'Activa', en_gracia: 'En periodo de gracia', bloqueada: 'Bloqueada', sin_configurar: 'Sin suscripción' }
 const ESTADO_TONE = { activa: 'text-success', en_gracia: 'text-warning', bloqueada: 'text-danger', sin_configurar: 'text-muted' }
@@ -29,17 +31,30 @@ export default function Suscripciones() {
   const [saving, setSaving] = useState(false)
 
   async function cargar() {
-    setLoading(true)
+    const cacheKey = 'all'
+    const cached = suscripcionesCache.get(cacheKey)
+    if (cached) {
+      setCongregaciones(cached.congregaciones)
+      setSuscripciones(cached.suscripciones)
+      if (cached.metodoPago) setMetodoPago(cached.metodoPago)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     const [{ data: congregacionesData, error: congregacionesError }, { data: suscripcionesData, error: suscripcionesError }, { data: metodoPagoData }] = await Promise.all([
       supabase.from('congregaciones').select('id, nombre, ciudad, distritos(nombre, numero)').order('nombre'),
       supabase.from('suscripciones').select('*'),
       supabase.from('metodos_pago_sigap').select('*').maybeSingle(),
     ])
     if (congregacionesError || suscripcionesError) setError('No se pudieron cargar las suscripciones.')
-    setCongregaciones(congregacionesData ?? [])
-    setSuscripciones(Object.fromEntries((suscripcionesData ?? []).map((item) => [item.congregacion_id, item])))
-    if (metodoPagoData) setMetodoPago({ ...METODO_PAGO_VACIO, ...metodoPagoData })
+    const newCongregaciones = congregacionesData ?? []
+    const newSuscripciones = Object.fromEntries((suscripcionesData ?? []).map((item) => [item.congregacion_id, item]))
+    const newMetodoPago = metodoPagoData ? { ...METODO_PAGO_VACIO, ...metodoPagoData } : null
+    setCongregaciones(newCongregaciones)
+    setSuscripciones(newSuscripciones)
+    if (newMetodoPago) setMetodoPago(newMetodoPago)
     setLoading(false)
+    suscripcionesCache.set(cacheKey, { congregaciones: newCongregaciones, suscripciones: newSuscripciones, metodoPago: newMetodoPago })
   }
 
   useEffect(() => { if (!roleLoading) cargar() }, [roleLoading])

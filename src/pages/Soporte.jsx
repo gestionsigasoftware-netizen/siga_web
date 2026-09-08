@@ -8,6 +8,8 @@ import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import InfoTip from '../components/InfoTip'
 
+const soporteCache = new Map()
+
 const ESTADO_LABELS = { pendiente: 'Pendiente', resuelto: 'Resuelto' }
 const ADMIN_LEVELS = ['nacional', 'super_admin']
 
@@ -29,15 +31,28 @@ export default function Soporte() {
 
   async function cargar() {
     if (!user) return
-    setLoading(true)
+    const cacheKey = `${user.id}:${esAdmin ? 'admin' : 'propio'}`
+    const cached = soporteCache.get(cacheKey)
+    if (cached) {
+      setTodosReportes(cached.todosReportes)
+      setMisReportes(cached.misReportes)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     if (esAdmin) {
       const { data } = await supabase.from('reportes_soporte').select('*').order('created_at', { ascending: false }).limit(100)
-      setTodosReportes(data ?? [])
+      const nuevosTodosReportes = data ?? []
+      setTodosReportes(nuevosTodosReportes)
+      setLoading(false)
+      soporteCache.set(cacheKey, { todosReportes: nuevosTodosReportes, misReportes: [] })
     } else {
       const { data } = await supabase.from('reportes_soporte').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false })
-      setMisReportes(data ?? [])
+      const nuevosMisReportes = data ?? []
+      setMisReportes(nuevosMisReportes)
+      setLoading(false)
+      soporteCache.set(cacheKey, { todosReportes: [], misReportes: nuevosMisReportes })
     }
-    setLoading(false)
   }
 
   useEffect(() => { if (!roleLoading) cargar() }, [user, roleLoading, esAdmin])

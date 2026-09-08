@@ -25,6 +25,8 @@ const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_INACTIVIDAD = 60;
 const CHART_OPTIONS = chartOptions();
 
+const damasDorcasCache = new Map();
+
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
   return (
     <div className="stat-tile h-full min-h-[220px] flex flex-col">
@@ -68,7 +70,17 @@ export default function DamasDorcas() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = damasDorcasCache.get(cacheKey);
+    if (cached) {
+      setBeneficiarias(cached.beneficiarias);
+      setActividades(cached.actividades);
+      setAsistencias(cached.asistencias);
+      setPersonas(cached.personas);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -80,11 +92,16 @@ export default function DamasDorcas() {
     ]);
     const failed = [b, a, s, p].find((item) => item.error);
     if (failed) setError("No se pudo cargar Damas Dorcas. Intenta nuevamente o contacta al administrador.");
-    setBeneficiarias(b.data ?? []);
-    setActividades(a.data ?? []);
-    setAsistencias(s.data ?? []);
-    setPersonas(p.data ?? []);
+    const newBeneficiarias = b.data ?? [];
+    const newActividades = a.data ?? [];
+    const newAsistencias = s.data ?? [];
+    const newPersonas = p.data ?? [];
+    setBeneficiarias(newBeneficiarias);
+    setActividades(newActividades);
+    setAsistencias(newAsistencias);
+    setPersonas(newPersonas);
     setLoading(false);
+    damasDorcasCache.set(cacheKey, { beneficiarias: newBeneficiarias, actividades: newActividades, asistencias: newAsistencias, personas: newPersonas });
   }
 
   async function createBeneficiaria(event) {

@@ -2,6 +2,34 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-08): auditoria completa de este documento contra
+	el codigo real, a pedido del usuario ("necesito que sepamos que ya
+	esta ok y que no, eso representa reprocesos innecesarios"). Se
+	corrigieron 3 bullets obsoletos/ya resueltos que seguian
+	apareciendo como pendientes (PWA "cuando vuelva a entrar en
+	alcance", renombrar a Misiones y Evangelismo, PWA movil separada) y
+	se preciso el de fecha de nacimiento/estado civil de Amigos
+	(resuelto en edicion, no en el alta). El resto de la seccion
+	"Mejoras funcionales pendientes" se revizo entera y sigue siendo
+	mayormente valida (huecos de codigo reales o pruebas QA legitimas
+	todavia sin ejecutar) -- no hacia falta una reescritura masiva.
+- Resuelto (2026-09-08): `historial_amigos` -- la nota de "404 sin
+	corregir" (2026-09-04) estaba obsoleta, ya se habia corregido horas
+	despues ese mismo dia y quedo confirmado de nuevo hoy con consulta
+	directa contra la base real (existe y responde).
+- **Sugerencia sin construir (2026-09-08)**: los 36 distritos de
+	`/distritos` siguen vacios a proposito, a la espera de carga manual
+	-- pero `catalogo_congregaciones_ipuc` (las 5367 congregaciones
+	reales de la IPUC, ya cargadas desde Debora) tiene
+	`distrito_numero` en cada fila. Se podria derivar automaticamente
+	la lista real de distritos (`select distinct distrito_numero`) en
+	vez de esperar carga manual -- mas confiable y sin trabajo humano
+	repetitivo. Nota: el pendiente historico de esta misma seccion dice
+	"35 distritos, no 36 como se asumia antes -- confirmado por el
+	usuario" (linea ~540), asi que probablemente son 35, no 36. Sin
+	construir todavia -- a la espera de que el usuario decida si
+	quiere este enfoque.
+
 - Resuelto (2026-09-07): "Registrar amigo nuevo" desde la PWA
 	(`siga-pwa-nacional`, proyecto hermano en `SIGA\siga movil\`) ahora
 	también funciona para Ujieres (intramural) -- antes solo estaba
@@ -382,18 +410,29 @@
 	fixes recientes de sesion, pantallas distritales/nacionales,
 	FECP/Feligresia/comites, y login/navegacion) con una congregacion
 	de prueba aislada. **Sin hallazgos bloqueantes.** Informe completo
-	en `docs/auditorias/qa-produccion-2026-09-04.md`. Pendiente de esa ronda:
-	- No hay pantalla real de "404 / no encontrado" (web y PWA
-		redirigen en silencio a `/` o `/app` para cualquier URL invalida).
-	- No existe forma de borrar una congregacion creada por error desde
-		"Registrar nueva congregacion" (`/pastoral-distrital`) -- sin
-		politica RLS de DELETE sobre congregaciones/personas/pastores.
-	- Menores: warning `validateDOMNesting` de InfoTip en 4 paginas
-		(Escuela Dominical, Musica, Ed. Artistica, Ed. Teologica); PWA sin
-		las *future flags* de React Router v7 (2 warnings de consola por
-		navegacion); 401 intermitente justo tras login (no reproducible
-		siempre); rol activo persiste en `localStorage` en vez de
-		`sessionStorage` (a confirmar si es el comportamiento deseado).
+	en `docs/auditorias/qa-produccion-2026-09-04.md`. Pendiente de esa ronda
+	(nota 2026-09-08: los items menores de este bullet -- validateDOMNesting,
+	future flags de PWA, 401 intermitente -- ya se habian corregido ese
+	mismo dia mas tarde, ver el bullet "los 8 pendientes menores" mas
+	abajo; quedaron mencionados aqui dos veces por no limpiar esta lista
+	despues):
+	- Resuelto (2026-09-07): pantalla real de "404 / no encontrado" en
+		web y PWA (antes redirigian en silencio a `/`). Ver
+		`docs/fixes/pagina-404-2026-09-07.md`.
+	- Resuelto (2026-09-08): no habia forma de deshacer una congregacion
+		creada por error desde "Registrar nueva congregacion" -- nueva
+		funcion `anular_congregacion()` (deshace exactamente lo que crea
+		`crear_congregacion_con_pastor()`: congregacion + persona-pastor +
+		rol + pastor + asignacion pastoral), solo si la congregacion sigue
+		`pendiente_aprobacion` y no tiene mas personas reales aparte del
+		pastor autocreado -- no cambia el diseño de "sin DELETE de cliente"
+		para congregaciones activas/con datos reales, que sigue siendo
+		SQL-Editor-only a proposito. Boton "Anular" nuevo en
+		`Aprobaciones.jsx`. Ver `docs/fixes/anular-congregacion-2026-09-08.md`.
+	- Resuelto (2026-09-08): rol activo (para cuentas con varios roles)
+		pasó de `localStorage` a `sessionStorage` en `useMiRol.js`, para
+		ser consistente con que la sesion misma tampoco sobrevive el
+		cierre de la pestaña.
 - Resuelto (2026-09-04): cero fantasma en "Umbral de alerta"
 	(`src/pages/Configuracion.jsx`) -- convertia a `Number()` en cada
 	tecla, dejaba "034" en vez de "34" al escribir tras borrar. Mismo
@@ -438,9 +477,10 @@
 	punta a punta (BD, no solo mensaje en pantalla) para las 5
 	estaciones. Ver `docs/funcionalidades/rediseno-ruta-evangelistica-2026-09-04.md`. No
 	requiere accion en base de datos (no hubo migraciones). Hallazgo
-	aparte sin corregir: `historial_amigos` da 404 en Supabase
-	(PGRST205) -- el historial de etapas en la ficha del amigo nunca ha
-	funcionado.
+	aparte encontrado el mismo dia (`historial_amigos` daba 404 en
+	Supabase) -- corregido horas despues ejecutando
+	`supabase/modulos/evangelismo.sql` completo; reverificado el
+	2026-09-08 con consulta directa (existe y responde con datos reales).
 - Resuelto (2026-09-04): "Equipo de trabajo" nunca pedia zona/centro de
 	reclusion al asignar la responsabilidad operativa de Evangelismo,
 	Mision Juvenil u Obra Carcelaria, pese a que la RLS de `amigos`
@@ -783,9 +823,12 @@
 - Resuelto (2026-08-31): cache de datos entre navegaciones + skeleton de
 	carga para los 3 modulos mas usados (Resumen/Dashboard rama local,
 	Feligresia, Misiones y Evangelismo). Ver
-	`docs/fixes/cache-skeleton-2026-08-31.md`. **Pendiente**: replicar el mismo
-	patron al resto de ~17 modulos del Sidebar y a la rama distrital del
-	Dashboard, que siguen con el "Cargando..." bloqueante de antes.
+	`docs/fixes/cache-skeleton-2026-08-31.md`.
+	- Resuelto (2026-09-08): el mismo patron ya se replico al resto de
+		la app -- 33 paginas mas (la estimacion original de "~17" se quedo
+		corta al revisar el codigo real), construido en 5 lotes paralelos
+		y verificado con build completo. Ver
+		`docs/fixes/cache-skeleton-rollout-2026-09-08.md`.
 - Resuelto (2026-08-31): `supabase/distrital/gestion_distrital_congregaciones.sql` ya
 	esta ejecutada y `invitar-usuario` ya fue redesplegada
 	(`npx supabase functions deploy invitar-usuario --project-ref
@@ -855,7 +898,11 @@
 
 - Prueba funcional completa de Evangelismo despues de aplicar su migracion correspondiente.
 - Prueba funcional completa de Mision Juvenil con instituciones, estudiantes, grupos y filtros.
-- Validar los registros provenientes de la PWA cuando ese proyecto vuelva a entrar en alcance.
+- Validar de punta a punta (con datos reales) los registros provenientes
+	de la PWA (`siga-pwa-nacional`, ya existe y esta activa desde
+	2026-09-03 -- la version anterior de este pendiente decia "cuando ese
+	proyecto vuelva a entrar en alcance", lo cual ya no aplica; queda
+	solo la validacion funcional).
 - Documentar usuarios iniciales, responsables y procedimiento de baja de acceso.
 - Probar el ciclo completo de Equipo de trabajo con una persona sin cuenta, una
 	cuenta existente, perfil web, responsabilidad operativa y retiro de acceso.
@@ -900,7 +947,11 @@
 - Crear insights sobre contacto reciente, sin inferencias negativas sobre las
 	personas.
 - Administrar etapas y zonas desde una interfaz autorizada.
-- Incorporar fecha de nacimiento y estado civil al alta y edición general.
+- Parcialmente resuelto (confirmado 2026-09-08): fecha de nacimiento y
+	estado civil ya se pueden editar en la ficha de un amigo existente
+	(`Amigos.jsx`, panel de detalle) -- sigue faltando en el formulario
+	de ALTA (crear un amigo nuevo), que no los muestra aunque el estado
+	del formulario ya los contempla.
 - Ejecutar pruebas Supabase de aislamiento por congregación y zona, permisos y
 	sincronización con Evangelismo/PWA.
 
@@ -922,8 +973,8 @@
 - Confirmar institucionalmente nombres, orden y criterios de salida de las
 	seis estaciones de la Ruta Evangelística (decisión de la dirección de la
 	IPUC, no de ingeniería).
-- Definir si el módulo visible debe renombrarse a Misiones y Evangelismo
-	ahora que los seis procesos ya están operativos.
+- Resuelto/obsoleto (confirmado 2026-09-08): el módulo visible ya se
+	llama "Misiones y Evangelismo" (`MisionesEvangelismo.jsx`).
 - Probar estas pantallas con perfiles distintos a pastor (`estadisticas`,
 	`consulta`) para confirmar que los formularios se ocultan según
 	`ruta_evangelistica.editar`/`.registrar`.
@@ -943,7 +994,10 @@
 	actividades; queda pendiente ampliar la configuracion solo si el negocio lo requiere.
 - Probar en Supabase el umbral de alertas y las reglas de captura configuradas
 	por congregacion, especialmente con perfiles estadisticas y consulta.
-- PWA movil separada para captura offline y sincronizacion.
+- Resuelto/obsoleto (confirmado 2026-09-08): la PWA móvil separada ya
+	existe y está activa (`siga-pwa-nacional`, captura offline con cola
+	de sincronización -- ver `reference_pwa_siga_ubicacion` en memoria de
+	proyecto para su ubicación real).
 
 ## Mantenimiento
 

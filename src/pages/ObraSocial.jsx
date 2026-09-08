@@ -19,6 +19,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
+const obraSocialCache = new Map();
 
 const TIPO_NECESIDAD_LABELS = { economica: "Económica", alimentaria: "Alimentaria", salud: "Salud", vivienda: "Vivienda", otra: "Otra" };
 const PRIORIDAD_LABELS = { baja: "Baja", media: "Media", alta: "Alta" };
@@ -72,7 +73,18 @@ export default function ObraSocial() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = obraSocialCache.get(cacheKey);
+    if (cached) {
+      setCasos(cached.casos);
+      setAyudas(cached.ayudas);
+      setPersonas(cached.personas);
+      setFamilias(cached.familias);
+      setCasosRedFamilias(cached.casosRedFamilias);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -85,12 +97,18 @@ export default function ObraSocial() {
     ]);
     const failed = [c, ay, p, f, rf].find((item) => item.error);
     if (failed) setError("No se pudo cargar Obra Social. Intenta nuevamente o contacta al administrador.");
-    setCasos(c.data ?? []);
-    setAyudas(ay.data ?? []);
-    setPersonas(p.data ?? []);
-    setFamilias(f.data ?? []);
-    setCasosRedFamilias(rf.data ?? []);
+    const freshCasos = c.data ?? [];
+    const freshAyudas = ay.data ?? [];
+    const freshPersonas = p.data ?? [];
+    const freshFamilias = f.data ?? [];
+    const freshCasosRedFamilias = rf.data ?? [];
+    setCasos(freshCasos);
+    setAyudas(freshAyudas);
+    setPersonas(freshPersonas);
+    setFamilias(freshFamilias);
+    setCasosRedFamilias(freshCasosRedFamilias);
     setLoading(false);
+    obraSocialCache.set(cacheKey, { casos: freshCasos, ayudas: freshAyudas, personas: freshPersonas, familias: freshFamilias, casosRedFamilias: freshCasosRedFamilias });
   }
 
   async function createCaso(event) {

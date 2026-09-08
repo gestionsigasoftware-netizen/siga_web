@@ -6,6 +6,8 @@ import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
 
+const pastoralDistritalCache = new Map()
+
 const TODAY = hoyBogota()
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
 const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
@@ -242,7 +244,38 @@ export default function PastoralDistrital() {
       return
     }
 
-    setLoading(true)
+    const cacheKey = distritoId
+    const cached = pastoralDistritalCache.get(cacheKey)
+    if (cached) {
+      setPastors(cached.pastors)
+      setCongregations(cached.congregations)
+      setAssignments(cached.assignments)
+      setPastorProfileId(cached.pastorProfileId)
+      setResumenPorCongregacion(cached.resumenPorCongregacion)
+      setLicenciaHistorial(cached.licenciaHistorial)
+      setFormaciones(cached.formaciones)
+      setResumenEscuelaDominical(cached.resumenEscuelaDominical)
+      setResumenDamas(cached.resumenDamas)
+      setCentros(cached.centros)
+      setResumenCarcelaria(cached.resumenCarcelaria)
+      setResumenReinsercion(cached.resumenReinsercion)
+      setLiberadosSinAsignar(cached.liberadosSinAsignar)
+      setResumenMusica(cached.resumenMusica)
+      setResumenArtistica(cached.resumenArtistica)
+      setResumenTeologica(cached.resumenTeologica)
+      setResumenConquistadores(cached.resumenConquistadores)
+      setResumenObraSocial(cached.resumenObraSocial)
+      setResumenMisionJuvenil(cached.resumenMisionJuvenil)
+      setResumenRedFamilias(cached.resumenRedFamilias)
+      setResumenRuta(cached.resumenRuta)
+      setPersonasDistrito(cached.personasDistrito)
+      setCargosDistritales(cached.cargosDistritales)
+      setSepriSolicitudes(cached.sepriSolicitudes)
+      setSepriResumen(cached.sepriResumen)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
 
     const [pastorResult, congregationResult, assignmentResult, profileResult, resumenResult, licenciaResult, formacionResult, escuelaDominicalResult, damasResult, centrosResult, carcelariaResult, reinsercionResult, liberadosResult, musicaResult, artisticaResult, teologicaResult, conquistadoresResult, obraSocialResult, misionJuvenilResult, redFamiliasResult, rutaResult, personasResult, cargosResult, sepriResult, sepriResumenResult] = await Promise.all([
@@ -296,32 +329,60 @@ export default function PastoralDistrital() {
       setError('No se pudo cargar la gestión pastoral distrital. Intenta nuevamente o contacta al administrador.')
     }
 
-    setPastors(pastorResult.data ?? [])
-    setCongregations(congregationResult.data ?? [])
-    setAssignments(assignmentResult.data ?? [])
-    setPastorProfileId(profileResult.data?.id ?? null)
-    setResumenPorCongregacion(new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])))
-    setLicenciaHistorial(licenciaResult.data ?? [])
-    setFormaciones(formacionResult.data ?? [])
-    setResumenEscuelaDominical(escuelaDominicalResult.data ?? [])
-    setResumenDamas(damasResult.data ?? [])
-    setCentros(centrosResult.data ?? [])
-    setResumenCarcelaria(carcelariaResult.data ?? [])
-    setResumenReinsercion(reinsercionResult.data ?? [])
-    setLiberadosSinAsignar(liberadosResult.data ?? [])
-    setResumenMusica(musicaResult.data ?? [])
-    setResumenArtistica(artisticaResult.data ?? [])
-    setResumenTeologica(teologicaResult.data ?? [])
-    setResumenConquistadores(conquistadoresResult.data ?? [])
-    setResumenObraSocial(obraSocialResult.data ?? [])
-    setResumenMisionJuvenil(misionJuvenilResult.data ?? [])
-    setResumenRedFamilias(redFamiliasResult.data ?? [])
-    setResumenRuta(rutaResult.data ?? [])
-    setPersonasDistrito(personasResult.data ?? [])
-    setCargosDistritales(cargosResult.data ?? [])
-    setSepriSolicitudes(sepriResult.data ?? [])
-    setSepriResumen(sepriResumenResult.data ?? [])
+    const freshData = {
+      pastors: pastorResult.data ?? [],
+      congregations: congregationResult.data ?? [],
+      assignments: assignmentResult.data ?? [],
+      pastorProfileId: profileResult.data?.id ?? null,
+      resumenPorCongregacion: new Map((resumenResult.data ?? []).map((row) => [row.congregacion_id, row])),
+      licenciaHistorial: licenciaResult.data ?? [],
+      formaciones: formacionResult.data ?? [],
+      resumenEscuelaDominical: escuelaDominicalResult.data ?? [],
+      resumenDamas: damasResult.data ?? [],
+      centros: centrosResult.data ?? [],
+      resumenCarcelaria: carcelariaResult.data ?? [],
+      resumenReinsercion: reinsercionResult.data ?? [],
+      liberadosSinAsignar: liberadosResult.data ?? [],
+      resumenMusica: musicaResult.data ?? [],
+      resumenArtistica: artisticaResult.data ?? [],
+      resumenTeologica: teologicaResult.data ?? [],
+      resumenConquistadores: conquistadoresResult.data ?? [],
+      resumenObraSocial: obraSocialResult.data ?? [],
+      resumenMisionJuvenil: misionJuvenilResult.data ?? [],
+      resumenRedFamilias: redFamiliasResult.data ?? [],
+      resumenRuta: rutaResult.data ?? [],
+      personasDistrito: personasResult.data ?? [],
+      cargosDistritales: cargosResult.data ?? [],
+      sepriSolicitudes: sepriResult.data ?? [],
+      sepriResumen: sepriResumenResult.data ?? [],
+    }
+    setPastors(freshData.pastors)
+    setCongregations(freshData.congregations)
+    setAssignments(freshData.assignments)
+    setPastorProfileId(freshData.pastorProfileId)
+    setResumenPorCongregacion(freshData.resumenPorCongregacion)
+    setLicenciaHistorial(freshData.licenciaHistorial)
+    setFormaciones(freshData.formaciones)
+    setResumenEscuelaDominical(freshData.resumenEscuelaDominical)
+    setResumenDamas(freshData.resumenDamas)
+    setCentros(freshData.centros)
+    setResumenCarcelaria(freshData.resumenCarcelaria)
+    setResumenReinsercion(freshData.resumenReinsercion)
+    setLiberadosSinAsignar(freshData.liberadosSinAsignar)
+    setResumenMusica(freshData.resumenMusica)
+    setResumenArtistica(freshData.resumenArtistica)
+    setResumenTeologica(freshData.resumenTeologica)
+    setResumenConquistadores(freshData.resumenConquistadores)
+    setResumenObraSocial(freshData.resumenObraSocial)
+    setResumenMisionJuvenil(freshData.resumenMisionJuvenil)
+    setResumenRedFamilias(freshData.resumenRedFamilias)
+    setResumenRuta(freshData.resumenRuta)
+    setPersonasDistrito(freshData.personasDistrito)
+    setCargosDistritales(freshData.cargosDistritales)
+    setSepriSolicitudes(freshData.sepriSolicitudes)
+    setSepriResumen(freshData.sepriResumen)
     setLoading(false)
+    pastoralDistritalCache.set(cacheKey, freshData)
   }
 
   async function saveCargo(event) {

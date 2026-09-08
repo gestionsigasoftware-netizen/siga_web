@@ -10,6 +10,8 @@ import InfoTip from '../components/InfoTip'
 const SYSTEM_MODULE_NAMES = ['evangelismo', 'mision juvenil']
 const esModuloSistema = (module) => SYSTEM_MODULE_NAMES.includes(module.nombre_modulo.trim().toLowerCase())
 
+const modulosCache = new Map()
+
 export default function Modulos() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
@@ -62,7 +64,22 @@ export default function Modulos() {
 
   async function load() {
     if (!congregacionId) return
-    setLoading(true)
+    const cacheKey = congregacionId
+    const cached = modulosCache.get(cacheKey)
+    if (cached) {
+      setModulos(cached.modulos)
+      setSeleccionado((current) => cached.modulos.find((module) => module.id === current?.id) ?? cached.modulos[0] ?? null)
+      setCaracteresCulto(cached.caracteresCulto)
+      setUjieres(cached.ujieres)
+      setRefamLecciones(cached.refamLecciones)
+      setEsfobLecciones(cached.esfobLecciones)
+      setDiscipuladoLecciones(cached.discipuladoLecciones)
+      setComites(cached.comites)
+      setRangosEdad(cached.rangosEdad)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     const [modulosResult, caracteresResult, ujieresResult, refamLeccionesResult, esfobLeccionesResult, discipuladoLeccionesResult, comitesResult, rangosEdadResult] = await Promise.all([
       supabase.from('modulos').select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').eq('congregacion_id', congregacionId).order('created_at'),
@@ -76,16 +93,27 @@ export default function Modulos() {
     ])
     if (modulosResult.error) setError(`No se pudieron cargar los módulos: ${modulosResult.error.message}`)
     const loaded = modulosResult.data ?? []
-    setModulos(loaded)
+    const freshData = {
+      modulos: loaded,
+      caracteresCulto: caracteresResult.data ?? [],
+      ujieres: ujieresResult.data ?? [],
+      refamLecciones: refamLeccionesResult.data ?? [],
+      esfobLecciones: esfobLeccionesResult.data ?? [],
+      discipuladoLecciones: discipuladoLeccionesResult.data ?? [],
+      comites: comitesResult.data ?? [],
+      rangosEdad: rangosEdadResult.data ?? [],
+    }
+    setModulos(freshData.modulos)
     setSeleccionado((current) => loaded.find((module) => module.id === current?.id) ?? loaded[0] ?? null)
-    setCaracteresCulto(caracteresResult.data ?? [])
-    setUjieres(ujieresResult.data ?? [])
-    setRefamLecciones(refamLeccionesResult.data ?? [])
-    setEsfobLecciones(esfobLeccionesResult.data ?? [])
-    setDiscipuladoLecciones(discipuladoLeccionesResult.data ?? [])
-    setComites(comitesResult.data ?? [])
-    setRangosEdad(rangosEdadResult.data ?? [])
+    setCaracteresCulto(freshData.caracteresCulto)
+    setUjieres(freshData.ujieres)
+    setRefamLecciones(freshData.refamLecciones)
+    setEsfobLecciones(freshData.esfobLecciones)
+    setDiscipuladoLecciones(freshData.discipuladoLecciones)
+    setComites(freshData.comites)
+    setRangosEdad(freshData.rangosEdad)
     setLoading(false)
+    modulosCache.set(cacheKey, freshData)
   }
 
   useEffect(() => { load() }, [congregacionId])

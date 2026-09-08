@@ -24,6 +24,8 @@ import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comite
 import { descargarPdf } from "../lib/reportExport";
 import InfoTip from "../components/InfoTip";
 
+const amigosCache = new Map();
+
 const RUTA_ESTACION_PATH = { uno_mas: "/uno-mas", bis: "/bis", refam: "/refam", esfob: "/esfob", discipulado: "/discipulado" };
 // Tono por estación de la Ruta Evangelística -- reemplaza la vieja
 // insignia de "Etapa" (etapas_seguimiento) en la lista: la estación es
@@ -112,7 +114,23 @@ export default function Amigos() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${page}:${filtro}:${busqueda}`;
+    const cached = amigosCache.get(cacheKey);
+    if (cached) {
+      setEtapas(cached.etapas);
+      setZonas(cached.zonas);
+      setCategorias(cached.categorias);
+      setMetodologias(cached.metodologias);
+      setAmigos(cached.amigos);
+      setTotalAmigos(cached.totalAmigos);
+      setTotalConvertidos(cached.totalConvertidos);
+      setAnalysisAmigos(cached.analysisAmigos);
+      setRutaActivaPorAmigo(cached.rutaActivaPorAmigo);
+      setSinRutaCount(cached.sinRutaCount);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult] =
       await Promise.all([
@@ -162,24 +180,15 @@ export default function Amigos() {
       || analysisResult.error
     )
       setError("No se pudo cargar la ruta de seguimiento.");
-    setEtapas(stageResult.data ?? []);
-    setZonas(zoneResult.data ?? []);
-    setCategorias(categoryResult.data ?? []);
-    setMetodologias(methodResult.data ?? []);
-    setAmigos(friendResult.data ?? []);
-    setTotalAmigos(friendResult.count ?? 0);
-    setTotalConvertidos(convertedResult.count ?? 0);
-    setAnalysisAmigos(analysisResult.data ?? []);
     const friendIds = (friendResult.data ?? []).map((friend) => friend.id);
+    let rutaActivaPorAmigo = {};
     if (friendIds.length) {
       const { data: rutaData } = await supabase
         .from("ruta_procesos")
         .select("amigo_id, estacion:ruta_estaciones!ruta_procesos_estacion_id_fkey(codigo, nombre)")
         .in("amigo_id", friendIds)
         .in("estado", ["activo", "pausado"]);
-      setRutaActivaPorAmigo(Object.fromEntries((rutaData ?? []).map((item) => [item.amigo_id, item.estacion])));
-    } else {
-      setRutaActivaPorAmigo({});
+      rutaActivaPorAmigo = Object.fromEntries((rutaData ?? []).map((item) => [item.amigo_id, item.estacion]));
     }
     // "Sin ruta iniciada": amigos sin bautizar que todavia no tienen una
     // fila activa/pausada en ruta_procesos -- a diferencia de "etapas
@@ -193,8 +202,30 @@ export default function Amigos() {
       .not("amigo_id", "is", null);
     const amigosConRutaActiva = new Set((rutaCongregacion ?? []).map((item) => item.amigo_id));
     const enRuta = (analysisResult.data ?? []).filter((amigo) => !amigo.convertido);
-    setSinRutaCount(enRuta.filter((amigo) => !amigosConRutaActiva.has(amigo.id)).length);
+    const freshData = {
+      etapas: stageResult.data ?? [],
+      zonas: zoneResult.data ?? [],
+      categorias: categoryResult.data ?? [],
+      metodologias: methodResult.data ?? [],
+      amigos: friendResult.data ?? [],
+      totalAmigos: friendResult.count ?? 0,
+      totalConvertidos: convertedResult.count ?? 0,
+      analysisAmigos: analysisResult.data ?? [],
+      rutaActivaPorAmigo,
+      sinRutaCount: enRuta.filter((amigo) => !amigosConRutaActiva.has(amigo.id)).length,
+    };
+    setEtapas(freshData.etapas);
+    setZonas(freshData.zonas);
+    setCategorias(freshData.categorias);
+    setMetodologias(freshData.metodologias);
+    setAmigos(freshData.amigos);
+    setTotalAmigos(freshData.totalAmigos);
+    setTotalConvertidos(freshData.totalConvertidos);
+    setAnalysisAmigos(freshData.analysisAmigos);
+    setRutaActivaPorAmigo(freshData.rutaActivaPorAmigo);
+    setSinRutaCount(freshData.sinRutaCount);
     setLoading(false);
+    amigosCache.set(cacheKey, freshData);
   }
 
   useEffect(() => {

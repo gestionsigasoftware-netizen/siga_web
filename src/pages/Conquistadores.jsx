@@ -20,6 +20,8 @@ import InfoTip from "../components/InfoTip";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
+const conquistadoresCache = new Map();
+
 const TIPO_ACTIVIDAD_LABELS = { campamento: "Campamento", taller: "Taller", social: "Social", reunion: "Reunión", otro: "Otro" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_INACTIVIDAD = 60;
@@ -68,7 +70,17 @@ export default function Conquistadores() {
       setError("Tu usuario no tiene una congregación local asignada.");
       return;
     }
-    setLoading(true);
+    const cacheKey = `${congregacionId}:${periodo}`;
+    const cached = conquistadoresCache.get(cacheKey);
+    if (cached) {
+      setMiembros(cached.miembros);
+      setActividades(cached.actividades);
+      setAsistencias(cached.asistencias);
+      setPersonas(cached.personas);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
@@ -80,11 +92,21 @@ export default function Conquistadores() {
     ]);
     const failed = [m, a, s, p].find((item) => item.error);
     if (failed) setError("No se pudo cargar Conquistadores Pentecostales. Intenta nuevamente o contacta al administrador.");
-    setMiembros(m.data ?? []);
-    setActividades(a.data ?? []);
-    setAsistencias(s.data ?? []);
-    setPersonas(p.data ?? []);
+    const nuevosMiembros = m.data ?? [];
+    const nuevasActividades = a.data ?? [];
+    const nuevasAsistencias = s.data ?? [];
+    const nuevasPersonas = p.data ?? [];
+    setMiembros(nuevosMiembros);
+    setActividades(nuevasActividades);
+    setAsistencias(nuevasAsistencias);
+    setPersonas(nuevasPersonas);
     setLoading(false);
+    conquistadoresCache.set(cacheKey, {
+      miembros: nuevosMiembros,
+      actividades: nuevasActividades,
+      asistencias: nuevasAsistencias,
+      personas: nuevasPersonas,
+    });
   }
 
   async function createMiembro(event) {

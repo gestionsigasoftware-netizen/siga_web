@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import InfoTip from "../components/InfoTip";
 
+const gestionPastoralNacionalCache = new Map();
+
 const ALLOWED_LEVELS = ["nacional", "super_admin"];
 
 function Metric({ label, value, detail, tip }) {
@@ -135,10 +137,20 @@ export default function GestionPastoralNacional() {
 
   useEffect(() => {
     if (!rolPrincipal || !ALLOWED_LEVELS.includes(rolPrincipal.nivel)) return;
+    const cacheKey = "global";
+    const cached = gestionPastoralNacionalCache.get(cacheKey);
+    if (cached) {
+      setDistritos(cached.distritos);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     supabase.rpc("resumen_pastoral_nacional").then(({ data, error: rpcError }) => {
       if (rpcError) setError("No se pudo cargar la gestión pastoral nacional.");
-      setDistritos(data ?? []);
+      const nuevosDistritos = data ?? [];
+      setDistritos(nuevosDistritos);
       setLoading(false);
+      gestionPastoralNacionalCache.set(cacheKey, { distritos: nuevosDistritos });
     });
   }, [rolPrincipal]);
 

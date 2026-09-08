@@ -12,6 +12,8 @@ ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, Po
 
 const CHART_OPTIONS = chartOptions();
 
+const impactoMisioneroCache = new Map();
+
 function Metric({ label, value, detail, tip }) {
   return (
     <div className="stat-tile">
@@ -43,7 +45,14 @@ export default function ImpactoMisionero() {
   }, [rolPrincipal]);
 
   async function load() {
-    setLoading(true);
+    const cacheKey = `${nivel}:${congregacionId || 'all'}`;
+    const cached = impactoMisioneroCache.get(cacheKey);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const desde12m = fechaBogota(new Date(Date.now() - 365 * 86400000));
     const scoped = (query) => (esLocal ? query.eq("congregacion_id", congregacionId) : query);
@@ -59,15 +68,17 @@ export default function ImpactoMisionero() {
     ]);
     const failed = [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult].find((item) => item.error);
     if (failed) setError("No se pudo cargar el impacto misionero. Intenta nuevamente.");
-    setData({
+    const newData = {
       internos: internosResult.data ?? [],
       cultos: cultosResult.data ?? [],
       estudiantes: estudiantesResult.data ?? [],
       institucionesCount: institucionesResult.count ?? 0,
       casos: casosResult.data ?? [],
       ayudasCount: ayudasResult.count ?? 0,
-    });
+    };
+    setData(newData);
     setLoading(false);
+    impactoMisioneroCache.set(cacheKey, newData);
   }
 
   if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando impacto misionero...</div>;

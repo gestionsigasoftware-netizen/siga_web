@@ -6,6 +6,8 @@ import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import InfoTip from '../components/InfoTip'
 
+const configuracionSistemaCache = new Map()
+
 const EMPTY_PREFERENCES = { recibir_notificaciones: true, recibir_alertas: true, formato_fecha: 'DD/MM/AAAA' }
 
 function StatusCard({ icon: Icon, title, description, value, tone = 'success' }) {
@@ -43,11 +45,21 @@ export default function ConfiguracionSistema() {
       setLoading(false)
       return
     }
-    setLoading(true)
+    const cacheKey = user.id
+    const cached = configuracionSistemaCache.get(cacheKey)
+    if (cached) {
+      setPreferences(cached.preferences)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     const { data, error: loadError } = await supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas, formato_fecha').eq('usuario_id', user.id).maybeSingle()
     if (loadError) setError(`No se pudieron cargar tus preferencias: ${loadError.message}`)
-    if (data) setPreferences(data)
+    if (data) {
+      setPreferences(data)
+      configuracionSistemaCache.set(cacheKey, { preferences: data })
+    }
     setLoading(false)
   }
 
