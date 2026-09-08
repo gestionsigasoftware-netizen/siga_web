@@ -17,15 +17,15 @@ export default function InicioPublico() {
   return (
     <main className="min-h-screen inicio-ambient text-ink">
       <style>{`
-        /* Mismo efecto de Login (login-ambient) aplicado al fondo beige
-           de Inicio -- migra despacio entre dorado (warning) y azul
-           (accent, el mismo #8fbdec que usa Login) en vez de solo dos
-           tramos, para que se sienta más completo respecto a la paleta
-           real de la app. Decorativo, nunca compite con el contenido. */
+        /* Mismo efecto de Login (login-ambient), con los mismos valores
+           exactos -- una version anterior con un color repetido en dos
+           puntos del degradado producia un artefacto visual de bandas
+           ("como lluvia") al animarse sobre un background-size grande.
+           Reutilizar la estructura ya probada de Login evita eso. */
         .inicio-ambient {
-          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 22%, #8fbdec 50%, #f3f0e9 78%, #8fbdec 100%);
-          background-size: 260% 260%;
-          animation: inicio-ambient-shift 30s ease-in-out infinite;
+          background: linear-gradient(115deg, #f0c876 0%, #f3f0e9 45%, #f3f0e9 55%, #8fbdec 100%);
+          background-size: 220% 220%;
+          animation: inicio-ambient-shift 26s ease-in-out infinite;
         }
         @keyframes inicio-ambient-shift {
           0% { background-position: 0% 50%; }
