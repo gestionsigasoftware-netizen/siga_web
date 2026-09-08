@@ -43,21 +43,21 @@ export default function InicioPublico() {
           background: #f0c876;
           top: -18%;
           left: -12%;
-          animation: inicio-blob-a 36s ease-in-out infinite;
+          animation: inicio-blob-a 16s ease-in-out infinite;
         }
         .inicio-ambient::after {
           background: #8fbdec;
           bottom: -22%;
           right: -14%;
-          animation: inicio-blob-b 42s ease-in-out infinite;
+          animation: inicio-blob-b 20s ease-in-out infinite;
         }
         @keyframes inicio-blob-a {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(6%, 8%); }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(24%, 20%) scale(1.18); }
         }
         @keyframes inicio-blob-b {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(-7%, -6%); }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-20%, -22%) scale(1.12); }
         }
         @media (prefers-reduced-motion: reduce) {
           .inicio-ambient::before, .inicio-ambient::after { animation: none; }

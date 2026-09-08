@@ -113,21 +113,21 @@ export default function Login() {
           background: #f0c876;
           top: -16%;
           left: -10%;
-          animation: login-blob-a 36s ease-in-out infinite;
+          animation: login-blob-a 16s ease-in-out infinite;
         }
         .login-ambient::after {
           background: #8fbdec;
           bottom: -18%;
           right: -12%;
-          animation: login-blob-b 42s ease-in-out infinite;
+          animation: login-blob-b 20s ease-in-out infinite;
         }
         @keyframes login-blob-a {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(6%, 8%); }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(24%, 20%) scale(1.18); }
         }
         @keyframes login-blob-b {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(-7%, -6%); }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-20%, -22%) scale(1.12); }
         }
         @media (prefers-reduced-motion: reduce) {
           .login-ambient::before, .login-ambient::after { animation: none; }
