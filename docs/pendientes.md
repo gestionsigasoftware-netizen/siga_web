@@ -2,6 +2,22 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-08): "Historial reciente" de comites (Feligresia,
+	pestaña Evolucion) mostraba datos crudos de auditoria
+	(`membresias_comite` / `DELETE` / UUID de usuario) sin traducir. Se
+	humanizo (frases en español, nombre de usuario resuelto) y se
+	investigaron y purgaron 1.505 filas de ruido de datos de prueba en
+	Puerto Tejada Cauca Central. Ver
+	`docs/fixes/humanizar-historial-comites-2026-09-08.md`.
+	**Accion requerida del usuario**: ejecutar
+	`supabase/qa_pruebas/limpiar_auditoria_comites_puerto_tejada.sql`.
+- Resuelto (2026-09-08): mismo problema encontrado en 7 lugares mas de
+	la app (Perfil, Auditoria de Feligresia completa, Seguimiento
+	pastoral, Mision Juvenil, Amigos en ruta, REFAM, Obra Social) --
+	todos corregidos. Pendiente aparte, sin resolver (mas grande, deja
+	para otra pieza): mensajes de error con `error.message` crudo de
+	Postgres, repetido en mas de 20 archivos. Ver
+	`docs/fixes/humanizar-pantallas-2026-09-08.md`.
 - Resuelto (2026-09-08): auditoria completa de este documento contra
 	el codigo real, a pedido del usuario ("necesito que sepamos que ya
 	esta ok y que no, eso representa reprocesos innecesarios"). Se

@@ -106,6 +106,7 @@ export default function Amigos() {
   const [routeHistory, setRouteHistory] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const [rangosEdad, setRangosEdad] = useState([]);
+  const [actorPorAuthId, setActorPorAuthId] = useState(new Map());
   const notesRequest = useRef(0);
 
   async function load() {
@@ -246,6 +247,14 @@ export default function Amigos() {
     if (!congregacionId) return;
     getRangosEdadComite(congregacionId).then(({ data }) => setRangosEdad(data ?? []));
     getComitesActivos(congregacionId).then(({ data }) => setComites(data ?? []));
+    // Para resolver el usuario_id crudo del historial de etapas a un
+    // nombre real en vez de mostrar el UUID tal cual.
+    supabase
+      .from("personas")
+      .select("auth_user_id, nombres, apellidos")
+      .eq("congregacion_id", congregacionId)
+      .not("auth_user_id", "is", null)
+      .then(({ data }) => setActorPorAuthId(new Map((data ?? []).map((persona) => [persona.auth_user_id, `${persona.nombres} ${persona.apellidos}`]))));
   }, [congregacionId]);
 
   const totalPages = Math.max(1, Math.ceil(totalAmigos / pageSize));
@@ -1203,7 +1212,7 @@ export default function Amigos() {
                 )}
               </div>
             </div>
-            <FriendStageHistory history={stageHistory} loading={historyLoading} />
+            <FriendStageHistory history={stageHistory} loading={historyLoading} actorPorAuthId={actorPorAuthId} />
           </aside>
         )}
       </div>
@@ -1211,9 +1220,13 @@ export default function Amigos() {
   );
 }
 
-function FriendStageHistory({ history, loading }) {
+function FriendStageHistory({ history, loading, actorPorAuthId }) {
   const { formato_fecha } = usePreferencias()
-  return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">Historial de etapas</h3><span className="text-[10px] text-muted">{history.length} cambios</span></div>{loading ? <p className="text-xs text-muted mt-3">Cargando historial...</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || 'Inicio'} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || 'Sin etapa'}</p><p className="text-[10px] text-muted mt-1">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })}{item.usuario_id ? ` · ${item.usuario_id}` : ''}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay cambios de etapa registrados.</p>}</section>
+  function describirActor(usuarioId) {
+    if (!usuarioId) return 'Cambio automático del sistema'
+    return actorPorAuthId.get(usuarioId) || 'Otro usuario'
+  }
+  return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">Historial de etapas</h3><span className="text-[10px] text-muted">{history.length} cambios</span></div>{loading ? <p className="text-xs text-muted mt-3">Cargando historial...</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || 'Inicio'} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || 'Sin etapa'}</p><p className="text-[10px] text-muted mt-1">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })} · {describirActor(item.usuario_id)}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay cambios de etapa registrados.</p>}</section>
 }
 
 function FriendInsights({ amigos, etapas, zonas, metodologias }) {

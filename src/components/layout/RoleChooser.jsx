@@ -1,6 +1,6 @@
 import { CheckCircle2 } from 'lucide-react'
 
-const NIVEL_LABEL = {
+export const NIVEL_LABEL = {
   super_admin: 'Super Admin',
   nacional: 'Nivel Nacional',
   distrital: 'Nivel Distrital',

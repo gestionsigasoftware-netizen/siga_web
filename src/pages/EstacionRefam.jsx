@@ -14,6 +14,7 @@ ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const estacionRefamCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const UMBRAL = UMBRAL_DIAS_ESTACION.refam;
+const REFAM_ESTADO_LABELS = { activo: "Activo", completado: "Completado", retirado: "Retirado" };
 
 export default function EstacionRefam() {
   const { rolPrincipal, loading: roleLoading } = useMiRol();
@@ -416,7 +417,7 @@ export default function EstacionRefam() {
                 {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {item.estado}</span></p>
+                      <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {REFAM_ESTADO_LABELS[item.estado] || item.estado}</span></p>
                       <p className="text-xs text-muted">{item.leccion_actual ? `Lección #${item.leccion_actual.numero} — ${item.leccion_actual.titulo}` : refamLecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones configurado"} · {progresoPorParticipante[item.id] || 0}/{refamLecciones.length} completadas · {asistenciaPorParticipante[item.id] || 0} reuniones</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">

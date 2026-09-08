@@ -45,6 +45,8 @@ const ESTADOS = {
   bautizado: "Bautizado",
   inactivo: "Inactivo",
 };
+const TIPO_INSTITUCION_LABELS = { publica: "Pública", privada: "Privada" };
+const NIVEL_INSTITUCION_LABELS = { bachillerato: "Bachillerato", universidad: "Universidad", otro: "Otro" };
 const CHART_OPTIONS = chartOptions();
 
 const misionJuvenilCache = new Map();
@@ -713,7 +715,7 @@ export default function MisionJuvenil() {
                     <td className="py-2">
                       <p className="font-medium">{institution.nombre}</p>
                       <p className="text-xs text-muted">
-                        {institution.nivel} · {institution.tipo}
+                        {NIVEL_INSTITUCION_LABELS[institution.nivel] || institution.nivel} · {TIPO_INSTITUCION_LABELS[institution.tipo] || institution.tipo}
                       </p>
                     </td>
                     <td className="py-2 text-xs">

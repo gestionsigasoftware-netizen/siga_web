@@ -14,6 +14,57 @@ const auditoriaFeligresiaCache = new Map()
 const ADMIN_LEVELS = ['nacional', 'super_admin', 'distrital']
 const ENTITY_LABELS = { personas: 'Personas', familias: 'Familias', comites: 'Comités', membresias_comite: 'Membresías', historial_cargos: 'Cargos', seguimientos_pastorales: 'Seguimientos', estados_alerta_pastoral: 'Estados de alerta' }
 const ACTION_LABELS = { INSERT: 'Creación', UPDATE: 'Actualización', DELETE: 'Eliminación' }
+// Traduce las claves tecnicas (snake_case) mas comunes que aparecen en
+// el "antes/despues" de un cambio, para que "Ver cambios" no muestre
+// solo JSON crudo -- las que no esten aqui se muestran con su nombre
+// tal cual (mejor eso que ocultarlas).
+const COLUMN_LABELS = {
+  nombres: 'Nombres', apellidos: 'Apellidos', telefono: 'Teléfono',
+  fecha_nacimiento: 'Fecha de nacimiento', fecha_ingreso: 'Fecha de ingreso',
+  estado_membresia: 'Estado de membresía', estado_civil: 'Estado civil', genero: 'Género',
+  bautizado: 'Bautizado', fecha_bautismo: 'Fecha de bautismo',
+  sellado_espiritu_santo: 'Sellado con el Espíritu Santo', fecha_sellado: 'Fecha de sellado',
+  fecha_ultima_asistencia: 'Última asistencia', familia_id: 'Familia',
+  parentesco_familiar: 'Parentesco familiar', observaciones_pastorales: 'Observaciones pastorales',
+  nombre: 'Nombre', codigo: 'Código', descripcion: 'Descripción', proposito: 'Propósito',
+  activo: 'Activo', fecha_inicio: 'Fecha de inicio', fecha_fin: 'Fecha de fin',
+  responsable_id: 'Responsable', observaciones: 'Observaciones',
+  persona_id: 'Persona', comite_id: 'Comité', cargo: 'Cargo', cargo_id: 'Cargo',
+  estado: 'Estado', motivo_retiro: 'Motivo de retiro',
+  nombre_cargo: 'Cargo', area: 'Área',
+  tipo_alerta: 'Tipo de situación', accion: 'Acción realizada', notas: 'Notas',
+  fecha: 'Fecha', proxima_fecha: 'Próxima fecha',
+  nombre_familia: 'Nombre de familia', direccion: 'Dirección',
+}
+const CAMPOS_INTERNOS_OCULTOS = ['id', 'congregacion_id', 'created_at', 'auth_user_id']
+
+function formatearValorAuditoria(valor) {
+  if (valor === null || valor === undefined || valor === '') return '—'
+  if (valor === true) return 'Sí'
+  if (valor === false) return 'No'
+  return String(valor)
+}
+
+// Humaniza el "antes/despues" de un cambio de auditoria: en UPDATE solo
+// muestra los campos que de verdad cambiaron; en INSERT/DELETE muestra
+// los campos del unico lado que existe. El JSON crudo queda disponible
+// como respaldo, oculto por defecto.
+function DetalleCambioAuditoria({ antes, despues }) {
+  const [verCrudo, setVerCrudo] = useState(false)
+  let filas = []
+  if (antes && despues) {
+    const claves = [...new Set([...Object.keys(antes), ...Object.keys(despues)])].filter((clave) => !CAMPOS_INTERNOS_OCULTOS.includes(clave) && JSON.stringify(antes[clave]) !== JSON.stringify(despues[clave]))
+    filas = claves.map((clave) => ({ clave, etiqueta: COLUMN_LABELS[clave] || clave, texto: `${formatearValorAuditoria(antes[clave])} → ${formatearValorAuditoria(despues[clave])}` }))
+  } else {
+    const objeto = despues || antes || {}
+    filas = Object.keys(objeto).filter((clave) => !CAMPOS_INTERNOS_OCULTOS.includes(clave)).map((clave) => ({ clave, etiqueta: COLUMN_LABELS[clave] || clave, texto: formatearValorAuditoria(objeto[clave]) }))
+  }
+  return <div className="mt-2 rounded bg-surface-1 p-3 max-w-xl">
+    {filas.length ? filas.map((fila) => <p key={fila.clave} className="text-xs text-secondary"><span className="font-medium text-ink">{fila.etiqueta}:</span> {fila.texto}</p>) : <p className="text-xs text-muted">Sin cambios de datos detectables.</p>}
+    <button type="button" onClick={() => setVerCrudo((current) => !current)} className="text-[11px] text-accent mt-2">{verCrudo ? 'Ocultar dato técnico' : 'Ver dato técnico completo'}</button>
+    {verCrudo && <pre className="whitespace-pre-wrap break-all mt-2 text-[11px] text-muted">{JSON.stringify({ antes, despues }, null, 2)}</pre>}
+  </div>
+}
 
 export default function AuditoriaFeligresia() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
@@ -29,7 +80,27 @@ export default function AuditoriaFeligresia() {
   const [error, setError] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
   const [reloadToken, setReloadToken] = useState(0)
+  const [actorPorAuthId, setActorPorAuthId] = useState(new Map())
   const pageSize = 50
+
+  useEffect(() => {
+    const ids = [...new Set(entries.map((entry) => entry.usuario_id).filter(Boolean))]
+    if (!ids.length) { setActorPorAuthId(new Map()); return }
+    let active = true
+    // Resuelve solo los usuario_id de la pagina actual (maximo 50) --
+    // sin filtrar por congregacion, ya que esta pantalla puede mostrar
+    // cambios de varias congregaciones (distrital/nacional) y la RLS de
+    // personas ya limita lo que cada rol puede ver.
+    supabase.from('personas').select('auth_user_id, nombres, apellidos').in('auth_user_id', ids).then(({ data }) => {
+      if (!active) return
+      setActorPorAuthId(new Map((data ?? []).map((persona) => [persona.auth_user_id, `${persona.nombres} ${persona.apellidos}`])))
+    })
+    return () => { active = false }
+  }, [entries])
+  function describirActor(usuarioId) {
+    if (!usuarioId) return 'Cambio automático del sistema'
+    return actorPorAuthId.get(usuarioId) || 'Otro usuario'
+  }
 
   useEffect(() => {
     const canAudit = rolPrincipal && (ADMIN_LEVELS.includes(rolPrincipal.nivel) || (rolPrincipal.nivel === 'local' && (!rolPrincipal.rol_local || rolPrincipal.rol_local === 'pastor')))
@@ -80,7 +151,7 @@ export default function AuditoriaFeligresia() {
   }
 
   function exportHeaders() {
-    return { headers: ['Fecha', 'Entidad', 'Acción', 'Usuario', 'Clave'], rows: entries.map((entry) => [formatFecha(entry.creado_en, { formato: formato_fecha, conHora: true }), ENTITY_LABELS[entry.entidad] || entry.entidad, ACTION_LABELS[entry.accion] || entry.accion, entry.usuario_id || 'Sistema', entry.entidad_clave || '']) }
+    return { headers: ['Fecha', 'Entidad', 'Acción', 'Usuario', 'Clave'], rows: entries.map((entry) => [formatFecha(entry.creado_en, { formato: formato_fecha, conHora: true }), ENTITY_LABELS[entry.entidad] || entry.entidad, ACTION_LABELS[entry.accion] || entry.accion, describirActor(entry.usuario_id), entry.entidad_clave || '']) }
   }
 
   function exportCsv() {
@@ -134,7 +205,7 @@ export default function AuditoriaFeligresia() {
       <section className="card p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-secondary mb-3"><Filter className="w-4 h-4 text-accent" />Filtros de auditoría</div><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"><select aria-label="Filtrar entidad" className="input-field" value={entity} onChange={(event) => setEntity(event.target.value)}><option value="todas">Todas las entidades</option>{Object.entries(ENTITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select aria-label="Filtrar acción" className="input-field" value={action} onChange={(event) => setAction(event.target.value)}><option value="todas">Todas las acciones</option><option value="INSERT">Creaciones</option><option value="UPDATE">Actualizaciones</option><option value="DELETE">Eliminaciones</option></select><label className="text-xs text-secondary">Desde<input aria-label="Fecha inicial" type="date" className="input-field mt-1" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></label><label className="text-xs text-secondary">Hasta<input aria-label="Fecha final" type="date" className="input-field mt-1" value={toDate} onChange={(event) => setToDate(event.target.value)} /></label></div></section>
       {error && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => setReloadToken((token) => token + 1)} className="text-danger underline">Reintentar</button></div>}
       <section className="grid sm:grid-cols-3 gap-3"><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Cambios encontrados</p><p className="text-2xl font-semibold mt-3">{total}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">En esta página</p><p className="text-2xl font-semibold mt-3">{entries.length}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Página actual</p><p className="text-2xl font-semibold mt-3">{page + 1} <span className="text-sm text-muted font-normal">/ {pages}</span></p></div></section>
-      <section className="card overflow-hidden">{loading ? <div className="module-loading" role="status"><span className="loading-dot" />Cargando auditoría...</div> : entries.length === 0 ? <div className="p-10 text-center"><ClipboardList className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">No hay cambios con estos filtros.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="text-left text-muted bg-surface-1"><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Entidad</th><th className="px-4 py-3">Acción</th><th className="px-4 py-3"><span className="inline-flex items-center gap-1">Usuario<InfoTip texto="Es un código interno, no un nombre. 'Sistema' significa que el cambio lo hizo un proceso automático, sin que nadie lo capturara a mano." /></span></th><th className="px-4 py-3">Detalle</th></tr></thead><tbody>{entries.map((entry) => <tr key={entry.id} className="border-t border-border"><td className="px-4 py-3 whitespace-nowrap">{formatFecha(entry.creado_en, { formato: formato_fecha, conHora: true })}</td><td className="px-4 py-3"><span className="audit-badge">{ENTITY_LABELS[entry.entidad] || entry.entidad}</span></td><td className="px-4 py-3"><span className={`audit-action audit-action-${entry.accion.toLowerCase()}`}>{ACTION_LABELS[entry.accion] || entry.accion}</span></td><td className="px-4 py-3 text-xs text-secondary">{entry.usuario_id ? `${entry.usuario_id.slice(0, 8)}...` : 'Sistema'}</td><td className="px-4 py-3 text-xs"><span className="inline-flex items-center gap-1"><button type="button" onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)} className="text-accent">{expandedId === entry.id ? 'Ocultar cambios' : 'Ver cambios'}</button><InfoTip texto="Muestra el dato técnico completo (antes y después) tal como quedó guardado, sin traducir a lenguaje sencillo." /></span>{expandedId === entry.id && <pre className="max-w-xl whitespace-pre-wrap break-all mt-2 rounded bg-surface-1 p-3 text-muted">{JSON.stringify({ antes: entry.antes, despues: entry.despues }, null, 2)}</pre>}</td></tr>)}</tbody></table></div>}<div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border p-3 text-xs text-secondary"><span>{total} cambios encontrados</span><div className="flex items-center gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">Anterior</button><span>Página {page + 1} de {pages}</span><button type="button" disabled={page + 1 >= pages || loading} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">Siguiente</button></div></div></section>
+      <section className="card overflow-hidden">{loading ? <div className="module-loading" role="status"><span className="loading-dot" />Cargando auditoría...</div> : entries.length === 0 ? <div className="p-10 text-center"><ClipboardList className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">No hay cambios con estos filtros.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="text-left text-muted bg-surface-1"><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Entidad</th><th className="px-4 py-3">Acción</th><th className="px-4 py-3"><span className="inline-flex items-center gap-1">Usuario<InfoTip texto="Quién hizo el cambio. 'Cambio automático del sistema' significa que lo hizo un proceso automático, sin que nadie lo capturara a mano. 'Otro usuario' aparece cuando quien lo hizo no pertenece a una congregación que puedas consultar." /></span></th><th className="px-4 py-3">Detalle</th></tr></thead><tbody>{entries.map((entry) => <tr key={entry.id} className="border-t border-border"><td className="px-4 py-3 whitespace-nowrap">{formatFecha(entry.creado_en, { formato: formato_fecha, conHora: true })}</td><td className="px-4 py-3"><span className="audit-badge">{ENTITY_LABELS[entry.entidad] || entry.entidad}</span></td><td className="px-4 py-3"><span className={`audit-action audit-action-${entry.accion.toLowerCase()}`}>{ACTION_LABELS[entry.accion] || entry.accion}</span></td><td className="px-4 py-3 text-xs text-secondary">{describirActor(entry.usuario_id)}</td><td className="px-4 py-3 text-xs"><button type="button" onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)} className="text-accent">{expandedId === entry.id ? 'Ocultar cambios' : 'Ver cambios'}</button>{expandedId === entry.id && <DetalleCambioAuditoria antes={entry.antes} despues={entry.despues} />}</td></tr>)}</tbody></table></div>}<div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border p-3 text-xs text-secondary"><span>{total} cambios encontrados</span><div className="flex items-center gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">Anterior</button><span>Página {page + 1} de {pages}</span><button type="button" disabled={page + 1 >= pages || loading} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">Siguiente</button></div></div></section>
     </div>
   )
 }

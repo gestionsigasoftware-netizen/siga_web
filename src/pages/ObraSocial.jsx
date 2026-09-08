@@ -23,6 +23,10 @@ const obraSocialCache = new Map();
 
 const TIPO_NECESIDAD_LABELS = { economica: "Económica", alimentaria: "Alimentaria", salud: "Salud", vivienda: "Vivienda", otra: "Otra" };
 const PRIORIDAD_LABELS = { baja: "Baja", media: "Media", alta: "Alta" };
+// Mismo catalogo que CASE_STATES en RedFamilias.jsx -- se duplica aqui
+// porque este selector trae los casos de Red de Familias por separado,
+// sin importar el archivo.
+const CASO_RED_FAMILIAS_ESTADO_LABELS = { solicitado: "Solicitado", activo: "Activo", pausado: "Pausado", cerrado: "Cerrado" };
 const ESTADO_LABELS = { identificada: "Identificada", en_apoyo: "En apoyo", resuelta: "Resuelta", cerrada: "Cerrada" };
 const TIPO_AYUDA_LABELS = { material: "Material", economica: "Económica", acompanamiento: "Acompañamiento", otra: "Otra" };
 const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
@@ -327,7 +331,7 @@ export default function ObraSocial() {
             setCasoForm({ ...casoForm, red_familias_caso_id: event.target.value, familia_id: casoOrigen?.familia_id || casoForm.familia_id });
           }}>
             <option value="">Vincular caso de Red de Familias (opcional)</option>
-            {casosRedFamilias.map((item) => <option key={item.id} value={item.id}>{item.familias?.nombre_familia} · {item.estado}</option>)}
+            {casosRedFamilias.map((item) => <option key={item.id} value={item.id}>{item.familias?.nombre_familia} · {CASO_RED_FAMILIAS_ESTADO_LABELS[item.estado] || item.estado}</option>)}
           </select>
           <select required className="input-field" value={casoForm.familia_id} onChange={(event) => setCasoForm({ ...casoForm, familia_id: event.target.value })}>
             <option value="">Familia</option>
