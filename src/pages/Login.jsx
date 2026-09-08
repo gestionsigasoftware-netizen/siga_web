@@ -133,6 +133,19 @@ export default function Login() {
           .login-ambient::before, .login-ambient::after { animation: none; }
         }
       `}</style>
+      <svg
+        className="absolute left-4 bottom-4 w-[40vw] max-w-[300px] h-auto z-0 pointer-events-none"
+        viewBox="0 0 220 140"
+        aria-hidden="true"
+      >
+        <g fill="#0B0B0B" fillOpacity="0.06">
+          <rect x="20" y="86" width="22" height="40" rx="3" />
+          <rect x="54" y="70" width="22" height="56" rx="3" />
+          <rect x="88" y="52" width="22" height="74" rx="3" />
+          <rect x="122" y="32" width="22" height="94" rx="3" />
+          <rect x="156" y="10" width="22" height="116" rx="3" />
+        </g>
+      </svg>
       <div className="relative z-[1] min-h-0 lg:min-h-[calc(100vh-3rem)] max-w-xl lg:max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] overflow-hidden rounded-card bg-surface-2 shadow-[0_24px_80px_rgba(21,27,34,0.12)]">
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />

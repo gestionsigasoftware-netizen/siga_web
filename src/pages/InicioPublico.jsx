@@ -64,6 +64,19 @@ export default function InicioPublico() {
         }
       `}</style>
       <div className="inicio-ambient">
+      <svg
+        className="absolute left-0 bottom-0 w-[46vw] max-w-[360px] h-auto z-0 pointer-events-none"
+        viewBox="0 0 220 140"
+        aria-hidden="true"
+      >
+        <g fill="#0B0B0B" fillOpacity="0.06">
+          <rect x="20" y="86" width="22" height="40" rx="3" />
+          <rect x="54" y="70" width="22" height="56" rx="3" />
+          <rect x="88" y="52" width="22" height="74" rx="3" />
+          <rect x="122" y="32" width="22" height="94" rx="3" />
+          <rect x="156" y="10" width="22" height="116" rx="3" />
+        </g>
+      </svg>
       <nav className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center" aria-label="Inicio de SIGAP">
           <img src={sigapLogo} alt="SIGAP" className="h-7 w-auto" />
