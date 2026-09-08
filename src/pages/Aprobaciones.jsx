@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
+
+const aprobacionesCache = new Map()
 
 const ALLOWED_LEVELS = ['distrital', 'nacional', 'super_admin']
 
@@ -20,17 +22,28 @@ export default function Aprobaciones() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(null)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [anulandoId, setAnulandoId] = useState(null)
 
   async function load() {
-    setLoading(true)
+    const cacheKey = 'todas'
+    const cached = aprobacionesCache.get(cacheKey)
+    if (cached) {
+      setCongregaciones(cached.congregaciones)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     const { data, error: loadError } = await supabase
       .from('congregaciones')
       .select('id, nombre, pastor_nombre, estado, madurez, distritos(nombre), created_at')
       .order('created_at', { ascending: false })
-    setCongregaciones(data ?? [])
+    const freshData = { congregaciones: data ?? [] }
+    setCongregaciones(freshData.congregaciones)
     if (loadError) setError('No se pudieron cargar las congregaciones.')
     setLoading(false)
+    aprobacionesCache.set(cacheKey, freshData)
   }
 
   useEffect(() => { load() }, [])
@@ -51,6 +64,18 @@ export default function Aprobaciones() {
     load()
   }
 
+  async function anularCongregacion(id) {
+    setBusy(id)
+    setError(null)
+    setNotice(null)
+    const { error: anularError } = await supabase.rpc('anular_congregacion', { p_congregacion_id: id })
+    setBusy(null)
+    setAnulandoId(null)
+    if (anularError) { setError(`No se pudo anular: ${anularError.message}`); return }
+    setNotice('Congregación anulada -- se deshizo por completo, como si nunca se hubiera creado.')
+    load()
+  }
+
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>
   if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">No tienes permisos para administrar aprobaciones de congregaciones.</p>
 
@@ -62,6 +87,7 @@ export default function Aprobaciones() {
       </div>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
       {loading && <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>}
 
       <div className="card overflow-hidden">
@@ -91,14 +117,24 @@ export default function Aprobaciones() {
                   <span className={`text-xs px-2 py-1 rounded ${ESTADO_TONO[c.estado]}`}>{ESTADO_LABEL[c.estado] || c.estado}</span>
                 </td>
                 <td className="py-2.5 px-4 text-right">
-                  {c.estado === 'pendiente_aprobacion' && (
+                  {c.estado === 'pendiente_aprobacion' && anulandoId !== c.id && (
                     <div className="flex justify-end gap-2">
-                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-success hover:opacity-70">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-success hover:opacity-70" title="Aprobar">
                         <CheckCircle2 className="w-[18px] h-[18px]" />
                       </button>
-                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-danger hover:opacity-70">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-danger hover:opacity-70" title="Suspender">
                         <XCircle className="w-[18px] h-[18px]" />
                       </button>
+                      <button disabled={busy === c.id} onClick={() => setAnulandoId(c.id)} className="text-muted hover:opacity-70" title="Anular (creada por error)">
+                        <Trash2 className="w-[18px] h-[18px]" />
+                      </button>
+                    </div>
+                  )}
+                  {c.estado === 'pendiente_aprobacion' && anulandoId === c.id && (
+                    <div className="flex justify-end items-center gap-2">
+                      <span className="text-xs text-secondary">¿Anular? No se puede deshacer.</span>
+                      <button disabled={busy === c.id} onClick={() => anularCongregacion(c.id)} className="text-xs text-danger hover:underline">Sí, anular</button>
+                      <button disabled={busy === c.id} onClick={() => setAnulandoId(null)} className="text-xs text-secondary hover:underline">Cancelar</button>
                     </div>
                   )}
                   {c.estado === 'activa' && (
