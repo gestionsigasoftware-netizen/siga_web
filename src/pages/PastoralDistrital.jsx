@@ -103,6 +103,96 @@ function ContinuidadPastoral({ vacantes }) {
   )
 }
 
+// Las ~11 tablas "por congregacion" (Escuela Dominical, Damas Dorcas,
+// Obra Carcelaria, Musica, Ed. Artistica, Ed. Teologica, Conquistadores,
+// Obra Social, Mision Juvenil, Red de Familias, Ruta Evangelistica)
+// venian como una tabla plana ordenada solo alfabeticamente (order by
+// nombre en el SQL), sin ningun KPI agregado del distrito, sin poder
+// ordenar por metrica, y con casi ninguna celda senalando un problema
+// real -- muy distinto del resto de la app, donde un valor en cero en
+// una metrica de cobertura ya se resalta. Este componente unifica las
+// 11 en un solo patron: tarjetas KPI (suma sobre TODO el distrito, no
+// solo la pagina visible), selector de orden, tono de alerta por
+// metrica (definido por cada seccion segun lo que de verdad importa
+// ahi), y el mismo insight de "quien lidera" que ya usan Evangelismo/
+// Conquistadores/etc en sus propias pantallas locales.
+function ResumenComiteDistrital({ icon: Icon, titulo, infoTitulo, descripcion, data, pageKey, emptyMessage, metrics, unidadLider, paginate }) {
+  const primary = metrics.find((metric) => metric.primary) || metrics[0]
+  const [sortKey, setSortKey] = useState(primary.key)
+  const sorted = useMemo(
+    () => [...data].sort((a, b) => Number(b[sortKey] || 0) - Number(a[sortKey] || 0)),
+    [data, sortKey]
+  )
+  const totales = useMemo(() => {
+    const result = {}
+    metrics.forEach((metric) => {
+      if (metric.kpi) result[metric.key] = data.reduce((sum, row) => sum + Number(row[metric.key] || 0), 0)
+    })
+    return result
+  }, [data, metrics])
+  const kpiMetrics = metrics.filter((metric) => metric.kpi)
+  const lider = sorted[0]
+
+  return (
+    <section className="card overflow-hidden">
+      <div className="p-5 border-b border-border">
+        <h2 className="font-medium flex items-center gap-2">{Icon && <Icon className="w-4 h-4 text-accent" />}{titulo}{infoTitulo && <InfoTip texto={infoTitulo} />}</h2>
+        <p className="text-sm text-secondary mt-1">{descripcion}</p>
+      </div>
+      {data.length === 0 ? (
+        <p className="p-5 text-sm text-muted">{emptyMessage}</p>
+      ) : (() => {
+        const paged = paginate(pageKey, sorted)
+        return <>
+        {kpiMetrics.length > 0 && (
+          <div className="grid gap-3 p-5 border-b border-border" style={{ gridTemplateColumns: `repeat(${kpiMetrics.length}, minmax(0,1fr))` }}>
+            {kpiMetrics.map((metric) => (
+              <div key={metric.key} className="stat-tile">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{metric.label}</p>
+                <p className="mt-2 text-xl font-semibold">{totales[metric.key]}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {lider && Number(lider[primary.key] || 0) > 0 && (
+          <p className="px-5 pt-4 text-sm text-secondary">{lider.nombre} lidera con {lider[primary.key]} {unidadLider}.</p>
+        )}
+        <div className="px-5 pt-4 flex justify-end">
+          <select className="input-field text-xs" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+            {metrics.map((metric) => <option key={metric.key} value={metric.key}>Ordenar por {metric.label}</option>)}
+          </select>
+        </div>
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-muted bg-surface-1">
+                <th className="font-normal px-4 py-2.5">Congregación</th>
+                {metrics.map((metric) => (
+                  <th key={metric.key} className="font-normal px-4 py-2.5">
+                    <span className="flex items-center gap-1.5">{metric.label}{metric.info && <InfoTip texto={metric.info} />}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paged.pageItems.map((item) => (
+                <tr key={item.congregacion_id} className="border-t border-border">
+                  <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
+                  {metrics.map((metric) => (
+                    <td key={metric.key} className={`px-4 py-2.5 ${metric.tone ? metric.tone(item[metric.key]) : ''}`}>{item[metric.key]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sorted.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+        </>
+      })()}
+    </section>
+  )
+}
+
 export default function PastoralDistrital() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const distritoId = rolPrincipal?.distrito_id
@@ -242,17 +332,30 @@ export default function PastoralDistrital() {
     [activeAssignments]
   )
 
+  // Antes se pasaba `congregations.filter(...)` inline como prop, creando
+  // un array nuevo en cada render del padre -- el useEffect de
+  // ContinuidadPastoral (dependiente de ese array) volvia a disparar todas
+  // sus consultas resumen_continuidad_congregacion en cada interaccion de
+  // la pantalla (escribir en el buscador, editar una nota SEPRI, etc.),
+  // no solo cuando la lista de vacantes cambiaba de verdad.
+  const vacantesCongregaciones = useMemo(
+    () => congregations.filter((congregacion) => !congregacion.pastor_id),
+    [congregations]
+  )
+
   const stats = useMemo(() => {
     const activePastorIds = new Set(activeAssignments.map((assignment) => assignment.pastor_id))
     const activePastorCount = pastors.filter((pastor) => activePastorIds.has(pastor.id)).length
     const congregationsWithPastors = congregations.filter((congregation) => congregation.pastor_id).length
     const vacantCongregations = congregations.length - congregationsWithPastors
+    const vacantPercent = congregations.length ? Math.round((vacantCongregations / congregations.length) * 100) : 0
 
     return {
       totalPastors: pastors.length,
       activePastorCount,
       congregationsWithPastors,
       vacantCongregations,
+      vacantPercent,
       transfersThisMonth: getCurrentMonthTransfers(assignments),
     }
   }, [activeAssignments, pastors, congregations, assignments])
@@ -996,8 +1099,8 @@ export default function PastoralDistrital() {
             <span>Vacantes</span>
             <CircleDashed className="w-4 h-4" />
           </div>
-          <p className="mt-3 text-2xl font-semibold">{stats.vacantCongregations}</p>
-          <p className="text-sm text-secondary mt-1">Sin pastor actual</p>
+          <p className={`mt-3 text-2xl font-semibold ${stats.vacantCongregations ? 'text-warning' : ''}`}>{stats.vacantCongregations}</p>
+          <p className="text-sm text-secondary mt-1">Sin pastor actual{stats.vacantCongregations ? ` · ${stats.vacantPercent}% del distrito` : ''}</p>
         </div>
       </section>
 
@@ -1042,7 +1145,7 @@ export default function PastoralDistrital() {
         })()}
       </section>
 
-      <ContinuidadPastoral vacantes={congregations.filter((congregacion) => !congregacion.pastor_id)} />
+      <ContinuidadPastoral vacantes={vacantesCongregaciones} />
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
@@ -1093,65 +1196,35 @@ export default function PastoralDistrital() {
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Escuela Dominical por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Comités administrados localmente, consolidado a nivel distrital.</p>
-          </div>
-          {resumenEscuelaDominical.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Escuela Dominical en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('escuelaDominical', resumenEscuelaDominical)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Clases</th><th className="font-normal px-4 py-2.5">Niños</th><th className="font-normal px-4 py-2.5">Maestros</th><th className="font-normal px-4 py-2.5">Lecciones (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.clases_activas}</td>
-                      <td className="px-4 py-2.5">{item.ninos_activos}</td>
-                      <td className="px-4 py-2.5">{item.maestros_activos}</td>
-                      <td className="px-4 py-2.5">{item.lecciones_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenEscuelaDominical.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Escuela Dominical por congregación"
+          descripcion="Comités administrados localmente, consolidado a nivel distrital."
+          data={resumenEscuelaDominical}
+          pageKey="escuelaDominical"
+          emptyMessage="Aún no hay datos de Escuela Dominical en tu distrito."
+          unidadLider="niños activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'clases_activas', label: 'Clases', kpi: true },
+            { key: 'ninos_activos', label: 'Niños', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'maestros_activos', label: 'Maestros', kpi: true },
+            { key: 'lecciones_ultimo_mes', label: 'Lecciones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
 
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Damas Dorcas por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Comités administrados localmente, consolidado a nivel distrital.</p>
-          </div>
-          {resumenDamas.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Damas Dorcas en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('damasDorcas', resumenDamas)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Beneficiarias</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.beneficiarias_activas}</td>
-                      <td className="px-4 py-2.5">{item.actividades_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenDamas.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Damas Dorcas por congregación"
+          descripcion="Comités administrados localmente, consolidado a nivel distrital."
+          data={resumenDamas}
+          pageKey="damasDorcas"
+          emptyMessage="Aún no hay datos de Damas Dorcas en tu distrito."
+          unidadLider="beneficiarias activas"
+          paginate={paginate}
+          metrics={[
+            { key: 'beneficiarias_activas', label: 'Beneficiarias', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'actividades_ultimo_mes', label: 'Actividades (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
@@ -1194,37 +1267,23 @@ export default function PastoralDistrital() {
           </form>
         </section>
 
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Obra Carcelaria por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Asistencia interna en los centros de reclusión, consolidado a nivel distrital.</p>
-          </div>
-          {resumenCarcelaria.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Carcelaria en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('carcelaria', resumenCarcelaria)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Internos activos</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5"><span className="flex items-center gap-1.5">Delegados hábiles<InfoTip texto="Voluntarios ya autorizados para entrar a un centro de reclusión, no el total de personas que quisieran servir en Obra Carcelaria." /></span></th><th className="font-normal px-4 py-2.5">Cultos (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.internos_activos}</td>
-                      <td className="px-4 py-2.5">{item.bautizados}</td>
-                      <td className="px-4 py-2.5">{item.sellados}</td>
-                      <td className="px-4 py-2.5">{item.delegados_habilitados}</td>
-                      <td className="px-4 py-2.5">{item.cultos_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenCarcelaria.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          icon={LockKeyhole}
+          titulo="Obra Carcelaria por congregación"
+          descripcion="Asistencia interna en los centros de reclusión, consolidado a nivel distrital."
+          data={resumenCarcelaria}
+          pageKey="carcelaria"
+          emptyMessage="Aún no hay datos de Obra Carcelaria en tu distrito."
+          unidadLider="internos activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'internos_activos', label: 'Internos activos', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'bautizados', label: 'Bautizados', kpi: true },
+            { key: 'sellados', label: 'Sellados', kpi: true },
+            { key: 'delegados_habilitados', label: 'Delegados hábiles', tone: (v) => Number(v) === 0 ? 'text-danger' : '', info: 'Voluntarios ya autorizados para entrar a un centro de reclusión, no el total de personas que quisieran servir en Obra Carcelaria.' },
+            { key: 'cultos_ultimo_mes', label: 'Cultos (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
       </div>
 
       <section className="card overflow-hidden">
@@ -1281,222 +1340,117 @@ export default function PastoralDistrital() {
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Música por congregación</h2>
-            <p className="text-sm text-secondary mt-1">FECP · Música y Alabanza, consolidado a nivel distrital.</p>
-          </div>
-          {resumenMusica.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Música en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('musica', resumenMusica)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
-                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
-                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenMusica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Música por congregación"
+          descripcion="FECP · Música y Alabanza, consolidado a nivel distrital."
+          data={resumenMusica}
+          pageKey="musica"
+          emptyMessage="Aún no hay datos de Música en tu distrito."
+          unidadLider="integrantes activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'grupos_activos', label: 'Grupos', kpi: true },
+            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
 
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Educación Artística por congregación</h2>
-            <p className="text-sm text-secondary mt-1">FECP · Educación Artística, consolidado a nivel distrital.</p>
-          </div>
-          {resumenArtistica.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Artística en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('artistica', resumenArtistica)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
-                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
-                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenArtistica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Educación Artística por congregación"
+          descripcion="FECP · Educación Artística, consolidado a nivel distrital."
+          data={resumenArtistica}
+          pageKey="artistica"
+          emptyMessage="Aún no hay datos de Educación Artística en tu distrito."
+          unidadLider="integrantes activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'grupos_activos', label: 'Grupos', kpi: true },
+            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Educación Teológica por congregación</h2>
-            <p className="text-sm text-secondary mt-1">FECP · Educación Teológica, consolidado a nivel distrital.</p>
-          </div>
-          {resumenTeologica.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Educación Teológica en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('teologica', resumenTeologica)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Grupos</th><th className="font-normal px-4 py-2.5">Integrantes</th><th className="font-normal px-4 py-2.5">Certificados</th><th className="font-normal px-4 py-2.5">Sesiones (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.grupos_activos}</td>
-                      <td className="px-4 py-2.5">{item.integrantes_activos}</td>
-                      <td className="px-4 py-2.5">{item.certificados}</td>
-                      <td className="px-4 py-2.5">{item.sesiones_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenTeologica.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Educación Teológica por congregación"
+          descripcion="FECP · Educación Teológica, consolidado a nivel distrital."
+          data={resumenTeologica}
+          pageKey="teologica"
+          emptyMessage="Aún no hay datos de Educación Teológica en tu distrito."
+          unidadLider="integrantes activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'grupos_activos', label: 'Grupos', kpi: true },
+            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'certificados', label: 'Certificados', kpi: true },
+            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
 
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Conquistadores Pentecostales por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Jóvenes adultos de 18 a 40 años, consolidado a nivel distrital.</p>
-          </div>
-          {resumenConquistadores.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Conquistadores Pentecostales en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('conquistadores', resumenConquistadores)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Miembros</th><th className="font-normal px-4 py-2.5">Líderes</th><th className="font-normal px-4 py-2.5">Actividades (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.miembros_activos}</td>
-                      <td className="px-4 py-2.5">{item.lideres_activos}</td>
-                      <td className="px-4 py-2.5">{item.actividades_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenConquistadores.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Conquistadores Pentecostales por congregación"
+          descripcion="Jóvenes adultos de 18 a 40 años, consolidado a nivel distrital."
+          data={resumenConquistadores}
+          pageKey="conquistadores"
+          emptyMessage="Aún no hay datos de Conquistadores Pentecostales en tu distrito."
+          unidadLider="miembros activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'miembros_activos', label: 'Miembros', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'lideres_activos', label: 'Líderes', kpi: true, tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'actividades_ultimo_mes', label: 'Actividades (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
       </div>
 
-      <section className="card overflow-hidden">
-        <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Obra Social por congregación</h2>
-          <p className="text-sm text-secondary mt-1">Asistencia socioeconómica a familias del censo, conectada con Red de Familias, consolidado a nivel distrital.</p>
-        </div>
-        {resumenObraSocial.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay datos de Obra Social en tu distrito.</p>
-        ) : (() => {
-          const paged = paginate('obraSocial', resumenObraSocial)
-          return <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Casos abiertos</th><th className="font-normal px-4 py-2.5">Casos resueltos</th><th className="font-normal px-4 py-2.5">Ayudas (30d)</th></tr></thead>
-              <tbody>
-                {paged.pageItems.map((item) => (
-                  <tr key={item.congregacion_id} className="border-t border-border">
-                    <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                    <td className="px-4 py-2.5">{item.casos_abiertos}</td>
-                    <td className="px-4 py-2.5">{item.casos_resueltos}</td>
-                    <td className="px-4 py-2.5">{item.ayudas_ultimo_mes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenObraSocial.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-          </>
-        })()}
-      </section>
+      <ResumenComiteDistrital
+        titulo="Obra Social por congregación"
+        descripcion="Asistencia socioeconómica a familias del censo, conectada con Red de Familias, consolidado a nivel distrital."
+        data={resumenObraSocial}
+        pageKey="obraSocial"
+        emptyMessage="Aún no hay datos de Obra Social en tu distrito."
+        unidadLider="casos abiertos"
+        paginate={paginate}
+        metrics={[
+          { key: 'casos_abiertos', label: 'Casos abiertos', kpi: true, primary: true },
+          { key: 'casos_resueltos', label: 'Casos resueltos', kpi: true },
+          { key: 'ayudas_ultimo_mes', label: 'Ayudas (30d)' },
+        ]}
+      />
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Misión Juvenil por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Colegios y universidades, consolidado a nivel distrital.</p>
-          </div>
-          {resumenMisionJuvenil.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Misión Juvenil en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('misionJuvenil', resumenMisionJuvenil)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Estudiantes</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Instituciones</th><th className="font-normal px-4 py-2.5">Lecciones (30d)</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.estudiantes_activos}</td>
-                      <td className="px-4 py-2.5">{item.bautizados}</td>
-                      <td className="px-4 py-2.5">{item.instituciones_impactadas}</td>
-                      <td className="px-4 py-2.5">{item.lecciones_ultimo_mes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenMisionJuvenil.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Misión Juvenil por congregación"
+          descripcion="Colegios y universidades, consolidado a nivel distrital."
+          data={resumenMisionJuvenil}
+          pageKey="misionJuvenil"
+          emptyMessage="Aún no hay datos de Misión Juvenil en tu distrito."
+          unidadLider="estudiantes activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'estudiantes_activos', label: 'Estudiantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'bautizados', label: 'Bautizados', kpi: true },
+            { key: 'instituciones_impactadas', label: 'Instituciones', kpi: true },
+            { key: 'lecciones_ultimo_mes', label: 'Lecciones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+          ]}
+        />
 
-        <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h2 className="font-medium">Red de Familias por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Acompañamiento familiar y visitas domiciliarias, consolidado a nivel distrital.</p>
-          </div>
-          {resumenRedFamilias.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay datos de Red de Familias en tu distrito.</p>
-          ) : (() => {
-            const paged = paginate('redFamilias', resumenRedFamilias)
-            return <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Casos activos</th><th className="font-normal px-4 py-2.5">Prioridad alta</th><th className="font-normal px-4 py-2.5">Cerrados (3m)</th><th className="font-normal px-4 py-2.5">Visitas pendientes</th></tr></thead>
-                <tbody>
-                  {paged.pageItems.map((item) => (
-                    <tr key={item.congregacion_id} className="border-t border-border">
-                      <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                      <td className="px-4 py-2.5">{item.casos_activos}</td>
-                      <td className={`px-4 py-2.5 ${Number(item.casos_alta_prioridad) > 0 ? 'text-danger' : ''}`}>{item.casos_alta_prioridad}</td>
-                      <td className="px-4 py-2.5">{item.casos_cerrados_3m}</td>
-                      <td className="px-4 py-2.5">{item.visitas_pendientes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenRedFamilias.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-            </>
-          })()}
-        </section>
+        <ResumenComiteDistrital
+          titulo="Red de Familias por congregación"
+          descripcion="Acompañamiento familiar y visitas domiciliarias, consolidado a nivel distrital."
+          data={resumenRedFamilias}
+          pageKey="redFamilias"
+          emptyMessage="Aún no hay datos de Red de Familias en tu distrito."
+          unidadLider="casos activos"
+          paginate={paginate}
+          metrics={[
+            { key: 'casos_activos', label: 'Casos activos', kpi: true, primary: true },
+            { key: 'casos_alta_prioridad', label: 'Prioridad alta', tone: (v) => Number(v) > 0 ? 'text-danger' : '' },
+            { key: 'casos_cerrados_3m', label: 'Cerrados (3m)', kpi: true },
+            { key: 'visitas_pendientes', label: 'Visitas pendientes', tone: (v) => Number(v) > 0 ? 'text-warning' : '' },
+          ]}
+        />
       </div>
 
       <section className="card overflow-hidden">
@@ -1546,38 +1500,24 @@ export default function PastoralDistrital() {
         })()}
       </section>
 
-      <section className="card overflow-hidden">
-        <div className="p-5 border-b border-border">
-          <h2 className="font-medium flex items-center gap-1.5">Ruta Evangelística por congregación<InfoTip texto="Estaciones en orden: Uno Más (contacto inicial) → BIS → REFAM → ESFOB → Discipulado. Cada columna muestra cuántas personas están activas en esa etapa; el bautismo es el resultado final de la ruta." /></h2>
-          <p className="text-sm text-secondary mt-1">Personas activas en cada estación, consolidado a nivel distrital.</p>
-        </div>
-        {resumenRuta.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay datos de la Ruta Evangelística en tu distrito.</p>
-        ) : (() => {
-          const paged = paginate('ruta', resumenRuta)
-          return <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Uno Más</th><th className="font-normal px-4 py-2.5">BIS</th><th className="font-normal px-4 py-2.5">REFAM</th><th className="font-normal px-4 py-2.5">ESFOB</th><th className="font-normal px-4 py-2.5">Discipulado</th><th className="font-normal px-4 py-2.5"><span className="flex items-center gap-1.5">Bautismos (3m)<InfoTip texto="Personas que completaron la Ruta Evangelística y se bautizaron en los últimos 3 meses. Es el número que mide si la ruta realmente está dando fruto." /></span></th></tr></thead>
-              <tbody>
-                {paged.pageItems.map((item) => (
-                  <tr key={item.congregacion_id} className="border-t border-border">
-                    <td className="px-4 py-2.5 font-medium">{item.nombre}</td>
-                    <td className="px-4 py-2.5">{item.uno_mas}</td>
-                    <td className="px-4 py-2.5">{item.bis}</td>
-                    <td className="px-4 py-2.5">{item.refam}</td>
-                    <td className="px-4 py-2.5">{item.esfob}</td>
-                    <td className="px-4 py-2.5">{item.discipulado}</td>
-                    <td className="px-4 py-2.5 text-success font-medium">{item.bautismos_3m}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenRuta.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
-          </>
-        })()}
-      </section>
+      <ResumenComiteDistrital
+        titulo="Ruta Evangelística por congregación"
+        infoTitulo="Estaciones en orden: Uno Más (contacto inicial) → BIS → REFAM → ESFOB → Discipulado. Cada columna muestra cuántas personas están activas en esa etapa; el bautismo es el resultado final de la ruta."
+        descripcion="Personas activas en cada estación, consolidado a nivel distrital."
+        data={resumenRuta}
+        pageKey="ruta"
+        emptyMessage="Aún no hay datos de la Ruta Evangelística en tu distrito."
+        unidadLider="bautismos en los últimos 3 meses"
+        paginate={paginate}
+        metrics={[
+          { key: 'uno_mas', label: 'Uno Más', kpi: true },
+          { key: 'bis', label: 'BIS', kpi: true },
+          { key: 'refam', label: 'REFAM', kpi: true },
+          { key: 'esfob', label: 'ESFOB' },
+          { key: 'discipulado', label: 'Discipulado' },
+          { key: 'bautismos_3m', label: 'Bautismos (3m)', kpi: true, primary: true, tone: (v) => Number(v) > 0 ? 'text-success font-medium' : '', info: 'Personas que completaron la Ruta Evangelística y se bautizaron en los últimos 3 meses. Es el número que mide si la ruta realmente está dando fruto.' },
+        ]}
+      />
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
@@ -1586,12 +1526,14 @@ export default function PastoralDistrital() {
         </div>
         {sepriSolicitudes.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay solicitudes SEPRI en tu distrito.</p>
-        ) : (
+        ) : (() => {
+          const paged = paginate('sepriSolicitudes', sepriSolicitudes)
+          return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Evento</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Anticipación</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
               <tbody>
-                {sepriSolicitudes.map((item) => {
+                {paged.pageItems.map((item) => {
                   const evento = new Date(`${item.fecha_evento}T00:00:00Z`)
                   const creado = new Date(item.created_at)
                   const dias = Math.round((evento.getTime() - Date.UTC(creado.getUTCFullYear(), creado.getUTCMonth(), creado.getUTCDate())) / 86400000)
@@ -1619,7 +1561,9 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-        )}
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriSolicitudes.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="solicitudes" /></div>
+          </>
+        })()}
       </section>
 
       <section className="card overflow-hidden">

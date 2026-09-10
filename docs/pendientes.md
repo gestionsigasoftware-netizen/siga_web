@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): auditoria y mejoras de "Gestion pastoral"
+	(rol distrital, `PastoralDistrital.jsx`) -- 3 bugs corregidos
+	(consultas desperdiciadas en Continuidad pendiente por un array
+	recreado en cada render, SEPRI sin paginar, tono fijo en Bautismos
+	de Ruta Evangelistica) y componente reutilizable
+	`ResumenComiteDistrital` aplicado a las 11 tablas "por congregacion"
+	(KPIs agregados del distrito, orden por metrica, tono de alerta,
+	insight de "lider"). Ver
+	`docs/fixes/auditoria-gestion-pastoral-distrital-2026-09-10.md`.
+	**Pendiente no bloqueante**: confirmar visualmente con una cuenta
+	distrital real (no se pudo probar con clics reales en esta sesion).
 - Resuelto (2026-09-10): auditoria y correccion de graficos/indicadores
 	en el resto de la web (18 pantallas con react-chartjs-2, fuera del
 	modulo Resumen ya auditado aparte): tonos fijos que no reflejaban el
