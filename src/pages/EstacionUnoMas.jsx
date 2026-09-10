@@ -25,7 +25,7 @@ export default function EstacionUnoMas() {
   const [amigosDisponibles, setAmigosDisponibles] = useState([]);
   const [personas, setPersonas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [form, setForm] = useState({ amigoId: "", responsableId: "" });

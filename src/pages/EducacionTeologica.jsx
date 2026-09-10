@@ -57,7 +57,7 @@ export default function EducacionTeologica() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [grupoForm, setGrupoForm] = useState({ nombre: "", nivel: "curso", instructor_persona_id: "" });
   const [integranteForm, setIntegranteForm] = useState({ persona_id: "", grupo_id: "" });
   const [selectedGrupoId, setSelectedGrupoId] = useState(null);
@@ -260,7 +260,7 @@ export default function EducacionTeologica() {
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Educación Teológica.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Educación Teológica.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

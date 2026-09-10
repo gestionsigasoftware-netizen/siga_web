@@ -44,7 +44,7 @@ export default function EstacionRefam() {
   const [nuevaNotaRefamResponsable, setNuevaNotaRefamResponsable] = useState("");
   const [trasladoDestino, setTrasladoDestino] = useState({});
   const [loading, setLoading] = useState(true);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);

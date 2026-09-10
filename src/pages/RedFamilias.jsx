@@ -45,7 +45,7 @@ export default function RedFamilias() {
   const [activityForm, setActivityForm] = useState(EMPTY_ACTIVITY)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [canEdit, setCanEdit] = useState(false)
+  const [canEdit, setCanEdit] = useState(null) // null = todavia no se confirma el permiso
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
 
@@ -105,7 +105,7 @@ export default function RedFamilias() {
   if (!congregacionId) return <div className="card p-8 text-center text-sm text-secondary">Tu usuario no tiene una congregación local asignada.</div>
 
   return <div className="page-shell">
-    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow flex items-center gap-1.5">DEFAM · Trabajo familiar<InfoTip texto="DEFAM es el área de la iglesia dedicada a las familias del censo: acompañamiento, visitas y actividades, más allá del registro que ya existe en Feligresía." /></p><h1 className="section-title">Red de Familias</h1><p className="text-sm text-secondary mt-1">Convierte el contexto del censo en acompañamiento, visitas y acciones medibles.</p></div>{!canEdit && <span className="text-xs text-secondary bg-surface-1 rounded px-3 py-2">Modo consulta</span>}</header>
+    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="eyebrow flex items-center gap-1.5">DEFAM · Trabajo familiar<InfoTip texto="DEFAM es el área de la iglesia dedicada a las familias del censo: acompañamiento, visitas y actividades, más allá del registro que ya existe en Feligresía." /></p><h1 className="section-title">Red de Familias</h1><p className="text-sm text-secondary mt-1">Convierte el contexto del censo en acompañamiento, visitas y acciones medibles.</p></div>{canEdit === false && <span className="text-xs text-secondary bg-surface-1 rounded px-3 py-2">Modo consulta</span>}</header>
     {error && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex justify-between gap-3"><span>{error}</span><button type="button" onClick={load} className="underline">Reintentar</button></div>}
     {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
     <section className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Metric icon={Home} label="Familias del censo" value={families.length} detail="Fuente: Feligresía" /><Metric icon={ClipboardCheck} label="Acompañamientos abiertos" value={openCases.length} detail={overdueCases.length ? `${overdueCases.length} vencidos` : 'Sin vencidos'} tone={overdueCases.length ? 'text-danger' : 'text-ink'} /><Metric icon={CalendarDays} label="Visitas pendientes" value={pendingVisits.length} detail={`${upcomingVisits.length} próximas`} /><Metric icon={UsersRound} label="Personas vinculadas" value={totalPeopleInFamilies} detail="En casos de acompañamiento" /><Metric icon={ClipboardCheck} label="Familias alcanzadas" value={activityTotalFamilies} detail={`${activities.length} actividades`} /></section>

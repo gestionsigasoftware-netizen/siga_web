@@ -66,7 +66,7 @@ export default function RutaFormacion({ mode }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [trasladoDestino, setTrasladoDestino] = useState({});
@@ -448,7 +448,7 @@ export default function RutaFormacion({ mode }) {
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. El inicio y actualización de procesos requiere permiso de edición.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. El inicio y actualización de procesos requiere permiso de edición.</p>}
       {showForm && <form onSubmit={createProcess} className="card p-5 grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2"><p className="eyebrow">Nuevo proceso</p><h2 className="font-medium mt-1">Registrar {config.title}</h2></div>
         <label className="text-sm text-secondary">{mode === "esfob" ? "Amigo en ruta" : "Persona bautizada"}<select className="input-field mt-1" value={form.subjectId} onChange={(event) => {

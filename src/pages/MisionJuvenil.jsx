@@ -89,7 +89,7 @@ export default function MisionJuvenil() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [institutionForm, setInstitutionForm] = useState({
     nombre: "",
     tipo: "publica",
@@ -532,7 +532,7 @@ export default function MisionJuvenil() {
           {error}
         </p>
       )}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Misión Juvenil.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Misión Juvenil.</p>}
       {notice && (
         <p
           role="status"

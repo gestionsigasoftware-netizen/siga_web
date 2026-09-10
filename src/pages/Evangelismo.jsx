@@ -72,7 +72,7 @@ export default function Evangelismo() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [editingZoneId, setEditingZoneId] = useState(null);
   const [zoneEditName, setZoneEditName] = useState("");
   const [zoneEditLeader, setZoneEditLeader] = useState("");

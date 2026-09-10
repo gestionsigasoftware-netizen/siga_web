@@ -66,7 +66,7 @@ export default function ObraSocial() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [casoForm, setCasoForm] = useState({ familia_id: "", red_familias_caso_id: "", tipo_necesidad: "economica", prioridad: "media", responsable_persona_id: "", notas: "" });
   const [selectedCasoId, setSelectedCasoId] = useState(null);
   const [ayudaForm, setAyudaForm] = useState({ fecha: hoyBogota(), tipo: "material", descripcion: "", responsable_persona_id: "" });
@@ -222,7 +222,7 @@ export default function ObraSocial() {
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Social.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Social.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">

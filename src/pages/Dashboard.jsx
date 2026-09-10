@@ -741,7 +741,7 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
-  const [canHandleAlerts, setCanHandleAlerts] = useState(false)
+  const [canHandleAlerts, setCanHandleAlerts] = useState(null) // null = todavia no se confirma el permiso
   const [handledAlerts, setHandledAlerts] = useState([])
   const [handlingAlertId, setHandlingAlertId] = useState(null)
   const [showAllAlerts, setShowAllAlerts] = useState(false)

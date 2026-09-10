@@ -100,7 +100,7 @@ export default function Amigos() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [rutaActivaPorAmigo, setRutaActivaPorAmigo] = useState({});
   const [sinRutaCount, setSinRutaCount] = useState(0);
   const [routeProcess, setRouteProcess] = useState(null);
@@ -583,7 +583,7 @@ export default function Amigos() {
     : [];
 
   return (
-    <div className={`page-shell ${canEdit ? "" : "amigos-read-only"}`}>
+    <div className={`page-shell ${canEdit === false ? "amigos-read-only" : ""}`}>
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <Link to="/misiones-evangelismo" className="btn-secondary mb-4">

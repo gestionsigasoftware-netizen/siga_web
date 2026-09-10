@@ -78,7 +78,7 @@ export default function ObraCarcelaria() {
   const [familias, setFamilias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -381,7 +381,7 @@ export default function ObraCarcelaria() {
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Carcelaria.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Carcelaria.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">

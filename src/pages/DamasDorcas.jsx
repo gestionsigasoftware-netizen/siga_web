@@ -59,7 +59,7 @@ export default function DamasDorcas() {
     const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [beneficiariaForm, setBeneficiariaForm] = useState({ nombres: "", apellidos: "", telefono: "", direccion: "", responsable_persona_id: "" });
   const [actividadForm, setActividadForm] = useState({ fecha: hoyBogota(), tipo: "visita", descripcion: "", responsable_persona_id: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
@@ -228,7 +228,7 @@ export default function DamasDorcas() {
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Damas Dorcas.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Damas Dorcas.</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
