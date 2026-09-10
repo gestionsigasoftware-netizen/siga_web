@@ -2,6 +2,11 @@
 
 ## Prioridad critica antes de produccion
 
+- Construido (2026-09-09): certificado de bautismo descargable desde
+	la ficha del amigo (Amigos.jsx), disenado a partir de un ejemplo
+	real de la IPUC, aprobado por el usuario tras varias iteraciones de
+	vista previa. Ver
+	`docs/fixes/certificado-bautismo-descargable-2026-09-09.md`.
 - Resuelto (2026-09-09): el Dashboard mostraba el titulo "Evolucion
 	mensual / Participacion por categoria" duplicado sobre el mismo
 	grafico -- remanente de marcado (dos `<div>` de encabezado en vez

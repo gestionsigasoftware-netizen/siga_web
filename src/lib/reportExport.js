@@ -22,7 +22,7 @@ let logoPromise
 // Convierte el logo (bundleado por Vite como URL) a data URL una sola vez
 // por sesion — tanto jsPDF como exceljs necesitan los bytes de la imagen,
 // no una URL.
-function cargarLogo() {
+export function cargarLogo() {
   if (!logoPromise) {
     logoPromise = fetch(logoUrl)
       .then((response) => response.blob())

@@ -22,6 +22,7 @@ import { formatFecha } from "../lib/dateFormat";
 import { diasDesde, getComitesActivos } from "../lib/rutaEvangelistica";
 import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comitesPorPoblacion";
 import { descargarPdf } from "../lib/reportExport";
+import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
 import InfoTip from "../components/InfoTip";
 
 const amigosCache = new Map();
@@ -107,6 +108,7 @@ export default function Amigos() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [rangosEdad, setRangosEdad] = useState([]);
   const [actorPorAuthId, setActorPorAuthId] = useState(new Map());
+  const [congregacion, setCongregacion] = useState(null);
   const notesRequest = useRef(0);
 
   async function load() {
@@ -247,6 +249,14 @@ export default function Amigos() {
     if (!congregacionId) return;
     getRangosEdadComite(congregacionId).then(({ data }) => setRangosEdad(data ?? []));
     getComitesActivos(congregacionId).then(({ data }) => setComites(data ?? []));
+    // Nombre de la sede y del pastor local -- se usan en el certificado de
+    // bautismo descargable, no hace falta volver a pedirlos por persona.
+    supabase
+      .from("congregaciones")
+      .select("nombre, pastor_nombre")
+      .eq("id", congregacionId)
+      .maybeSingle()
+      .then(({ data }) => setCongregacion(data));
     // Para resolver el usuario_id crudo del historial de etapas a un
     // nombre real en vez de mostrar el UUID tal cual.
     supabase
@@ -451,6 +461,21 @@ export default function Amigos() {
     if (updateError) { setError(`No se pudo actualizar el sellado: ${updateError.message}`); return; }
     setAmigos((current) => current.map((friend) => (friend.id === selected.id ? { ...friend, ...values } : friend)));
     setSelected((current) => ({ ...current, ...values }));
+  }
+
+  async function descargarCertificado() {
+    if (!selected || selected.estado_espiritual !== "bautizado") return;
+    setError(null);
+    try {
+      await descargarCertificadoBautismo({
+        nombreCompleto: selected.nombres,
+        fechaBautismo: selected.fecha_bautismo,
+        congregacionNombre: congregacion?.nombre,
+        pastorNombre: congregacion?.pastor_nombre,
+      });
+    } catch (pdfError) {
+      setError(`No se pudo generar el certificado: ${pdfError.message}`);
+    }
   }
 
   async function incorporateIntoFeligresia() {
@@ -1155,6 +1180,12 @@ export default function Amigos() {
               {selected.estado_espiritual === "bautizado" && (
                 <button type="button" disabled={saving || Boolean(selected.persona_id)} onClick={incorporateIntoFeligresia} className="btn-primary justify-center">
                   {selected.persona_id ? "Ya está en Feligresía" : "Incorporar a Feligresía"}
+                </button>
+              )}
+              {selected.estado_espiritual === "bautizado" && (
+                <button type="button" onClick={descargarCertificado} className="btn-secondary justify-center">
+                  <Download className="w-4 h-4" />
+                  Descargar certificado de bautismo
                 </button>
               )}
               <button type="button" disabled={saving || selected.sellado} onClick={markSealed} className="btn-secondary justify-center">
