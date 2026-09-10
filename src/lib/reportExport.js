@@ -375,15 +375,26 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
 
   const filasFormateadas = rows.map((row) => row.map(formatoNumero))
 
+  // Con muchas columnas (ej. el censo de feligresía, 15 campos) el tamaño
+  // y relleno pensados para una tabla normal hacían que los encabezados
+  // largos ("Sellado con el Espíritu Santo") desbordaran la celda y la
+  // tabla completa se viera amontonada e ilegible. Se reduce letra/relleno
+  // progresivamente según el número de columnas en vez de un tamaño fijo
+  // pensado solo para tablas de pocas columnas.
+  const columnas = headers.length
+  const margenLateral = columnas > 10 ? 8 : 14
+  const fontSize = columnas > 14 ? 6 : columnas > 10 ? 7 : columnas > 6 ? 8 : 9
+  const cellPadding = columnas > 14 ? 1.5 : columnas > 10 ? 2 : columnas > 6 ? 3 : 4
+
   autoTable(doc, {
     startY: y,
     head: [headers],
     body: filasFormateadas,
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4, lineColor: [223, 224, 226], lineWidth: 0.15, valign: 'middle' },
-    headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold', cellPadding: 4.5 },
+    styles: { fontSize, cellPadding, lineColor: [223, 224, 226], lineWidth: 0.15, valign: 'middle', overflow: 'linebreak' },
+    headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold', fontSize, cellPadding: cellPadding + 0.5 },
     alternateRowStyles: { fillColor: [247, 248, 249] },
-    margin: { left: 14, right: 14, top: 22, bottom: 18 },
+    margin: { left: margenLateral, right: margenLateral, top: 22, bottom: 18 },
     didParseCell: (data) => {
       if (data.section === 'body' && resaltarFila?.(rows[data.row.index], data.row.index)) {
         data.cell.styles.fillColor = [253, 231, 227]

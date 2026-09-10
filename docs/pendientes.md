@@ -2,6 +2,10 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): el PDF exportado desde Feligresia (censo, 15
+	columnas) se veia amontonado e ilegible -- el generador compartido
+	de PDF usaba tamano de letra fijo sin importar cuantas columnas
+	hubiera. Ver `docs/fixes/pdf-muchas-columnas-ilegible-2026-09-10.md`.
 - Construido (2026-09-09): certificado de bautismo descargable desde
 	la ficha del amigo (Amigos.jsx), disenado a partir de un ejemplo
 	real de la IPUC, aprobado por el usuario tras varias iteraciones de
