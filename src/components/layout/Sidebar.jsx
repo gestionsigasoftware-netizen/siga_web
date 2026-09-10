@@ -57,6 +57,25 @@ function FamilyNetworkIcon({ className }) {
   );
 }
 
+// Mientras el rol todavia se esta cargando (justo tras iniciar sesion o al
+// recargar la pagina), rolPrincipal es null y todos los items con
+// show: nivel === '...' se ocultan -- sin este skeleton, el sidebar
+// mostraba por un instante un menu real pero reducido (parece un perfil
+// sin permisos, en vez de leerse como "cargando").
+function SidebarNavSkeleton() {
+  const anchos = [85, 70, 90, 65, 80, 60, 75, 55];
+  return (
+    <div className="flex flex-col gap-1.5 w-full" aria-hidden="true">
+      {anchos.map((ancho, index) => (
+        <div key={index} className="flex items-center gap-3 px-3 py-2.5 animate-pulse">
+          <div className="w-4 h-4 rounded bg-white/10 flex-shrink-0" />
+          <div className="h-3 rounded bg-white/10" style={{ width: `${ancho}%` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function formatDistrictLabel(nombre, numero) {
   if (!nombre) return null;
   return numero ? `Distrito ${numero} · ${nombre}` : nombre;
@@ -68,7 +87,7 @@ export default function Sidebar() {
   const [organization, setOrganization] = useState(null);
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { roles, rolPrincipal, elegirRol } = useMiRol();
+  const { roles, rolPrincipal, loading: rolLoading, elegirRol } = useMiRol();
   const nivel = rolPrincipal?.nivel;
   const rolLocal = rolPrincipal?.rol_local || "pastor";
   const puedeConfigurar = nivel === "local" && rolLocal === "pastor";
@@ -357,20 +376,24 @@ export default function Sidebar() {
 
         <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
         <nav className="flex flex-col gap-1.5 w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto md:pr-1">
-          {items.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `navbtn ${isActive ? "navbtn-active" : ""}`
-              }
-            >
-              <Icon className="w-[17px] h-[17px]" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+          {rolLoading ? (
+            <SidebarNavSkeleton />
+          ) : (
+            items.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `navbtn ${isActive ? "navbtn-active" : ""}`
+                }
+              >
+                <Icon className="w-[17px] h-[17px]" />
+                <span>{label}</span>
+              </NavLink>
+            ))
+          )}
         </nav>
 
         <button

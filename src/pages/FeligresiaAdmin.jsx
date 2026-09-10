@@ -306,7 +306,11 @@ export default function FeligresiaAdmin() {
   const [notice, setNotice] = useState(null)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [canEdit, setCanEdit] = useState(false)
+  // null = todavía no se confirmó el permiso (no mostrar el aviso de "solo
+  // lectura" -- eso se veía por un instante como un perfil sin permisos en
+  // cada navegación hacia esta pantalla, mientras el rol/permiso real
+  // seguía cargando). false = confirmado que no puede editar.
+  const [canEdit, setCanEdit] = useState(null)
   const [dialog, setDialog] = useState(null)
   const [importRows, setImportRows] = useState([])
   const [importError, setImportError] = useState(null)
@@ -954,10 +958,10 @@ export default function FeligresiaAdmin() {
   function startNewPerson() { setSelected(null); setForm(EMPTY_PERSON); setShowForm(true) }
   function editPerson(person) { if (!canEdit) return; setSelected(person); setForm({ ...EMPTY_PERSON, ...person, fecha_bautismo: person.fecha_bautismo || '', fecha_sellado: person.fecha_sellado || '', fecha_ingreso: person.fecha_ingreso || '', fecha_ultima_asistencia: person.fecha_ultima_asistencia || '', familia_id: person.familia_id || '' }); setShowForm(true) }
 
-  return <div className={`flex flex-col gap-6 ${canEdit ? '' : 'feligresia-read-only'}`}>
+  return <div className={`flex flex-col gap-6 ${canEdit === false ? 'feligresia-read-only' : ''}`}>
     {loading && <p role="status" className="text-sm text-muted bg-surface-1 rounded p-3">Cargando información de feligresía...</p>}
     <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Administración local</p><h1 className="text-2xl font-semibold">Feligresía</h1><p className="text-sm text-secondary mt-1">Censo, familias, comités y seguimiento pastoral.</p></div><div className="flex flex-wrap gap-2">{canEdit && <label className="btn-secondary cursor-pointer" title="Importar CSV o Excel"><Download className="w-4 h-4" /> Importar<input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} /></label>}<ExportButtons onCsv={exportPeopleCsv} onExcel={exportPeopleExcel} onPdf={exportPeoplePdf} />{canEdit && <button onClick={startNewPerson} className="btn-primary"><Plus className="w-4 h-4" /> Registrar persona</button>}</div></header>
-    {!canEdit && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Modo consulta: tu perfil puede revisar la feligresía, pero no modificarla.</p>}
+    {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Modo consulta: tu perfil puede revisar la feligresía, pero no modificarla.</p>}
     {importError && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3"><p>{importError}</p>{importRowErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{importRowErrors.map((message) => <li key={message}>{message}</li>)}</ul>}</div>}
     {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Operación</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className={`py-2 pr-3 ${row.operation === 'actualizar' ? 'text-accent' : 'text-success'}`}>{row.operation}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Metric label="Personas activas" value={active} accent /><Metric label="Bautizados" value={baptized} /><Metric label="Sellados" value={sealed} /><Metric label="Apartados" value={apart} info="Sigue siendo miembro, pero se alejó temporalmente de la vida activa de la congregación. No es lo mismo que 'Inactivo' o 'Trasladado'." /><Metric label="Familias asociadas" value={familiesWithPeople} /></div>

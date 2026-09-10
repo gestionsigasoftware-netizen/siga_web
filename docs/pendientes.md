@@ -2,6 +2,11 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): al iniciar sesion o recargar, por un instante
+	el sidebar se veia con pocos modulos y Feligresia mostraba "Modo
+	consulta" como si fuera un perfil sin permisos -- era una carrera de
+	carga del rol, no un problema real de permisos. Ver
+	`docs/fixes/flash-permisos-al-cargar-2026-09-10.md`.
 - Construido (2026-09-10): informe trimestral (Bautizados, Sellados,
 	Reconciliados, Entregados) automatico Local -> Distrital -> Nacional,
 	sin envio manual por WhatsApp/correo. Ver
