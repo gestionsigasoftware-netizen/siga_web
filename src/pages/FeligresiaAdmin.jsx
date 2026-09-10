@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react'
-import { ArrowRightLeft, Award, BarChart3, CheckCircle2, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
+import { ArrowRightLeft, Award, BarChart3, CheckCircle2, ClipboardList, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { UMBRAL_DIAS_NUEVO_BAUTIZADO, diasDesde } from '../lib/rutaEvangelistica'
 import { getRangosEdadComite, sugerirComites } from '../lib/comitesPorPoblacion'
+import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
@@ -427,7 +428,7 @@ export default function FeligresiaAdmin() {
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(location.search).get('tab')
-    if (['personas', 'familias', 'comites', 'seguimiento', 'historial'].includes(requestedTab)) setTab(requestedTab)
+    if (['personas', 'familias', 'comites', 'seguimiento', 'historial', 'informe'].includes(requestedTab)) setTab(requestedTab)
     const personId = new URLSearchParams(location.search).get('persona')
     const person = people.find((item) => item.id === personId)
     if (person) editPerson(person)
@@ -960,7 +961,7 @@ export default function FeligresiaAdmin() {
     {importError && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3"><p>{importError}</p>{importRowErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{importRowErrors.map((message) => <li key={message}>{message}</li>)}</ul>}</div>}
     {importRows.length > 0 && <section className="card p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium">Vista previa de importación</h2><p className="text-xs text-secondary mt-1">{importRows.length} filas listas. Las familias no encontradas quedarán sin asociación.</p></div><div className="flex gap-2"><button type="button" onClick={() => setImportRows([])} className="btn-secondary">Cancelar</button><button type="button" onClick={importPeople} disabled={saving} className="btn-primary">{saving ? 'Importando...' : 'Confirmar importación'}</button></div></div><div className="overflow-x-auto mt-3"><table className="w-full text-xs"><thead><tr className="text-left border-b border-border"><th className="py-2 pr-3">Nombre</th><th className="py-2 pr-3">Operación</th><th className="py-2 pr-3">Estado</th><th className="py-2 pr-3">Bautizado</th><th className="py-2">Familia</th></tr></thead><tbody>{importRows.slice(0, 5).map((row) => <tr key={row.row} className="border-b border-border"><td className="py-2 pr-3">{row.nombres} {row.apellidos}</td><td className={`py-2 pr-3 ${row.operation === 'actualizar' ? 'text-accent' : 'text-success'}`}>{row.operation}</td><td className="py-2 pr-3">{STATES[row.estado_membresia]}</td><td className="py-2 pr-3">{row.bautizado ? 'Sí' : 'No'}</td><td className="py-2">{row.familia || 'Sin familia'}</td></tr>)}</tbody></table></div></section>}
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Metric label="Personas activas" value={active} accent /><Metric label="Bautizados" value={baptized} /><Metric label="Sellados" value={sealed} /><Metric label="Apartados" value={apart} info="Sigue siendo miembro, pero se alejó temporalmente de la vida activa de la congregación. No es lo mismo que 'Inactivo' o 'Trasladado'." /><Metric label="Familias asociadas" value={familiesWithPeople} /></div>
-    <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de feligresía" role="tablist">{[['personas', 'Población', UsersRound], ['familias', 'Familias', HeartHandshake], ['comites', 'Comités', HeartHandshake], ['seguimiento', 'Seguimiento pastoral', HeartHandshake], ['traslados', `Traslados${traslados.length ? ` (${traslados.length})` : ''}`, ArrowRightLeft], ['historial', 'Evolución', BarChart3]].map(([key, label, Icon]) => <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? 'border-accent text-accent' : 'border-transparent text-secondary'}`}><Icon className="w-4 h-4" />{label}</button>)}</nav>
+    <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de feligresía" role="tablist">{[['personas', 'Población', UsersRound], ['familias', 'Familias', HeartHandshake], ['comites', 'Comités', HeartHandshake], ['seguimiento', 'Seguimiento pastoral', HeartHandshake], ['traslados', `Traslados${traslados.length ? ` (${traslados.length})` : ''}`, ArrowRightLeft], ['historial', 'Evolución', BarChart3], ['informe', 'Informe trimestral', ClipboardList]].map(([key, label, Icon]) => <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? 'border-accent text-accent' : 'border-transparent text-secondary'}`}><Icon className="w-4 h-4" />{label}</button>)}</nav>
     {error && !showForm && <div role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs self-start sm:self-auto">Reintentar</button></div>}
     {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
     {tab === 'comites' && <><CommitteeFilters status={committeeStatusFilter} setStatus={setCommitteeStatusFilter} cargo={committeeCargoFilter} setCargo={setCommitteeCargoFilter} person={committeePersonFilter} setPerson={setCommitteePersonFilter} validity={committeeValidityFilter} setValidity={setCommitteeValidityFilter} cargos={committeeCargoCatalog} people={analyticsPeople} /><CommitteeCreateForm onSubmit={saveCommittee} saving={saving} name={committeeName} setName={setCommitteeName} code={committeeCode} setCode={setCommitteeCode} type={committeeType} setType={setCommitteeType} types={committeeTypes} description={committeeDescription} setDescription={setCommitteeDescription} purpose={committeePurpose} setPurpose={setCommitteePurpose} start={committeeStart} setStart={setCommitteeStart} end={committeeEnd} setEnd={setCommitteeEnd} responsible={committeeResponsible} setResponsible={setCommitteeResponsible} notes={committeeNotes} setNotes={setCommitteeNotes} people={analyticsPeople} /></>}
@@ -1006,6 +1007,7 @@ export default function FeligresiaAdmin() {
     {tab === 'familias' && <section className="flex flex-col gap-4">{canEdit && <form onSubmit={saveFamily} className="card p-4 grid sm:grid-cols-[1.2fr_1fr_0.8fr_auto] gap-2"><input required className="input-field" placeholder="Nombre de la nueva familia" value={familyName} onChange={(event) => setFamilyName(event.target.value)} /><input className="input-field" placeholder="Dirección" value={familyAddress} onChange={(event) => setFamilyAddress(event.target.value)} /><input className="input-field" placeholder="Teléfono" value={familyPhone} onChange={(event) => setFamilyPhone(event.target.value)} /><button disabled={saving} className="btn-primary whitespace-nowrap"><Plus className="w-4 h-4" /> Crear familia</button></form>}<div className="card p-4"><label className="text-sm">Consultar árbol familiar<select className="input-field mt-1.5" value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)}><option value="">Selecciona un núcleo familiar</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><p className="text-xs text-secondary mt-2">Un núcleo puede compartir personas con otra familia. La ficha de cada persona se mantiene única.</p></div><FamilyTree familyId={selectedFamilyId} families={families} members={familyMembers} relations={familyRelations} people={analyticsPeople} canEdit={canEdit} onOpenPerson={editPerson} onRefresh={() => setReloadToken((current) => current + 1)} /><div className="grid md:grid-cols-2 gap-4">{families.map((family) => <div key={family.id} className="card p-5"><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{family.nombre_familia}</h2>{canEdit && <button type="button" className="text-xs text-accent" onClick={() => renameFamily(family)}>Editar nombre</button>}</div>{(family.direccion || family.telefono) && <p className="text-xs text-secondary mt-2">{family.direccion || 'Sin dirección'}{family.telefono ? ` · ${family.telefono}` : ''}</p>}<p className="text-sm text-secondary mt-1">{analyticsPeople.filter((person) => person.familia_id === family.id).length} integrantes asociados</p>{analyticsPeople.filter((person) => person.familia_id === family.id).map((person) => <p key={person.id} className="text-xs text-muted mt-2">{person.nombres} {person.apellidos}</p>)}</div>)}</div>{families.length === 0 && <Empty text="Aún no hay familias registradas." />}</section>}
     {tab === 'comites' && <section className="flex flex-col gap-4"><form onSubmit={assignCommittee} className="card p-4 grid sm:grid-cols-3 gap-2"><select required name="comite_id" className="input-field"><option value="">Comité...</option>{committees.filter((committee) => committee.activo).map((committee) => <option key={committee.id} value={committee.id}>{committee.nombre}</option>)}</select><select required name="persona_id" className="input-field"><option value="">Integrante...</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex gap-2">{committeeCargoCatalog.length > 0 ? <select required name="cargo_id" className="input-field"><option value="">Cargo...</option>{committeeCargoCatalog.map((cargo) => <option key={cargo.id} value={cargo.id}>{cargo.nombre}</option>)}</select> : <input required name="cargo" className="input-field" placeholder="Cargo (configúralos en Configuración)" />}<button disabled={saving} className="btn-secondary px-3" title="Asignar integrante"><Plus className="w-4 h-4" /></button></div></form><div className="grid md:grid-cols-2 gap-4">{committees.map((committee) => <div key={committee.id} className={`card p-5 ${!committee.activo ? 'opacity-60' : ''}`}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{committee.nombre}</h2><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => renameCommittee(committee)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => deactivateCommittee(committee)}>{committee.activo ? 'Desactivar' : 'Reactivar'}</button></div></div><p className="text-sm text-secondary mt-1">{committee.membresias_comite?.filter((member) => !member.fecha_fin).length ?? 0} integrantes activos</p><div className="flex flex-col gap-2 mt-4">{committeeMemberGroups(committee, committeeCargoCatalog).map((group) => <div key={group.key}><p className="text-xs font-medium text-secondary">{group.label}{group.members.length > 1 ? ` (${group.members.length})` : ''}</p>{group.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-2 mt-1"><span className="text-xs bg-surface-1 rounded px-2 py-1">{people.find((person) => person.id === member.persona_id)?.nombres || 'Integrante'} {people.find((person) => person.id === member.persona_id)?.apellidos || ''}</span><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => editCommitteeMember(member)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => removeCommitteeMember(member)}>Retirar</button></div></div>)}</div>)}</div></div>)}</div>{committees.length === 0 && <Empty text="Aún no hay comités registrados." />}</section>}
     {tab === 'historial' && <><CommitteeAnalytics people={analyticsPeople} committees={allCommittees} cargos={committeeCargoCatalog} audit={committeeAudit} /><FeligresiaInsights people={analyticsPeople} families={families} committees={committees} cargoHistory={cargoHistory} followups={pastoralFollowups} alerts={pastoralAlerts} /></>}
+    {tab === 'informe' && <InformeTrimestralLocal congregacionId={congregacionId} />}
     {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} rangosEdad={rangosEdad} pastoralFollowups={pastoralFollowups} movimientosMembresia={movimientosMembresia} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} onSaveMovimiento={saveMovimiento} onReconciliar={reconciliarPersona} trasladoBusqueda={trasladoBusqueda} trasladoResultados={trasladoResultados} trasladoDestinoId={trasladoDestinoId} setTrasladoDestinoId={setTrasladoDestinoId} trasladoObservaciones={trasladoObservaciones} setTrasladoObservaciones={setTrasladoObservaciones} savingTraslado={savingTraslado} onBuscarDestino={buscarCongregacionesDestino} onIniciarTraslado={iniciarTraslado} nuevoBautizado={selected ? nuevoBautizadoInfo(selected.id) : null} />}
     {dialog && <AdminDialog dialog={dialog} saving={saving} error={error} close={() => setDialog(null)} />}
   </div>
@@ -1105,6 +1107,85 @@ function Metric({ label, value, accent, info }) {
 
 function Empty({ text }) {
   return <div className="p-10 text-center text-sm text-secondary bg-surface-1 rounded-card border border-dashed border-border">{text}</div>
+}
+
+// Indicador con trazabilidad "cuántos había vs cuánto crecimos" -- usado
+// por Bautizados y Sellados, los dos indicadores que sí son un estado
+// acumulado (a diferencia de Reconciliados, que es un evento puntual).
+function IndicadorTrimestral({ titulo, anterior, nuevos, actual, info }) {
+  return (
+    <div className="summary-card summary-card-default stat-tile">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-secondary flex items-center gap-1.5">{titulo}{info && <InfoTip texto={info} />}</p>
+      <p className="text-3xl font-semibold tracking-tight mt-3">{actual}</p>
+      <p className="text-xs text-secondary mt-2">{anterior} antes <span className="text-muted">→</span> +{nuevos} este trimestre</p>
+    </div>
+  )
+}
+
+// El informe que hoy se arma a mano y se envía por WhatsApp/correo cada
+// trimestre al distrito -- aquí se calcula solo, a partir de los datos que
+// SIGAP ya captura. El rol distrital ve el mismo consolidado automáticamente
+// (PastoralDistrital.jsx), y de ahí sube a nacional -- no hay que "enviar"
+// nada manualmente.
+function InformeTrimestralLocal({ congregacionId }) {
+  const cerrado = trimestreCerradoMasReciente()
+  const [anio, setAnio] = useState(cerrado.anio)
+  const [trimestre, setTrimestre] = useState(cerrado.trimestre)
+  const [resumen, setResumen] = useState(null)
+  const [loadingInforme, setLoadingInforme] = useState(true)
+
+  useEffect(() => {
+    if (!congregacionId) return
+    setLoadingInforme(true)
+    supabase
+      .rpc('resumen_informe_trimestral_congregacion', { p_congregacion_id: congregacionId, ...limitesInformeTrimestral(anio, trimestre) })
+      .then(({ data, error }) => { setLoadingInforme(false); setResumen(error ? null : data?.[0] ?? null) })
+  }, [congregacionId, anio, trimestre])
+
+  const anioActual = new Date().getFullYear()
+  const anios = [anioActual, anioActual - 1, anioActual - 2]
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="card p-4 flex flex-wrap items-center gap-3">
+        <p className="text-sm text-secondary">Estadísticas para reportar al distrito -- se calculan solas, no hay que volver a digitarlas.</p>
+        <label className="text-sm ml-auto">Año<select className="input-field mt-1.5" value={anio} onChange={(event) => setAnio(Number(event.target.value))}>{anios.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label className="text-sm">Trimestre<select className="input-field mt-1.5" value={trimestre} onChange={(event) => setTrimestre(Number(event.target.value))}>{Object.entries(ETIQUETA_TRIMESTRE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      </div>
+      {loadingInforme ? (
+        <SkeletonList rows={4} />
+      ) : resumen ? (
+        <>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <IndicadorTrimestral titulo="Bautizados" anterior={resumen.bautizados_total_anterior} nuevos={resumen.bautizados_nuevos} actual={resumen.bautizados_total_actual} info="Total de feligreses bautizados al cierre de este trimestre. 'Antes' es el total al cierre del trimestre anterior." />
+            <IndicadorTrimestral titulo="Sellados con el Espíritu Santo" anterior={resumen.sellados_total_anterior} nuevos={resumen.sellados_nuevos} actual={resumen.sellados_total_actual} />
+            <div className="summary-card summary-card-default stat-tile">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary flex items-center gap-1.5">Reconciliados<InfoTip texto="Apartados que volvieron a estado Activo. No es un total acumulado -- se compara este trimestre contra el anterior." /></p>
+              <p className="text-3xl font-semibold tracking-tight mt-3">{resumen.reconciliados_actual}</p>
+              <p className="text-xs text-secondary mt-2">{resumen.reconciliados_anterior} el trimestre anterior</p>
+            </div>
+          </div>
+          <div className="card p-5">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-secondary flex items-center gap-1.5">Entregados<InfoTip texto="Personas en la Ruta Evangelística que aún no se bautizan. 'Nuevos' llegaron este trimestre; 'Graduados' ya se bautizaron (también cuentan en Bautizados)." /></p>
+            <div className="grid sm:grid-cols-4 gap-4 mt-3 text-sm">
+              <div><p className="text-2xl font-semibold">{resumen.entregados_total_actual}</p><p className="text-xs text-secondary mt-1">Total actual ({resumen.entregados_total_anterior} antes)</p></div>
+              <div><p className="text-2xl font-semibold text-success">+{resumen.entregados_nuevos}</p><p className="text-xs text-secondary mt-1">Nuevos este trimestre</p></div>
+              <div><p className="text-2xl font-semibold text-accent">{resumen.entregados_graduados}</p><p className="text-xs text-secondary mt-1">Se bautizaron este trimestre</p></div>
+            </div>
+            <div className="border-t border-border mt-4 pt-4">
+              <p className="text-xs text-secondary flex items-center gap-1.5">Hoy mismo, por estación<InfoTip texto="Foto operativa del día de hoy (no del trimestre) -- para saber dónde está cada quien ahora mismo." /></p>
+              <div className="grid grid-cols-4 gap-3 mt-2 text-center">
+                <div><p className="text-lg font-semibold">{resumen.ruta_uno_mas}</p><p className="text-[10px] text-muted uppercase tracking-wide">Uno Más</p></div>
+                <div><p className="text-lg font-semibold">{resumen.ruta_bis}</p><p className="text-[10px] text-muted uppercase tracking-wide">BIS</p></div>
+                <div><p className="text-lg font-semibold">{resumen.ruta_refam}</p><p className="text-[10px] text-muted uppercase tracking-wide">REFAM</p></div>
+                <div><p className="text-lg font-semibold">{resumen.ruta_esfob}</p><p className="text-[10px] text-muted uppercase tracking-wide">ESFOB</p></div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : <Empty text="No se pudo cargar el informe de este trimestre." />}
+    </section>
+  )
 }
 
 function PersonForm({ form, setForm, families, saving, editing, error, close, onSubmit }) { return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><label className="text-sm">Estado<select className="input-field mt-1.5" value={form.estado_membresia} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado</label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.sellado_espiritu_santo} onChange={(event) => setForm({ ...form, sellado_espiritu_santo: event.target.checked })} /> Sellado con el Espíritu Santo</label><Field label="Fecha de sellado" type="date" value={form.fecha_sellado} onChange={(value) => setForm({ ...form, fecha_sellado: value })} /></div><button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div> }

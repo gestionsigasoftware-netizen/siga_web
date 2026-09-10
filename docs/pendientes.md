@@ -2,6 +2,13 @@
 
 ## Prioridad critica antes de produccion
 
+- Construido (2026-09-10): informe trimestral (Bautizados, Sellados,
+	Reconciliados, Entregados) automatico Local -> Distrital -> Nacional,
+	sin envio manual por WhatsApp/correo. Ver
+	`docs/fixes/informe-trimestral-2026-09-10.md`.
+	**Pendiente no bloqueante**: confirmar visualmente las pantallas
+	distrital y nacional con una cuenta real de ese rol (no se pudo
+	probar con clics reales en esta sesion, solo via SQL directo).
 - Resuelto (2026-09-10): el PDF exportado desde Feligresia (censo, 15
 	columnas) se veia amontonado e ilegible -- el generador compartido
 	de PDF usaba tamano de letra fijo sin importar cuantas columnas

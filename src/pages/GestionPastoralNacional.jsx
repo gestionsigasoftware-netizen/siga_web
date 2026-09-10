@@ -3,6 +3,7 @@ import { Search, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import InfoTip from "../components/InfoTip";
+import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from "../lib/trimestre";
 
 const gestionPastoralNacionalCache = new Map();
 
@@ -134,6 +135,12 @@ export default function GestionPastoralNacional() {
   const [distritos, setDistritos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const informeTrimestralCerrado = trimestreCerradoMasReciente();
+  const [informeAnio, setInformeAnio] = useState(informeTrimestralCerrado.anio);
+  const [informeTrimestre, setInformeTrimestre] = useState(informeTrimestralCerrado.trimestre);
+  const [resumenInformeTrimestral, setResumenInformeTrimestral] = useState([]);
+  const [loadingInformeTrimestral, setLoadingInformeTrimestral] = useState(true);
+  const [informeSortKey, setInformeSortKey] = useState("bautizados_nuevos");
 
   useEffect(() => {
     if (!rolPrincipal || !ALLOWED_LEVELS.includes(rolPrincipal.nivel)) return;
@@ -153,6 +160,16 @@ export default function GestionPastoralNacional() {
       gestionPastoralNacionalCache.set(cacheKey, { distritos: nuevosDistritos });
     });
   }, [rolPrincipal]);
+
+  // Aparte del cache de arriba -- depende de un rango de fechas que cambia
+  // con el selector de trimestre, no del cache global sin parametros.
+  useEffect(() => {
+    if (!rolPrincipal || !ALLOWED_LEVELS.includes(rolPrincipal.nivel)) return;
+    setLoadingInformeTrimestral(true);
+    supabase
+      .rpc("resumen_informe_trimestral_nacional", limitesInformeTrimestral(informeAnio, informeTrimestre))
+      .then(({ data, error: rpcError }) => { setLoadingInformeTrimestral(false); setResumenInformeTrimestral(rpcError ? [] : data ?? []); });
+  }, [rolPrincipal, informeAnio, informeTrimestre]);
 
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Validando permisos...</div>;
   if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Esta vista es exclusiva de nacional/super_admin.</p>;
@@ -223,6 +240,51 @@ export default function GestionPastoralNacional() {
             </table>
           </div>
         )}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="font-medium flex items-center gap-1.5">Informe trimestral por distrito<InfoTip texto="Bautizados, sellados, reconciliados y entregados consolidados de cada distrito, para el trimestre elegido. Cada distrito ya suma automaticamente todas sus congregaciones -- reemplaza el reporte manual por WhatsApp/correo." /></h2>
+            <p className="text-sm text-secondary mt-1">Ordena por indicador para ver qué distrito está en mayor crecimiento.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="input-field" value={informeAnio} onChange={(event) => setInformeAnio(Number(event.target.value))}>{[informeTrimestralCerrado.anio, informeTrimestralCerrado.anio - 1, informeTrimestralCerrado.anio - 2].map((value) => <option key={value} value={value}>{value}</option>)}</select>
+            <select className="input-field" value={informeTrimestre} onChange={(event) => setInformeTrimestre(Number(event.target.value))}>{Object.entries(ETIQUETA_TRIMESTRE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            <select className="input-field" value={informeSortKey} onChange={(event) => setInformeSortKey(event.target.value)}>
+              <option value="bautizados_nuevos">Ordenar por Bautizados</option>
+              <option value="sellados_nuevos">Ordenar por Sellados</option>
+              <option value="reconciliados_actual">Ordenar por Reconciliados</option>
+              <option value="entregados_nuevos">Ordenar por Entregados nuevos</option>
+            </select>
+          </div>
+        </div>
+        {loadingInformeTrimestral ? (
+          <p className="p-5 text-sm text-muted">Cargando informe trimestral...</p>
+        ) : resumenInformeTrimestral.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay datos del informe trimestral.</p>
+        ) : (() => {
+          const filasOrdenadas = [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0));
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Distrito</th><th className="font-normal px-5 py-3">Congregaciones</th><th className="font-normal px-5 py-3">Bautizados</th><th className="font-normal px-5 py-3">Sellados</th><th className="font-normal px-5 py-3">Reconciliados</th><th className="font-normal px-5 py-3">Entregados</th></tr></thead>
+                <tbody>
+                  {filasOrdenadas.map((item, index) => (
+                    <tr key={item.distrito_id} className="border-t border-border">
+                      <td className="px-5 py-3 font-medium">{index === 0 && <span className="text-[10px] uppercase tracking-wide text-success mr-1.5">●</span>}{formatDistritoLabel(item.nombre, item.numero)}</td>
+                      <td className="px-5 py-3 text-secondary">{item.congregaciones}</td>
+                      <td className="px-5 py-3">{item.bautizados_total_actual} <span className="text-xs text-success">(+{item.bautizados_nuevos})</span></td>
+                      <td className="px-5 py-3">{item.sellados_total_actual} <span className="text-xs text-success">(+{item.sellados_nuevos})</span></td>
+                      <td className="px-5 py-3">{item.reconciliados_actual} <span className="text-xs text-muted">({item.reconciliados_anterior} antes)</span></td>
+                      <td className="px-5 py-3">{item.entregados_total_actual} <span className="text-xs text-success">(+{item.entregados_nuevos} nuevos)</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </section>
     </div>
   );

@@ -5,6 +5,7 @@ import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
+import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 
 const pastoralDistritalCache = new Map()
 
@@ -180,6 +181,12 @@ export default function PastoralDistrital() {
   const [cargoForm, setCargoForm] = useState({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
   const [savingCargo, setSavingCargo] = useState(false)
   const [tablePages, setTablePages] = useState({})
+  const informeTrimestralCerrado = trimestreCerradoMasReciente()
+  const [informeAnio, setInformeAnio] = useState(informeTrimestralCerrado.anio)
+  const [informeTrimestre, setInformeTrimestre] = useState(informeTrimestralCerrado.trimestre)
+  const [resumenInformeTrimestral, setResumenInformeTrimestral] = useState([])
+  const [loadingInformeTrimestral, setLoadingInformeTrimestral] = useState(true)
+  const [informeSortKey, setInformeSortKey] = useState('bautizados_nuevos')
 
   const TABLE_PAGE_SIZE = 50
   function paginate(key, items) {
@@ -523,6 +530,17 @@ export default function PastoralDistrital() {
   useEffect(() => {
     load()
   }, [distritoId, isDistrictLeader])
+
+  // Aparte del load() general -- depende de un rango de fechas que cambia
+  // con el selector de trimestre, no tiene sentido recalcularlo en cada
+  // accion no relacionada de esta pantalla.
+  useEffect(() => {
+    if (!distritoId || !isDistrictLeader) return
+    setLoadingInformeTrimestral(true)
+    supabase
+      .rpc('resumen_informe_trimestral_distrital', { p_distrito_id: distritoId, ...limitesInformeTrimestral(informeAnio, informeTrimestre) })
+      .then(({ data, error }) => { setLoadingInformeTrimestral(false); setResumenInformeTrimestral(error ? [] : data ?? []) })
+  }, [distritoId, isDistrictLeader, informeAnio, informeTrimestre])
 
   useEffect(() => {
     loadCatalogoCongregaciones()
@@ -1445,6 +1463,52 @@ export default function PastoralDistrital() {
           })()}
         </section>
       </div>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="font-medium flex items-center gap-1.5">Informe trimestral por congregación<InfoTip texto="Bautizados, sellados, reconciliados y entregados de cada congregación del distrito, para el trimestre elegido. Reemplaza el reporte manual por WhatsApp/correo -- se calcula solo a partir de lo que cada congregación ya registra en SIGAP." /></h2>
+            <p className="text-sm text-secondary mt-1">Ordena por indicador para ver qué congregación está en mayor crecimiento.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="input-field" value={informeAnio} onChange={(event) => setInformeAnio(Number(event.target.value))}>{[informeTrimestralCerrado.anio, informeTrimestralCerrado.anio - 1, informeTrimestralCerrado.anio - 2].map((value) => <option key={value} value={value}>{value}</option>)}</select>
+            <select className="input-field" value={informeTrimestre} onChange={(event) => setInformeTrimestre(Number(event.target.value))}>{Object.entries(ETIQUETA_TRIMESTRE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            <select className="input-field" value={informeSortKey} onChange={(event) => setInformeSortKey(event.target.value)}>
+              <option value="bautizados_nuevos">Ordenar por Bautizados</option>
+              <option value="sellados_nuevos">Ordenar por Sellados</option>
+              <option value="reconciliados_actual">Ordenar por Reconciliados</option>
+              <option value="entregados_nuevos">Ordenar por Entregados nuevos</option>
+            </select>
+          </div>
+        </div>
+        {loadingInformeTrimestral ? (
+          <p className="p-5 text-sm text-muted">Cargando informe trimestral...</p>
+        ) : resumenInformeTrimestral.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Aún no hay datos del informe trimestral en tu distrito.</p>
+        ) : (() => {
+          const filasOrdenadas = [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0))
+          const paged = paginate('informe', filasOrdenadas)
+          return <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5">Reconciliados</th><th className="font-normal px-4 py-2.5">Entregados</th></tr></thead>
+              <tbody>
+                {paged.pageItems.map((item, index) => (
+                  <tr key={item.congregacion_id} className="border-t border-border">
+                    <td className="px-4 py-2.5 font-medium">{paged.page === 0 && index === 0 && <span className="text-[10px] uppercase tracking-wide text-success mr-1.5">●</span>}{item.nombre}</td>
+                    <td className="px-4 py-2.5">{item.bautizados_total_actual} <span className="text-xs text-success">(+{item.bautizados_nuevos})</span></td>
+                    <td className="px-4 py-2.5">{item.sellados_total_actual} <span className="text-xs text-success">(+{item.sellados_nuevos})</span></td>
+                    <td className="px-4 py-2.5">{item.reconciliados_actual} <span className="text-xs text-muted">({item.reconciliados_anterior} antes)</span></td>
+                    <td className="px-4 py-2.5">{item.entregados_total_actual} <span className="text-xs text-success">(+{item.entregados_nuevos} nuevos)</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={filasOrdenadas.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          </>
+        })()}
+      </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
