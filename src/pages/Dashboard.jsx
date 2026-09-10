@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Line, Bar } from 'react-chartjs-2'
-import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Download, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
@@ -15,18 +15,18 @@ import { construirCicloVida } from '../lib/cicloVida'
 import ChartEmpty from '../components/ChartEmpty'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
+import { descargarPdf } from '../lib/reportExport'
 
 ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 const dashboardCache = new Map()
 const CATEGORIA_COLORS = CATEGORIA_COLORS_OBJ.map((color) => [color.line, color.soft])
 
-const NIVEL_TITULO = {
-  super_admin: 'Panel — todas las congregaciones',
-  nacional: 'Panel nacional',
-  distrital: 'Panel distrital',
-  local: 'Resumen de la congregación',
-}
+// Solo se usa como respaldo mientras carga el nombre de la congregación
+// en el componente local -- distrital/nacional/super_admin renderizan
+// DashboardDistrital/DashboardNacional (con su propio título fijo) antes
+// de llegar a este punto, así que esas claves nunca se leen.
+const NIVEL_TITULO_LOCAL = 'Resumen de la congregación'
 
 const ALERT_TYPE_LABELS = { familia: 'Familia', bautismo: 'Bautismo', asistencia_persona: 'Asistencia', asistencia: 'Tendencia', comite: 'Comité' }
 const FRECUENCIAS = [
@@ -140,6 +140,12 @@ function proximosCumpleanos(personas, dias = 30) {
 // senales tal cual, no se inventa un puntaje compuesto que esconda de
 // donde sale el riesgo. Solo se listan personas con 2 o mas senales,
 // para no generar ruido con una sola coincidencia.
+//
+// Importante: la ausencia de `fecha_ultima_asistencia` NO cuenta como
+// senal por si sola -- es un hueco de captura de datos, no evidencia de
+// que la persona se este alejando. Antes se trataba igual que un hueco
+// real de 45-89 dias, lo que inflaba este listado con personas cuyo
+// unico "riesgo" era que nunca se les registro asistencia.
 function calcularRiesgoApartamiento(personas, hoy = new Date()) {
   const hoyMs = hoy.getTime()
   return personas
@@ -148,8 +154,6 @@ function calcularRiesgoApartamiento(personas, hoy = new Date()) {
       if (persona.fecha_ultima_asistencia) {
         const dias = Math.floor((hoyMs - new Date(`${persona.fecha_ultima_asistencia}T00:00:00`).getTime()) / 86400000)
         if (dias >= 45 && dias < 90) senales.push(`${dias} días sin asistir`)
-      } else {
-        senales.push('Sin registro de última asistencia')
       }
       if (!persona.familia_id) senales.push('Sin familia asociada')
       if (!persona.bautizado && persona.fecha_ingreso) {
@@ -281,7 +285,10 @@ function DashboardDistrital({ rolPrincipal }) {
 
   const totalFeligreses = congregaciones.reduce((total, c) => total + Number(c.personas_activas || 0), 0)
   const enCrecimiento = congregaciones.filter((c) => Number(c.personas_nuevas_3m || 0) > 0).length
-  const vacantes = congregaciones.filter((c) => !c.pastor_nombre).length
+  // pastor_id (relacion real, la misma base que usa Gestion Pastoral
+  // Nacional) en vez de pastor_nombre (texto denormalizado que puede
+  // desincronizarse) -- ver nota en bi_fase2_insights.sql.
+  const vacantes = congregaciones.filter((c) => !c.pastor_id).length
   // Idea profunda: comparativa entre pares. Los numeros absolutos de la
   // tabla no dicen si una congregacion crece bien o mal — una grande
   // suma mas "nuevas" en numero puro que una pequena aunque le vaya
@@ -336,10 +343,13 @@ function DashboardDistrital({ rolPrincipal }) {
     <div className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
-        <div className="relative max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
-          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
-          <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
+        <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
+          </div>
+          <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Pastoral Distrital <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
       </section>
 
@@ -580,10 +590,13 @@ function DashboardNacional() {
     <div className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
-        <div className="relative max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
-          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
-          <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
+        <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
+          </div>
+          <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Gestión Pastoral Nacional <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
       </section>
 
@@ -754,7 +767,14 @@ export default function Dashboard() {
   const [categoriaSeleccionadaId, setCategoriaSeleccionadaId] = useState('general')
 
   useEffect(() => {
-    if (!rolPrincipal) return
+    // DashboardDistrital/DashboardNacional son componentes aparte con su
+    // propia carga (mas abajo en este archivo) -- antes este efecto corria
+    // igual para esos roles y su resultado se descartaba por completo
+    // (el componente ya habia hecho `return` antes de llegar al JSX que
+    // usa estos datos), desperdiciando consultas pesadas y sin filtrar:
+    // todas las alertas pastorales de la IPUC, 6 anios de asistencia
+    // agregada y la tabla amigos completa.
+    if (!rolPrincipal || rolPrincipal.nivel !== 'local') return
     let active = true
     const cacheKey = `${rolPrincipal.nivel}:${rolPrincipal.congregacion_id || 'all'}`
     async function load() {
@@ -953,6 +973,12 @@ export default function Dashboard() {
   const leadingChange = leadingTrend?.length > 1 && leadingTrend[0] ? Math.round(((leadingTrend[leadingTrend.length - 1] - leadingTrend[0]) / leadingTrend[0]) * 100) : null
   const variacion = anteriorTotal ? Math.round(((asistentesPeriodo - anteriorTotal) / anteriorTotal) * 100) : null
   const variacionAbsoluta = asistentesPeriodo - anteriorTotal
+  // Variacion propia del promedio por actividad -- antes esta tarjeta
+  // reusaba `variacion` (la variacion del TOTAL de asistentes), que mide
+  // algo distinto: el total puede subir aunque el promedio por actividad
+  // baje (mas actividades, cada una con menos gente), y viceversa.
+  const promedioAnterior = averageSeries.length > 1 ? averageSeries[averageSeries.length - 2] : null
+  const variacionPromedio = promedioAnterior ? Math.round(((promedioPeriodo - promedioAnterior) / promedioAnterior) * 100) : null
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
   const activeAlertCount = Math.max(alertasTotal - handledAlerts.length, 0)
@@ -995,13 +1021,36 @@ export default function Dashboard() {
   const periodChartOptions = { ...chartOptions, plugins: { ...chartOptions.plugins, legend: { display: false } } }
   const seleccionColor = categoriaSeleccionada ? CATEGORIA_COLORS[categorias.findIndex((categoria) => categoria.id === categoriaSeleccionada.id) % CATEGORIA_COLORS.length][0] : '#2a78d6'
 
+  async function descargarResumenPdf() {
+    await descargarPdf({
+      filename: `resumen-${nombreFrecuencia}-${fechaBogota(hoy)}.pdf`,
+      titulo: `Resumen · ${nombreCongregacion || 'Congregación'}`,
+      orientacion: 'landscape',
+      meta: [`Frecuencia: ${FRECUENCIA_LABELS[frecuencia]}`, `Rango: ${etiquetaRango(periodos, formato_fecha)}`],
+      resumen: {
+        kpis: [
+          { label: `Asistentes del ${nombrePeriodo}`, value: registros.length ? asistentesPeriodo : 0 },
+          { label: 'Alertas activas', value: activeAlertCount || pendingAlerts.length },
+          { label: 'Promedio por actividad', value: registros.length ? promedioPeriodo : 0 },
+          { label: resumenFeligresia ? 'Personas activas' : 'Actividades del periodo', value: resumenFeligresia ? resumenFeligresia.personas_activas : cantidadRegistros(registrosPeriodo) },
+        ],
+      },
+      headers: ['Periodo', ...categoriasConTotal.map((categoria) => categoria.nombre), 'Total'],
+      rows: asistenciaPorPeriodo.map((periodo) => [
+        periodo.label,
+        ...categoriasConTotal.map((categoria) => periodo.registros.reduce((total, registro) => total + Number(registro.desglose?.[categoria.id] || 0), 0)),
+        periodo.total,
+      ]),
+    })
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl">
           <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGAP · IPUC'}</p>
-          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO[rolPrincipal?.nivel] ?? 'Tu espacio de gestión'}</h1>
+          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO_LOCAL}</h1>
           <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
         </div>
       </section>
@@ -1011,8 +1060,11 @@ export default function Dashboard() {
           <p className="eyebrow">Resumen</p>
           <h2 className="font-medium mt-1">Lectura de asistencia</h2>
         </div>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Seleccionar frecuencia">
-          {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuencia(valor)} className={`text-xs px-3 py-2 rounded border ${frecuencia === valor ? 'bg-accent text-white border-accent' : 'border-border text-secondary hover:border-accent hover:text-accent'}`}>{etiqueta}</button>)}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Seleccionar frecuencia">
+            {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuencia(valor)} className={`text-xs px-3 py-2 rounded border ${frecuencia === valor ? 'bg-accent text-white border-accent' : 'border-border text-secondary hover:border-accent hover:text-accent'}`}>{etiqueta}</button>)}
+          </div>
+          <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="btn-secondary text-xs px-3 py-2"><Download className="w-3.5 h-3.5" /> Descargar PDF</button>
         </div>
       </section>
 
@@ -1041,7 +1093,7 @@ export default function Dashboard() {
       <div className="grid sm:grid-cols-3 gap-3">
         <StatTile label={`Asistentes del ${nombrePeriodo}`} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? `${cantidadRegistros(registrosPeriodo)} actividades alimentan este resultado.` : 'Esperando los primeros registros.'} />
         <StatTile label="Alertas activas" value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? 'Hay señales que requieren atención.' : 'No hay asuntos pendientes hoy.'} tip="Situaciones que SIGAP detecta solas: familias sin asociar, bautismos pendientes, inasistencia individual o comités sin integrantes." />
-        <StatTile label="Promedio por actividad" value={registros.length ? promedioPeriodo : '—'} tone="success" series={averageSeries} insight={variacion === null ? 'Aún no hay un periodo comparable.' : `${variacion >= 0 ? 'Crecimiento' : 'Descenso'} del ${Math.abs(variacion)}% frente al periodo anterior.`} />
+        <StatTile label="Promedio por actividad" value={registros.length ? promedioPeriodo : '—'} tone={variacionPromedio === null ? 'default' : variacionPromedio >= 0 ? 'success' : 'danger'} series={averageSeries} insight={variacionPromedio === null ? 'Aún no hay un periodo comparable.' : `${variacionPromedio >= 0 ? 'Crecimiento' : 'Descenso'} del ${Math.abs(variacionPromedio)}% frente al periodo anterior.`} />
       </div>
 
       {loadError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{loadError}</p>}
@@ -1061,7 +1113,7 @@ export default function Dashboard() {
               <p className="text-sm text-secondary">{variacion === null ? 'Aún no hay un periodo anterior comparable. Sigue capturando datos para construir una señal confiable.' : variacion < 0 ? `La asistencia bajó ${Math.abs(variacion)}% (${Math.abs(variacionAbsoluta)} registros) frente al periodo anterior. Conviene revisar las actividades con menor participación.` : `La asistencia creció ${variacion}% (${variacionAbsoluta} registros) frente al periodo anterior. Identifica qué actividad está impulsando este resultado.`}{ultimoRegistro && <span className="block text-xs text-muted mt-1">Último registro: {ultimoRegistro.fecha}</span>}</p>
             </div>
           </div>
-          <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">Composición</p><h2 className="font-medium mt-1">Dónde está el volumen</h2></div>{categoriaPrincipal && <span className="chart-highlight">{leadingShare}% líder</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="h-52"><Line data={volumeChartData} options={chartOptions} /></div><p className="summary-insight mt-3">{categoriaPrincipal.nombre} concentra {leadingShare}% de la asistencia registrada{leadingChange === null ? '.' : leadingChange >= 0 ? ` y creció ${leadingChange}% en las últimas seis ventanas.` : ` y bajó ${Math.abs(leadingChange)}% en las últimas seis ventanas.`}</p></> : <p className="text-sm text-muted py-10">Aún no hay desglose por categorías.</p>}</div>
+          <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">Composición</p><h2 className="font-medium mt-1">Dónde está el volumen</h2></div>{categoriaPrincipal && <span className="chart-highlight">{leadingShare}% líder</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="flex flex-col gap-2 mt-2">{categoriasConTotal.slice(0, 5).map((categoria, index) => <div key={categoria.id} className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 text-secondary"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0] }} />{categoria.nombre}</span><span className="font-medium">{categoria.total}</span></div>)}</div><p className="summary-insight mt-4">{categoriaPrincipal.nombre} concentra {leadingShare}% de la asistencia registrada{leadingChange === null ? '.' : leadingChange >= 0 ? ` y creció ${leadingChange}% en las últimas seis ventanas.` : ` y bajó ${Math.abs(leadingChange)}% en las últimas seis ventanas.`} Ver el detalle completo en "Evolución {nombreFrecuencia}" más abajo.</p></> : <p className="text-sm text-muted py-10">Aún no hay desglose por categorías.</p>}</div>
         </section>
       )}
 
@@ -1102,10 +1154,10 @@ export default function Dashboard() {
         return (
           <section className="grid grid-cols-2 lg:grid-cols-6 gap-3">
             <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
-            <StatTile label="Bautizados" value={resumenFeligresia.bautizados} />
+            <StatTile label="Bautizados" value={resumenFeligresia.bautizados} tip="Total en vivo, ahora mismo. El Informe trimestral de Feligresía muestra en cambio una foto al cierre de un trimestre -- pueden no coincidir si no estás en el trimestre actual." />
             <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
             <StatTile label="Apartados" value={resumenFeligresia.apartados} />
-            <StatTile label="Reconciliados" value={movimientos3m.reconciliaciones} tip="Personas apartadas que volvieron a estado Activo en los últimos 90 días." />
+            <StatTile label="Reconciliados (90 días)" value={movimientos3m.reconciliaciones} tip="Personas apartadas que volvieron a estado Activo en los últimos 90 días corridos. Es distinto del número que ves en Feligresía → Informe trimestral, que se acota al trimestre calendario exacto -- pueden no coincidir." />
             <StatTile
               label="Proyección a 12 meses"
               value={resumenFeligresia.personas_activas ? proyeccion12m : '—'}
@@ -1127,9 +1179,9 @@ export default function Dashboard() {
       )}
 
       <div className="card chart-card p-5">
-        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
+        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div>{hasData && <span className="chart-live-dot" title="Datos de registros reales" />}</div>
         <div style={{ height: 260 }}>
-          <Line data={chartData} options={chartOptions} />
+          {hasData ? <Line data={chartData} options={chartOptions} /> : <ChartEmpty message="Aún no hay registros de actividad para graficar aquí." />}
         </div>
       </div>
 

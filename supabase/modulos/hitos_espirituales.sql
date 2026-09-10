@@ -12,13 +12,19 @@ alter table personas add column if not exists fecha_sellado date;
 -- create or replace view no permite insertar una columna en medio de las
 -- existentes (solo agregar al final) sin que Postgres lo interprete como un
 -- rename; por eso "sellados" va despues de "apartados", no junto a "bautizados".
+--
+-- Actualizado 2026-09-10: familias_asociadas ahora filtra
+-- estado_membresia = 'activo' igual que personas_activas/bautizados/
+-- sellados -- antes contaba familias de CUALQUIER persona (incluidas
+-- apartadas/trasladadas/fallecidas), inflando el numero frente a lo que
+-- el tile "Familias" (junto a "Personas activas") da a entender.
 create or replace view vw_resumen_feligresia with (security_invoker = true) as
 select
   congregacion_id,
   count(*) filter (where estado_membresia = 'activo') as personas_activas,
   count(*) filter (where estado_membresia = 'activo' and bautizado) as bautizados,
   count(*) filter (where estado_membresia = 'apartado') as apartados,
-  count(distinct familia_id) filter (where familia_id is not null) as familias_asociadas,
+  count(distinct familia_id) filter (where estado_membresia = 'activo' and familia_id is not null) as familias_asociadas,
   count(*) filter (where estado_membresia = 'activo' and sellado_espiritu_santo) as sellados
 from personas
 group by congregacion_id;

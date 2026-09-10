@@ -2,6 +2,13 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): auditoria completa del modulo Resumen
+	(local/distrital/nacional) -- 7 bugs reales corregidos (tile que
+	media una cosa y rotulaba otra, grafico vacio sin aviso, seccion
+	rota por catalogo faltante, conteo inflado, falsos positivos de
+	riesgo, grafico duplicado, sin exportar), desperdicio de carga en
+	distrital/nacional cortado, y "Vacantes de pastor" unificado a una
+	sola fuente. Ver `docs/fixes/auditoria-resumen-2026-09-10.md`.
 - Construido (2026-09-10): boton "Descargar PDF" en el informe
 	trimestral, en los 3 niveles (local, distrital, nacional). Ver
 	`docs/fixes/informe-trimestral-descarga-pdf-2026-09-10.md`.

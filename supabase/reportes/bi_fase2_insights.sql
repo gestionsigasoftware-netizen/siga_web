@@ -4,6 +4,15 @@
 -- REFAM, embudo de conversión de la Ruta, movimiento de membresía y madurez
 -- de la obra. Ejecutar despues de hitos_espirituales.sql y
 -- gestion_pastoral_distrital_v2.sql. Es repetible.
+--
+-- Actualizado 2026-09-10: se agrego pastor_id a las columnas de retorno.
+-- "Vacantes de pastor" se calculaba en el cliente (Dashboard.jsx) con
+-- `!pastor_nombre` (campo de texto denormalizado), mientras que
+-- resumen_pastoral_nacional() -- la fuente de Gestion Pastoral Nacional --
+-- ya usaba `pastor_id is null` (la relacion real, mantenida por el flujo
+-- de asignaciones_pastorales). Si ambos campos llegan a desincronizarse,
+-- las dos pantallas podian mostrar cifras de vacantes distintas para el
+-- mismo distrito. pastor_id queda como la base unica.
 
 -- CREATE OR REPLACE FUNCTION no permite cambiar la lista de columnas de
 -- retorno de una funcion returns table(...); hay que borrarla primero.
@@ -17,6 +26,7 @@ returns table (
   estado text,
   madurez text,
   pastor_nombre text,
+  pastor_id uuid,
   personas_activas bigint,
   bautizados bigint,
   sellados bigint,
@@ -40,6 +50,7 @@ language sql stable security invoker set search_path = public as $$
     c.estado,
     c.madurez,
     c.pastor_nombre,
+    c.pastor_id,
     coalesce(r.personas_activas, 0),
     coalesce(r.bautizados, 0),
     coalesce(r.sellados, 0),

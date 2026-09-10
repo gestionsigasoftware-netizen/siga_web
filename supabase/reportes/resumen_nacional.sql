@@ -9,6 +9,13 @@
 -- ninguna funcion que agregara metricas por distrito a escala nacional
 -- (solo resumen_distrital(p_distrito_id), que agrega por congregacion
 -- dentro de UN distrito).
+--
+-- Actualizado 2026-09-10: "vacantes" pasa de `pastor_nombre is null`
+-- (texto denormalizado) a `pastor_id is null` (la relacion real,
+-- mantenida por asignaciones_pastorales) -- misma base que ya usa
+-- resumen_pastoral_nacional() en Gestion Pastoral Nacional, para que
+-- ambas pantallas no puedan mostrar cifras distintas de "vacantes" para
+-- el mismo distrito si los dos campos llegan a desincronizarse.
 
 create or replace function resumen_nacional()
 returns table (
@@ -41,7 +48,7 @@ language sql stable security invoker set search_path = public as $$
     d.numero,
     d.nombre,
     count(c.id) as congregaciones,
-    count(c.id) filter (where c.pastor_nombre is null) as vacantes,
+    count(c.id) filter (where c.pastor_id is null) as vacantes,
     coalesce(sum(r.personas_activas), 0),
     coalesce(sum(r.bautizados), 0),
     coalesce(sum(r.sellados), 0),
