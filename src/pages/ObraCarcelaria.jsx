@@ -22,10 +22,12 @@ import {
 import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
-import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
+import { chartOptions, trendDataset, distributionDataset, paletteAt } from "../lib/chartTheme";
 import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -344,7 +346,7 @@ export default function ObraCarcelaria() {
   const mitad = Math.floor(trend.length / 2) || 1;
   const primeraMitad = trend.slice(0, mitad).reduce((sum, item) => sum + item.total, 0);
   const segundaMitad = trend.slice(mitad).reduce((sum, item) => sum + item.total, 0);
-  const tendenciaVariacion = primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
+  const tendenciaVariacion = trend.length >= 2 && primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
 
   const ultimaVisitaPorInterno = new Map();
   seguimientos.forEach((item) => {
@@ -357,14 +359,42 @@ export default function ObraCarcelaria() {
     : "Registra internos y delegados para construir una lectura del trabajo carcelario.";
 
   const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistencia" });
-  const poblacionChartData = distributionDataset(
-    [
-      { label: "Asistencia acumulada", total: asistenciaAcumulada },
-      { label: "Bautizados", total: bautizados.length },
-      { label: "Sellados", total: sellados.length },
+  const poblacionChartData = {
+    labels: ["Asistencia acumulada", "Bautizados", "Sellados"],
+    datasets: [
+      { label: "Asistencia (personas-culto)", data: [asistenciaAcumulada, null, null], backgroundColor: paletteAt(0).line, yAxisID: "y1" },
+      { label: "Personas", data: [null, bautizados.length, sellados.length], backgroundColor: paletteAt(1).line, yAxisID: "y" },
     ],
-    { datasetLabel: "Total" }
-  );
+  };
+  const POBLACION_CHART_OPTIONS = {
+    ...CHART_OPTIONS,
+    plugins: { ...CHART_OPTIONS.plugins, legend: { ...CHART_OPTIONS.plugins.legend, display: true, position: "top", align: "start" } },
+    scales: {
+      ...CHART_OPTIONS.scales,
+      y: { ...CHART_OPTIONS.scales.y, position: "left", title: { display: true, text: "Personas" } },
+      y1: { ...CHART_OPTIONS.scales.y, position: "right", grid: { display: false }, title: { display: true, text: "Asistencia acumulada" } },
+    },
+  };
+
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Internos activos", value: activos.length },
+        { label: "Bautizados", value: bautizados.length },
+        { label: "Sellados", value: sellados.length },
+        { label: "Delegados habilitados", value: delegadosHabilitados.length },
+      ],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Nombre", "Centro", "Patio", "Estado", "Bautizado", "Sellado", "Última visita familiar"],
+      rows: internos.map((item) => [`${item.nombres} ${item.apellidos}`, item.centros_reclusion?.nombre || "—", item.patio || "—", ESTADO_INTERNO_LABELS[item.estado] || item.estado, item.bautizado ? "Sí" : "No", item.sellado ? "Sí" : "No", ultimaVisitaPorInterno.get(item.id) || "Sin registro"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `obra-carcelaria-${hoyBogota()}.csv`, titulo: "Obra Carcelaria — Internos", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `obra-carcelaria-${hoyBogota()}.xlsx`, hoja: "Internos", titulo: "Obra Carcelaria — Internos", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `obra-carcelaria-${hoyBogota()}.pdf`, titulo: "Obra Carcelaria — Internos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
@@ -374,10 +404,13 @@ export default function ObraCarcelaria() {
           <h1 className="section-title flex items-center gap-2"><LockKeyhole className="w-6 h-6 text-accent" />Obra Carcelaria</h1>
           <p className="text-sm text-secondary mt-1">Asistencia interna en el centro de reclusión, seguimiento familiar externo y reinserción eclesial post-penitenciaria.</p>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-          {PERIODOS.map(([value, label]) => (
-            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+            {PERIODOS.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -406,7 +439,7 @@ export default function ObraCarcelaria() {
           <p className="eyebrow">Población flotante vs. membresía interna</p>
           <h2 className="font-medium mt-1">Asistencia vs. hitos espirituales</h2>
           <div className="h-56 mt-4">
-            {cultos.length ? <Bar data={poblacionChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin datos registrados todavía." />}
+            {cultos.length ? <Bar data={poblacionChartData} options={POBLACION_CHART_OPTIONS} /> : <ChartEmpty message="Sin datos registrados todavía." />}
           </div>
         </div>
       </section>

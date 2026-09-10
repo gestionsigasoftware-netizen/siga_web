@@ -18,6 +18,9 @@ import { chartOptions, trendDataset, distributionDataset } from "../lib/chartThe
 import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import Pager from "../components/Pager";
 import InfoTip from "../components/InfoTip";
+import ChartEmpty from "../components/ChartEmpty";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(
   BarElement,
@@ -329,7 +332,11 @@ export default function MisionJuvenil() {
     ["simpatizante", "refam", "discipulado"].includes(student.estado),
   ).length;
   const activeStudents = students.filter((student) => student.estado !== "inactivo").length;
-  const activeGroups = grupos.filter((group) => group.activo !== false).length;
+  const activeGroups = grupos.filter(
+    (group) =>
+      group.activo !== false &&
+      (institucionFiltro === "todos" || group.institucion_id === institucionFiltro),
+  ).length;
   const establishedInstitutions = instituciones.filter((institution) => institution.fase === 3).length;
   const studentsPerGroup = activeGroups ? Math.round(students.length / activeGroups) : 0;
   const baptismRate = activeStudents ? Math.round((baptized / activeStudents) * 100) : 0;
@@ -360,6 +367,28 @@ export default function MisionJuvenil() {
   const insight = topInstitution?.estudiantes
     ? `${topInstitution.nombre} concentra ${topInstitution.estudiantes} estudiantes registrados. Prioriza allí los tutores y grupos que sostengan la continuidad.`
     : "Registra instituciones y estudiantes para construir una lectura de impacto juvenil.";
+
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Estudiantes activos", value: activeStudents },
+        { label: "Grupos activos", value: activeGroups },
+        { label: "Bautizados", value: baptized },
+        { label: "Sellados", value: sealed },
+      ],
+      desgloses: [{ titulo: "Estudiantes por estado", items: statusRows.map((item) => ({ label: item.label, valor: item.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Institución", "Estudiantes", "Grupos", "Fase"],
+      rows: institutionRows.map((item) => [item.nombre, item.estudiantes, item.grupos, item.fase === 3 ? "Establecida" : `Fase ${item.fase ?? "—"}`]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `mision-juvenil-${hoyBogota()}.csv`, titulo: "Misión Juvenil — Instituciones", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `mision-juvenil-${hoyBogota()}.xlsx`, hoja: "Instituciones", titulo: "Misión Juvenil — Instituciones", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `mision-juvenil-${hoyBogota()}.pdf`, titulo: "Misión Juvenil — Instituciones", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   async function createInstitution(event) {
     event.preventDefault();
     setSaving(true);
@@ -507,21 +536,24 @@ export default function MisionJuvenil() {
             Instituciones, estudiantes, grupos REFAM y crecimiento espiritual.
           </p>
         </div>
-        <div
-          className="flex gap-1.5"
-          role="group"
-          aria-label="Periodo del análisis"
-        >
-          {PERIODOS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setPeriodo(value)}
-              className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="flex gap-1.5"
+            role="group"
+            aria-label="Periodo del análisis"
+          >
+            {PERIODOS.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPeriodo(value)}
+                className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && (
@@ -605,21 +637,30 @@ export default function MisionJuvenil() {
         <div className="card chart-card p-5">
           <p className="eyebrow">Actividad juvenil registrada</p>
           <h2 className="font-medium mt-1">Actividad juvenil</h2>
+          <p className="text-xs text-secondary mt-1">Asistencia de todo el ministerio; no varía con los filtros de institución o estado espiritual de arriba.</p>
           <div className="h-56 mt-4">
-            <Line
-              data={trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" })}
-              options={CHART_OPTIONS}
-            />
+            {trend.length ? (
+              <Line
+                data={trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" })}
+                options={CHART_OPTIONS}
+              />
+            ) : (
+              <ChartEmpty message="Aún no hay actividades registradas en el periodo." />
+            )}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Crecimiento</p>
           <h2 className="font-medium mt-1">Estado de estudiantes</h2>
           <div className="h-56 mt-4">
-            <Bar
-              data={distributionDataset(statusRows, { datasetLabel: "Estudiantes" })}
-              options={CHART_OPTIONS}
-            />
+            {students.length ? (
+              <Bar
+                data={distributionDataset(statusRows, { datasetLabel: "Estudiantes" })}
+                options={CHART_OPTIONS}
+              />
+            ) : (
+              <ChartEmpty message="Aún no hay estudiantes que coincidan con los filtros." />
+            )}
           </div>
         </div>
       </section>

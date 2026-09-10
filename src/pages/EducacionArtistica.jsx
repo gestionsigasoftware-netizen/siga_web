@@ -17,6 +17,8 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const educacionArtisticaCache = new Map();
@@ -211,7 +213,7 @@ export default function EducacionArtistica() {
   const mitad = Math.floor(trend.length / 2) || 1;
   const primeraMitad = trend.slice(0, mitad).reduce((sum, item) => sum + item.total, 0);
   const segundaMitad = trend.slice(mitad).reduce((sum, item) => sum + item.total, 0);
-  const tendenciaVariacion = primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
+  const tendenciaVariacion = trend.length >= 2 && primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
 
   const disciplinasConTotal = Object.entries(DISCIPLINAS).map(([value, label]) => ({
     label,
@@ -234,6 +236,27 @@ export default function EducacionArtistica() {
   const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" });
   const disciplinasChartData = distributionDataset(disciplinasConTotal, { datasetLabel: "Integrantes" });
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Grupos activos", value: gruposActivos.length },
+        { label: "Integrantes activos", value: integrantesActivos.length },
+        { label: "Asistencia promedio", value: promedioSesion },
+        { label: "Sesiones registradas", value: todasSesiones.length },
+      ],
+      desgloses: [{ titulo: "Integrantes por disciplina", items: disciplinasConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Grupo", "Disciplina", "Integrantes", "Asistencia promedio", "Instructor"],
+      rows: gruposConDatos.map((grupo) => [grupo.nombre, DISCIPLINAS[grupo.disciplina] || grupo.disciplina, grupo.integrantesCount, grupo.asistenciaPromedio, grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin asignar"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `educacion-artistica-${hoyBogota()}.csv`, titulo: "Educación Artística — Grupos", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `educacion-artistica-${hoyBogota()}.xlsx`, hoja: "Grupos", titulo: "Educación Artística — Grupos", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `educacion-artistica-${hoyBogota()}.pdf`, titulo: "Educación Artística — Grupos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -242,10 +265,13 @@ export default function EducacionArtistica() {
           <h1 className="section-title flex items-center gap-2"><Palette className="w-6 h-6 text-accent" />Educación Artística</h1>
           <p className="text-sm text-secondary mt-1">Formación artística con enfoque bíblico: danza, teatro y artes visuales.</p>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-          {PERIODOS.map(([value, label]) => (
-            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+            {PERIODOS.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -257,7 +283,7 @@ export default function EducacionArtistica() {
         <Metric label="Integrantes activos" value={integrantesActivos.length} progress={integrantesActivos.length ? 100 : 0} detail={`${integrantesPorGrupo} por grupo`} insight={integrantesActivos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer integrante para iniciar."} />
         <Metric label="Asistencia promedio" value={promedioSesion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={`${todasSesiones.length} sesiones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Sesiones registradas" value={todasSesiones.length} progress={todasSesiones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasSesiones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay sesiones registradas en el periodo."} />
-        <Metric label="Disciplina líder" value={disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={integrantesActivos.length ? Math.round((disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={`${disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} integrantes`} insight="Compara danza, teatro y artes visuales para balancear el ministerio." />
+        <Metric label="Disciplina líder" value={integrantesActivos.length ? (disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={integrantesActivos.length ? Math.round((disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={`${disciplinasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} integrantes`} insight={integrantesActivos.length ? "Compara danza, teatro y artes visuales para balancear el ministerio." : "Registra integrantes activos para identificar la disciplina predominante."} />
         <Metric label="Grupos por integrante" value={integrantesPorGrupo} progress={integrantesActivos.length ? Math.min(100, integrantesPorGrupo * 20) : 0} detail="Promedio de cobertura" insight="Grupos muy grandes pueden necesitar dividirse para dar mejor formación." tip="Promedio de integrantes que tiene cada grupo activo." />
       </section>
 

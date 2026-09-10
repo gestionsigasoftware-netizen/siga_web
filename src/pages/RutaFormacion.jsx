@@ -10,6 +10,8 @@ import { chartOptions, distributionDataset, trendDataset } from "../lib/chartThe
 import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getComitesActivos, getEstacion, iniciarOMoverEstacion, reasignarComiteResponsable, trasladarEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const rutaFormacionCache = new Map();
@@ -405,6 +407,33 @@ export default function RutaFormacion({ mode }) {
       ? `${filas.length} persona${filas.length === 1 ? "" : "s"} activa${filas.length === 1 ? "" : "s"}, con un promedio de ${promedioDias} días.`
       : "Aún no hay procesos activos.";
 
+  function exportResumen() {
+    const kpis = [
+      { label: config.activeLabel, value: active },
+      { label: "Completados", value: completed },
+      { label: mode === "esfob" ? "Candidatos a trasladar" : "Requieren seguimiento", value: candidatos.length },
+    ];
+    if (mode === "discipulado") kpis.push({ label: "Tasa de éxito", value: discipuladoStats.tasaExito === null ? "Sin datos" : `${discipuladoStats.tasaExito}%` });
+    return {
+      kpis,
+      desgloses: mode === "esfob" ? [{ titulo: "Personas en ESFOB por zona", items: zonaRows.map((row) => ({ label: row.nombre, valor: row.total })) }] : [],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Persona", mode === "esfob" ? "Zona" : "Estado", "Días", mode === "esfob" ? "Responsable" : "Mentor"],
+      rows: filas.map((row) => {
+        const responsible = findName(row.responsable_persona_id || row.mentor_persona_id);
+        const responsableTexto = row.responsable_comite ? `Comité ${row.responsable_comite.nombre}` : responsible ? `${responsible.nombres} ${responsible.apellidos}` : "Sin asignar";
+        const nombrePersona = row.person ? `${row.person.nombres || ""} ${row.person.apellidos || ""}`.trim() : "—";
+        return [nombrePersona, mode === "esfob" ? row.zonaNombre : (ESTADOS_DISCIPULADO[row.estado] || row.estado), row.dias ?? 0, responsableTexto];
+      }),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `${mode}-${hoyBogota()}.csv`, titulo: `${config.title} — Procesos activos`, ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `${mode}-${hoyBogota()}.xlsx`, hoja: config.title, titulo: `${config.title} — Procesos activos`, resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `${mode}-${hoyBogota()}.pdf`, titulo: `${config.title} — Procesos activos`, orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   // Analitica de Discipulado: tendencia de inicios, distribucion por
   // estado y tasa de exito -- calculadas sobre `rows`, que ya trae TODO
   // el historico (no solo los activos), sin necesidad de otra consulta.
@@ -444,7 +473,10 @@ export default function RutaFormacion({ mode }) {
           <h1 className="section-title">{config.title}</h1>
           <p className="text-sm text-secondary mt-1">{config.description}</p>
         </div>
-        {canEdit && <button type="button" className="btn-primary" onClick={() => setShowForm((current) => !current)}><Plus className="w-4 h-4" />{showForm ? "Cerrar registro" : "Iniciar proceso"}</button>}
+        <div className="flex items-center gap-2">
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
+          {canEdit && <button type="button" className="btn-primary" onClick={() => setShowForm((current) => !current)}><Plus className="w-4 h-4" />{showForm ? "Cerrar registro" : "Iniciar proceso"}</button>}
+        </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
@@ -470,18 +502,18 @@ export default function RutaFormacion({ mode }) {
       </form>}
       <section className={mode === "discipulado" ? "grid sm:grid-cols-3 lg:grid-cols-6 gap-3" : "grid sm:grid-cols-4 gap-3"}>
         <Metric label={config.activeLabel} value={active} />
-        <Metric label="Completados" value={completed} tone="text-success" />
+        <Metric label="Completados" value={completed} tone={completed ? "text-success" : ""} />
         {mode === "discipulado" && <Metric label="Personas acompañadas" value={rows.length} />}
         <Metric label="Lecciones completadas" value={totalLessons} />
-        <Metric label={mode === "esfob" ? "Candidatos a trasladar" : "Requieren seguimiento"} value={candidatos.length} tone="text-warning" tip={mode === "esfob" ? "Personas que ya completaron todas las lecciones del catálogo -- revisa si están listas para el bautismo." : `Personas que llevan más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`} />
-        {mode === "discipulado" && <Metric label="Tasa de éxito" value={discipuladoStats.tasaExito === null ? "—" : `${discipuladoStats.tasaExito}%`} tone={discipuladoStats.tasaExito !== null && discipuladoStats.tasaExito < 70 ? "text-danger" : "text-success"} tip="De los procesos ya finalizados (completados o retirados), qué porcentaje terminó como 'Completado'. Sin procesos finalizados todavía se muestra '—'." />}
+        <Metric label={mode === "esfob" ? "Candidatos a trasladar" : "Requieren seguimiento"} value={candidatos.length} tone={candidatos.length ? "text-warning" : ""} tip={mode === "esfob" ? "Personas que ya completaron todas las lecciones del catálogo -- revisa si están listas para el bautismo." : `Personas que llevan más de ${umbral} días en discipulado -- conviene revisar continuidad, mentoría y servicio actual.`} />
+        {mode === "discipulado" && <Metric label="Tasa de éxito" value={discipuladoStats.tasaExito === null ? "—" : `${discipuladoStats.tasaExito}%`} tone={discipuladoStats.tasaExito === null ? "" : discipuladoStats.tasaExito < 70 ? "text-danger" : "text-success"} tip="De los procesos ya finalizados (completados o retirados), qué porcentaje terminó como 'Completado'. Sin procesos finalizados todavía se muestra '—'." />}
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
       {insightLecciones && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightLecciones}</p>}
       {mode === "esfob" && <section className="card chart-card p-5">
         <p className="eyebrow">Cobertura territorial</p>
         <h2 className="font-medium mt-1">Personas en ESFOB por zona</h2>
-        <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
+        <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay datos." />}</div>
       </section>}
       {mode === "discipulado" && <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
@@ -492,7 +524,7 @@ export default function RutaFormacion({ mode }) {
         <div className="card chart-card p-5">
           <p className="eyebrow">Estado actual</p>
           <h2 className="font-medium mt-1">Personas por estado</h2>
-          <div className="h-56 mt-4">{rows.length ? <Bar data={discipuladoStats.distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
+          <div className="h-56 mt-4">{discipuladoStats.distribucion.labels.length ? <Bar data={discipuladoStats.distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay procesos registrados." />}</div>
         </div>
       </section>}
       <section className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">

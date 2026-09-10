@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): auditoria y correccion de graficos/indicadores
+	en el resto de la web (18 pantallas con react-chartjs-2, fuera del
+	modulo Resumen ya auditado aparte): tonos fijos que no reflejaban el
+	valor real, "lider falso" mostrado con datos en cero, bug de "1 dia
+	de historial = -100%", ausencia de riesgo real tratada como riesgo
+	(miembros recien ingresados marcados "sin seguimiento"), grafico
+	con dos magnitudes muy distintas en una sola escala (separado a
+	doble eje), conteo mal rotulado ("amigos en ruta" que en realidad
+	incluia convertidos), columna "Responsable" que nunca mostraba el
+	nombre, promedio distorsionado al filtrar por institucion,
+	graficos sin estado vacio. Ver
+	`docs/fixes/auditoria-graficos-resto-modulos-2026-09-10.md`.
+	Ademas se agrego boton de exportar (CSV/Excel/PDF) a las 15
+	pantallas que no lo tenian, confirmado con el usuario.
 - Resuelto (2026-09-10): auditoria completa del modulo Resumen
 	(local/distrital/nacional) -- 7 bugs reales corregidos (tile que
 	media una cosa y rotulaba otra, grafico vacio sin aviso, seccion

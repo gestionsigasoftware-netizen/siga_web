@@ -17,6 +17,8 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const escuelaDominicalCache = new Map();
@@ -274,6 +276,27 @@ export default function EscuelaDominical() {
   const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" });
   const etapasChartData = distributionDataset(etapasConTotal, { labelKey: "etapa", datasetLabel: "Niños" });
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Clases activas", value: clasesActivas.length },
+        { label: "Niños activos", value: ninosActivos.length },
+        { label: "Maestros activos", value: maestrosActivos.length },
+        { label: "Clases sin maestro", value: claseSinMaestro },
+      ],
+      desgloses: [{ titulo: "Niños por etapa", items: etapasConTotal.map((item) => ({ label: item.etapa, valor: item.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Clase", "Etapa", "Niños", "Asistencia promedio", "Maestro líder"],
+      rows: clasesConDatos.map((clase) => [clase.nombre, clase.etapa, clase.ninosCount, clase.asistenciaPromedio, clase.personas ? `${clase.personas.nombres} ${clase.personas.apellidos}` : "Sin asignar"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `escuela-dominical-${hoyBogota()}.csv`, titulo: "Escuela Dominical — Clases", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `escuela-dominical-${hoyBogota()}.xlsx`, hoja: "Clases", titulo: "Escuela Dominical — Clases", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `escuela-dominical-${hoyBogota()}.pdf`, titulo: "Escuela Dominical — Clases", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -282,10 +305,13 @@ export default function EscuelaDominical() {
           <h1 className="section-title">Escuela Dominical</h1>
           <p className="text-sm text-secondary mt-1">Niños por edades y etapas, metodologías de trabajo y censo de maestros.</p>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-          {PERIODOS.map(([value, label]) => (
-            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+            {PERIODOS.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -298,7 +324,7 @@ export default function EscuelaDominical() {
         <Metric label="Maestros activos" value={maestrosActivos.length} progress={maestrosActivos.length ? Math.min(100, maestrosActivos.length * 20) : 0} detail={`${clasesActivas.length ? Math.round(maestrosActivos.length / clasesActivas.length * 100) : 0}% cobertura por clase`} insight={maestrosActivos.length < clasesActivas.length ? "Hay menos maestros que clases activas: revisa cobertura." : "Cobertura de maestros adecuada."} />
         <Metric label="Asistencia promedio" value={promedioLeccion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={ninosActivos.length ? Math.min(100, Math.round((promedioLeccion / ninosActivos.length) * 100)) : 0} detail={`${todasLecciones.length} lecciones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
         <Metric label="Lecciones registradas" value={todasLecciones.length} progress={todasLecciones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasLecciones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay lecciones registradas en el periodo."} />
-        <Metric label="Niños por etapa líder" value={etapasConTotal.sort((a, b) => b.total - a.total)[0]?.etapa || "—"} progress={ninosActivos.length ? Math.round((etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / ninosActivos.length * 100) : 0} detail={`${etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} niños`} insight="Concentra materiales y capacitación según la etapa con más niños." />
+        <Metric label="Niños por etapa líder" value={ninosActivos.length ? (etapasConTotal.sort((a, b) => b.total - a.total)[0]?.etapa ?? "—") : "—"} progress={ninosActivos.length ? Math.round((etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / ninosActivos.length * 100) : 0} detail={`${etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} niños`} insight={ninosActivos.length ? "Concentra materiales y capacitación según la etapa con más niños." : "Registra niños activos para identificar la etapa con más niños."} />
         <Metric label="Bautizados" value={ninosBautizados.length} progress={ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0} detail={`${ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0}% de los activos`} insight="Bautizado y sellado son hitos independientes: compáralos con la métrica de sellados." />
         <Metric label="Sellados" value={ninosSellados.length} progress={ninosActivos.length ? Math.round((ninosSellados.length / ninosActivos.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
       </section>

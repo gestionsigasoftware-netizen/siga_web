@@ -7,6 +7,9 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
+import { hoyBogota } from "../lib/fechaBogota";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -102,12 +105,39 @@ export default function ImpactoMisionero() {
   );
   const alcance = esLocal ? "tu congregación" : nivel === "distrital" ? "tu distrito" : "la IPUC en Colombia";
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Personas alcanzadas", value: personasAlcanzadas },
+        { label: "Internos en Obra Carcelaria", value: internosActivos },
+        { label: "Estudiantes en Misión Juvenil", value: estudiantesActivos },
+        { label: "Casos de Obra Social", value: casosActivos },
+      ],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Frente", "Personas/casos activos", "Detalle"],
+      rows: [
+        ["Obra Carcelaria", internosActivos, `${internosBautizados} bautizados`],
+        ["Misión Juvenil", estudiantesActivos, `${estudiantesBautizados} bautizados · ${data.institucionesCount} instituciones`],
+        ["Obra Social", casosActivos, `${casosResueltos} resueltos`],
+      ],
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `impacto-misionero-${hoyBogota()}.csv`, titulo: `Impacto Misionero — ${alcance}`, ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `impacto-misionero-${hoyBogota()}.xlsx`, hoja: "Impacto", titulo: `Impacto Misionero — ${alcance}`, resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `impacto-misionero-${hoyBogota()}.pdf`, titulo: `Impacto Misionero — ${alcance}`, resumen: exportResumen(), ...exportHeaders() }); }
+
   return (
     <div className="page-shell">
-      <header>
-        <p className="eyebrow">Frentes misioneros</p>
-        <h1 className="section-title">Impacto Misionero</h1>
-        <p className="text-sm text-secondary mt-1">Alcance combinado de Obra Carcelaria, Misión Juvenil y Obra Social en {alcance}.</p>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Frentes misioneros</p>
+          <h1 className="section-title">Impacto Misionero</h1>
+          <p className="text-sm text-secondary mt-1">Alcance combinado de Obra Carcelaria, Misión Juvenil y Obra Social en {alcance}.</p>
+        </div>
+        <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}

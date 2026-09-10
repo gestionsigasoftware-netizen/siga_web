@@ -4,10 +4,13 @@ import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } fro
 import { ArrowLeft, ArrowRightLeft, Plus, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const estacionUnoMasCache = new Map();
@@ -121,6 +124,26 @@ export default function EstacionUnoMas() {
       ? `${filas.length} amigo${filas.length === 1 ? "" : "s"} en Uno Más, con un promedio de ${promedioDias} días en la estación.`
       : "Aún no hay amigos activos en Uno Más. Agrega el primero desde el formulario.";
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Activos", value: filas.length },
+        { label: "Candidatos a trasladar", value: candidatos.length },
+        { label: "Promedio de días", value: promedioDias },
+      ],
+      desgloses: [{ titulo: "Amigos en Uno Más por zona", items: zonaRows.map((row) => ({ label: row.nombre, valor: row.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Amigo", "Zona", "Días en Uno Más", "Responsable", "Compromiso"],
+      rows: filas.map((row) => [row.amigos?.nombres || "—", row.amigos?.zonas?.nombre || "Sin zona", row.dias ?? 0, row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : "Sin asignar", row.compromiso ? (COMPROMISO_ESTADOS[row.compromiso.estado] || row.compromiso.estado) : "Sin compromiso"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `uno-mas-${hoyBogota()}.csv`, titulo: "Uno Más — Amigos activos", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `uno-mas-${hoyBogota()}.xlsx`, hoja: "Uno Más", titulo: "Uno Más — Amigos activos", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `uno-mas-${hoyBogota()}.pdf`, titulo: "Uno Más — Amigos activos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   async function agregar(event) {
     event.preventDefault();
     if (!canEdit || !form.amigoId || !form.responsableId || !estacion) return;
@@ -195,12 +218,13 @@ export default function EstacionUnoMas() {
           <h1 className="section-title">Uno Más</h1>
           <p className="text-sm text-secondary mt-1">{estacion?.descripcion || "Sensibilización y tarea de todos."}</p>
         </div>
+        <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activos</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Amigos que llevan más de ${UMBRAL} días en Uno Más, o cuyo compromiso ya se cumplió. Revisa si están listos para pasar a BIS o REFAM.`} /></p><p className="text-2xl font-semibold mt-3 text-warning">{candidatos.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Amigos que llevan más de ${UMBRAL} días en Uno Más, o cuyo compromiso ya se cumplió. Revisa si están listos para pasar a BIS o REFAM.`} /></p><p className={`text-2xl font-semibold mt-3 ${candidatos.length ? "text-warning" : ""}`}>{candidatos.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Promedio de días</p><p className="text-2xl font-semibold mt-3">{promedioDias}</p></div>
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>

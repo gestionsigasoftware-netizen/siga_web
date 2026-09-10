@@ -17,6 +17,8 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -85,7 +87,7 @@ export default function DamasDorcas() {
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
     const [b, a, s, p] = await Promise.all([
-      supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, bautizado, fecha_bautismo, sellado, fecha_sellado, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
+      supabase.from("damas_dorcas_beneficiarias").select("id, nombres, apellidos, telefono, direccion, estado, responsable_persona_id, bautizado, fecha_bautismo, sellado, fecha_sellado, created_at, personas:responsable_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("damas_dorcas_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("damas_dorcas_asistencia").select("id, actividad_id, beneficiaria_id, asistio, damas_dorcas_actividades!inner(congregacion_id, fecha)").eq("damas_dorcas_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
@@ -184,6 +186,13 @@ export default function DamasDorcas() {
   const segundaMitad = trend.slice(mitad).reduce((sum, item) => sum + item.total, 0);
   const tendenciaVariacion = primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
 
+  const hace30 = fechaBogota(new Date(Date.now() - 30 * 86400000));
+  const hace60 = fechaBogota(new Date(Date.now() - 60 * 86400000));
+  const actividadesPenultimoMes = actividades.filter((item) => item.fecha >= hace60 && item.fecha < hace30).length;
+  const variacion30Dias = actividadesPenultimoMes
+    ? Math.round(((actividadesUltimoMes.length - actividadesPenultimoMes) / actividadesPenultimoMes) * 100)
+    : null;
+
   // Distribución por tipo de actividad
   const tiposConTotal = Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => ({
     label,
@@ -201,7 +210,11 @@ export default function DamasDorcas() {
   });
   const beneficiariasSinSeguimiento = activas.filter((item) => {
     const ultima = ultimaActividadPorBeneficiaria.get(item.id);
-    if (!ultima) return true;
+    if (!ultima) {
+      if (!item.created_at) return true;
+      const diasDesdeIngreso = Math.floor((hoy - new Date(item.created_at)) / 86400000);
+      return diasDesdeIngreso > DIAS_INACTIVIDAD;
+    }
     const dias = Math.floor((hoy - new Date(`${ultima}T00:00:00`)) / 86400000);
     return dias > DIAS_INACTIVIDAD;
   });
@@ -213,6 +226,27 @@ export default function DamasDorcas() {
   const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Actividades" });
   const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Actividades" });
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Beneficiarias activas", value: activas.length },
+        { label: "Actividades (30 días)", value: actividadesUltimoMes.length },
+        { label: "Sin seguimiento reciente", value: beneficiariasSinSeguimiento.length },
+        { label: "Bautizadas", value: bautizadas.length },
+      ],
+      desgloses: [{ titulo: "Actividades por tipo", items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Nombre", "Estado", "Responsable", "Bautizada", "Sellada", "Última actividad"],
+      rows: beneficiarias.map((item) => [`${item.nombres} ${item.apellidos}`, item.estado === "activa" ? "Activa" : "Inactiva", item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : "Sin asignar", item.bautizado ? "Sí" : "No", item.sellado ? "Sí" : "No", ultimaActividadPorBeneficiaria.get(item.id) || "Sin registro"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `damas-dorcas-${hoyBogota()}.csv`, titulo: "Damas Dorcas — Beneficiarias", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `damas-dorcas-${hoyBogota()}.xlsx`, hoja: "Beneficiarias", titulo: "Damas Dorcas — Beneficiarias", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `damas-dorcas-${hoyBogota()}.pdf`, titulo: "Damas Dorcas — Beneficiarias", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -221,10 +255,13 @@ export default function DamasDorcas() {
           <h1 className="section-title">Damas Dorcas</h1>
           <p className="text-sm text-secondary mt-1">Trabajo evangelístico, social y espiritual con mujeres de la congregación y su entorno.</p>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-          {PERIODOS.map(([value, label]) => (
-            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+            {PERIODOS.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -233,9 +270,9 @@ export default function DamasDorcas() {
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Beneficiarias activas" value={activas.length} progress={activas.length ? 100 : 0} detail={`${beneficiarias.length} registradas en total`} insight={activas.length ? "Cada beneficiaria debe tener una responsable de seguimiento." : "Registra la primera beneficiaria para iniciar el trabajo."} />
-        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
+        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={variacion30Dias === null || variacion30Dias >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={variacion30Dias === null ? "Aún no hay suficiente historial para comparar." : `${variacion30Dias >= 0 ? "Creció" : "Bajó"} ${Math.abs(variacion30Dias)}% frente a los 30 días anteriores.`} />
         <Metric label="Sin seguimiento reciente" value={beneficiariasSinSeguimiento.length} tone={beneficiariasSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activas.length ? Math.round((beneficiariasSinSeguimiento.length / activas.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={beneficiariasSinSeguimiento.length > 0 ? "Revisa la lista y programa una visita." : "Todas las beneficiarias tienen seguimiento reciente."} />
-        <Metric label="Tipo de trabajo líder" value={tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label || "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={`${tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} actividades`} insight="Compara con las demás modalidades para balancear el trabajo." />
+        <Metric label="Tipo de trabajo líder" value={actividades.length ? (tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={`${tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} actividades`} insight={actividades.length ? "Compara con las demás modalidades para balancear el trabajo." : "Registra actividades para identificar el tipo de trabajo predominante."} />
         <Metric label="Bautizadas" value={bautizadas.length} progress={activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0} detail={`${activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0}% de las activas`} insight="Bautizado y sellado son hitos independientes: compara con la métrica de selladas." />
         <Metric label="Selladas" value={selladas.length} progress={activas.length ? Math.round((selladas.length / activas.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
       </section>

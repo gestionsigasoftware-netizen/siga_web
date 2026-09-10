@@ -217,8 +217,8 @@ export default function Sepri() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Solicitudes pendientes" value={pendientes.length} tone={pendientes.length ? "text-warning" : ""} />
         <Metric label="Aprobadas (12 meses)" value={aprobadas12m.length} />
-        <Metric label="Cumplimiento del plazo" value={cumplimiento === null ? "—" : `${cumplimiento}%`} tone={cumplimiento !== null && cumplimiento < 70 ? "text-danger" : "text-success"} info="Porcentaje de solicitudes de los últimos 12 meses presentadas con 30 días de anticipación o más, como exige el protocolo." />
-        <Metric label="Delegados activos" value={delegadosActivos.length} tone={delegadosVencidos.length ? "text-danger" : "text-success"} detail={delegadosVencidos.length ? `${delegadosVencidos.length} con certificación por revisar` : undefined} />
+        <Metric label="Cumplimiento del plazo" value={cumplimiento === null ? "—" : `${cumplimiento}%`} tone={cumplimiento === null ? "" : cumplimiento < 70 ? "text-danger" : "text-success"} info="Porcentaje de solicitudes de los últimos 12 meses presentadas con 30 días de anticipación o más, como exige el protocolo." />
+        <Metric label="Delegados activos" value={delegadosActivos.length} tone={!delegadosActivos.length ? "" : delegadosVencidos.length ? "text-danger" : "text-success"} detail={delegadosVencidos.length ? `${delegadosVencidos.length} con certificación por revisar` : undefined} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>

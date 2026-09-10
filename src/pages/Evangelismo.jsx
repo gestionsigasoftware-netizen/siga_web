@@ -19,6 +19,9 @@ import { chartOptions, trendDataset, distributionDataset } from "../lib/chartThe
 import { geocodeAddress } from "../lib/geocoding";
 import GeoMap from "../components/charts/GeoMap";
 import InfoTip from "../components/InfoTip";
+import ChartEmpty from "../components/ChartEmpty";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(
   BarElement,
@@ -281,6 +284,9 @@ export default function Evangelismo() {
           (friend) => friend.convertido && friend.zona_id === zone.id,
         ).length,
         amigos: amigos.filter((friend) => friend.zona_id === zone.id).length,
+        enRuta: amigos.filter(
+          (friend) => !friend.convertido && friend.zona_id === zone.id,
+        ).length,
       };
     })
     .sort((a, b) => b.conversiones - a.conversiones);
@@ -341,6 +347,27 @@ export default function Evangelismo() {
     ...(totalAsistencia > 0 && conversionRate < 5 ? [{ title: "Conversión baja", detail: `La conversión sobre asistentes es ${conversionRate}%. Revisa el seguimiento individual.`, tone: "warning" }] : []),
     ...(amigosSinZona ? [{ title: "Amigos sin territorio", detail: `${amigosSinZona} personas no tienen barrio o vereda asignado.`, tone: "danger" }] : []),
   ];
+
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Capturas móviles", value: visibles.length },
+        { label: "Asistencia promedio", value: promedio },
+        { label: "Amigos en ruta", value: amigosEnRuta },
+        { label: "Conversiones", value: totalConversiones },
+      ],
+      desgloses: [{ titulo: "Conversiones por zona", items: zonaRows.map((row) => ({ label: row.nombre, valor: row.conversiones })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Lugar", "Capturas", "Asistencia", "Conversiones", "Amigos en ruta", "Responsable"],
+      rows: zonaRows.map((row) => [row.nombre, row.registros, row.asistencia, row.conversiones, row.enRuta, row.personas ? `${row.personas.nombres} ${row.personas.apellidos}` : "Sin asignar"]),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `evangelismo-${hoyBogota()}.csv`, titulo: "Evangelismo — Rendimiento por barrio o vereda", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `evangelismo-${hoyBogota()}.xlsx`, hoja: "Zonas", titulo: "Evangelismo — Rendimiento por barrio o vereda", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `evangelismo-${hoyBogota()}.pdf`, titulo: "Evangelismo — Rendimiento por barrio o vereda", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   async function createZone(event) {
     event.preventDefault();
@@ -468,21 +495,24 @@ export default function Evangelismo() {
             Consulta la actividad evangelística, sus zonas, metodologías y responsables.
           </p>
         </div>
-        <div
-          className="flex gap-1.5"
-          role="group"
-          aria-label="Periodo del análisis"
-        >
-          {PERIODOS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setPeriodo(value)}
-              className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="flex gap-1.5"
+            role="group"
+            aria-label="Periodo del análisis"
+          >
+            {PERIODOS.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPeriodo(value)}
+                className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && (
@@ -509,7 +539,7 @@ export default function Evangelismo() {
         <Metric
           label="Conversiones"
           value={totalConversiones}
-          tone="text-success"
+          tone={totalConversiones ? "text-success" : ""}
         />
         <Metric label="Conversión / asistente" value={`${conversionRate}%`} detail="Indicador de referencia" info="Compara el total de conversiones con el total de asistentes a capturas en este periodo. Es una referencia general, no mide el seguimiento de cada persona en particular." />
       </section>
@@ -549,20 +579,28 @@ export default function Evangelismo() {
           <p className="eyebrow">Actividad registrada</p>
           <h2 className="font-medium mt-1">Asistencia por captura</h2>
           <div className="h-56 mt-4">
-            <Line
-              data={trendDataset(tendencia.map((item) => item.fecha), tendencia.map((item) => item.total), { label: "Asistentes" })}
-              options={CHART_OPTIONS}
-            />
+            {tendencia.length ? (
+              <Line
+                data={trendDataset(tendencia.map((item) => item.fecha), tendencia.map((item) => item.total), { label: "Asistentes" })}
+                options={CHART_OPTIONS}
+              />
+            ) : (
+              <ChartEmpty message="Aún no hay capturas registradas." />
+            )}
           </div>
         </div>
         <div className="card chart-card p-5">
           <p className="eyebrow">Eficacia</p>
           <h2 className="font-medium mt-1">Conversiones por metodología</h2>
           <div className="h-56 mt-4">
-            <Bar
-              data={distributionDataset(metodoRows, { labelKey: "nombre", valueKey: "conversiones", datasetLabel: "Conversiones" })}
-              options={CHART_OPTIONS}
-            />
+            {metodoRows.length ? (
+              <Bar
+                data={distributionDataset(metodoRows, { labelKey: "nombre", valueKey: "conversiones", datasetLabel: "Conversiones" })}
+                options={CHART_OPTIONS}
+              />
+            ) : (
+              <ChartEmpty message="Aún no hay metodologías con conversiones registradas." />
+            )}
           </div>
           {liderMetodo && (
             <p className="summary-insight mt-3">
@@ -608,6 +646,7 @@ export default function Evangelismo() {
                   <th className="py-2 text-right">Asist.</th>
                   <th className="py-2 text-right">Conv.</th>
                   <th className="py-2 text-right">Responsable</th>
+                  <th className="py-2 text-right"></th>
                 </tr>
               </thead>
               <tbody>
@@ -616,13 +655,16 @@ export default function Evangelismo() {
                     <td className="py-2">
                       <p className="font-medium">{row.nombre}</p>
                       <p className="text-xs text-muted">
-                        {row.amigos} amigos en ruta
+                        {row.enRuta} amigos en ruta
                       </p>
                     </td>
                     <td className="py-2 text-right">{row.registros}</td>
                     <td className="py-2 text-right">{row.asistencia}</td>
                     <td className="py-2 text-right font-medium text-success">
                       {row.conversiones}
+                    </td>
+                    <td className="py-2 text-right text-xs text-secondary">
+                      {row.personas ? `${row.personas.nombres} ${row.personas.apellidos}` : "Sin asignar"}
                     </td>
                     <td className="py-2 text-right">{canEdit && <button type="button" className="text-xs text-accent" onClick={() => { setEditingZoneId(row.id); setZoneEditName(row.nombre); setZoneEditLeader(row.lider_persona_id || ""); setZoneEditDireccion(row.direccion || "") }}>Editar</button>}</td>
                   </tr>
@@ -647,14 +689,6 @@ export default function Evangelismo() {
             </Link>
             .
           </p>
-          <div className="grid grid-cols-2 gap-3 mt-5">
-            <Metric label="Amigos en ruta" value={amigosEnRuta} />
-            <Metric
-              label="Convertidos"
-              value={totalConversiones}
-              tone="text-success"
-            />
-          </div>
         </div>
       </section>
       <section className="grid lg:grid-cols-2 gap-4">
@@ -674,7 +708,7 @@ export default function Evangelismo() {
           <h2 className="font-medium mt-1">Zonas en el mapa</h2>
           <p className="text-xs text-secondary mt-1">Solo aparecen las zonas con dirección registrada. El tamaño del punto es proporcional a los amigos alcanzados.</p>
           <div className="mt-4">
-            <GeoMap points={zonaRows.map((row) => ({ id: row.id, label: row.nombre, valor: row.amigos, latitud: row.latitud, longitud: row.longitud, detalle: `${row.amigos} amigos en ruta · ${row.conversiones} conversiones` }))} />
+            <GeoMap points={zonaRows.map((row) => ({ id: row.id, label: row.nombre, valor: row.amigos, latitud: row.latitud, longitud: row.longitud, detalle: `${row.enRuta} amigos en ruta · ${row.conversiones} conversiones` }))} />
           </div>
         </div>
       </section>

@@ -17,6 +17,8 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
+import ExportButtons from "../components/ExportButtons";
+import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const obraSocialCache = new Map();
@@ -207,6 +209,30 @@ export default function ObraSocial() {
   const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Ayudas" });
   const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Casos abiertos" });
 
+  function exportResumen() {
+    return {
+      kpis: [
+        { label: "Casos abiertos", value: casosAbiertos.length },
+        { label: "Casos resueltos", value: casosResueltos.length },
+        { label: "Prioridad alta", value: casosAltaPrioridad.length },
+        { label: "Sin seguimiento reciente", value: casosSinSeguimiento.length },
+      ],
+      desgloses: [{ titulo: "Casos abiertos por tipo de necesidad", items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+    };
+  }
+  function exportHeaders() {
+    return {
+      headers: ["Familia", "Tipo de necesidad", "Prioridad", "Estado", "Responsable", "Fecha de apertura", "Última ayuda"],
+      rows: casos.map((item) => {
+        const responsable = personas.find((persona) => persona.id === item.responsable_persona_id);
+        return [item.familias?.nombre_familia || "—", TIPO_NECESIDAD_LABELS[item.tipo_necesidad] || item.tipo_necesidad, PRIORIDAD_LABELS[item.prioridad] || item.prioridad, ESTADO_LABELS[item.estado] || item.estado, responsable ? `${responsable.nombres} ${responsable.apellidos}` : "Sin asignar", item.fecha_apertura || "—", ultimaAyudaPorCaso.get(item.id) || "Sin registro"];
+      }),
+    };
+  }
+  function exportCsv() { descargarCsv({ filename: `obra-social-${hoyBogota()}.csv`, titulo: "Obra Social — Casos", ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `obra-social-${hoyBogota()}.xlsx`, hoja: "Casos", titulo: "Obra Social — Casos", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `obra-social-${hoyBogota()}.pdf`, titulo: "Obra Social — Casos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -215,10 +241,13 @@ export default function ObraSocial() {
           <h1 className="section-title flex items-center gap-2"><HandHeart className="w-6 h-6 text-accent" />Obra Social</h1>
           <p className="text-sm text-secondary mt-1">Asistencia socioeconómica a hermanos de la congregación que carecen de recursos.</p>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-          {PERIODOS.map(([value, label]) => (
-            <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+            {PERIODOS.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+            ))}
+          </div>
+          <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
