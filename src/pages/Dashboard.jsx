@@ -1127,8 +1127,7 @@ export default function Dashboard() {
       )}
 
       <div className="card chart-card p-5">
-        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
-          <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
+        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><span className="chart-live-dot" title="Datos de registros reales" /></div>
         <div style={{ height: 260 }}>
           <Line data={chartData} options={chartOptions} />
         </div>

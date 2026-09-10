@@ -2,6 +2,11 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-09): el Dashboard mostraba el titulo "Evolucion
+	mensual / Participacion por categoria" duplicado sobre el mismo
+	grafico -- remanente de marcado (dos `<div>` de encabezado en vez
+	de uno) de una edicion anterior. Ver
+	`docs/fixes/encabezado-duplicado-evolucion-mensual-2026-09-09.md`.
 - Resuelto (2026-09-08): a partir de un testimonio real de un lider
 	distrital sobre como se recogen hoy las estadisticas en campo, se
 	construyo la "reconciliacion" de apartados como estadistica propia
