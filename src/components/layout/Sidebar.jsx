@@ -289,7 +289,7 @@ export default function Sidebar() {
   ].filter((i) => i.show);
 
   return (
-    <aside className={`sidebar-shell w-full flex-shrink-0 fixed left-0 right-0 top-0 z-50 flex flex-col p-3 md:w-[248px] md:right-auto md:h-screen md:p-4 ${mobileOpen ? "h-screen" : "h-16"}`}>
+    <aside className={`sidebar-shell w-full flex-shrink-0 fixed left-0 right-0 top-0 z-50 flex flex-col p-3 md:w-[248px] md:right-auto md:h-dvh md:p-4 ${mobileOpen ? "h-dvh" : "h-16"}`}>
       <div className="flex items-center justify-between gap-3 px-2 h-16 md:h-auto md:pt-1 md:pb-5 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div>

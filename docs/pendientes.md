@@ -2,6 +2,14 @@
 
 ## Prioridad critica antes de produccion
 
+- Resuelto (2026-09-10): el boton "Cerrar sesion" no aparecia en el
+	menu hamburguesa en moviles reales (reportado por el usuario desde
+	su celular en sigap.com.co). Causa: el drawer usaba `h-screen`
+	(100vh), que en Safari iOS/Android no descuenta la barra de
+	direcciones, asi que el contenedor con scroll nunca detectaba
+	desbordamiento real y el boton quedaba fuera del area visible sin
+	forma de alcanzarlo. Cambiado a `h-dvh`. Ver
+	`docs/fixes/boton-cerrar-sesion-invisible-movil-2026-09-10.md`.
 - Resuelto (2026-09-10): auditoria y mejoras de "Gestion pastoral"
 	(rol distrital, `PastoralDistrital.jsx`) -- 3 bugs corregidos
 	(consultas desperdiciadas en Continuidad pendiente por un array
