@@ -17,50 +17,20 @@ export default function InicioPublico() {
   return (
     <main className="min-h-screen bg-[#f3f0e9] text-ink">
       <style>{`
-        /* Fondo ambiental refinado: manchas de color grandes y muy
-           difuminadas (blur) que se desplazan despacio, en vez de un
-           degradado animado con background-position -- esa tecnica
-           anterior (igual que la de Login) produce "banding" (bandas /
-           efecto Mach band) visibles al animarse, inherente a la
-           tecnica misma, no a los colores elegidos. Sin bordes duros,
-           el blur elimina el banding por completo. Confinado al
-           contenedor del hero (overflow:hidden) para no invadir la
-           seccion oscura de modulos de abajo. */
-        .inicio-ambient { position: relative; overflow: hidden; }
-        .inicio-ambient::before,
-        .inicio-ambient::after {
-          content: '';
-          position: absolute;
-          width: min(60vw, 640px);
-          height: min(60vw, 640px);
-          border-radius: 50%;
-          filter: blur(120px);
-          opacity: 0.32;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .inicio-ambient::before {
-          background: #f0c876;
-          top: -18%;
-          left: -12%;
-          animation: inicio-blob-a 16s ease-in-out infinite;
-        }
-        .inicio-ambient::after {
-          background: #8fbdec;
-          bottom: -22%;
-          right: -14%;
-          animation: inicio-blob-b 20s ease-in-out infinite;
-        }
-        @keyframes inicio-blob-a {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(24%, 20%) scale(1.18); }
-        }
-        @keyframes inicio-blob-b {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-20%, -22%) scale(1.12); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .inicio-ambient::before, .inicio-ambient::after { animation: none; }
+        /* Fondo ambiental estatico: sin manchas/circulos animados --
+           solo un degradado radial fijo en las esquinas con los mismos
+           dos colores de marca (dorado + azul), mas saturado que el
+           tratamiento anterior (opacidad 0.32) para que no se vea
+           palido. Al ser radial y estatico no produce banding (ese
+           artefacto era propio de animar un degradado, no de esta
+           tecnica). Confinado al contenedor del hero (overflow:hidden)
+           para no invadir la seccion oscura de modulos de abajo. */
+        .inicio-ambient {
+          position: relative;
+          overflow: hidden;
+          background:
+            radial-gradient(ellipse 640px 640px at -8% -14%, rgba(240, 200, 118, 0.6) 0%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 640px 640px at 108% 118%, rgba(143, 189, 236, 0.6) 0%, rgba(143, 189, 236, 0) 62%);
         }
       `}</style>
       <div className="inicio-ambient">

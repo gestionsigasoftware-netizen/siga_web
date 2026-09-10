@@ -87,50 +87,18 @@ export default function Login() {
   return (
     <div className="login-ambient min-h-screen text-ink p-4 md:p-6">
       <style>{`
-        /* Fondo ambiental refinado: manchas de color grandes y muy
-           difuminadas (blur) que se desplazan despacio -- dorado
-           (warning) y azul (accent), los mismos dos colores de marca de
-           siempre. Reemplaza el degradado animado anterior
-           (background-position sobre background-size grande), que
-           producia "banding" (bandas / efecto Mach band) visibles al
-           animarse -- un artefacto propio de esa tecnica, no de los
-           colores. Sin bordes duros, el blur elimina el banding por
-           completo. Nunca toca la tarjeta en si (queda por encima). */
-        .login-ambient { position: relative; overflow: hidden; }
-        .login-ambient::before,
-        .login-ambient::after {
-          content: '';
-          position: absolute;
-          width: min(55vw, 620px);
-          height: min(55vw, 620px);
-          border-radius: 50%;
-          filter: blur(120px);
-          opacity: 0.32;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .login-ambient::before {
-          background: #f0c876;
-          top: -16%;
-          left: -10%;
-          animation: login-blob-a 16s ease-in-out infinite;
-        }
-        .login-ambient::after {
-          background: #8fbdec;
-          bottom: -18%;
-          right: -12%;
-          animation: login-blob-b 20s ease-in-out infinite;
-        }
-        @keyframes login-blob-a {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(24%, 20%) scale(1.18); }
-        }
-        @keyframes login-blob-b {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-20%, -22%) scale(1.12); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .login-ambient::before, .login-ambient::after { animation: none; }
+        /* Fondo ambiental estatico: sin manchas/circulos animados --
+           solo un degradado radial fijo en las esquinas con los mismos
+           dos colores de marca (dorado + azul), mas saturado que el
+           tratamiento anterior (opacidad 0.32) para que no se vea
+           palido. Al ser radial y estatico no produce banding (ese
+           artefacto era propio de animar un degradado, no de esta
+           tecnica). Nunca toca la tarjeta en si (queda por encima). */
+        .login-ambient {
+          position: relative;
+          background:
+            radial-gradient(ellipse 620px 620px at -6% -12%, rgba(240, 200, 118, 0.6) 0%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 620px 620px at 106% 112%, rgba(143, 189, 236, 0.6) 0%, rgba(143, 189, 236, 0) 62%);
         }
       `}</style>
       <svg
