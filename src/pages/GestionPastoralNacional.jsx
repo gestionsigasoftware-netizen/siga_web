@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, Search, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import InfoTip from "../components/InfoTip";
+import { descargarPdf } from "../lib/reportExport";
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from "../lib/trimestre";
+
+const INFORME_SORT_LABELS = { bautizados_nuevos: "Bautizados", sellados_nuevos: "Sellados", reconciliados_actual: "Reconciliados", entregados_nuevos: "Entregados nuevos" };
 
 const gestionPastoralNacionalCache = new Map();
 
@@ -141,6 +144,39 @@ export default function GestionPastoralNacional() {
   const [resumenInformeTrimestral, setResumenInformeTrimestral] = useState([]);
   const [loadingInformeTrimestral, setLoadingInformeTrimestral] = useState(true);
   const [informeSortKey, setInformeSortKey] = useState("bautizados_nuevos");
+  const filasInformeOrdenadas = useMemo(
+    () => [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0)),
+    [resumenInformeTrimestral, informeSortKey]
+  );
+
+  async function descargarInformeTrimestralNacional() {
+    if (!filasInformeOrdenadas.length) return;
+    const etiqueta = `${ETIQUETA_TRIMESTRE[informeTrimestre]} ${informeAnio}`;
+    const sumar = (campo) => filasInformeOrdenadas.reduce((total, item) => total + Number(item[campo] || 0), 0);
+    await descargarPdf({
+      filename: `informe-trimestral-nacional-${informeAnio}-t${informeTrimestre}.pdf`,
+      titulo: `Informe trimestral por distrito · ${etiqueta}`,
+      orientacion: "landscape",
+      meta: [`Nivel: Nacional`, `Trimestre: ${etiqueta}`, `Ordenado por: ${INFORME_SORT_LABELS[informeSortKey]}`],
+      resumen: {
+        kpis: [
+          { label: "Bautizados nuevos (país)", value: sumar("bautizados_nuevos") },
+          { label: "Sellados nuevos (país)", value: sumar("sellados_nuevos") },
+          { label: "Reconciliados (país)", value: sumar("reconciliados_actual") },
+          { label: "Entregados nuevos (país)", value: sumar("entregados_nuevos") },
+        ],
+      },
+      headers: ["Distrito", "Congregaciones", "Bautizados", "+Nuevos", "Sellados", "+Nuevos", "Reconciliados", "Antes", "Entregados", "+Nuevos"],
+      rows: filasInformeOrdenadas.map((item) => [
+        formatDistritoLabel(item.nombre, item.numero),
+        item.congregaciones,
+        item.bautizados_total_actual, item.bautizados_nuevos,
+        item.sellados_total_actual, item.sellados_nuevos,
+        item.reconciliados_actual, item.reconciliados_anterior,
+        item.entregados_total_actual, item.entregados_nuevos,
+      ]),
+    });
+  }
 
   useEffect(() => {
     if (!rolPrincipal || !ALLOWED_LEVELS.includes(rolPrincipal.nivel)) return;
@@ -257,6 +293,7 @@ export default function GestionPastoralNacional() {
               <option value="reconciliados_actual">Ordenar por Reconciliados</option>
               <option value="entregados_nuevos">Ordenar por Entregados nuevos</option>
             </select>
+            <button type="button" onClick={descargarInformeTrimestralNacional} disabled={!filasInformeOrdenadas.length} className="btn-secondary"><Download className="w-4 h-4" /> Descargar PDF</button>
           </div>
         </div>
         {loadingInformeTrimestral ? (
@@ -264,7 +301,7 @@ export default function GestionPastoralNacional() {
         ) : resumenInformeTrimestral.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay datos del informe trimestral.</p>
         ) : (() => {
-          const filasOrdenadas = [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0));
+          const filasOrdenadas = filasInformeOrdenadas;
           return (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

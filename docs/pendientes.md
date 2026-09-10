@@ -2,6 +2,9 @@
 
 ## Prioridad critica antes de produccion
 
+- Construido (2026-09-10): boton "Descargar PDF" en el informe
+	trimestral, en los 3 niveles (local, distrital, nacional). Ver
+	`docs/fixes/informe-trimestral-descarga-pdf-2026-09-10.md`.
 - Resuelto (2026-09-10): al iniciar sesion o recargar, por un instante
 	el sidebar se veia con pocos modulos y varias pantallas locales
 	mostraban "Modo consulta" como si fueran un perfil sin permisos --

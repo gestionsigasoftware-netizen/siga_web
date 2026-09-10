@@ -1149,12 +1149,42 @@ function InformeTrimestralLocal({ congregacionId }) {
   const anioActual = new Date().getFullYear()
   const anios = [anioActual, anioActual - 1, anioActual - 2]
 
+  async function descargarInforme() {
+    if (!resumen) return
+    const etiqueta = `${ETIQUETA_TRIMESTRE[trimestre]} ${anio}`
+    await descargarPdf({
+      filename: `informe-trimestral-${anio}-t${trimestre}.pdf`,
+      titulo: `Informe trimestral · ${etiqueta}`,
+      meta: [
+        `Trimestre: ${etiqueta}`,
+        `Entregados hoy por estación: Uno Más ${resumen.ruta_uno_mas} · BIS ${resumen.ruta_bis} · REFAM ${resumen.ruta_refam} · ESFOB ${resumen.ruta_esfob}`,
+      ],
+      resumen: {
+        kpis: [
+          { label: 'Bautizados', value: resumen.bautizados_total_actual },
+          { label: 'Sellados con el Espíritu Santo', value: resumen.sellados_total_actual },
+          { label: 'Reconciliados este trimestre', value: resumen.reconciliados_actual },
+          { label: 'Entregados actuales', value: resumen.entregados_total_actual },
+        ],
+      },
+      headers: ['Indicador', 'Antes de este trimestre', 'Nuevos este trimestre', 'Total actual'],
+      rows: [
+        ['Bautizados', resumen.bautizados_total_anterior, resumen.bautizados_nuevos, resumen.bautizados_total_actual],
+        ['Sellados con el Espíritu Santo', resumen.sellados_total_anterior, resumen.sellados_nuevos, resumen.sellados_total_actual],
+        ['Reconciliados', resumen.reconciliados_anterior, resumen.reconciliados_actual, '—'],
+        ['Entregados', resumen.entregados_total_anterior, resumen.entregados_nuevos, resumen.entregados_total_actual],
+        ['Entregados que se bautizaron (graduados)', '—', resumen.entregados_graduados, '—'],
+      ],
+    })
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <div className="card p-4 flex flex-wrap items-center gap-3">
         <p className="text-sm text-secondary">Estadísticas para reportar al distrito -- se calculan solas, no hay que volver a digitarlas.</p>
         <label className="text-sm ml-auto">Año<select className="input-field mt-1.5" value={anio} onChange={(event) => setAnio(Number(event.target.value))}>{anios.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <label className="text-sm">Trimestre<select className="input-field mt-1.5" value={trimestre} onChange={(event) => setTrimestre(Number(event.target.value))}>{Object.entries(ETIQUETA_TRIMESTRE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <button type="button" onClick={descargarInforme} disabled={!resumen} className="btn-secondary"><Download className="w-4 h-4" /> Descargar PDF</button>
       </div>
       {loadingInforme ? (
         <SkeletonList rows={4} />

@@ -1,10 +1,11 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRightLeft, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
+import { ArrowRightLeft, Download, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
+import { descargarPdf } from '../lib/reportExport'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 
 const pastoralDistritalCache = new Map()
@@ -15,6 +16,7 @@ const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'L
 const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
 const TIPO_FORMACION_LABELS = { titulo: 'Título', curso: 'Curso', diplomado: 'Diplomado', especializacion: 'Especialización', maestria: 'Maestría', doctorado: 'Doctorado', seminario_biblico: 'Seminario bíblico', otro: 'Otro' }
 const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local (Constituida)' }
+const INFORME_SORT_LABELS = { bautizados_nuevos: 'Bautizados', sellados_nuevos: 'Sellados', reconciliados_actual: 'Reconciliados', entregados_nuevos: 'Entregados nuevos' }
 const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
@@ -187,6 +189,39 @@ export default function PastoralDistrital() {
   const [resumenInformeTrimestral, setResumenInformeTrimestral] = useState([])
   const [loadingInformeTrimestral, setLoadingInformeTrimestral] = useState(true)
   const [informeSortKey, setInformeSortKey] = useState('bautizados_nuevos')
+  const filasInformeOrdenadas = useMemo(
+    () => [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0)),
+    [resumenInformeTrimestral, informeSortKey]
+  )
+
+  async function descargarInformeTrimestralDistrital() {
+    if (!filasInformeOrdenadas.length) return
+    const etiqueta = `${ETIQUETA_TRIMESTRE[informeTrimestre]} ${informeAnio}`
+    const distritoLabel = rolPrincipal?.distritos?.numero ? `Distrito ${rolPrincipal.distritos.numero} · ${rolPrincipal.distritos.nombre}` : rolPrincipal?.distritos?.nombre || 'Distrito'
+    const sumar = (campo) => filasInformeOrdenadas.reduce((total, item) => total + Number(item[campo] || 0), 0)
+    await descargarPdf({
+      filename: `informe-trimestral-distrital-${informeAnio}-t${informeTrimestre}.pdf`,
+      titulo: `Informe trimestral por congregación · ${etiqueta}`,
+      orientacion: 'landscape',
+      meta: [distritoLabel, `Trimestre: ${etiqueta}`, `Ordenado por: ${INFORME_SORT_LABELS[informeSortKey]}`],
+      resumen: {
+        kpis: [
+          { label: 'Bautizados nuevos (distrito)', value: sumar('bautizados_nuevos') },
+          { label: 'Sellados nuevos (distrito)', value: sumar('sellados_nuevos') },
+          { label: 'Reconciliados (distrito)', value: sumar('reconciliados_actual') },
+          { label: 'Entregados nuevos (distrito)', value: sumar('entregados_nuevos') },
+        ],
+      },
+      headers: ['Congregación', 'Bautizados', '+Nuevos', 'Sellados', '+Nuevos', 'Reconciliados', 'Antes', 'Entregados', '+Nuevos'],
+      rows: filasInformeOrdenadas.map((item) => [
+        item.nombre,
+        item.bautizados_total_actual, item.bautizados_nuevos,
+        item.sellados_total_actual, item.sellados_nuevos,
+        item.reconciliados_actual, item.reconciliados_anterior,
+        item.entregados_total_actual, item.entregados_nuevos,
+      ]),
+    })
+  }
 
   const TABLE_PAGE_SIZE = 50
   function paginate(key, items) {
@@ -1479,6 +1514,7 @@ export default function PastoralDistrital() {
               <option value="reconciliados_actual">Ordenar por Reconciliados</option>
               <option value="entregados_nuevos">Ordenar por Entregados nuevos</option>
             </select>
+            <button type="button" onClick={descargarInformeTrimestralDistrital} disabled={!filasInformeOrdenadas.length} className="btn-secondary"><Download className="w-4 h-4" /> Descargar PDF</button>
           </div>
         </div>
         {loadingInformeTrimestral ? (
@@ -1486,7 +1522,7 @@ export default function PastoralDistrital() {
         ) : resumenInformeTrimestral.length === 0 ? (
           <p className="p-5 text-sm text-muted">Aún no hay datos del informe trimestral en tu distrito.</p>
         ) : (() => {
-          const filasOrdenadas = [...resumenInformeTrimestral].sort((a, b) => Number(b[informeSortKey] || 0) - Number(a[informeSortKey] || 0))
+          const filasOrdenadas = filasInformeOrdenadas
           const paged = paginate('informe', filasOrdenadas)
           return <>
           <div className="overflow-x-auto">
