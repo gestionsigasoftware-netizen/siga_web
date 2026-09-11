@@ -101,7 +101,7 @@ export default function InicioPublico() {
           <rect x="156" y="10" width="22" height="116" rx="3" />
         </g>
       </svg>
-      <nav className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
+      <nav className="relative z-[1] w-full max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center" aria-label="Inicio de SIGAP">
           <img src={sigapLogo} alt="SIGAP" className="h-7 w-auto" />
         </Link>
