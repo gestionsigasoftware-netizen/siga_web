@@ -114,19 +114,6 @@
     box-shadow: 0 0 12px rgba(42, 120, 214, 0.7);
   }
 
-  .summary-card::after {
-    content: '';
-    position: absolute;
-    width: 110px;
-    height: 110px;
-    right: -54px;
-    bottom: -58px;
-    border-radius: 999px;
-    background: rgba(113, 179, 247, 0.11);
-    box-shadow: 0 0 34px rgba(42, 120, 214, 0.2);
-    pointer-events: none;
-  }
-
   .summary-marker {
     @apply w-2 h-2 rounded-full;
     box-shadow: 0 0 0 4px rgba(42, 120, 214, 0.1);
