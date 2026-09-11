@@ -87,7 +87,7 @@ export default function InicioPublico() {
             radial-gradient(ellipse 1000px 1000px at 118% 134%, rgba(40, 82, 150, 0.3) 0%, rgba(40, 82, 150, 0) 74%);
         }
       `}</style>
-      <div className="inicio-ambient">
+      <div className="inicio-ambient min-h-svh flex flex-col">
       <svg
         className="absolute left-0 bottom-0 w-[24vw] max-w-[150px] h-auto z-0 pointer-events-none"
         viewBox="0 0 220 140"
@@ -111,7 +111,7 @@ export default function InicioPublico() {
         </div>
       </nav>
 
-      <section className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+      <section className="relative z-[1] w-full max-w-6xl mx-auto px-5 sm:px-8 pt-10 lg:pt-12 pb-28 flex-1 grid content-center lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-12 items-center">
         <div>
           <p className="eyebrow">Inteligencia pastoral</p>
           <h1 className="text-4xl sm:text-6xl font-semibold leading-[1.05] mt-4 max-w-2xl">Cada nivel, la lectura que necesita para decidir.</h1>
@@ -126,7 +126,42 @@ export default function InicioPublico() {
           <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_82%_12%,#2a78d6_0,transparent_35%),linear-gradient(145deg,transparent_40%,#173404_160%)]" />
           <div className="relative h-full flex flex-col justify-between">
             <div><p className="text-xs uppercase tracking-[0.18em] text-white/55">Tu congregación</p><p className="text-2xl font-medium mt-3">Una lectura compartida</p></div>
-            <div className="grid grid-cols-2 gap-3 mt-16"><div className="rounded bg-white/10 border border-white/10 p-4"><p className="text-xs text-white/55">Actividad</p><p className="text-3xl font-semibold mt-3">Clara</p><p className="text-xs text-white/55 mt-1">por módulo</p></div><div className="rounded bg-[#8fca68]/15 border border-[#8fca68]/20 p-4"><p className="text-xs text-white/55">Acompañamiento</p><p className="text-3xl font-semibold mt-3">Cercano</p><p className="text-xs text-white/55 mt-1">por persona</p></div></div>
+            <div className="grid grid-cols-2 gap-3 mt-10 sm:mt-16">
+              <div className="rounded bg-white/10 border border-white/10 p-4">
+                <p className="text-xs text-white/55">Actividad</p>
+                <svg className="w-full h-9 mt-3" viewBox="0 0 80 30" fill="none" aria-hidden="true">
+                  <g fill="#8fc8ff">
+                    <rect x="2" y="19" width="9" height="11" rx="2" fillOpacity="0.45" />
+                    <rect x="17" y="13" width="9" height="17" rx="2" fillOpacity="0.6" />
+                    <rect x="32" y="16" width="9" height="14" rx="2" fillOpacity="0.5" />
+                    <rect x="47" y="7" width="9" height="23" rx="2" fillOpacity="0.8" />
+                    <rect x="62" y="1" width="9" height="29" rx="2" />
+                  </g>
+                </svg>
+                <p className="text-3xl font-semibold mt-3">Clara</p>
+                <p className="text-xs text-white/55 mt-1">por módulo</p>
+              </div>
+              <div className="rounded bg-[#8fca68]/15 border border-[#8fca68]/20 p-4">
+                <p className="text-xs text-white/55">Acompañamiento</p>
+                <svg className="w-full h-9 mt-3" viewBox="0 0 80 30" fill="none" aria-hidden="true">
+                  <g stroke="#8fca68" strokeWidth="1.5" strokeOpacity="0.55">
+                    <line x1="40" y1="15" x2="13" y2="5" />
+                    <line x1="40" y1="15" x2="13" y2="25" />
+                    <line x1="40" y1="15" x2="67" y2="5" />
+                    <line x1="40" y1="15" x2="67" y2="25" />
+                  </g>
+                  <g fill="#8fca68">
+                    <circle cx="40" cy="15" r="5" />
+                    <circle cx="13" cy="5" r="3" fillOpacity="0.7" />
+                    <circle cx="13" cy="25" r="3" fillOpacity="0.7" />
+                    <circle cx="67" cy="5" r="3" fillOpacity="0.7" />
+                    <circle cx="67" cy="25" r="3" fillOpacity="0.7" />
+                  </g>
+                </svg>
+                <p className="text-3xl font-semibold mt-3">Cercano</p>
+                <p className="text-xs text-white/55 mt-1">por persona</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
