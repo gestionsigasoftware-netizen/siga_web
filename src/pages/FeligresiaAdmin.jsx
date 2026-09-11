@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react'
-import { ArrowRightLeft, Award, BarChart3, CheckCircle2, ClipboardList, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
+import { ArrowRightLeft, Award, BarChart3, CheckCircle2, ChevronRight, ClipboardList, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
@@ -23,6 +23,35 @@ ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Too
 const feligresiaCache = new Map()
 
 const STATES = { activo: 'Activo', apartado: 'Apartado', trasladado: 'Trasladado', inactivo: 'Inactivo', fallecido: 'Fallecido' }
+const STATE_BADGE_CLASS = {
+  activo: 'bg-success-bg text-success',
+  apartado: 'bg-warning-bg text-warning',
+  trasladado: 'bg-accent-bg text-accent',
+  inactivo: 'bg-surface-1 text-secondary',
+  fallecido: 'bg-surface-1 text-secondary',
+}
+// Paleta suave para los avatares de iniciales en el censo -- el tono se
+// deriva del id de la persona (no del nombre) para que sea estable pero
+// no dependa de que dos personas compartan tono solo por compartir letra
+// inicial.
+const AVATAR_PALETTE = [
+  { bg: '#E6F1FB', fg: '#0C447C' },
+  { bg: '#EAF3DE', fg: '#173404' },
+  { bg: '#FAEEDA', fg: '#412402' },
+  { bg: '#F1EAFB', fg: '#4B2C82' },
+  { bg: '#FCEBEB', fg: '#501313' },
+  { bg: '#E1F1EF', fg: '#0E4A44' },
+]
+function avatarTone(id) {
+  let hash = 0
+  for (let i = 0; i < (id || '').length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
+}
+function initialesDe(person) {
+  const a = (person.nombres || '').trim().charAt(0)
+  const b = (person.apellidos || '').trim().charAt(0)
+  return `${a}${b}`.toUpperCase() || '?'
+}
 const ALERT_TYPE_LABELS = { familia: 'Familia', bautismo: 'Bautismo', asistencia_persona: 'Asistencia', asistencia: 'Tendencia', comite: 'Comité' }
 const FAMILY_RELATIONSHIPS = { cabeza: 'Cabeza de familia', padre: 'Padre', madre: 'Madre', hijo: 'Hijo/a', conyuge: 'Cónyuge', hermano: 'Hermano/a', abuelo: 'Abuelo/a', nieto: 'Nieto/a', otro: 'Otro' }
 // Agrupa integrantes activos por el cargo normalizado del catálogo de la congregación
@@ -1007,7 +1036,38 @@ export default function FeligresiaAdmin() {
         ) : <Empty text="No tienes traslados enviados pendientes." />}
       </section>
     </section>}
-    {tab === 'personas' && <section className="card overflow-hidden"><div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3"><div className="flex items-center gap-2 flex-1"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar personas" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar persona..." value={search} onChange={(event) => setSearch(event.target.value)} /></div><select aria-label="Filtrar estado" className="input-field sm:max-w-[180px]" value={personStatus} onChange={(event) => setPersonStatus(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>{loading && people.length === 0 ? <SkeletonList rows={8} /> : filtered.length ? <div className="divide-y divide-border">{filtered.map((person) => { const nuevoBautizado = nuevoBautizadoInfo(person.id); return <button key={person.id} onClick={() => editPerson(person)} className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface-1"><div><p className="text-sm font-medium">{person.nombres} {person.apellidos}</p><p className="text-xs text-secondary mt-1">{person.bautizado ? 'Bautizado' : 'No bautizado'}{person.familias?.nombre_familia ? ` · ${person.familias.nombre_familia}` : ''}{person.fecha_ultima_asistencia ? ` · Última asistencia: ${person.fecha_ultima_asistencia}` : ''}</p>{nuevoBautizado && <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.08em] text-warning bg-warning-bg rounded-full px-2 py-0.5 mt-1.5"><Droplet className="w-3 h-3" />Nuevo bautizado · {nuevoBautizado.dias}d en Discipulado</span>}</div><span className="text-xs px-2 py-1 rounded bg-surface-1">{STATES[person.estado_membresia]}</span></button> })}</div> : <Empty text="No hay personas con estos filtros." />}<div className="flex items-center justify-between border-t border-border p-3 text-xs text-secondary"><span>{peopleTotal} personas encontradas</span><div className="flex items-center gap-2"><button type="button" disabled={peoplePage === 0 || loading} onClick={() => setPeoplePage((page) => page - 1)} className="btn-secondary px-3">Anterior</button><span>Página {peoplePage + 1} de {totalPages}</span><button type="button" disabled={peoplePage + 1 >= totalPages || loading} onClick={() => setPeoplePage((page) => page + 1)} className="btn-secondary px-3">Siguiente</button></div></div></section>}
+    {tab === 'personas' && <section className="card overflow-hidden">
+      <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3">
+        <div className="flex items-center gap-2 flex-1 border border-border rounded px-3 py-2 bg-surface-2">
+          <Search className="w-4 h-4 text-muted flex-shrink-0" />
+          <input aria-label="Buscar personas" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar persona..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        </div>
+        <select aria-label="Filtrar estado" className="input-field sm:max-w-[180px]" value={personStatus} onChange={(event) => setPersonStatus(event.target.value)}><option value="todos">Todos los estados</option>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+      </div>
+      {loading && people.length === 0 ? <SkeletonList rows={8} /> : filtered.length ? <div className="divide-y divide-border">
+        {filtered.map((person) => {
+          const nuevoBautizado = nuevoBautizadoInfo(person.id)
+          const tone = avatarTone(person.id)
+          return (
+            <button key={person.id} onClick={() => editPerson(person)} className="group w-full text-left px-4 py-3.5 flex items-center gap-3.5 hover:bg-surface-1 transition-colors">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold flex-shrink-0" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(person)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink truncate">{person.nombres} {person.apellidos}</p>
+                <p className="text-xs text-secondary mt-1 flex items-center gap-1 flex-wrap">
+                  <span className="inline-flex items-center gap-1">{person.bautizado && <Droplet className="w-3 h-3 text-accent" />}{person.bautizado ? 'Bautizado' : 'No bautizado'}</span>
+                  {person.familias?.nombre_familia && <span>· {person.familias.nombre_familia}</span>}
+                  {person.fecha_ultima_asistencia && <span>· Últ. asistencia {person.fecha_ultima_asistencia}</span>}
+                </p>
+                {nuevoBautizado && <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.08em] text-warning bg-warning-bg rounded-full px-2 py-0.5 mt-1.5"><Droplet className="w-3 h-3" />Nuevo bautizado · {nuevoBautizado.dias}d en Discipulado</span>}
+              </div>
+              <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${STATE_BADGE_CLASS[person.estado_membresia] || 'bg-surface-1 text-secondary'}`}>{STATES[person.estado_membresia]}</span>
+              <ChevronRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            </button>
+          )
+        })}
+      </div> : <Empty text="No hay personas con estos filtros." />}
+      <div className="flex items-center justify-between border-t border-border p-3 text-xs text-secondary"><span>{peopleTotal} personas encontradas</span><div className="flex items-center gap-2"><button type="button" disabled={peoplePage === 0 || loading} onClick={() => setPeoplePage((page) => page - 1)} className="btn-secondary px-3">Anterior</button><span>Página {peoplePage + 1} de {totalPages}</span><button type="button" disabled={peoplePage + 1 >= totalPages || loading} onClick={() => setPeoplePage((page) => page + 1)} className="btn-secondary px-3">Siguiente</button></div></div>
+    </section>}
     {tab === 'familias' && <section className="flex flex-col gap-4">{canEdit && <form onSubmit={saveFamily} className="card p-4 grid sm:grid-cols-[1.2fr_1fr_0.8fr_auto] gap-2"><input required className="input-field" placeholder="Nombre de la nueva familia" value={familyName} onChange={(event) => setFamilyName(event.target.value)} /><input className="input-field" placeholder="Dirección" value={familyAddress} onChange={(event) => setFamilyAddress(event.target.value)} /><input className="input-field" placeholder="Teléfono" value={familyPhone} onChange={(event) => setFamilyPhone(event.target.value)} /><button disabled={saving} className="btn-primary whitespace-nowrap"><Plus className="w-4 h-4" /> Crear familia</button></form>}<div className="card p-4"><label className="text-sm">Consultar árbol familiar<select className="input-field mt-1.5" value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)}><option value="">Selecciona un núcleo familiar</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><p className="text-xs text-secondary mt-2">Un núcleo puede compartir personas con otra familia. La ficha de cada persona se mantiene única.</p></div><FamilyTree familyId={selectedFamilyId} families={families} members={familyMembers} relations={familyRelations} people={analyticsPeople} canEdit={canEdit} onOpenPerson={editPerson} onRefresh={() => setReloadToken((current) => current + 1)} /><div className="grid md:grid-cols-2 gap-4">{families.map((family) => <div key={family.id} className="card p-5"><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{family.nombre_familia}</h2>{canEdit && <button type="button" className="text-xs text-accent" onClick={() => renameFamily(family)}>Editar nombre</button>}</div>{(family.direccion || family.telefono) && <p className="text-xs text-secondary mt-2">{family.direccion || 'Sin dirección'}{family.telefono ? ` · ${family.telefono}` : ''}</p>}<p className="text-sm text-secondary mt-1">{analyticsPeople.filter((person) => person.familia_id === family.id).length} integrantes asociados</p>{analyticsPeople.filter((person) => person.familia_id === family.id).map((person) => <p key={person.id} className="text-xs text-muted mt-2">{person.nombres} {person.apellidos}</p>)}</div>)}</div>{families.length === 0 && <Empty text="Aún no hay familias registradas." />}</section>}
     {tab === 'comites' && <section className="flex flex-col gap-4"><form onSubmit={assignCommittee} className="card p-4 grid sm:grid-cols-3 gap-2"><select required name="comite_id" className="input-field"><option value="">Comité...</option>{committees.filter((committee) => committee.activo).map((committee) => <option key={committee.id} value={committee.id}>{committee.nombre}</option>)}</select><select required name="persona_id" className="input-field"><option value="">Integrante...</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex gap-2">{committeeCargoCatalog.length > 0 ? <select required name="cargo_id" className="input-field"><option value="">Cargo...</option>{committeeCargoCatalog.map((cargo) => <option key={cargo.id} value={cargo.id}>{cargo.nombre}</option>)}</select> : <input required name="cargo" className="input-field" placeholder="Cargo (configúralos en Configuración)" />}<button disabled={saving} className="btn-secondary px-3" title="Asignar integrante"><Plus className="w-4 h-4" /></button></div></form><div className="grid md:grid-cols-2 gap-4">{committees.map((committee) => <div key={committee.id} className={`card p-5 ${!committee.activo ? 'opacity-60' : ''}`}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{committee.nombre}</h2><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => renameCommittee(committee)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => deactivateCommittee(committee)}>{committee.activo ? 'Desactivar' : 'Reactivar'}</button></div></div><p className="text-sm text-secondary mt-1">{committee.membresias_comite?.filter((member) => !member.fecha_fin).length ?? 0} integrantes activos</p><div className="flex flex-col gap-2 mt-4">{committeeMemberGroups(committee, committeeCargoCatalog).map((group) => <div key={group.key}><p className="text-xs font-medium text-secondary">{group.label}{group.members.length > 1 ? ` (${group.members.length})` : ''}</p>{group.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-2 mt-1"><span className="text-xs bg-surface-1 rounded px-2 py-1">{people.find((person) => person.id === member.persona_id)?.nombres || 'Integrante'} {people.find((person) => person.id === member.persona_id)?.apellidos || ''}</span><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => editCommitteeMember(member)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => removeCommitteeMember(member)}>Retirar</button></div></div>)}</div>)}</div></div>)}</div>{committees.length === 0 && <Empty text="Aún no hay comités registrados." />}</section>}
     {tab === 'historial' && <><CommitteeAnalytics people={analyticsPeople} committees={allCommittees} cargos={committeeCargoCatalog} audit={committeeAudit} /><FeligresiaInsights people={analyticsPeople} families={families} committees={committees} cargoHistory={cargoHistory} followups={pastoralFollowups} alerts={pastoralAlerts} /></>}
