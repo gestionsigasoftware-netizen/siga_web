@@ -1144,6 +1144,17 @@
 	real no se enruto hacia esa version (posible "gradual deployment"
 	mal configurado, o el promote automatico no se disparo). Pendiente
 	de confirmar con el usuario revisando el dashboard directamente.
+- **Resuelto (2026-09-11)**: Conquistadores Pentecostales estaba
+	construido como comité de servicio (exigía persona ya bautizada)
+	cuando debía administrar población como Misión Juvenil/Escuela
+	Dominical/Damas Dorcas/Obra Carcelaria (convertidos y no convertidos).
+	Ahora tiene censo propio con bautizado/sellado y botón "Vincular"
+	hacia la Ruta Evangelística, igual que esos módulos. Música/Ed.
+	Artística/Ed. Teológica se dejaron igual -- son comités de servicio,
+	correctamente exigen persona ya bautizada. Ver
+	`docs/fixes/conquistadores-no-convertidos-2026-09-11.md`.
+	**Pendiente de ejecutar por el usuario cuanto antes** (rompe la
+	pantalla hasta entonces): `supabase/modulos/fix_conquistadores_no_convertidos.sql`.
 
 ## Prioridad alta
 

@@ -19,6 +19,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
+import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
@@ -62,9 +63,12 @@ export default function Conquistadores() {
     return () => clearTimeout(timer);
   }, [notice]);
   const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
-  const [miembroForm, setMiembroForm] = useState({ persona_id: "", rol: "miembro" });
+  const [miembroForm, setMiembroForm] = useState({ nombres: "", apellidos: "", telefono: "", rol: "miembro" });
   const [actividadForm, setActividadForm] = useState({ fecha: hoyBogota(), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
   const [asistenciaMarcada, setAsistenciaMarcada] = useState({});
+  const [miembrosVinculados, setMiembrosVinculados] = useState(new Set());
+  const [vinculandoId, setVinculandoId] = useState(null);
+  const [responsableVinculoId, setResponsableVinculoId] = useState("");
 
   async function load() {
     if (!congregacionId) {
@@ -79,6 +83,7 @@ export default function Conquistadores() {
       setActividades(cached.actividades);
       setAsistencias(cached.asistencias);
       setPersonas(cached.personas);
+      setMiembrosVinculados(cached.miembrosVinculados);
       setLoading(false);
     } else {
       setLoading(true);
@@ -86,45 +91,96 @@ export default function Conquistadores() {
     setError(null);
     const start = new Date();
     start.setDate(start.getDate() - Number(periodo));
-    const [m, a, s, p] = await Promise.all([
-      supabase.from("conquistadores_miembros").select("id, persona_id, rol, estado, fecha_ingreso, personas:persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("fecha_ingreso", { ascending: false }),
+    const [m, a, s, p, am] = await Promise.all([
+      supabase.from("conquistadores_miembros").select("id, persona_id, nombres, apellidos, rol, estado, fecha_ingreso, bautizado, fecha_bautismo, sellado, fecha_sellado").eq("congregacion_id", congregacionId).order("fecha_ingreso", { ascending: false }),
       supabase.from("conquistadores_actividades").select("id, fecha, tipo, descripcion, responsable_persona_id").eq("congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha", { ascending: false }),
       supabase.from("conquistadores_asistencia").select("id, actividad_id, miembro_id, asistio, conquistadores_actividades!inner(congregacion_id, fecha)").eq("conquistadores_actividades.congregacion_id", congregacionId).eq("asistio", true),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
+      supabase.from("amigos").select("conquistadores_miembro_id").eq("congregacion_id", congregacionId).not("conquistadores_miembro_id", "is", null),
     ]);
-    const failed = [m, a, s, p].find((item) => item.error);
+    const failed = [m, a, s, p, am].find((item) => item.error);
     if (failed) setError("No se pudo cargar Conquistadores Pentecostales. Intenta nuevamente o contacta al administrador.");
     const nuevosMiembros = m.data ?? [];
     const nuevasActividades = a.data ?? [];
     const nuevasAsistencias = s.data ?? [];
     const nuevasPersonas = p.data ?? [];
+    const nuevosVinculados = new Set((am.data ?? []).map((row) => row.conquistadores_miembro_id));
     setMiembros(nuevosMiembros);
     setActividades(nuevasActividades);
     setAsistencias(nuevasAsistencias);
     setPersonas(nuevasPersonas);
+    setMiembrosVinculados(nuevosVinculados);
     setLoading(false);
     conquistadoresCache.set(cacheKey, {
       miembros: nuevosMiembros,
       actividades: nuevasActividades,
       asistencias: nuevasAsistencias,
       personas: nuevasPersonas,
+      miembrosVinculados: nuevosVinculados,
     });
   }
 
   async function createMiembro(event) {
     event.preventDefault();
-    if (!canEdit || !miembroForm.persona_id) return;
+    if (!canEdit || !miembroForm.nombres.trim() || !miembroForm.apellidos.trim()) return;
     setSaving(true); setError(null);
     const result = await supabase.from("conquistadores_miembros").insert({
       congregacion_id: congregacionId,
-      persona_id: miembroForm.persona_id,
+      nombres: miembroForm.nombres.trim(),
+      apellidos: miembroForm.apellidos.trim(),
+      telefono: miembroForm.telefono.trim() || null,
       rol: miembroForm.rol,
     });
     setSaving(false);
-    if (result.error) { setError(result.error.code === "23505" ? "Esta persona ya está registrada." : "No se pudo registrar al miembro."); return; }
+    if (result.error) { setError("No se pudo registrar al miembro."); return; }
     setNotice("Miembro registrado.");
-    setMiembroForm({ persona_id: "", rol: "miembro" });
+    setMiembroForm({ nombres: "", apellidos: "", telefono: "", rol: "miembro" });
     load();
+  }
+
+  async function marcarHito(miembro, campo, fechaCampo) {
+    if (!canEdit) return;
+    setSaving(true);
+    const hoy = hoyBogota();
+    const result = await supabase.from("conquistadores_miembros").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", miembro.id).eq("congregacion_id", congregacionId);
+    setSaving(false);
+    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
+    setNotice("Ficha actualizada.");
+    load();
+  }
+
+  // Mismo mecanismo que ya usan Mision Juvenil y Obra Carcelaria: un
+  // miembro de Conquistadores que no esta bautizado se conecta con el
+  // seguimiento individual real (amigos + Ruta Evangelistica) -- entra a
+  // BIS con un responsable, o si ya esta bautizado, queda listo para
+  // incorporar a Feligresia sin pasar por ninguna estacion.
+  async function vincularRutaEvangelistica(miembro) {
+    if (!canEdit) return;
+    if (!miembro.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    setSaving(true); setError(null);
+    const nombreCompleto = `${miembro.nombres} ${miembro.apellidos}`.trim();
+    const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
+      congregacion_id: congregacionId,
+      nombres: nombreCompleto,
+      telefono: miembro.telefono || null,
+      fecha_primer_contacto: hoyBogota(),
+      conquistadores_miembro_id: miembro.id,
+      ...(miembro.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: miembro.fecha_bautismo } : {}),
+    }).select("id").single();
+    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (miembro.bautizado) {
+      setSaving(false);
+      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setVinculandoId(null); setResponsableVinculoId(""); load();
+      return;
+    }
+    const { data: estacionBis, error: estacionError } = await getEstacion(congregacionId, "bis");
+    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    const movResult = await iniciarOMoverEstacion({ congregacionId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
+    setSaving(false);
+    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
+    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
   async function createActividad(event) {
@@ -227,7 +283,7 @@ export default function Conquistadores() {
   function exportHeaders() {
     return {
       headers: ["Nombre", "Rol", "Estado", "Fecha de ingreso", "Última actividad"],
-      rows: miembros.map((item) => [`${item.personas?.nombres || ""} ${item.personas?.apellidos || ""}`.trim(), item.rol === "lider" ? "Líder" : "Miembro", item.estado === "activo" ? "Activo" : "Inactivo", item.fecha_ingreso || "—", ultimaActividadPorMiembro.get(item.id) || "Sin registro"]),
+      rows: miembros.map((item) => [`${item.nombres || ""} ${item.apellidos || ""}`.trim(), item.rol === "lider" ? "Líder" : "Miembro", item.estado === "activo" ? "Activo" : "Inactivo", item.fecha_ingreso || "—", ultimaActividadPorMiembro.get(item.id) || "Sin registro"]),
     };
   }
   function exportCsv() { descargarCsv({ filename: `conquistadores-${hoyBogota()}.csv`, titulo: "Conquistadores Pentecostales — Miembros", ...exportHeaders() }); }
@@ -293,7 +349,7 @@ export default function Conquistadores() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
             {miembrosSinSeguimiento.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
-                <p className="text-sm font-medium">{item.personas?.nombres} {item.personas?.apellidos}</p>
+                <p className="text-sm font-medium">{item.nombres} {item.apellidos}</p>
                 <p className="text-xs text-secondary mt-1">{ultimaActividadPorMiembro.get(item.id) ? `Última actividad: ${ultimaActividadPorMiembro.get(item.id)}` : "Sin actividad registrada"}</p>
               </div>
             ))}
@@ -309,15 +365,43 @@ export default function Conquistadores() {
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Rol</th><th className="py-2">Estado</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Rol</th><th className="py-2">Hitos</th><th className="py-2"><span className="flex items-center gap-1">Ruta<InfoTip texto="Vincula a alguien aún no bautizado con el mismo seguimiento individual que usa toda la congregación: entra a BIS, o si ya está bautizado, queda listo para incorporar a Feligresía." /></span></th></tr></thead>
               <tbody>
-                {miembros.map((item) => (
-                  <tr key={item.id} className="border-b border-border">
-                    <td className="py-2 font-medium">{item.personas?.nombres} {item.personas?.apellidos}</td>
-                    <td className="py-2 text-secondary">{item.rol === "lider" ? "Líder" : "Miembro"}</td>
-                    <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{item.estado === "activo" ? "Activo" : "Inactivo"}</span></td>
-                  </tr>
-                ))}
+                {miembros.map((item) => {
+                  const yaVinculado = miembrosVinculados.has(item.id);
+                  return (
+                    <tr key={item.id} className="border-b border-border align-top">
+                      <td className="py-2 font-medium">{item.nombres} {item.apellidos}</td>
+                      <td className="py-2 text-secondary">{item.rol === "lider" ? "Líder" : "Miembro"}</td>
+                      <td className="py-2">
+                        <div className="flex gap-1 flex-wrap items-center">
+                          {item.bautizado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
+                          {item.sellado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
+                          {canEdit && !item.bautizado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>+ Bautizado</button>}
+                          {canEdit && !item.sellado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>+ Sellado</button>}
+                        </div>
+                      </td>
+                      <td className="py-2">
+                        {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : canEdit ? (
+                          vinculandoId === item.id ? (
+                            <div className="flex flex-col gap-1.5 min-w-[170px]">
+                              <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
+                                <option value="">Responsable...</option>
+                                {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
+                              </select>
+                              <div className="flex gap-1.5">
+                                <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item)}>Confirmar</button>
+                                <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item) : setVinculandoId(item.id))}>Vincular</button>
+                          )
+                        ) : <span className="text-xs text-muted">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {!miembros.length && <p className="text-sm text-secondary py-6 text-center">Aún no hay miembros registrados.</p>}
@@ -357,7 +441,7 @@ export default function Conquistadores() {
             {activos.length > 0 && <div>
               <p className="text-xs text-secondary mb-1">Asistencia individual</p>
               <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
-                {activos.map((miembro) => <label key={miembro.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[miembro.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [miembro.id]: event.target.checked })} />{miembro.personas?.nombres} {miembro.personas?.apellidos}</label>)}
+                {activos.map((miembro) => <label key={miembro.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[miembro.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [miembro.id]: event.target.checked })} />{miembro.nombres} {miembro.apellidos}</label>)}
               </div>
             </div>}
             <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar actividad</button>
@@ -366,17 +450,16 @@ export default function Conquistadores() {
       </section>
 
       <form onSubmit={createMiembro} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-        <h2 className="font-medium">Nuevo miembro</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <select required className="input-field" value={miembroForm.persona_id} onChange={(event) => setMiembroForm({ ...miembroForm, persona_id: event.target.value })}>
-            <option value="">Persona</option>
-            {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
-          </select>
-          <select className="input-field" value={miembroForm.rol} onChange={(event) => setMiembroForm({ ...miembroForm, rol: event.target.value })}>
-            <option value="miembro">Miembro</option>
-            <option value="lider">Líder</option>
-          </select>
+        <h2 className="font-medium flex items-center gap-1.5">Nuevo miembro<InfoTip texto="No hace falta que ya esté en el censo de Feligresía -- Conquistadores administra jóvenes adultos convertidos y no convertidos. Si aún no está bautizado, usa 'Vincular' en la lista para conectarlo con la Ruta Evangelística." /></h2>
+        <div className="grid sm:grid-cols-3 gap-2">
+          <input required className="input-field" placeholder="Nombres" value={miembroForm.nombres} onChange={(event) => setMiembroForm({ ...miembroForm, nombres: event.target.value })} />
+          <input required className="input-field" placeholder="Apellidos" value={miembroForm.apellidos} onChange={(event) => setMiembroForm({ ...miembroForm, apellidos: event.target.value })} />
+          <input className="input-field" placeholder="Teléfono (opcional)" value={miembroForm.telefono} onChange={(event) => setMiembroForm({ ...miembroForm, telefono: event.target.value })} />
         </div>
+        <select className="input-field" value={miembroForm.rol} onChange={(event) => setMiembroForm({ ...miembroForm, rol: event.target.value })}>
+          <option value="miembro">Miembro</option>
+          <option value="lider">Líder</option>
+        </select>
         <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar miembro</button>
       </form>
     </div>
