@@ -1120,11 +1120,21 @@
 	`docs/fixes/equipo-trabajo-permisos-modulos-sistema-2026-09-10.md`.
 	**Pendiente de ejecutar por el usuario**:
 	`supabase/catalogos/fix_congregacion_nueva_sin_modulos_sistema.sql`.
-	También quedó documentado (sin implementar, es decisión de producto)
-	que los 3 perfiles de "Acceso web" no cubren los módulos
-	especializados (Escuela Dominical, SEPRI, Música, etc.) -- solo el
-	pastor los tiene automáticamente; hoy no hay perfil intermedio entre
-	"Acceso total" y nada para delegar un módulo específico por web.
+- **Resuelto (2026-09-10), decisión de producto confirmada por el
+	usuario**: el perfil web "Comité de Estadísticas" no cubría los
+	módulos especializados (Escuela Dominical, SEPRI, Música, etc.) --
+	solo el pastor los tenía automáticamente. El usuario pidió que
+	Estadísticas quede con el mismo alcance operativo del pastor ("es el
+	brazo del pastor para operar SIGAP"); se le preguntó el alcance
+	exacto y eligió: todo el trabajo operativo (feligresía/familias en
+	edición + los 11 módulos especializados + reportes), sin
+	`usuarios.administrar`/`configuracion.administrar`/`auditoria.consultar`
+	(eso sigue exclusivo del pastor). No hizo falta tocar frontend --
+	`tiene_permiso()` ya revisaba `permisos_perfil` para cualquier perfil
+	asignado. Ver
+	`docs/fixes/perfil-estadisticas-acceso-operativo-total-2026-09-10.md`.
+	**Pendiente de ejecutar por el usuario**:
+	`supabase/schema/fix_perfil_estadisticas_acceso_operativo_total.sql`.
 
 ## Prioridad alta
 
