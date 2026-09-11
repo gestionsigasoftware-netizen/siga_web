@@ -17,6 +17,7 @@ import ChartEmpty from '../components/ChartEmpty'
 import ExportButtons from '../components/ExportButtons'
 import InfoTip from '../components/InfoTip'
 import { descargarCsv, descargarExcel, descargarPdf } from '../lib/reportExport'
+import { avatarTone, initialesDe } from '../lib/avatar'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip)
 
@@ -29,28 +30,6 @@ const STATE_BADGE_CLASS = {
   trasladado: 'bg-accent-bg text-accent',
   inactivo: 'bg-surface-1 text-secondary',
   fallecido: 'bg-surface-1 text-secondary',
-}
-// Paleta suave para los avatares de iniciales en el censo -- el tono se
-// deriva del id de la persona (no del nombre) para que sea estable pero
-// no dependa de que dos personas compartan tono solo por compartir letra
-// inicial.
-const AVATAR_PALETTE = [
-  { bg: '#E6F1FB', fg: '#0C447C' },
-  { bg: '#EAF3DE', fg: '#173404' },
-  { bg: '#FAEEDA', fg: '#412402' },
-  { bg: '#F1EAFB', fg: '#4B2C82' },
-  { bg: '#FCEBEB', fg: '#501313' },
-  { bg: '#E1F1EF', fg: '#0E4A44' },
-]
-function avatarTone(id) {
-  let hash = 0
-  for (let i = 0; i < (id || '').length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
-}
-function initialesDe(person) {
-  const a = (person.nombres || '').trim().charAt(0)
-  const b = (person.apellidos || '').trim().charAt(0)
-  return `${a}${b}`.toUpperCase() || '?'
 }
 const ALERT_TYPE_LABELS = { familia: 'Familia', bautismo: 'Bautismo', asistencia_persona: 'Asistencia', asistencia: 'Tendencia', comite: 'Comité' }
 const FAMILY_RELATIONSHIPS = { cabeza: 'Cabeza de familia', padre: 'Padre', madre: 'Madre', hijo: 'Hijo/a', conyuge: 'Cónyuge', hermano: 'Hermano/a', abuelo: 'Abuelo/a', nieto: 'Nieto/a', otro: 'Otro' }
@@ -1049,8 +1028,8 @@ export default function FeligresiaAdmin() {
           const nuevoBautizado = nuevoBautizadoInfo(person.id)
           const tone = avatarTone(person.id)
           return (
-            <button key={person.id} onClick={() => editPerson(person)} className="group w-full text-left px-4 py-3.5 flex items-center gap-3.5 hover:bg-surface-1 transition-colors">
-              <span className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold flex-shrink-0" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(person)}</span>
+            <button key={person.id} onClick={() => editPerson(person)} className="censo-row group">
+              <span className="censo-avatar" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(person)}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink truncate">{person.nombres} {person.apellidos}</p>
                 <p className="text-xs text-secondary mt-1 flex items-center gap-1 flex-wrap">
@@ -1060,7 +1039,7 @@ export default function FeligresiaAdmin() {
                 </p>
                 {nuevoBautizado && <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.08em] text-warning bg-warning-bg rounded-full px-2 py-0.5 mt-1.5"><Droplet className="w-3 h-3" />Nuevo bautizado · {nuevoBautizado.dias}d en Discipulado</span>}
               </div>
-              <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${STATE_BADGE_CLASS[person.estado_membresia] || 'bg-surface-1 text-secondary'}`}>{STATES[person.estado_membresia]}</span>
+              <span className={`censo-badge ${STATE_BADGE_CLASS[person.estado_membresia] || 'bg-surface-1 text-secondary'}`}>{STATES[person.estado_membresia]}</span>
               <ChevronRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
             </button>
           )

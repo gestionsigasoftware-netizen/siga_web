@@ -10,7 +10,6 @@ import {
   Search,
   StickyNote,
   Trash2,
-  UserRound,
   X,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -21,6 +20,7 @@ import { usePreferencias } from "../hooks/usePreferencias";
 import { formatFecha } from "../lib/dateFormat";
 import { diasDesde, getComitesActivos } from "../lib/rutaEvangelistica";
 import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comitesPorPoblacion";
+import { avatarTone, initialesDe } from "../lib/avatar";
 import { descargarPdf } from "../lib/reportExport";
 import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
 import InfoTip from "../components/InfoTip";
@@ -835,37 +835,38 @@ export default function Amigos() {
             </div>
           ) : (
             <div className="grid xl:grid-cols-2 gap-3">
-              {filtrados.map((friend) => (
-                <button
-                  type="button"
-                  key={friend.id}
-                  onClick={() => selectFriend(friend)}
-                  className={`card p-4 text-left flex justify-between items-center gap-3 hover:border-accent transition-colors ${selected?.id === friend.id ? "border-accent ring-1 ring-accent/20" : ""}`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-accent-bg text-accent flex items-center justify-center flex-shrink-0">
-                      <UserRound className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {friend.nombres}
-                      </p>
-                      <p className="text-xs text-secondary truncate">
-                        {friend.sector ||
-                          friend.zonas?.nombre ||
-                          "Sin sector asignado"}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full whitespace-nowrap ${friend.convertido ? "bg-success-bg text-success" : (TONO_ESTACION[rutaActivaPorAmigo[friend.id]?.codigo] ?? "bg-surface-1 text-secondary")}`}
+              {filtrados.map((friend) => {
+                const tone = avatarTone(friend.id);
+                return (
+                  <button
+                    type="button"
+                    key={friend.id}
+                    onClick={() => selectFriend(friend)}
+                    className={`card p-4 text-left flex justify-between items-center gap-3 hover:border-accent transition-colors ${selected?.id === friend.id ? "border-accent ring-1 ring-accent/20" : ""}`}
                   >
-                    {friend.convertido
-                      ? "Convertido"
-                      : (rutaActivaPorAmigo[friend.id]?.nombre ?? "Sin ruta iniciada")}
-                  </span>
-                </button>
-              ))}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="censo-avatar" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(friend)}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {friend.nombres}
+                        </p>
+                        <p className="text-xs text-secondary truncate">
+                          {friend.sector ||
+                            friend.zonas?.nombre ||
+                            "Sin sector asignado"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`censo-badge uppercase tracking-[0.08em] ${friend.convertido ? "bg-success-bg text-success" : (TONO_ESTACION[rutaActivaPorAmigo[friend.id]?.codigo] ?? "bg-surface-1 text-secondary")}`}
+                    >
+                      {friend.convertido
+                        ? "Convertido"
+                        : (rutaActivaPorAmigo[friend.id]?.nombre ?? "Sin ruta iniciada")}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

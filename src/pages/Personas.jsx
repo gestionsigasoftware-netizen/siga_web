@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, UserRound, Phone, Users } from 'lucide-react'
+import { Plus, Search, UserRound, Phone } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
+import { avatarTone, initialesDe } from '../lib/avatar'
 
 export default function Personas() {
   const pageSize = 50
@@ -99,10 +100,12 @@ export default function Personas() {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <div className="card overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center gap-2">
-          <Search className="w-4 h-4 text-muted" />
-          <input aria-label="Buscar personas" className="bg-transparent outline-none text-sm flex-1" placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-          <span className="text-xs text-muted">{totalPersonas} personas</span>
+        <div className="p-4 border-b border-border flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 border border-border rounded px-3 py-2 bg-surface-2">
+            <Search className="w-4 h-4 text-muted flex-shrink-0" />
+            <input aria-label="Buscar personas" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          </div>
+          <span className="text-xs text-muted whitespace-nowrap">{totalPersonas} personas</span>
         </div>
 
         {filtradas.length === 0 ? (
@@ -112,23 +115,22 @@ export default function Personas() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filtradas.map((persona) => (
-              <div key={persona.id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent-bg text-accent flex items-center justify-center">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{persona.nombres} {persona.apellidos}</p>
-                    <p className="text-xs text-secondary mt-0.5 flex items-center gap-1">
+            {filtradas.map((persona) => {
+              const tone = avatarTone(persona.id)
+              return (
+                <div key={persona.id} className="censo-row cursor-default">
+                  <span className="censo-avatar" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(persona)}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{persona.nombres} {persona.apellidos}</p>
+                    <p className="text-xs text-secondary mt-1 flex items-center gap-1">
                       <Phone className="w-3 h-3" />
                       {persona.telefono || 'Sin teléfono'}
                     </p>
                   </div>
+                  <span className="censo-badge bg-surface-1 text-secondary">Miembro</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.14em] text-secondary">Miembro</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

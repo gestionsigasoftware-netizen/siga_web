@@ -58,6 +58,32 @@
     @apply bg-surface-1 border border-border rounded-card shadow-[0_8px_22px_rgba(21,27,34,0.045)];
   }
 
+  /* Clases compartidas por todas las vistas de tipo censo (listas de
+     personas/beneficiarios con avatar de iniciales + badge de estado)
+     -- pensadas para reusarse igual en Feligresia, Amigos, Red de
+     Familias, Auditoria, etc. y que todas queden con la misma
+     consistencia en vez de que cada pantalla reinvente su propia fila. */
+  /* "group" no se puede meter en @apply (no es una utilidad real) --
+     agregarla en la clase del elemento en JSX junto con "censo-row"
+     donde haga falta group-hover (ej. la flecha de Feligresia). */
+  .censo-row {
+    @apply w-full text-left px-4 py-3.5 flex items-center gap-3.5 transition-colors;
+  }
+
+  .censo-row:hover {
+    @apply bg-surface-1;
+  }
+
+  .censo-avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold flex-shrink-0;
+    box-shadow: 0 3px 6px rgba(11, 11, 11, 0.16), 0 1px 2px rgba(11, 11, 11, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  }
+
+  .censo-badge {
+    @apply text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0;
+    box-shadow: 0 1px 3px rgba(11, 11, 11, 0.08);
+  }
+
   .stat-tile {
     @apply rounded-card p-4;
     position: relative;
