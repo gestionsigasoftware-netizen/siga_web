@@ -73,7 +73,7 @@ export default function InicioPublico() {
       `}</style>
       <div className="inicio-ambient">
       <svg
-        className="absolute left-0 bottom-0 w-[46vw] max-w-[360px] h-auto z-0 pointer-events-none"
+        className="absolute left-0 bottom-0 w-[24vw] max-w-[150px] h-auto z-0 pointer-events-none"
         viewBox="0 0 220 140"
         aria-hidden="true"
       >
