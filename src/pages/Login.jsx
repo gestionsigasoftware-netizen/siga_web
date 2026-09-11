@@ -14,15 +14,24 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
   // Si ProtectedRoute nos mandó aquí porque la sesión expiró (no por un
   // cierre manual), lo mostramos explícito -- sin esto, la persona ve
-  // el login de la nada y piensa que la app la sacó sin razón.
-  const [error, setError] = useState(() => (location.state?.reason === 'session_expired' ? 'Tu sesión expiró por seguridad. Inicia sesión de nuevo.' : null))
-  const [notice, setNotice] = useState(null)
+  // el login de la nada y piensa que la app la sacó sin razón. Es un
+  // aviso informativo, no un error de formulario -- por eso desaparece
+  // solo, igual que "notice", en vez de quedarse fijo como "error".
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() => location.state?.reason === 'session_expired')
 
   useEffect(() => {
     if (location.state?.reason) window.history.replaceState({}, document.title)
   }, [location.state])
+
+  useEffect(() => {
+    if (!sessionExpiredNotice) return undefined
+    const timer = setTimeout(() => setSessionExpiredNotice(false), 4500)
+    return () => clearTimeout(timer)
+  }, [sessionExpiredNotice])
   // Paso de verificacion en dos pasos, solo aparece si la cuenta tiene un
   // factor TOTP verificado -- ver Preferencias personales para activarlo.
   const [mfaFactorId, setMfaFactorId] = useState(null)
@@ -235,6 +244,7 @@ export default function Login() {
                   </button>
                 </div>
               </div>
+              {sessionExpiredNotice && <p role="status" className="text-sm text-danger bg-danger-bg rounded p-3">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</p>}
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
               {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
               <button type="submit" disabled={loading} className="btn-primary justify-center mt-2 py-3">
