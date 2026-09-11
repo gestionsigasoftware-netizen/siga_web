@@ -56,19 +56,24 @@ export default function InicioPublico() {
     <main className="min-h-screen bg-[#f3f0e9] text-ink">
       <style>{`
         /* Fondo ambiental estatico: sin manchas/circulos animados --
-           solo un degradado radial fijo en las esquinas con los mismos
-           dos colores de marca (dorado + azul), mas saturado que el
-           tratamiento anterior (opacidad 0.32) para que no se vea
-           palido. Al ser radial y estatico no produce banding (ese
-           artefacto era propio de animar un degradado, no de esta
-           tecnica). Confinado al contenedor del hero (overflow:hidden)
-           para no invadir la seccion oscura de modulos de abajo. */
+           degradados radiales fijos en las esquinas con los colores de
+           marca (dorado + azul). Cada esquina lleva DOS capas -- un
+           nucleo pequeno y saturado (mas contraste, se nota de
+           verdad) encima de un halo mas grande y en un tono mas
+           oscuro del mismo color (da sensacion de profundidad/sombra,
+           como una fuente de luz con su propia sombra alrededor) en
+           vez de un solo degradado plano. Al ser radial y estatico no
+           produce banding. Confinado al contenedor del hero
+           (overflow:hidden) para no invadir la seccion oscura de
+           modulos de abajo. */
         .inicio-ambient {
           position: relative;
           overflow: hidden;
           background:
-            radial-gradient(ellipse 640px 640px at -8% -14%, rgba(240, 200, 118, 0.6) 0%, rgba(240, 200, 118, 0) 62%),
-            radial-gradient(ellipse 640px 640px at 108% 118%, rgba(143, 189, 236, 0.6) 0%, rgba(143, 189, 236, 0) 62%);
+            radial-gradient(ellipse 360px 360px at -4% -10%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 800px 800px at -12% -18%, rgba(160, 108, 24, 0.5) 0%, rgba(160, 108, 24, 0) 68%),
+            radial-gradient(ellipse 360px 360px at 104% 114%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
+            radial-gradient(ellipse 800px 800px at 112% 122%, rgba(40, 82, 150, 0.5) 0%, rgba(40, 82, 150, 0) 68%);
         }
       `}</style>
       <div className="inicio-ambient">

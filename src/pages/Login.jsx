@@ -135,17 +135,22 @@ export default function Login() {
     <div className="login-ambient min-h-screen text-ink p-4 md:p-6">
       <style>{`
         /* Fondo ambiental estatico: sin manchas/circulos animados --
-           solo un degradado radial fijo en las esquinas con los mismos
-           dos colores de marca (dorado + azul), mas saturado que el
-           tratamiento anterior (opacidad 0.32) para que no se vea
-           palido. Al ser radial y estatico no produce banding (ese
-           artefacto era propio de animar un degradado, no de esta
-           tecnica). Nunca toca la tarjeta en si (queda por encima). */
+           degradados radiales fijos en las esquinas con los colores de
+           marca (dorado + azul). Cada esquina lleva DOS capas -- un
+           nucleo pequeno y saturado (mas contraste, se nota de
+           verdad) encima de un halo mas grande y en un tono mas
+           oscuro del mismo color (da sensacion de profundidad/sombra,
+           como una fuente de luz con su propia sombra alrededor) en
+           vez de un solo degradado plano. Al ser radial y estatico no
+           produce banding. Nunca toca la tarjeta en si (queda por
+           encima). */
         .login-ambient {
           position: relative;
           background:
-            radial-gradient(ellipse 620px 620px at -6% -12%, rgba(240, 200, 118, 0.6) 0%, rgba(240, 200, 118, 0) 62%),
-            radial-gradient(ellipse 620px 620px at 106% 112%, rgba(143, 189, 236, 0.6) 0%, rgba(143, 189, 236, 0) 62%);
+            radial-gradient(ellipse 340px 340px at -3% -8%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 780px 780px at -10% -16%, rgba(160, 108, 24, 0.5) 0%, rgba(160, 108, 24, 0) 68%),
+            radial-gradient(ellipse 340px 340px at 103% 108%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
+            radial-gradient(ellipse 780px 780px at 110% 116%, rgba(40, 82, 150, 0.5) 0%, rgba(40, 82, 150, 0) 68%);
         }
       `}</style>
       <svg
