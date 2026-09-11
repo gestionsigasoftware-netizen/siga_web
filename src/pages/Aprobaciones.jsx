@@ -48,6 +48,12 @@ export default function Aprobaciones() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(timer)
+  }, [notice])
+
   async function actualizarEstado(id, estado) {
     setBusy(id)
     const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString() }).eq('id', id)
