@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen, CalendarClock, CalendarRange, HeartHandshake, MessageCircle, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BarChart3, BookOpen, CalendarClock, CalendarRange, Check, HeartHandshake, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import sigapLogo from '../assets/sigap-logo.svg'
@@ -184,21 +184,53 @@ export default function InicioPublico() {
           <h2 className="text-3xl sm:text-4xl font-semibold leading-tight mt-3">El mismo SIGAP completo, al ritmo que le sirva a tu congregación.</h2>
           <p className="text-secondary leading-7 mt-4">Sin funciones recortadas ni "versión básica" -- la diferencia entre planes es el tiempo de permanencia, no lo que puedes hacer con el sistema. Escríbenos y te asesoramos con el valor exacto para el tamaño de tu congregación.</p>
         </div>
-        <div className="grid md:grid-cols-2 gap-5 mt-10">
-          {planes.map(({ icon: Icon, nombre, resumen, destacado, beneficios, cta, plan }) => (
-            <article key={plan} className="relative p-7 border border-border rounded-card bg-surface-2 flex flex-col">
-              {destacado && <span className="absolute -top-3 left-7 text-[10px] uppercase tracking-[0.14em] font-medium bg-ink text-white px-2.5 py-1 rounded-full">{destacado}</span>}
-              <div className="w-10 h-10 rounded bg-accent/10 text-accent flex items-center justify-center"><Icon className="w-5 h-5" /></div>
-              <h3 className="text-xl font-medium mt-5">{nombre}</h3>
-              <p className="text-sm text-secondary leading-6 mt-2">{resumen}</p>
-              <ul className="flex flex-col gap-2.5 mt-5 flex-1">
-                {beneficios.map((beneficio) => (
-                  <li key={beneficio} className="text-sm text-secondary leading-6 flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />{beneficio}</li>
-                ))}
-              </ul>
-              <a href={enlaceWhatsapp(plan)} target="_blank" rel="noopener noreferrer" className="btn-primary justify-center mt-7"><MessageCircle className="w-4 h-4" /><span>{cta}</span></a>
-            </article>
-          ))}
+        <div className="grid md:grid-cols-2 gap-6 mt-10 items-stretch">
+          {planes.map(({ icon: Icon, nombre, resumen, destacado, beneficios, cta, plan }) => {
+            const oscuro = Boolean(destacado)
+            return (
+              <article
+                key={plan}
+                className={oscuro
+                  ? 'relative p-8 rounded-card flex flex-col bg-ink text-white shadow-[0_28px_64px_rgba(21,27,34,0.28)] ring-1 ring-white/10'
+                  : 'card relative p-8 flex flex-col'}
+              >
+                {oscuro && <div className="absolute inset-0 rounded-card opacity-70 bg-[radial-gradient(circle_at_88%_0%,#2a78d6_0,transparent_42%),radial-gradient(circle_at_2%_100%,rgba(240,200,118,0.4)_0,transparent_48%)]" />}
+                <div className="relative flex flex-col flex-1">
+                  {destacado && (
+                    <span className="absolute -top-4 right-0 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] font-semibold bg-[#f0c876] text-[#3d2c05] px-3 py-1.5 rounded-full shadow-[0_8px_18px_rgba(240,200,118,0.38)]">
+                      <Sparkles className="w-3 h-3" />{destacado}
+                    </span>
+                  )}
+                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${oscuro ? 'bg-white/10 text-white ring-1 ring-white/15' : 'bg-accent/10 text-accent'}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className={`text-2xl font-semibold mt-6 ${oscuro ? 'text-white' : 'text-ink'}`}>{nombre}</h3>
+                  <p className={`text-sm leading-6 mt-2 ${oscuro ? 'text-white/70' : 'text-secondary'}`}>{resumen}</p>
+                  <div className={`h-px w-full mt-6 ${oscuro ? 'bg-white/10' : 'bg-border'}`} />
+                  <ul className="flex flex-col gap-3.5 mt-6 flex-1">
+                    {beneficios.map((beneficio) => (
+                      <li key={beneficio} className="text-sm leading-6 flex items-start gap-2.5">
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${oscuro ? 'bg-white/15 text-white' : 'bg-accent/15 text-accent'}`}>
+                          <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                        </span>
+                        <span className={oscuro ? 'text-white/80' : 'text-secondary'}>{beneficio}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={enlaceWhatsapp(plan)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={oscuro
+                      ? 'inline-flex items-center justify-center gap-2 bg-white text-ink px-4 py-3 rounded text-sm font-medium shadow-[0_10px_24px_rgba(0,0,0,0.25)] hover:opacity-90 transition-all mt-8'
+                      : 'btn-primary justify-center mt-8'}
+                  >
+                    <MessageCircle className="w-4 h-4" /><span>{cta}</span>
+                  </a>
+                </div>
+              </article>
+            )
+          })}
         </div>
         <p className="text-xs text-muted mt-6 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success" /> Te respondemos por WhatsApp con el valor según el número de congregaciones y distritos que necesites gestionar.</p>
       </section>
