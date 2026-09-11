@@ -130,13 +130,21 @@ export default function InicioPublico() {
               <div className="rounded bg-white/10 border border-white/10 p-4">
                 <p className="text-xs text-white/55">Actividad</p>
                 <svg className="w-full h-9 mt-3" viewBox="0 0 80 30" fill="none" aria-hidden="true">
-                  <g fill="#8fc8ff">
-                    <rect x="2" y="19" width="9" height="11" rx="2" fillOpacity="0.45" />
-                    <rect x="17" y="13" width="9" height="17" rx="2" fillOpacity="0.6" />
-                    <rect x="32" y="16" width="9" height="14" rx="2" fillOpacity="0.5" />
-                    <rect x="47" y="7" width="9" height="23" rx="2" fillOpacity="0.8" />
-                    <rect x="62" y="1" width="9" height="29" rx="2" />
-                  </g>
+                  <defs>
+                    <linearGradient id="hero-actividad-area" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fff" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+                    </linearGradient>
+                    <linearGradient id="hero-actividad-line" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#fff" stopOpacity="0.55" />
+                      <stop offset="100%" stopColor="#fff" stopOpacity="0.95" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="27" x2="80" y2="27" stroke="#fff" strokeOpacity="0.12" strokeDasharray="1.5 3" />
+                  <path d="M1,23 C10,23 13,16 21,16 C29,16 32,20 40,18 C48,16 51,7 59,6 C65,5.2 70,4.4 79,3 L79,30 L1,30 Z" fill="url(#hero-actividad-area)" />
+                  <path d="M1,23 C10,23 13,16 21,16 C29,16 32,20 40,18 C48,16 51,7 59,6 C65,5.2 70,4.4 79,3" stroke="url(#hero-actividad-line)" strokeWidth="1.6" strokeLinecap="round" />
+                  <circle cx="79" cy="3" r="4.5" fill="#fff" fillOpacity="0.16" />
+                  <circle cx="79" cy="3" r="2" fill="#fff" />
                 </svg>
                 <p className="text-3xl font-semibold mt-3">Clara</p>
                 <p className="text-xs text-white/55 mt-1">por módulo</p>
@@ -144,19 +152,16 @@ export default function InicioPublico() {
               <div className="rounded bg-[#8fca68]/15 border border-[#8fca68]/20 p-4">
                 <p className="text-xs text-white/55">Acompañamiento</p>
                 <svg className="w-full h-9 mt-3" viewBox="0 0 80 30" fill="none" aria-hidden="true">
-                  <g stroke="#8fca68" strokeWidth="1.5" strokeOpacity="0.55">
-                    <line x1="40" y1="15" x2="13" y2="5" />
-                    <line x1="40" y1="15" x2="13" y2="25" />
-                    <line x1="40" y1="15" x2="67" y2="5" />
-                    <line x1="40" y1="15" x2="67" y2="25" />
-                  </g>
-                  <g fill="#8fca68">
-                    <circle cx="40" cy="15" r="5" />
-                    <circle cx="13" cy="5" r="3" fillOpacity="0.7" />
-                    <circle cx="13" cy="25" r="3" fillOpacity="0.7" />
-                    <circle cx="67" cy="5" r="3" fillOpacity="0.7" />
-                    <circle cx="67" cy="25" r="3" fillOpacity="0.7" />
-                  </g>
+                  <defs>
+                    <radialGradient id="hero-acompanamiento-glow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#fff" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <circle cx="40" cy="15" r="13.5" fill="url(#hero-acompanamiento-glow)" />
+                  <circle cx="40" cy="15" r="13" stroke="#fff" strokeOpacity="0.2" />
+                  <circle cx="40" cy="15" r="8.5" stroke="#fff" strokeOpacity="0.4" />
+                  <circle cx="40" cy="15" r="3.5" fill="#fff" />
                 </svg>
                 <p className="text-3xl font-semibold mt-3">Cercano</p>
                 <p className="text-xs text-white/55 mt-1">por persona</p>
