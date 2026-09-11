@@ -949,6 +949,10 @@ export default function FeligresiaAdmin() {
   }
 
   const filtered = people.filter((person) => (personStatus === 'todos' || person.estado_membresia === personStatus) && `${person.nombres} ${person.apellidos}`.toLowerCase().includes(deferredSearch.toLowerCase()))
+  // Para la etiqueta "Sugerido: X" del censo -- quien ya tiene un comite
+  // activo no necesita sugerencia, sin importar si ese comite coincide
+  // o no con el catalogo de rangos de edad.
+  const personasConComite = new Set(committees.flatMap((committee) => (committee.membresias_comite ?? []).filter((member) => !member.fecha_fin).map((member) => member.persona_id)))
   const discipuladoInicioPorPersona = new Map(discipuladoActivos.map((row) => [row.persona_id, row.fecha_inicio]))
   function nuevoBautizadoInfo(personId) {
     const fechaInicio = discipuladoInicioPorPersona.get(personId)
@@ -1027,6 +1031,10 @@ export default function FeligresiaAdmin() {
         {filtered.map((person) => {
           const nuevoBautizado = nuevoBautizadoInfo(person.id)
           const tone = avatarTone(person.id)
+          const comitesSugeridos = person.bautizado && !personasConComite.has(person.id)
+            ? sugerirComites({ edad: calcularEdad(person.fecha_nacimiento), genero: person.genero, estadoCivil: person.estado_civil }, rangosEdad)
+            : []
+          const nombresComitesSugeridos = [...new Set(comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean))]
           return (
             <button key={person.id} onClick={() => editPerson(person)} className="censo-row group">
               <span className="censo-avatar" style={{ background: tone.bg, color: tone.fg }}>{initialesDe(person)}</span>
@@ -1038,6 +1046,7 @@ export default function FeligresiaAdmin() {
                   {person.fecha_ultima_asistencia && <span>· Últ. asistencia {person.fecha_ultima_asistencia}</span>}
                 </p>
                 {nuevoBautizado && <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.08em] text-warning bg-warning-bg rounded-full px-2 py-0.5 mt-1.5"><Droplet className="w-3 h-3" />Nuevo bautizado · {nuevoBautizado.dias}d en Discipulado</span>}
+                {nombresComitesSugeridos.length > 0 && <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.08em] text-accent bg-accent-bg rounded-full px-2 py-0.5 mt-1.5"><UsersRound className="w-3 h-3" />Sugerido: {nombresComitesSugeridos.join(', ')}</span>}
               </div>
               <span className={`censo-badge ${STATE_BADGE_CLASS[person.estado_membresia] || 'bg-surface-1 text-secondary'}`}>{STATES[person.estado_membresia]}</span>
               <ChevronRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />

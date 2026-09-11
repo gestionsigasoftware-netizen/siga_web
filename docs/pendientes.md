@@ -1155,6 +1155,15 @@
 	`docs/fixes/conquistadores-no-convertidos-2026-09-11.md`.
 	**Pendiente de ejecutar por el usuario cuanto antes** (rompe la
 	pantalla hasta entonces): `supabase/modulos/fix_conquistadores_no_convertidos.sql`.
+- **Resuelto (2026-09-11)**: la sugerencia de comité por edad/género
+	(existía desde el 2026-09-07) solo se veía dentro de la ficha
+	individual. Ahora aparece como etiqueta "Sugerido: X" directamente en
+	la lista de Población, para quien está bautizado, no tiene comité
+	activo y encaja en el catálogo de rangos de edad. Solo informativo,
+	no asigna nada. Verificado contra la base real con un rango de prueba
+	(insertado y luego eliminado, sin residuos). Ver
+	`docs/fixes/etiqueta-comite-sugerido-censo-2026-09-11.md`. Sin
+	acción pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 
