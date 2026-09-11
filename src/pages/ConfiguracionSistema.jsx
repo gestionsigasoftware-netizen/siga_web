@@ -1,10 +1,11 @@
-import { Bell, Database, Globe2, LockKeyhole } from 'lucide-react'
+import { Bell, Database, Globe2, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import InfoTip from '../components/InfoTip'
+import { confirmEnrollment, enrollTotp, listFactors, unenrollFactor } from '../lib/mfa'
 
 const configuracionSistemaCache = new Map()
 
@@ -39,6 +40,67 @@ export default function ConfiguracionSistema() {
     return () => clearTimeout(timer)
   }, [notice])
   const [error, setError] = useState(null)
+
+  // Verificacion en dos pasos (MFA/TOTP) -- factores ya activados, y el
+  // estado del formulario de activacion (QR + codigo) cuando esta en curso.
+  const [mfaFactors, setMfaFactors] = useState([])
+  const [mfaLoading, setMfaLoading] = useState(true)
+  const [enrollData, setEnrollData] = useState(null)
+  const [verifyCode, setVerifyCode] = useState('')
+  const [mfaSaving, setMfaSaving] = useState(false)
+
+  async function loadMfaFactors() {
+    setMfaLoading(true)
+    const { data, error: mfaListError } = await listFactors()
+    if (mfaListError) setError(`No se pudo consultar la verificación en dos pasos: ${mfaListError.message}`)
+    setMfaFactors((data?.totp ?? []).filter((factor) => factor.status === 'verified'))
+    setMfaLoading(false)
+  }
+
+  async function startMfaEnroll() {
+    setError(null)
+    setNotice(null)
+    const { data, error: enrollError } = await enrollTotp()
+    if (enrollError) { setError(`No se pudo iniciar la activación: ${enrollError.message}`); return }
+    setEnrollData({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret })
+  }
+
+  async function cancelMfaEnroll() {
+    // Limpia el factor "no verificado" que enroll() ya creo en el
+    // servidor -- si no se cancela aqui, quedaria huerfano (Supabase
+    // permite varios intentos de inscripcion a la vez).
+    if (enrollData) await unenrollFactor(enrollData.factorId)
+    setEnrollData(null)
+    setVerifyCode('')
+    setError(null)
+  }
+
+  async function confirmMfaEnroll(event) {
+    event.preventDefault()
+    if (verifyCode.trim().length < 6) { setError('Ingresa el código de 6 dígitos que muestra tu app autenticadora.'); return }
+    setMfaSaving(true)
+    setError(null)
+    const { error: verifyError } = await confirmEnrollment(enrollData.factorId, verifyCode.trim())
+    setMfaSaving(false)
+    if (verifyError) { setError('Código incorrecto. Revisa la hora de tu dispositivo e intenta con el código actual.'); return }
+    setEnrollData(null)
+    setVerifyCode('')
+    setNotice('Verificación en dos pasos activada. La próxima vez que inicies sesión, se te pedirá el código.')
+    await loadMfaFactors()
+  }
+
+  async function disableMfa(factorId) {
+    if (!window.confirm('¿Desactivar la verificación en dos pasos? Tu cuenta quedará protegida solo con tu contraseña.')) return
+    setMfaSaving(true)
+    setError(null)
+    const { error: disableError } = await unenrollFactor(factorId)
+    setMfaSaving(false)
+    if (disableError) { setError(`No se pudo desactivar: ${disableError.message}`); return }
+    setNotice('Verificación en dos pasos desactivada.')
+    await loadMfaFactors()
+  }
+
+  useEffect(() => { loadMfaFactors() }, [])
 
   async function loadPreferences() {
     if (!user) {
@@ -115,6 +177,50 @@ export default function ConfiguracionSistema() {
           {notice && <p role="status" className="text-sm text-success">{notice}</p>}
         </div>
       </form>
+      <section className="card p-5 max-w-2xl">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0"><ShieldCheck className="w-4 h-4" /></div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-medium">Verificación en dos pasos</h2>
+            <p className="text-sm text-secondary mt-1">Además de tu contraseña, pide un código de una app autenticadora (Google Authenticator, Authy u otra) al iniciar sesión. Muy recomendado para cuentas nacional y super_admin.</p>
+
+            {mfaLoading ? (
+              <p className="text-sm text-muted mt-4">Consultando estado...</p>
+            ) : enrollData ? (
+              <form onSubmit={confirmMfaEnroll} className="mt-4 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <img src={enrollData.qrCode} alt="Código QR para activar la verificación en dos pasos" className="w-36 h-36 rounded border border-border flex-shrink-0" />
+                  <div className="text-sm text-secondary">
+                    <p>1. Escanea este código con tu app autenticadora.</p>
+                    <p className="mt-1">2. Si no puedes escanear, ingresa esta clave manualmente:</p>
+                    <p className="mt-1 font-mono text-xs bg-surface-1 rounded px-2 py-1.5 break-all">{enrollData.secret}</p>
+                  </div>
+                </div>
+                <label className="text-sm max-w-xs">Código de 6 dígitos
+                  <div className="relative mt-1.5">
+                    <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus autoComplete="one-time-code" placeholder="123456" value={verifyCode} onChange={(event) => setVerifyCode(event.target.value.replace(/\D/g, ''))} className="input-field pl-10 tracking-[0.3em] text-center" />
+                  </div>
+                </label>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={mfaSaving || verifyCode.length < 6} className="btn-primary">{mfaSaving ? 'Confirmando...' : 'Confirmar y activar'}</button>
+                  <button type="button" onClick={cancelMfaEnroll} className="btn-secondary">Cancelar</button>
+                </div>
+              </form>
+            ) : mfaFactors.length > 0 ? (
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <span className="inline-block text-xs rounded px-2 py-1 text-success bg-success-bg w-fit">Activada</span>
+                <button type="button" disabled={mfaSaving} onClick={() => disableMfa(mfaFactors[0].id)} className="btn-secondary text-sm">Desactivar</button>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <span className="inline-block text-xs rounded px-2 py-1 text-secondary bg-surface-1 w-fit mb-3">No activada</span>
+                <div><button type="button" onClick={startMfaEnroll} className="btn-primary">Activar verificación en dos pasos</button></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
       <section>
         <div className="mb-4"><p className="eyebrow">Información del servicio</p><h2 className="font-medium mt-1">Estado del sistema</h2><p className="text-sm text-secondary mt-1">Consulta el contexto de tu cuenta y la conexión de SIGAP.</p></div>
         <div className="grid md:grid-cols-2 gap-4">

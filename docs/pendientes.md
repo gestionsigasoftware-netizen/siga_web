@@ -2,6 +2,24 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-10), reportado en produccion real por el usuario
+	mientras daba de alta un cliente**: "Crear congregacion e invitar
+	pastor" en Pastoral Distrital fallaba con "column reference
+	congregacion_id is ambiguous" al elegir una sugerencia del catalogo
+	oficial de la IPUC (bug de PL/pgSQL: el nombre de salida de la
+	funcion chocaba con una columna real de `catalogo_congregaciones_ipuc`).
+	Ver `docs/fixes/bug-crear-congregacion-columna-ambigua-2026-09-10.md`.
+	**Confirmado resuelto por el usuario en produccion real**: ejecuto el
+	fix y logro crear una congregacion nueva eligiendo del catalogo
+	oficial sin error. Ademas se corrigio un fallo silencioso relacionado en el
+	mismo formulario (`if (!distritoId) return` sin ningun mensaje).
+	**Limpieza (2026-09-10)**: las 3 versiones historicas de
+	`crear_congregacion_con_pastor` con distinta cantidad de parametros
+	que convivian en la base real (Postgres no reemplaza una funcion por
+	otra con firma distinta) se redujeron a una sola -- ver
+	`supabase/distrital/limpiar_sobrecargas_crear_congregacion.sql`.
+	**Accion requerida del usuario**: ejecutar ese archivo (despues del
+	fix de arriba).
 - Resuelto (2026-09-10): el boton "Cerrar sesion" no aparecia en el
 	menu hamburguesa en moviles reales (reportado por el usuario desde
 	su celular en sigap.com.co). Causa: el drawer usaba `h-screen`
@@ -972,30 +990,98 @@
 	Local, Licencia General, Ordenacion Ministerial) en Gestion pastoral, con
 	historial de ascensos con fecha. Solo el lider distrital puede ascender, un
 	nivel a la vez, sin saltos. Ver `supabase/distrital/licencias_pastorales.sql`.
-- Ejecutar y verificar `supabase/schema/seguridad_produccion.sql`.
-- Aplicar en el proyecto Supabase real la correccion de `tiene_permiso()`
-	(faltaban `red_familias.consultar` y `red_familias.editar` en la lista de
-	permisos implicitos del pastor local; ver
-	`docs/auditorias/auditoria-sidebar-red-familias-2026-08-30.md`) y confirmar que "Modo
-	consulta" desaparece para pastores sin perfil adicional asignado.
-- Comparar permiso por permiso la lista de `accesos.sql` contra la lista de
-	`seguridad_produccion.sql` en `tiene_permiso()`, por si quedo algun otro
-	permiso fuera al redefinir la funcion.
+- **Verificado (2026-09-10)**: `service_role` NO existe en ningun archivo
+	de `src/`, ni en `.env`/`.env.example` (solo `VITE_SUPABASE_URL` y
+	`VITE_SUPABASE_ANON_KEY`) -- confirmado leyendo el codigo real, no
+	solo el checklist. `.env` esta en `.gitignore`, nunca se commiteo.
+- **Verificado (2026-09-10)**: correccion de `tiene_permiso()`
+	(`red_familias.consultar`/`.editar`) SI esta en el codigo actual, y
+	los 7 archivos que redefinen esta funcion (`accesos.sql` ->
+	`seguridad_produccion.sql` -> `escuela_dominical_damas_dorcas.sql` ->
+	`obra_carcelaria.sql` -> `conquistadores_obra_social.sql` /
+	`formacion_musica_artistica_teologica.sql` -> `sepri.sql`) son
+	acumulativos entre si (cada uno incluye la lista completa del
+	anterior). Se comparo ademas contra los ~20 permisos que el frontend
+	realmente consulta hoy (grep de todo `src/`): cero huecos. Pendiente
+	real que queda: confirmar que la version ejecutada en el proyecto
+	real sea la de `sepri.sql` (la mas reciente/completa) y no una
+	intermedia -- se infiere que si (SEPRI se probo de punta a punta el
+	2026-09-06, lo que exige que `sepri.editar` ya estuviera en la
+	funcion en ese momento), pero no hay forma de confirmarlo sin acceso
+	al SQL Editor.
+- **Verificado (2026-09-10)**: Storage no se usa en ningun lugar de la
+	app (`supabase.storage` no aparece en `src/`) -- el punto "verificar
+	que los buckets sean privados" no aplica todavia, no hay buckets con
+	datos reales.
+- **Confirmado por el usuario (2026-09-10)**: HTTPS ya esta activo
+	(sigap.com.co vive en https).
+- **Confirmado por el usuario (2026-09-10), verificar de todas formas**:
+	SMTP propio (Resend) ya configurado -- **hallazgo real al probar el
+	envio de correo de confirmacion (`auth.signUp` de prueba, 2026-09-10):
+	fallo con "Error sending confirmation email"**. Dos posibilidades: (a)
+	Resend esta conectado al `RESEND_API_KEY` de las Edge Functions (para
+	el aviso de reportes de soporte) pero NO como SMTP personalizado de
+	Supabase Auth (Project Settings -> Auth -> SMTP Settings) -- son dos
+	integraciones distintas, la segunda es la que usa
+	`invitar-usuario`/`auth.admin.inviteUserByEmail()`, el flujo real de
+	invitar pastores; o (b) si configurado, algo esta fallando (dominio
+	remitente sin verificar, credenciales, o el error fue especifico del
+	dominio de prueba `@example.com` usado). **Accion pendiente del
+	usuario**: confirmar en el panel de Supabase (Project Settings ->
+	Auth -> SMTP Settings) que Resend esta cargado ahi especificamente
+	(no solo como secreto de Edge Function), y probar una invitacion real
+	desde Equipo de trabajo para confirmar que el correo llega.
+- **Confirmado por el usuario (2026-09-10), consistente con lo
+	observado**: la confirmacion de correo obligatoria SI esta activada
+	en Supabase Auth -- el intento de `auth.signUp()` de prueba disparo
+	el intento de enviar confirmacion (en vez de crear sesion directa),
+	lo que solo pasa si esa opcion esta encendida.
+- **Confirmado por el usuario (2026-09-10)**: politica de contrasenas
+	fuerte ya exigida por la app en el login/creacion de contrasena.
+	MFA de la cuenta de Supabase (panel de administracion, distinto de
+	MFA dentro de SIGAP) ya activado con Google Authenticator.
+- **Resuelto (2026-09-10)**: MFA para las cuentas de SIGAP (nacional/
+	super_admin y cualquier usuario que lo quiera) -- antes no existia
+	ninguna pantalla real, solo una tarjeta de texto fijo. Construido:
+	activacion con QR + codigo de respaldo, verificacion obligatoria del
+	codigo al iniciar sesion, y desactivacion. Verificado de punta a
+	punta con Playwright (activar, cerrar sesion, que pida el codigo,
+	verificar con un codigo TOTP real calculado en el momento, entrar,
+	desactivar). Ver
+	`docs/fixes/mfa-verificacion-dos-pasos-2026-09-10.md`.
+- **Revisado (2026-09-10)**: Rate Limits de Supabase Auth -- de los 7
+	valores, solo "sign-ups and sign-ins" (proteccion real contra fuerza
+	bruta de contrasena) valia la pena bajar: de 30 a 10 solicitudes por
+	5 minutos por IP. El resto (token refresh/verification, SMS, Web3,
+	anonimos) o no aplica a SIGAP (no se usan esos metodos) o bajarlo no
+	sumaria seguridad real. **Accion requerida del usuario**: cambiar
+	ese numero en el panel (Authentication -> Rate Limits) y guardar.
+- **Bloqueado por el plan (2026-09-10)**: Backups/PITR no se puede
+	activar en el plan Free de Supabase que usa el proyecto ahora mismo.
+	Decision consciente del usuario, no un pendiente tecnico -- si se
+	sube a Pro antes de escalar con mas clientes reales, activar backups
+	diarios como minimo (PITR es un complemento aparte, con costo por
+	GB).
+- Configurar monitoreo, alertas y revision de logs.
+- Configurar CSP, HSTS y anti-clickjacking.
+- **Auditoria estatica completada (2026-09-10)**: se revisaron las 235
+	politicas RLS del proyecto (38 archivos) buscando huecos de
+	aislamiento entre congregaciones. Se encontraron y corrigieron 5
+	hallazgos reales (uno critico: un RPC sin ningun control de permiso
+	que permitia reescribir asignaciones de cargo de OTRA congregacion).
+	Ver `docs/fixes/auditoria-aislamiento-rls-2026-09-10.md` para el
+	detalle completo y los 5 archivos `fix_*.sql` nuevos que hay que
+	ejecutar. **Sigue pendiente la prueba EN VIVO** (dos identidades
+	reales con JWT separados, no solo lectura de politicas) -- bloqueada
+	temporalmente porque crear una segunda identidad de prueba requiere
+	completar una invitacion por correo, y el envio de correo de
+	confirmacion fallo al probarlo en esta sesion (ver el punto de SMTP
+	mas arriba). Retomar en cuanto ese bloqueo se resuelva.
 - Revisar si la tarjeta "Seguridad" de Preferencias personales debe reflejar
 	un estado real (MFA, ultima sesion) en vez de texto estatico siempre en
 	verde, una vez se resuelvan los pendientes de seguridad de produccion.
-- Confirmar RLS en todas las tablas y vistas expuestas.
 - Probar la auditoría con pastor local y niveles superiores, incluyendo filtros,
 	paginación, exportación y detalle expandible.
-- Configurar HTTPS y dominio en el hosting.
-- Activar confirmacion de correo, politica global de contrasenas y proteccion contra abuso en Supabase Auth.
-- Activar MFA para administradores.
-- Configurar backups/PITR y retencion.
-- Configurar monitoreo, alertas y revision de logs.
-- Configurar CSP, HSTS y anti-clickjacking.
-- Verificar que todos los buckets de Storage sean privados.
-- Ejecutar prueba de aislamiento entre dos congregaciones.
-- Revisar variables de entorno y confirmar que no existe `service_role` en el bundle.
 
 ## Prioridad alta
 

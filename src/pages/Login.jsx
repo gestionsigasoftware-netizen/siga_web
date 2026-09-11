@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
 import sigapLogo from '../assets/sigap-logo.svg'
 import sigapLogoWhite from '../assets/sigap-logo-white.svg'
 
@@ -14,6 +15,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+  // Paso de verificacion en dos pasos, solo aparece si la cuenta tiene un
+  // factor TOTP verificado -- ver Preferencias personales para activarlo.
+  const [mfaFactorId, setMfaFactorId] = useState(null)
+  const [mfaCode, setMfaCode] = useState('')
 
   useEffect(() => {
     if (!notice) return undefined
@@ -37,13 +42,47 @@ export default function Login() {
     setError(null)
     setNotice(null)
     const { error } = await signIn(email, password)
-    setLoading(false)
     if (error) {
+      setLoading(false)
       // AuthRetryableFetchError = el fetch en si fallo (sin internet),
       // no una respuesta del servidor -- sin esto, "sin conexion" se
       // mostraba igual que "usuario o contraseña incorrectos".
       const sinConexion = error.name === 'AuthRetryableFetchError' || !navigator.onLine
       setError(sinConexion ? 'No hay conexión a internet. Verifica tu conexión e intenta de nuevo.' : 'Usuario o contraseña incorrectos.')
+      return
+    }
+
+    // La contraseña es correcta, pero si la cuenta tiene verificacion en
+    // dos pasos activada, la sesion queda en aal1 (no autorizada del
+    // todo) hasta completar el codigo -- sin este paso, cualquiera con
+    // la contraseña entraria igual sin el segundo factor.
+    const { data: aal } = await getAssuranceLevel()
+    if (aal && aal.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel) {
+      const { data: factorsData } = await listFactors()
+      const totpFactor = factorsData?.totp?.[0]
+      if (totpFactor) {
+        setLoading(false)
+        setMfaFactorId(totpFactor.id)
+        return
+      }
+    }
+    setLoading(false)
+    navigate('/app')
+  }
+
+  async function handleMfaSubmit(event) {
+    event.preventDefault()
+    if (mfaCode.trim().length < 6) {
+      setError('Ingresa el código de 6 dígitos de tu app autenticadora.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    const { error: mfaError } = await verifyLoginChallenge(mfaFactorId, mfaCode.trim())
+    setLoading(false)
+    if (mfaError) {
+      setError('Código incorrecto o expirado. Genera uno nuevo en tu app autenticadora e intenta de nuevo.')
+      setMfaCode('')
       return
     }
     navigate('/app')
@@ -142,12 +181,23 @@ export default function Login() {
               <img src={sigapLogo} alt="SIGAP" className="h-6 w-auto" />
             </Link>
             <div className="mb-8">
-              <p className="text-sm font-medium text-accent mb-3">{isRecovery ? (isInvitation ? 'Invitación a SIGAP' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>
-              <h1 className="text-3xl font-semibold tracking-tight">{isRecovery ? (isInvitation ? 'Crea tu contraseña' : 'Actualiza tu acceso') : 'Entra a tu espacio SIGAP'}</h1>
-              <p className="text-sm text-secondary mt-3 leading-6">{isRecovery ? (isInvitation ? 'Define una contraseña segura para activar tu acceso a SIGAP.' : 'Crea una nueva contraseña para volver a entrar a tu espacio de trabajo.') : 'Administra la información de tu congregación con una mirada clara y oportuna.'}</p>
+              <p className="text-sm font-medium text-accent mb-3">{mfaFactorId ? 'Verificación en dos pasos' : isRecovery ? (isInvitation ? 'Invitación a SIGAP' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>
+              <h1 className="text-3xl font-semibold tracking-tight">{mfaFactorId ? 'Ingresa tu código' : isRecovery ? (isInvitation ? 'Crea tu contraseña' : 'Actualiza tu acceso') : 'Entra a tu espacio SIGAP'}</h1>
+              <p className="text-sm text-secondary mt-3 leading-6">{mfaFactorId ? 'Abre tu app autenticadora (Google Authenticator, Authy u otra) y escribe el código de 6 dígitos.' : isRecovery ? (isInvitation ? 'Define una contraseña segura para activar tu acceso a SIGAP.' : 'Crea una nueva contraseña para volver a entrar a tu espacio de trabajo.') : 'Administra la información de tu congregación con una mirada clara y oportuna.'}</p>
             </div>
 
-            {isRecovery ? <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
+            {mfaFactorId ? <form onSubmit={handleMfaSubmit} className="flex flex-col gap-4">
+              <div>
+                <label htmlFor="mfa-code" className="text-sm font-medium block mb-1.5">Código de verificación</label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                  <input id="mfa-code" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus autoComplete="one-time-code" placeholder="123456" value={mfaCode} onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))} className="input-field pl-10 tracking-[0.3em] text-center" />
+                </div>
+              </div>
+              {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+              <button type="submit" disabled={loading || mfaCode.length < 6} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar e ingresar'}</button>
+              <button type="button" onClick={() => { setMfaFactorId(null); setMfaCode(''); setError(null); setPassword('') }} className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver a iniciar sesión</button>
+            </form> : isRecovery ? <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
               <div><label htmlFor="new-password" className="text-sm font-medium block mb-1.5">Nueva contraseña</label><input id="new-password" type="password" required minLength={8} autoComplete="new-password" placeholder="Crea una contraseña segura" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(null) }} className="input-field" /></div>
               <div aria-live="polite" className="rounded bg-surface-1 p-3"><p className="text-xs font-medium text-secondary mb-2">Requisitos de seguridad</p><div className="grid gap-1.5">{passwordRules.map((rule) => <p key={rule.label} className={`text-xs ${rule.valid ? 'text-success' : 'text-muted'}`}>{rule.valid ? '✓' : '○'} {rule.label}</p>)}</div></div>
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}

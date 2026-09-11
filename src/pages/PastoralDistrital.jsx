@@ -612,7 +612,10 @@ export default function PastoralDistrital() {
 
   async function createCongregation(event) {
     event.preventDefault()
-    if (!distritoId) return
+    if (!distritoId) {
+      setError('No se pudo determinar tu distrito. Recarga la página o cambia de rol desde el Sidebar e intenta de nuevo; si el problema sigue, contacta a soporte.')
+      return
+    }
     if (!newCongregation.nombre.trim() || !newCongregation.pastor_nombres.trim() || !newCongregation.pastor_apellidos.trim() || !newCongregation.pastor_email.trim()) {
       setError('Completa el nombre de la congregación, el nombre del pastor y su correo.')
       return
