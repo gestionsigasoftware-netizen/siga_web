@@ -1079,6 +1079,30 @@
 	verde, una vez se resuelvan los pendientes de seguridad de produccion.
 - Probar la auditoría con pastor local y niveles superiores, incluyendo filtros,
 	paginación, exportación y detalle expandible.
+- **Resuelto (2026-09-10), reportado por el usuario sobre una congregación
+	real recién creada**: 3 hallazgos. (1) El sidebar mostraba "Distrito 6 ·
+	Pto Tejada" -- `distritos.nombre` es un campo legado (de antes de que
+	existiera `numero`) que quedó poblado con el nombre de una congregación
+	del distrito, no un nombre propio del distrito (los distritos de la
+	IPUC solo se identifican por número). Se dejó de mostrar en las ~14
+	pantallas que lo usaban y se quitó el campo "Nombre" del formulario de
+	creación de distritos para que no vuelva a pasar. (2) El pastor creado
+	automáticamente por `crear_congregacion_con_pastor()` disparaba de
+	inmediato 3 "Alertas pastorales" (sin familia/bautismo/asistencia) por
+	no tener aún ningún dato -- mismo bug de "ausencia de dato = riesgo
+	real" ya corregido antes en Conquistadores/DamasDorcas, ahora aplicado
+	también a `vw_alertas_pastorales` con períodos de gracia desde
+	`fecha_ingreso`/`created_at` (30-90 días según la alerta). (3) Clic en
+	"Ver ficha" cerró la sesión inesperadamente una vez -- no había ningún
+	`signOut()` explícito en ese flujo; el diagnóstico apunta a expiración
+	normal de token de Supabase coincidiendo con la navegación, pero
+	ocurría en silencio. Ahora `ProtectedRoute` distingue "nunca hubo
+	sesión" de "la sesión desapareció" y `Login.jsx` muestra "Tu sesión
+	expiró por seguridad" en ese segundo caso. Ver
+	`docs/fixes/alertas-nueva-congregacion-distrito-sesion-2026-09-10.md`.
+	**Pendiente de ejecutar por el usuario**:
+	`supabase/reportes/fix_alertas_pastorales_gracia_ingreso.sql` (los
+	cambios de frontend ya están en el código, sin acción pendiente).
 
 ## Prioridad alta
 

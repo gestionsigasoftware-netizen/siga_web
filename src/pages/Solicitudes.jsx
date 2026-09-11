@@ -15,7 +15,7 @@ const ESTADO_TONE = { pendiente: 'text-warning', en_proceso: 'text-accent', resu
 const PRIORIDAD_LABELS = { baja: 'Baja', media: 'Media', alta: 'Alta' }
 
 function formatDistritoLabel(nombre, numero) {
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre
+  return numero ? `Distrito ${numero}` : null
 }
 
 export default function Solicitudes() {

@@ -7,7 +7,7 @@ import InfoTip from '../components/InfoTip'
 const saludDatosCache = new Map()
 
 function formatDistritoLabel(nombre, numero) {
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre
+  return numero ? `Distrito ${numero}` : null
 }
 
 function pct(parte, total) {

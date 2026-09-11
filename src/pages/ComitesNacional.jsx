@@ -16,7 +16,7 @@ const comitesNacionalCache = new Map();
 const ALLOWED_LEVELS = ["nacional", "super_admin"];
 
 function formatDistritoLabel(nombre, numero) {
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre;
+  return numero ? `Distrito ${numero}` : null;
 }
 
 export default function ComitesNacional() {

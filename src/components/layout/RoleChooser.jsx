@@ -11,7 +11,7 @@ export function describirAlcance(role) {
   if (role.nivel === 'local') return role.congregaciones?.nombre || 'Sin congregación asignada'
   if (role.nivel === 'distrital') {
     const numero = role.distritos?.numero
-    return numero ? `Distrito ${numero} · ${role.distritos?.nombre}` : role.distritos?.nombre || 'Sin distrito asignado'
+    return numero ? `Distrito ${numero}` : 'Sin distrito asignado'
   }
   return 'Acceso general'
 }

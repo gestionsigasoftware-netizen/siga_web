@@ -23,7 +23,7 @@ function Metric({ label, value, detail, tip }) {
 }
 
 function formatDistritoLabel(nombre, numero) {
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre;
+  return numero ? `Distrito ${numero}` : null;
 }
 
 function OtorgarAccesoJerarquico({ esSuperAdmin, distritos }) {

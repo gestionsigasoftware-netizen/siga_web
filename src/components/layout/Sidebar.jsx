@@ -77,8 +77,11 @@ function SidebarNavSkeleton() {
 }
 
 function formatDistrictLabel(nombre, numero) {
-  if (!nombre) return null;
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre;
+  // Los distritos se identifican solo por numero -- `nombre` es un campo
+  // legado de la tabla `distritos` (de antes de que existiera `numero`)
+  // que en la práctica quedó con el nombre de una congregación del
+  // distrito, no un nombre propio del distrito. No se muestra.
+  return numero ? `Distrito ${numero}` : null;
 }
 
 export default function Sidebar() {

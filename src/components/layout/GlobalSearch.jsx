@@ -96,7 +96,7 @@ export default function GlobalSearch() {
                 <p className="font-medium">{congregacion.nombre}</p>
                 <p className="text-xs text-muted mt-0.5">
                   {congregacion.ciudad || 'Sin ciudad'}
-                  {congregacion.distritos ? ` · Distrito ${congregacion.distritos.numero ?? ''} · ${congregacion.distritos.nombre}` : ''}
+                  {congregacion.distritos?.numero ? ` · Distrito ${congregacion.distritos.numero}` : ''}
                 </p>
                 <p className="text-xs text-muted mt-0.5">
                   Pastor: {congregacion.pastor_nombre || 'Sin asignar'} · {ESTADO_CONGREGACION_LABELS[congregacion.estado] || congregacion.estado}

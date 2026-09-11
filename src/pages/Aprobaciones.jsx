@@ -37,7 +37,7 @@ export default function Aprobaciones() {
     setError(null)
     const { data, error: loadError } = await supabase
       .from('congregaciones')
-      .select('id, nombre, pastor_nombre, estado, madurez, distritos(nombre), created_at')
+      .select('id, nombre, pastor_nombre, estado, madurez, distritos(numero), created_at')
       .order('created_at', { ascending: false })
     const freshData = { congregaciones: data ?? [] }
     setCongregaciones(freshData.congregaciones)
@@ -107,7 +107,7 @@ export default function Aprobaciones() {
               <tr key={c.id} className="border-t border-border">
                 <td className="py-2.5 px-4 font-medium">{c.nombre}</td>
                 <td className="py-2.5 px-4 text-secondary">{c.pastor_nombre}</td>
-                <td className="py-2.5 px-4 text-secondary">{c.distritos?.nombre}</td>
+                <td className="py-2.5 px-4 text-secondary">{c.distritos?.numero ? `Distrito ${c.distritos.numero}` : '—'}</td>
                 <td className="py-2.5 px-4">
                   <select disabled={busy === c.id} className="input-field text-xs" value={c.madurez || 'lugar_prediccion'} onChange={(event) => actualizarMadurez(c.id, event.target.value)}>
                     {Object.entries(MADUREZ_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}

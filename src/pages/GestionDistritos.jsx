@@ -11,11 +11,14 @@ const gestionDistritosCache = new Map()
 const CONG_PAGE_SIZE = 50
 
 const ALLOWED_LEVELS = ['nacional', 'super_admin']
-const EMPTY_FORM = { numero: '', nombre: '' }
+const EMPTY_FORM = { numero: '' }
 
 function formatDistrictLabel(nombre, numero) {
-  if (!nombre) return null
-  return numero ? `Distrito ${numero} · ${nombre}` : nombre
+  // Los distritos se identifican solo por numero; `nombre` es un campo
+  // legado de la tabla (obligatorio en el esquema desde antes de que
+  // existiera `numero`) que no representa un nombre propio del distrito
+  // -- nunca se muestra.
+  return numero ? `Distrito ${numero}` : null
 }
 
 export default function GestionDistritos() {
@@ -134,19 +137,23 @@ export default function GestionDistritos() {
 
   function editDistrito(distrito) {
     setEditingId(distrito.id)
-    setForm({ numero: distrito.numero ?? '', nombre: distrito.nombre })
+    setForm({ numero: distrito.numero ?? '' })
   }
 
   async function saveDistrito(event) {
     event.preventDefault()
-    if (!form.nombre.trim()) {
-      setError('El nombre del distrito es obligatorio.')
+    const numero = form.numero === '' ? null : Number(form.numero)
+    if (!numero || numero < 1 || numero > 36) {
+      setError('El número del distrito es obligatorio (1 a 36).')
       return
     }
     setSaving(true)
     setError(null)
     setNotice(null)
-    const payload = { nombre: form.nombre.trim(), numero: form.numero === '' ? null : Number(form.numero) }
+    // `nombre` sigue siendo not null/unique en la tabla por el esquema
+    // original (de antes de que existiera `numero`) -- se completa solo,
+    // con el número, y nunca se muestra ni se pide en este formulario.
+    const payload = { numero, nombre: `Distrito ${numero}` }
     const { error: saveError } = editingId
       ? await supabase.from('distritos').update(payload).eq('id', editingId)
       : await supabase.from('distritos').insert(payload)
@@ -179,8 +186,7 @@ export default function GestionDistritos() {
           <h2 className="font-medium">{editingId ? 'Editar distrito' : 'Nuevo distrito'}</h2>
           {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
         </div>
-        <label className="text-sm"><span className="flex items-center gap-1">Número<InfoTip texto="Número oficial del distrito dentro de los 36 de la IPUC en Colombia. No puede repetirse entre distritos." /></span><input type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
-        <label className="text-sm sm:col-span-2">Nombre<input required className="input-field mt-1.5" value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} /></label>
+        <label className="text-sm"><span className="flex items-center gap-1">Número<InfoTip texto="Número oficial del distrito dentro de los 36 de la IPUC en Colombia. No puede repetirse entre distritos. Los distritos no tienen nombre propio, solo número -- los nombres son de las congregaciones." /></span><input required type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
         <button disabled={saving} className="btn-primary">
           {editingId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear distrito'}
@@ -198,7 +204,6 @@ export default function GestionDistritos() {
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
                   <th className="font-normal px-5 py-3">Número</th>
-                  <th className="font-normal px-5 py-3">Nombre</th>
                   <th className="font-normal px-5 py-3">Congregaciones</th>
                   <th className="font-normal px-5 py-3 text-right">Acciones</th>
                 </tr>
@@ -207,7 +212,6 @@ export default function GestionDistritos() {
                 {distritos.map((distrito) => (
                   <tr key={distrito.id} className="border-t border-border">
                     <td className="px-5 py-3 font-medium">{distrito.numero ?? '—'}</td>
-                    <td className="px-5 py-3">{distrito.nombre}</td>
                     <td className="px-5 py-3 text-secondary">{conteos.get(distrito.id) || 0}</td>
                     <td className="px-5 py-3 text-right">
                       <button type="button" className="text-accent text-xs" onClick={() => editDistrito(distrito)}>Editar</button>

@@ -89,7 +89,7 @@ export default function Configuracion() {
       supabase.from('categorias_demograficas').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
-      supabase.from('congregaciones').select('id, nombre, distrito_id, ciudad, direccion, distritos(nombre)').eq('id', congregacionId).single(),
+      supabase.from('congregaciones').select('id, nombre, distrito_id, ciudad, direccion, distritos(numero)').eq('id', congregacionId).single(),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('cargos_comite').select('id, nombre, codigo, requiere_sellado').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
     ])
@@ -107,7 +107,7 @@ export default function Configuracion() {
     setCargosComite(nuevosCargosComite)
     let nuevaOrganizacion = organizacion
     if (congregation.data) {
-      nuevaOrganizacion = { nombre: congregation.data.nombre, distrito: congregation.data.distritos?.nombre ?? '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' }
+      nuevaOrganizacion = { nombre: congregation.data.nombre, distrito: congregation.data.distritos?.numero ? `Distrito ${congregation.data.distritos.numero}` : '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' }
       setOrganizacion(nuevaOrganizacion)
     }
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()

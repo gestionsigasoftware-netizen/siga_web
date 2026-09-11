@@ -306,7 +306,7 @@ function DashboardDistrital({ rolPrincipal }) {
   const tablaPageCount = Math.max(1, Math.ceil(filasOrdenadas.length / TABLA_PAGE_SIZE))
   const tablaPageSafe = Math.min(tablaPage, tablaPageCount - 1)
   const filas = filasOrdenadas.slice(tablaPageSafe * TABLA_PAGE_SIZE, tablaPageSafe * TABLA_PAGE_SIZE + TABLA_PAGE_SIZE)
-  const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero} · ${distrito.nombre}` : distrito?.nombre || 'Panel distrital'
+  const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero}` : 'Panel distrital'
 
   const sumar = (campo) => congregaciones.reduce((total, c) => total + Number(c[campo] || 0), 0)
   const totalBautizados = sumar('bautizados')
@@ -716,7 +716,7 @@ function DashboardNacional() {
                   const variacionAsistencia = d.asistencia_mes_anterior ? Math.round(((d.asistencia_ultimo_mes - d.asistencia_mes_anterior) / d.asistencia_mes_anterior) * 100) : null
                   return (
                     <tr key={d.distrito_id} className="border-t border-border">
-                      <td className="px-4 py-3 font-medium">{d.numero ? `Distrito ${d.numero} · ${d.nombre}` : d.nombre}</td>
+                      <td className="px-4 py-3 font-medium">{d.numero ? `Distrito ${d.numero}` : '—'}</td>
                       <td className="px-4 py-3 text-secondary">{d.congregaciones}</td>
                       <td className={`px-4 py-3 ${Number(d.vacantes) > 0 ? 'text-danger' : 'text-secondary'}`}>{d.vacantes}</td>
                       <td className="px-4 py-3">{d.personas_activas}</td>

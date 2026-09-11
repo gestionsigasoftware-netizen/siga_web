@@ -164,7 +164,7 @@ export default function Suscripciones() {
               {filas.map(({ congregacion, suscripcion, estado }) => (
                 <tr key={congregacion.id} className="border-t border-border">
                   <td className="px-5 py-3 font-medium">{congregacion.nombre}</td>
-                  <td className="px-5 py-3 text-secondary">{congregacion.distritos ? `Distrito ${congregacion.distritos.numero ?? ''} · ${congregacion.distritos.nombre}` : '—'}</td>
+                  <td className="px-5 py-3 text-secondary">{congregacion.distritos?.numero ? `Distrito ${congregacion.distritos.numero}` : '—'}</td>
                   <td className="px-5 py-3 text-secondary">{suscripcion ? PLAN_LABELS[suscripcion.plan] : '—'}</td>
                   <td className="px-5 py-3 text-secondary">{suscripcion ? formatFecha(suscripcion.fecha_proximo_pago, { formato: formato_fecha }) : '—'}</td>
                   <td className={`px-5 py-3 font-medium ${ESTADO_TONE[estado]}`}>{ESTADO_LABELS[estado]}</td>

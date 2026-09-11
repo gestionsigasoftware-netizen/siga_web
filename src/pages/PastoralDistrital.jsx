@@ -287,7 +287,7 @@ export default function PastoralDistrital() {
   async function descargarInformeTrimestralDistrital() {
     if (!filasInformeOrdenadas.length) return
     const etiqueta = `${ETIQUETA_TRIMESTRE[informeTrimestre]} ${informeAnio}`
-    const distritoLabel = rolPrincipal?.distritos?.numero ? `Distrito ${rolPrincipal.distritos.numero} · ${rolPrincipal.distritos.nombre}` : rolPrincipal?.distritos?.nombre || 'Distrito'
+    const distritoLabel = rolPrincipal?.distritos?.numero ? `Distrito ${rolPrincipal.distritos.numero}` : 'Distrito'
     const sumar = (campo) => filasInformeOrdenadas.reduce((total, item) => total + Number(item[campo] || 0), 0)
     await descargarPdf({
       filename: `informe-trimestral-distrital-${informeAnio}-t${informeTrimestre}.pdf`,

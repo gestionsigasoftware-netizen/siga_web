@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
@@ -9,12 +9,20 @@ import sigapLogoWhite from '../assets/sigap-logo-white.svg'
 export default function Login() {
   const { signIn, resetPassword, updatePassword } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  // Si ProtectedRoute nos mandó aquí porque la sesión expiró (no por un
+  // cierre manual), lo mostramos explícito -- sin esto, la persona ve
+  // el login de la nada y piensa que la app la sacó sin razón.
+  const [error, setError] = useState(() => (location.state?.reason === 'session_expired' ? 'Tu sesión expiró por seguridad. Inicia sesión de nuevo.' : null))
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (location.state?.reason) window.history.replaceState({}, document.title)
+  }, [location.state])
   // Paso de verificacion en dos pasos, solo aparece si la cuenta tiene un
   // factor TOTP verificado -- ver Preferencias personales para activarlo.
   const [mfaFactorId, setMfaFactorId] = useState(null)
