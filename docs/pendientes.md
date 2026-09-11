@@ -1100,9 +1100,31 @@
 	sesión" de "la sesión desapareció" y `Login.jsx` muestra "Tu sesión
 	expiró por seguridad" en ese segundo caso. Ver
 	`docs/fixes/alertas-nueva-congregacion-distrito-sesion-2026-09-10.md`.
+	**Confirmado ejecutado por el usuario**:
+	`supabase/reportes/fix_alertas_pastorales_gracia_ingreso.sql`.
+- **Resuelto (2026-09-10), reportado sobre la misma congregación real**:
+	el formulario "Agregar o actualizar acceso" de Equipo de trabajo se
+	veía cortado -- las etiquetas de "Acceso web" y "Responsabilidad
+	operativa" metían el `<select>` en la misma fila flex que el texto y
+	el ícono de ayuda, dejándolo sin espacio. Corregido separando el
+	select a su propia línea. Además, al preguntar por qué
+	"Responsabilidad operativa" salía vacío se encontró un bug real más
+	grave: los 3 "módulos de sistema" (Evangelismo, Misión Juvenil, Obra
+	Carcelaria) se siembran con un backfill de una sola vez sobre las
+	congregaciones que existían cuando se ejecutaron sus migraciones --
+	ninguna congregación creada después con `crear_congregacion_con_pastor()`
+	los recibe. Esto dejaba `Evangelismo.jsx`/`MisionJuvenil.jsx` vacíos
+	y sin explicación para toda congregación nueva, no solo sin opciones
+	en el selector. Corregido con una función reutilizable + backfill
+	retroactivo + siembra automática en cada alta nueva. Ver
+	`docs/fixes/equipo-trabajo-permisos-modulos-sistema-2026-09-10.md`.
 	**Pendiente de ejecutar por el usuario**:
-	`supabase/reportes/fix_alertas_pastorales_gracia_ingreso.sql` (los
-	cambios de frontend ya están en el código, sin acción pendiente).
+	`supabase/catalogos/fix_congregacion_nueva_sin_modulos_sistema.sql`.
+	También quedó documentado (sin implementar, es decisión de producto)
+	que los 3 perfiles de "Acceso web" no cubren los módulos
+	especializados (Escuela Dominical, SEPRI, Música, etc.) -- solo el
+	pastor los tiene automáticamente; hoy no hay perfil intermedio entre
+	"Acceso total" y nada para delegar un módulo específico por web.
 
 ## Prioridad alta
 
