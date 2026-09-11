@@ -736,7 +736,8 @@ export default function FeligresiaAdmin() {
   async function buscarCongregacionesDestino(texto) {
     setTrasladoBusqueda(texto)
     if (texto.trim().length < 2) { setTrasladoResultados([]); return }
-    const { data } = await supabase.rpc('buscar_congregaciones', { p_busqueda: texto.trim() })
+    const { data, error: buscarError } = await supabase.rpc('buscar_congregaciones', { p_busqueda: texto.trim() })
+    if (buscarError) { setError(`No se pudo buscar la congregación: ${buscarError.message}`); return }
     setTrasladoResultados((data ?? []).filter((item) => item.id !== congregacionId))
   }
 
