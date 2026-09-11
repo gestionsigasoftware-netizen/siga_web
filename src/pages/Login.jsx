@@ -138,19 +138,20 @@ export default function Login() {
            degradados radiales fijos en las esquinas con los colores de
            marca (dorado + azul). Cada esquina lleva DOS capas -- un
            nucleo pequeno y saturado (mas contraste, se nota de
-           verdad) encima de un halo mas grande y en un tono mas
-           oscuro del mismo color (da sensacion de profundidad/sombra,
-           como una fuente de luz con su propia sombra alrededor) en
-           vez de un solo degradado plano. Al ser radial y estatico no
-           produce banding. Nunca toca la tarjeta en si (queda por
-           encima). */
+           verdad) encima de un halo grande y en un tono mas oscuro
+           del mismo color, que se extiende bastante mas alla de la
+           esquina para que el color llegue a buena parte de la
+           pantalla en vez de quedar recogido en la punta, dando
+           sensacion de profundidad/sombra en vez de un solo degradado
+           plano. Al ser radial y estatico no produce banding. Nunca
+           toca la tarjeta en si (queda por encima). */
         .login-ambient {
           position: relative;
           background:
-            radial-gradient(ellipse 340px 340px at -3% -8%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
-            radial-gradient(ellipse 780px 780px at -10% -16%, rgba(160, 108, 24, 0.5) 0%, rgba(160, 108, 24, 0) 68%),
-            radial-gradient(ellipse 340px 340px at 103% 108%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
-            radial-gradient(ellipse 780px 780px at 110% 116%, rgba(40, 82, 150, 0.5) 0%, rgba(40, 82, 150, 0) 68%);
+            radial-gradient(ellipse 360px 360px at -3% -8%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 1050px 1050px at -14% -20%, rgba(160, 108, 24, 0.4) 0%, rgba(160, 108, 24, 0) 76%),
+            radial-gradient(ellipse 360px 360px at 103% 108%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
+            radial-gradient(ellipse 1050px 1050px at 114% 122%, rgba(40, 82, 150, 0.4) 0%, rgba(40, 82, 150, 0) 76%);
         }
       `}</style>
       <svg

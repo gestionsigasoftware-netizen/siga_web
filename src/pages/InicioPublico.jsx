@@ -59,21 +59,32 @@ export default function InicioPublico() {
            degradados radiales fijos en las esquinas con los colores de
            marca (dorado + azul). Cada esquina lleva DOS capas -- un
            nucleo pequeno y saturado (mas contraste, se nota de
-           verdad) encima de un halo mas grande y en un tono mas
-           oscuro del mismo color (da sensacion de profundidad/sombra,
-           como una fuente de luz con su propia sombra alrededor) en
-           vez de un solo degradado plano. Al ser radial y estatico no
-           produce banding. Confinado al contenedor del hero
-           (overflow:hidden) para no invadir la seccion oscura de
-           modulos de abajo. */
+           verdad) encima de un halo grande y en un tono mas oscuro
+           del mismo color, que se extiende bastante mas alla de la
+           esquina para que el color llegue a buena parte de la
+           pantalla (no solo un punto en la punta) y de sensacion de
+           profundidad/sombra en vez de un solo degradado plano. Se
+           repite (mismo patron, mas suave) en la seccion de Planes
+           mas abajo -- ".planes-ambient" -- para que las dos zonas
+           claras de la pagina se sientan como una sola hoja, no dos
+           bloques distintos con la seccion oscura de modulos en medio. */
         .inicio-ambient {
           position: relative;
           overflow: hidden;
           background:
-            radial-gradient(ellipse 360px 360px at -4% -10%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
-            radial-gradient(ellipse 800px 800px at -12% -18%, rgba(160, 108, 24, 0.5) 0%, rgba(160, 108, 24, 0) 68%),
-            radial-gradient(ellipse 360px 360px at 104% 114%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
-            radial-gradient(ellipse 800px 800px at 112% 122%, rgba(40, 82, 150, 0.5) 0%, rgba(40, 82, 150, 0) 68%);
+            radial-gradient(ellipse 380px 380px at -4% -10%, rgba(240, 200, 118, 1) 0%, rgba(240, 200, 118, 0.85) 25%, rgba(240, 200, 118, 0) 62%),
+            radial-gradient(ellipse 1150px 1150px at -16% -24%, rgba(160, 108, 24, 0.4) 0%, rgba(160, 108, 24, 0) 76%),
+            radial-gradient(ellipse 380px 380px at 104% 114%, rgba(143, 189, 236, 1) 0%, rgba(143, 189, 236, 0.85) 25%, rgba(143, 189, 236, 0) 62%),
+            radial-gradient(ellipse 1150px 1150px at 116% 128%, rgba(40, 82, 150, 0.4) 0%, rgba(40, 82, 150, 0) 76%);
+        }
+        .planes-ambient {
+          position: relative;
+          overflow: hidden;
+          background:
+            radial-gradient(ellipse 300px 300px at -6% -20%, rgba(240, 200, 118, 0.8) 0%, rgba(240, 200, 118, 0) 60%),
+            radial-gradient(ellipse 1000px 1000px at -16% -30%, rgba(160, 108, 24, 0.3) 0%, rgba(160, 108, 24, 0) 74%),
+            radial-gradient(ellipse 300px 300px at 106% 122%, rgba(143, 189, 236, 0.8) 0%, rgba(143, 189, 236, 0) 60%),
+            radial-gradient(ellipse 1000px 1000px at 118% 134%, rgba(40, 82, 150, 0.3) 0%, rgba(40, 82, 150, 0) 74%);
         }
       `}</style>
       <div className="inicio-ambient">
@@ -126,7 +137,8 @@ export default function InicioPublico() {
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-16 grid md:grid-cols-3 gap-4">{modules.map(({ icon: Icon, title, text }) => <article key={title} className="p-5 border border-white/10 rounded-card bg-[linear-gradient(145deg,rgba(42,120,214,0.3),rgba(42,120,214,0.12))] shadow-[0_14px_30px_rgba(5,12,20,0.18)]"><Icon className="w-5 h-5 text-[#8fc8ff]" /><h2 className="font-medium mt-5">{title}</h2><p className="text-sm text-white/65 leading-6 mt-2">{text}</p></article>)}</div>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-5 sm:px-8 py-20">
+      <div className="planes-ambient">
+      <section className="relative z-[1] max-w-6xl mx-auto px-5 sm:px-8 py-20">
         <div className="max-w-2xl">
           <p className="eyebrow">Planes</p>
           <h2 className="text-3xl sm:text-4xl font-semibold leading-tight mt-3">El mismo SIGAP completo, al ritmo que le sirva a tu congregación.</h2>
@@ -150,6 +162,7 @@ export default function InicioPublico() {
         </div>
         <p className="text-xs text-muted mt-6 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success" /> Te respondemos por WhatsApp con el valor según el número de congregaciones y distritos que necesites gestionar.</p>
       </section>
+      </div>
 
       <Footer />
     </main>
