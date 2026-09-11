@@ -155,7 +155,7 @@ export default function Login() {
         }
       `}</style>
       <svg
-        className="absolute left-4 bottom-4 w-[40vw] max-w-[300px] h-auto z-0 pointer-events-none"
+        className="absolute left-4 bottom-4 w-[24vw] max-w-[150px] h-auto z-0 pointer-events-none"
         viewBox="0 0 220 140"
         aria-hidden="true"
       >
