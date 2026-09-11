@@ -22,6 +22,25 @@ cifra en [00-contexto-y-supuestos.md](00-contexto-y-supuestos.md)):
    por tamaño de congregación: $29.990 / $59.990 / $119.990 / $199.990
    COP/mes -- ver [03-suscripcion-mensual-por-congregacion.md](03-suscripcion-mensual-por-congregacion.md).
 
+## Decisión final de comercialización (2026-09-10)
+
+El usuario cerró la forma concreta de vender el modelo 3 (suscripción
+por congregación), con dos ajustes respecto a lo que proponían los
+documentos 03/04 de abajo:
+
+- **Dos períodos, no cuatro precios fijos**: plan mensual y plan anual
+  (mismo acceso completo a SIGAP en ambos -- la diferencia es el
+  período de permanencia, no funciones). No se implementó la tabla de
+  4 precios por tamaño de `03-suscripcion-mensual-por-congregacion.md`
+  -- queda como referencia de rango de mercado, no como el mecanismo
+  final.
+- **Sin precios públicos**: en vez de mostrar cifras en el sitio, la
+  página de inicio pública usa copywriting (qué incluye cada plan, sin
+  números) y dirige al interesado a WhatsApp para que se le cotice el
+  valor exacto según el tamaño de su congregación. Implementado en
+  `src/pages/InicioPublico.jsx` (sección "Planes", con enlace
+  `wa.me` al número de contacto de SIGAP).
+
 ## Documentos
 
 - [00-contexto-y-supuestos.md](00-contexto-y-supuestos.md) -- escala

@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen, HeartHandshake, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BarChart3, BookOpen, CalendarClock, CalendarRange, HeartHandshake, MessageCircle, ShieldCheck } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import sigapLogo from '../assets/sigap-logo.svg'
@@ -8,6 +8,44 @@ const modules = [
   { icon: HeartHandshake, title: 'Feligresía con contexto', text: 'Censo, familias y ciclo de vida espiritual de cada persona, desde su ingreso hasta su cargo.' },
   { icon: BarChart3, title: 'Analítica para decidir', text: 'Pirámide poblacional, proyección de crecimiento y semáforo de salud, igual en lo local, distrital y nacional.' },
   { icon: BookOpen, title: 'Trabajo territorial', text: 'Evangelismo, Misión Juvenil y los 10 comités, con su consolidado en cada nivel.' },
+]
+
+// Numero real de SIGAP para cotizar planes -- confirmado por el usuario
+// (2026-09-10). No se muestran precios a proposito: la decision de
+// negocio fue vender por copywriting + asesoria directa, no por tabla
+// de precios publica.
+const WHATSAPP_NUMERO = '573005772967'
+function enlaceWhatsapp(plan) {
+  const mensaje = `Hola, quiero conocer el plan ${plan} de SIGAP para mi congregación.`
+  return `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`
+}
+
+const planes = [
+  {
+    icon: CalendarClock,
+    nombre: 'Plan mensual',
+    resumen: 'Para empezar sin ataduras y ver el cambio desde el primer cierre de mes.',
+    beneficios: [
+      'Acceso completo a todos los módulos, sin funciones bloqueadas.',
+      'Tu congregación queda operando en SIGAP en días, no en meses.',
+      'Ajustas o cancelas cuando lo necesites.',
+    ],
+    cta: 'Cotizar plan mensual',
+    plan: 'mensual',
+  },
+  {
+    icon: CalendarRange,
+    nombre: 'Plan anual',
+    resumen: 'Para la congregación que ya decidió que SIGAP es su forma de trabajar todo el año.',
+    destacado: 'Mejor costo total',
+    beneficios: [
+      'Mismo acceso completo, con mejor costo total en el año.',
+      'Acompañamiento continuo en cada trimestre de crecimiento.',
+      'Prioridad en soporte y en las nuevas funciones.',
+    ],
+    cta: 'Cotizar plan anual',
+    plan: 'anual',
+  },
 ]
 
 export default function InicioPublico() {
@@ -82,6 +120,32 @@ export default function InicioPublico() {
         <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_15%_20%,rgba(42,120,214,0.28),transparent_38%),radial-gradient(circle_at_85%_80%,rgba(42,120,214,0.2),transparent_42%)]" />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-16 grid md:grid-cols-3 gap-4">{modules.map(({ icon: Icon, title, text }) => <article key={title} className="p-5 border border-white/10 rounded-card bg-[linear-gradient(145deg,rgba(42,120,214,0.3),rgba(42,120,214,0.12))] shadow-[0_14px_30px_rgba(5,12,20,0.18)]"><Icon className="w-5 h-5 text-[#8fc8ff]" /><h2 className="font-medium mt-5">{title}</h2><p className="text-sm text-white/65 leading-6 mt-2">{text}</p></article>)}</div>
       </section>
+
+      <section className="relative max-w-6xl mx-auto px-5 sm:px-8 py-20">
+        <div className="max-w-2xl">
+          <p className="eyebrow">Planes</p>
+          <h2 className="text-3xl sm:text-4xl font-semibold leading-tight mt-3">El mismo SIGAP completo, al ritmo que le sirva a tu congregación.</h2>
+          <p className="text-secondary leading-7 mt-4">Sin funciones recortadas ni "versión básica" -- la diferencia entre planes es el tiempo de permanencia, no lo que puedes hacer con el sistema. Escríbenos y te asesoramos con el valor exacto para el tamaño de tu congregación.</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-5 mt-10">
+          {planes.map(({ icon: Icon, nombre, resumen, destacado, beneficios, cta, plan }) => (
+            <article key={plan} className="relative p-7 border border-border rounded-card bg-surface-2 flex flex-col">
+              {destacado && <span className="absolute -top-3 left-7 text-[10px] uppercase tracking-[0.14em] font-medium bg-ink text-white px-2.5 py-1 rounded-full">{destacado}</span>}
+              <div className="w-10 h-10 rounded bg-accent/10 text-accent flex items-center justify-center"><Icon className="w-5 h-5" /></div>
+              <h3 className="text-xl font-medium mt-5">{nombre}</h3>
+              <p className="text-sm text-secondary leading-6 mt-2">{resumen}</p>
+              <ul className="flex flex-col gap-2.5 mt-5 flex-1">
+                {beneficios.map((beneficio) => (
+                  <li key={beneficio} className="text-sm text-secondary leading-6 flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />{beneficio}</li>
+                ))}
+              </ul>
+              <a href={enlaceWhatsapp(plan)} target="_blank" rel="noopener noreferrer" className="btn-primary justify-center mt-7"><MessageCircle className="w-4 h-4" /><span>{cta}</span></a>
+            </article>
+          ))}
+        </div>
+        <p className="text-xs text-muted mt-6 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success" /> Te respondemos por WhatsApp con el valor según el número de congregaciones y distritos que necesites gestionar.</p>
+      </section>
+
       <Footer />
     </main>
   )
