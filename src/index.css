@@ -24,16 +24,34 @@
 }
 
 @layer components {
+  /* Tarjeta base compartida por casi toda la app (Dashboard/Resumen
+     incluido) -- sombra en capas (contacto + ambiente + difusa) en vez
+     de una sola sombra plana, fondo con degradado sutil en vez de
+     color solido, y un leve levantamiento al pasar el mouse. Es la
+     tecnica de "sombras apiladas" que usan los sistemas de diseño mas
+     refinados para dar sensacion real de profundidad. */
   .card {
-    @apply bg-surface-2/90 border border-border rounded-card shadow-[0_14px_34px_rgba(21,27,34,0.07)];
+    @apply rounded-card;
+    position: relative;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfaf7 100%);
+    border: 1px solid rgba(28, 31, 36, 0.08);
+    box-shadow:
+      0 1px 1px rgba(21, 27, 34, 0.03),
+      0 8px 16px -6px rgba(21, 27, 34, 0.06),
+      0 24px 48px -16px rgba(21, 27, 34, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
-    box-shadow: 0 14px 34px rgba(21, 27, 34, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.82);
-    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    transition: border-color 200ms ease, box-shadow 240ms ease, transform 240ms ease;
   }
 
   .card:hover {
-    border-color: rgba(42, 120, 214, 0.2);
-    box-shadow: 0 18px 42px rgba(21, 27, 34, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    border-color: rgba(42, 120, 214, 0.22);
+    box-shadow:
+      0 1px 1px rgba(21, 27, 34, 0.03),
+      0 10px 20px -6px rgba(21, 27, 34, 0.08),
+      0 32px 64px -16px rgba(21, 27, 34, 0.13),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
   }
 
   .surface-panel {
@@ -41,15 +59,26 @@
   }
 
   .stat-tile {
-    @apply bg-surface-1/90 border border-border rounded-card p-4 shadow-[0_12px_28px_rgba(21,27,34,0.06)];
-    box-shadow: 0 12px 28px rgba(21, 27, 34, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    @apply rounded-card p-4;
+    position: relative;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f6f3 100%);
+    border: 1px solid rgba(28, 31, 36, 0.07);
+    box-shadow:
+      0 1px 1px rgba(21, 27, 34, 0.02),
+      0 6px 14px -6px rgba(21, 27, 34, 0.05),
+      0 16px 32px -12px rgba(21, 27, 34, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition: border-color 200ms ease, box-shadow 240ms ease, transform 240ms ease;
   }
 
   .stat-tile:hover {
-    border-color: rgba(42, 120, 214, 0.28);
-    box-shadow: 0 14px 28px rgba(21, 27, 34, 0.07);
-    transform: translateY(-1px);
+    border-color: rgba(42, 120, 214, 0.3);
+    box-shadow:
+      0 1px 1px rgba(21, 27, 34, 0.02),
+      0 8px 18px -6px rgba(21, 27, 34, 0.07),
+      0 22px 44px -12px rgba(21, 27, 34, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
   }
 
   .summary-card {
