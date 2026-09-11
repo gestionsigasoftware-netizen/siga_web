@@ -1135,6 +1135,15 @@
 	`docs/fixes/perfil-estadisticas-acceso-operativo-total-2026-09-10.md`.
 	**Pendiente de ejecutar por el usuario**:
 	`supabase/schema/fix_perfil_estadisticas_acceso_operativo_total.sql`.
+- **En investigación (2026-09-11)**: producción (sigap.com.co, Cloudflare
+	Workers/Pages, proyecto `siga-web`) no reflejaba los últimos cambios
+	pusheados a `main`. Confirmado comparando el hash del bundle servido
+	en vivo contra el build local -- no coincidían. En el dashboard de
+	Cloudflare, la version activa más reciente aparecía con "Traffic:
+	0%", lo que sugiere que el despliegue se construyó pero el trafico
+	real no se enruto hacia esa version (posible "gradual deployment"
+	mal configurado, o el promote automatico no se disparo). Pendiente
+	de confirmar con el usuario revisando el dashboard directamente.
 
 ## Prioridad alta
 
