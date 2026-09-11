@@ -18,8 +18,7 @@
 	que convivian en la base real (Postgres no reemplaza una funcion por
 	otra con firma distinta) se redujeron a una sola -- ver
 	`supabase/distrital/limpiar_sobrecargas_crear_congregacion.sql`.
-	**Accion requerida del usuario**: ejecutar ese archivo (despues del
-	fix de arriba).
+	**Confirmado ejecutado por el usuario.**
 - Resuelto (2026-09-10): el boton "Cerrar sesion" no aparecia en el
 	menu hamburguesa en moviles reales (reportado por el usuario desde
 	su celular en sigap.com.co). Causa: el drawer usaba `h-screen`
@@ -1015,22 +1014,12 @@
 	datos reales.
 - **Confirmado por el usuario (2026-09-10)**: HTTPS ya esta activo
 	(sigap.com.co vive en https).
-- **Confirmado por el usuario (2026-09-10), verificar de todas formas**:
-	SMTP propio (Resend) ya configurado -- **hallazgo real al probar el
-	envio de correo de confirmacion (`auth.signUp` de prueba, 2026-09-10):
-	fallo con "Error sending confirmation email"**. Dos posibilidades: (a)
-	Resend esta conectado al `RESEND_API_KEY` de las Edge Functions (para
-	el aviso de reportes de soporte) pero NO como SMTP personalizado de
-	Supabase Auth (Project Settings -> Auth -> SMTP Settings) -- son dos
-	integraciones distintas, la segunda es la que usa
-	`invitar-usuario`/`auth.admin.inviteUserByEmail()`, el flujo real de
-	invitar pastores; o (b) si configurado, algo esta fallando (dominio
-	remitente sin verificar, credenciales, o el error fue especifico del
-	dominio de prueba `@example.com` usado). **Accion pendiente del
-	usuario**: confirmar en el panel de Supabase (Project Settings ->
-	Auth -> SMTP Settings) que Resend esta cargado ahi especificamente
-	(no solo como secreto de Edge Function), y probar una invitacion real
-	desde Equipo de trabajo para confirmar que el correo llega.
+- **Confirmado resuelto (2026-09-10)**: SMTP propio (Resend) funciona
+	de verdad para el flujo real de invitar pastores -- el usuario creo
+	una congregacion nueva y el pastor recibio el correo de invitacion.
+	El fallo de "Error sending confirmation email" visto al probar
+	`auth.signUp()` con un correo `@example.com` no reflejaba el estado
+	real (dominio de prueba, no la configuracion).
 - **Confirmado por el usuario (2026-09-10), consistente con lo
 	observado**: la confirmacion de correo obligatoria SI esta activada
 	en Supabase Auth -- el intento de `auth.signUp()` de prueba disparo
@@ -1054,29 +1043,37 @@
 	bruta de contrasena) valia la pena bajar: de 30 a 10 solicitudes por
 	5 minutos por IP. El resto (token refresh/verification, SMS, Web3,
 	anonimos) o no aplica a SIGAP (no se usan esos metodos) o bajarlo no
-	sumaria seguridad real. **Accion requerida del usuario**: cambiar
-	ese numero en el panel (Authentication -> Rate Limits) y guardar.
-- **Bloqueado por el plan (2026-09-10)**: Backups/PITR no se puede
-	activar en el plan Free de Supabase que usa el proyecto ahora mismo.
-	Decision consciente del usuario, no un pendiente tecnico -- si se
-	sube a Pro antes de escalar con mas clientes reales, activar backups
-	diarios como minimo (PITR es un complemento aparte, con costo por
-	GB).
+	sumaria seguridad real. **Confirmado bajado por el usuario a 10.**
+- **Decision consciente del usuario, no un pendiente tecnico (2026-09-10)**:
+	Backups/PITR se activan cuando suba al plan Pro de Supabase --
+	postergado a proposito hasta que el primer cliente real empiece a
+	pagar por el servicio (el plan Free no lo permite). Retomar este
+	punto cuando eso pase.
 - Configurar monitoreo, alertas y revision de logs.
 - Configurar CSP, HSTS y anti-clickjacking.
 - **Auditoria estatica completada (2026-09-10)**: se revisaron las 235
 	politicas RLS del proyecto (38 archivos) buscando huecos de
 	aislamiento entre congregaciones. Se encontraron y corrigieron 5
 	hallazgos reales (uno critico: un RPC sin ningun control de permiso
-	que permitia reescribir asignaciones de cargo de OTRA congregacion).
-	Ver `docs/fixes/auditoria-aislamiento-rls-2026-09-10.md` para el
-	detalle completo y los 5 archivos `fix_*.sql` nuevos que hay que
-	ejecutar. **Sigue pendiente la prueba EN VIVO** (dos identidades
-	reales con JWT separados, no solo lectura de politicas) -- bloqueada
-	temporalmente porque crear una segunda identidad de prueba requiere
-	completar una invitacion por correo, y el envio de correo de
-	confirmacion fallo al probarlo en esta sesion (ver el punto de SMTP
-	mas arriba). Retomar en cuanto ese bloqueo se resuelva.
+	que permitia reescribir asignaciones de cargo de OTRA congregacion),
+	**confirmado ejecutado por el usuario**. Ver
+	`docs/fixes/auditoria-aislamiento-rls-2026-09-10.md` para el detalle
+	completo. **Prueba EN VIVO completada (2026-09-10)**: con dos
+	congregaciones reales e independientes del usuario, lecturas y
+	escrituras cruzadas en 8 tablas + vistas -- cero fugas confirmadas.
+	Aislamiento entre congregaciones cerrado.
+- **Resuelto (2026-09-10), encontrado durante la prueba de aislamiento
+	en vivo, no relacionado con aislamiento en si**: cualquier lectura de
+	`cargos`/`asignaciones_cargo` fallaba con "infinite recursion
+	detected in policy for relation cargos" -- rompia en produccion
+	"Equipo de trabajo" (`EquipoCongregacion.jsx`) y el arranque de la
+	PWA para capturadores sin rol de pastor (ujieres, evangelistas,
+	etc.). Causa: `supabase/pwa/hotfix_recursion_cargos.sql` (el parche a
+	`rls_cargo_pwa.sql`, ya existia en el repo) nunca se habia ejecutado
+	en la base real. **Confirmado ejecutado y verificado por el
+	usuario**: las 4 consultas que antes recursaban (incluida la consulta
+	real de Equipo de trabajo) ya devuelven datos correctamente. Ver
+	`docs/fixes/aislamiento-en-vivo-y-recursion-cargos-2026-09-10.md`.
 - Revisar si la tarjeta "Seguridad" de Preferencias personales debe reflejar
 	un estado real (MFA, ultima sesion) en vez de texto estatico siempre en
 	verde, una vez se resuelvan los pendientes de seguridad de produccion.
