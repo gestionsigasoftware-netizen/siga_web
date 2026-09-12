@@ -1200,10 +1200,13 @@
 	paso para Sentry y UptimeRobot. Ver
 	`docs/fixes/monitoreo-errores-frontend-2026-09-11.md`.
 	**Confirmado ejecutado por el usuario**:
-	`supabase/schema/monitoreo_errores_frontend.sql`. Sentry ya activo
-	en producción (DSN configurado en Cloudflare, confirmado viendo el
-	DSN dentro del bundle desplegado). Queda solo UptimeRobot, opcional,
-	cuando el usuario quiera.
+	`supabase/schema/monitoreo_errores_frontend.sql`. Sentry confirmado
+	funcionando de punta a punta en producción (el primer proyecto no
+	aparecía en el dashboard de Sentry por una rareza no diagnosticada;
+	se creó uno nuevo en la misma organización y el usuario ya vio un
+	error de prueba real llegar a "Issues"). UptimeRobot también
+	configurado y activo (`https://sigap.com.co`, cada 5 minutos).
+	Monitoreo/alertas queda 100% cerrado, sin ninguna acción pendiente.
 - **Resuelto (2026-09-11)**: auditoría visual de las 31 pantallas de
 	la app (desktop y móvil) para responder si el frontend está listo
 	para producción. Conclusión: sí -- el rediseño de esta sesión ya

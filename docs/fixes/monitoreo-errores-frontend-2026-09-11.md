@@ -127,10 +127,26 @@ mensaje de "vista exclusiva de super_admin" se evalúa después.
      tabla real todavía no existe -- ver pendiente abajo -- pero
      confirma que la captura global funciona de punta a punta).
 
-## Pendiente de ejecutar por el usuario
+## Cierre (2026-09-11) — todo confirmado en producción
 
-`supabase/schema/monitoreo_errores_frontend.sql` -- sin esto, la
-pantalla "Errores del sistema" no tiene tabla que leer (mostrará un
-error de carga hasta que se ejecute). El resto (ErrorBoundary,
-captura global) ya funciona en cuanto se despliegue el frontend,
-independientemente del script.
+- `supabase/schema/monitoreo_errores_frontend.sql`: **ejecutado por
+  el usuario**.
+- Sentry: el usuario creó cuenta y el primer proyecto/DSN, pero ese
+  proyecto no aparecía en el dashboard ("You need at least one
+  project to use this view") pese a que un error de prueba disparado
+  contra producción sí devolvía `200 OK` en el envelope de Sentry --
+  no se confirmó la causa exacta (posible proyecto huérfano de un
+  asistente no finalizado del todo), pero en vez de seguir
+  diagnosticando a ciegas se optó por lo más simple y confiable: crear
+  un proyecto nuevo dentro de la misma organización
+  (`o4512071311818752`, org `jormelia-soft`), reemplazar
+  `VITE_SENTRY_DSN` en Cloudflare con el DSN nuevo y redesplegar.
+  **Confirmado funcionando de punta a punta**: error de prueba real
+  disparado contra `sigap.com.co` en producción, `200 OK` del envelope
+  de Sentry, y el usuario lo vio aparecer en "Issues" del proyecto
+  nuevo.
+- UptimeRobot: el usuario ya creó el monitor HTTP(s) para
+  `https://sigap.com.co`, chequeo cada 5 minutos, estado "Up".
+
+Con esto, monitoreo/alertas/logs queda completamente cerrado -- no
+queda ninguna acción pendiente de este punto.
