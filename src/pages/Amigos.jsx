@@ -412,6 +412,7 @@ export default function Amigos() {
       zona_id: data.zona_id || "",
       evangelismo_metodologia_id: data.evangelismo_metodologia_id || "",
     });
+    setNotice("Cambios guardados.");
   }
 
   async function markBaptized() {

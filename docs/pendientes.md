@@ -1118,7 +1118,7 @@
 	en el selector. Corregido con una función reutilizable + backfill
 	retroactivo + siembra automática en cada alta nueva. Ver
 	`docs/fixes/equipo-trabajo-permisos-modulos-sistema-2026-09-10.md`.
-	**Pendiente de ejecutar por el usuario**:
+	**Confirmado ejecutado por el usuario**:
 	`supabase/catalogos/fix_congregacion_nueva_sin_modulos_sistema.sql`.
 - **Resuelto (2026-09-10), decisión de producto confirmada por el
 	usuario**: el perfil web "Comité de Estadísticas" no cubría los
@@ -1133,17 +1133,18 @@
 	`tiene_permiso()` ya revisaba `permisos_perfil` para cualquier perfil
 	asignado. Ver
 	`docs/fixes/perfil-estadisticas-acceso-operativo-total-2026-09-10.md`.
-	**Pendiente de ejecutar por el usuario**:
+	**Confirmado ejecutado por el usuario**:
 	`supabase/schema/fix_perfil_estadisticas_acceso_operativo_total.sql`.
-- **En investigación (2026-09-11)**: producción (sigap.com.co, Cloudflare
+- **Resuelto (2026-09-11)**: producción (sigap.com.co, Cloudflare
 	Workers/Pages, proyecto `siga-web`) no reflejaba los últimos cambios
 	pusheados a `main`. Confirmado comparando el hash del bundle servido
 	en vivo contra el build local -- no coincidían. En el dashboard de
 	Cloudflare, la version activa más reciente aparecía con "Traffic:
 	0%", lo que sugiere que el despliegue se construyó pero el trafico
 	real no se enruto hacia esa version (posible "gradual deployment"
-	mal configurado, o el promote automatico no se disparo). Pendiente
-	de confirmar con el usuario revisando el dashboard directamente.
+	mal configurado, o el promote automatico no se disparo). El usuario
+	confirmó que ya lo solucionó directamente en el dashboard de
+	Cloudflare. Causa raíz exacta no confirmada -- vigilar si se repite.
 - **Resuelto (2026-09-11)**: Conquistadores Pentecostales estaba
 	construido como comité de servicio (exigía persona ya bautizada)
 	cuando debía administrar población como Misión Juvenil/Escuela
@@ -1153,8 +1154,8 @@
 	Artística/Ed. Teológica se dejaron igual -- son comités de servicio,
 	correctamente exigen persona ya bautizada. Ver
 	`docs/fixes/conquistadores-no-convertidos-2026-09-11.md`.
-	**Pendiente de ejecutar por el usuario cuanto antes** (rompe la
-	pantalla hasta entonces): `supabase/modulos/fix_conquistadores_no_convertidos.sql`.
+	**Confirmado ejecutado por el usuario**:
+	`supabase/modulos/fix_conquistadores_no_convertidos.sql`.
 - **Resuelto (2026-09-11)**: la sugerencia de comité por edad/género
 	(existía desde el 2026-09-07) solo se veía dentro de la ficha
 	individual. Ahora aparece como etiqueta "Sugerido: X" directamente en
@@ -1164,6 +1165,17 @@
 	(insertado y luego eliminado, sin residuos). Ver
 	`docs/fixes/etiqueta-comite-sugerido-censo-2026-09-11.md`. Sin
 	acción pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-11)**: "Guardar cambios" en el formulario de
+	edición de Amigos en ruta no daba ningún aviso al usuario -- el
+	guardado sí funcionaba contra la base de datos (verificado en vivo),
+	pero `saveFriend` nunca llamaba `setNotice(...)` ni producía ningún
+	otro cambio visible, así que un guardado exitoso era indistinguible
+	de un botón roto. Auditados los otros 17 archivos con guardados
+	similares: se encontró el mismo patrón en `actualizarMadurez` de
+	Aprobaciones (el `<select>` de "Madurez" de cada sede). Ambos ya
+	avisan con el Toast flotante. Ver
+	`docs/fixes/guardado-silencioso-sin-aviso-2026-09-11.md`. Sin acción
+	pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 

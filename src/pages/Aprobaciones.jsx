@@ -68,6 +68,7 @@ export default function Aprobaciones() {
     const { error: updateError } = await supabase.from('congregaciones').update({ madurez }).eq('id', id)
     setBusy(null)
     if (updateError) { setError('No se pudo actualizar la madurez de la sede.'); return }
+    setNotice('Madurez de la sede actualizada.')
     load()
   }
 
