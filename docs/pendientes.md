@@ -1219,6 +1219,18 @@
 	en Soporte/Solicitudes en desktop). Ver
 	`docs/fixes/auditoria-visual-frontend-2026-09-11.md`. Sin acción
 	pendiente del usuario -- ya desplegado.
+- **Resuelto (2026-09-11)**: el usuario pidió auditar si `nacional`
+	tenía acceso a algo exclusivo de `super_admin` (negocio SIGAP vs.
+	rol pastoral cliente). Encontrado: `Soporte.jsx` -- reportes técnicos
+	sobre SIGAP mismo, donde `nacional` tenía el mismo acceso que
+	`super_admin` para ver/resolver TODOS los reportes del país.
+	Corregido a exclusivo de `super_admin` (cada quien sigue viendo su
+	propio reporte enviado). Revisado el resto del acceso de nacional
+	(Aprobaciones, Solicitudes, Comités Nacional, Distritos, Salud de
+	datos) -- todo legítimamente pastoral, sin más hallazgos. Ver
+	`docs/fixes/soporte-exclusivo-super-admin-2026-09-11.md`.
+	**Pendiente de ejecutar por el usuario**:
+	`supabase/soporte/fix_reportes_soporte_solo_super_admin.sql`.
 
 ## Prioridad alta
 

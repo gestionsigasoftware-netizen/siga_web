@@ -1,9 +1,13 @@
 -- SIGA - Soporte tecnico hacia el equipo que mantiene SIGAP (no es un
 -- PQRS interno entre niveles de la iglesia -- eso es
 -- solicitudes_jerarquicas.sql, un archivo aparte). Cualquier usuario
--- logueado puede reportar un problema; solo nacional/super_admin (el
--- equipo que mantiene el software) puede verlos todos y marcarlos
--- resueltos.
+-- logueado puede reportar un problema; solo super_admin (el equipo
+-- que mantiene el software) puede verlos todos y marcarlos resueltos.
+--
+-- Dominio EXCLUSIVO de super_admin, igual que suscripciones.sql y
+-- monitoreo_errores_frontend.sql -- nacional es un rol pastoral de la
+-- IPUC (cliente), no el equipo que mantiene SIGAP. Corregido el
+-- 2026-09-11: antes nacional tenia el mismo acceso que super_admin.
 
 create table if not exists reportes_soporte (
   id uuid primary key default gen_random_uuid(),
@@ -32,10 +36,10 @@ with check (usuario_id = auth.uid());
 drop policy if exists reportes_soporte_select on reportes_soporte;
 create policy reportes_soporte_select on reportes_soporte
 for select to authenticated
-using (usuario_id = auth.uid() or es_nacional() or es_super_admin());
+using (usuario_id = auth.uid() or es_super_admin());
 
 drop policy if exists reportes_soporte_update_admin on reportes_soporte;
 create policy reportes_soporte_update_admin on reportes_soporte
 for update to authenticated
-using (es_nacional() or es_super_admin())
-with check (es_nacional() or es_super_admin());
+using (es_super_admin())
+with check (es_super_admin());

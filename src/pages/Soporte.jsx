@@ -12,7 +12,7 @@ import Toast from '../components/Toast'
 const soporteCache = new Map()
 
 const ESTADO_LABELS = { pendiente: 'Pendiente', resuelto: 'Resuelto' }
-const ADMIN_LEVELS = ['nacional', 'super_admin']
+const ADMIN_LEVELS = ['super_admin']
 
 export default function Soporte() {
   const { user } = useAuth()
@@ -125,7 +125,7 @@ export default function Soporte() {
 
       {esAdmin ? (
         <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border"><h2 className="font-medium">Todos los reportes</h2><p className="text-sm text-secondary mt-1">Visible solo para nacional/super_admin.</p></div>
+          <div className="p-5 border-b border-border"><h2 className="font-medium">Todos los reportes</h2><p className="text-sm text-secondary mt-1">Visible solo para super_admin.</p></div>
           {todosReportes.length === 0 ? <p className="p-6 text-sm text-muted">No hay reportes todavía.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
