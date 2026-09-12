@@ -622,7 +622,7 @@ export default function RutaFormacion({ mode }) {
                   </>
                 )}
               </>
-            ) : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Selecciona una persona de la lista</div>}
+            ) : <div className="card h-48 flex items-center justify-center text-sm text-muted">Selecciona una persona de la lista</div>}
           </div>
       </section>
     </div>

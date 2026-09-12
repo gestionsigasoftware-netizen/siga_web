@@ -1202,6 +1202,18 @@
 	**Pendiente de ejecutar por el usuario**:
 	`supabase/schema/monitoreo_errores_frontend.sql`, y seguir los
 	pasos del documento para activar Sentry/UptimeRobot cuando quiera.
+- **Resuelto (2026-09-11)**: auditoría visual de las 31 pantallas de
+	la app (desktop y móvil) para responder si el frontend está listo
+	para producción. Conclusión: sí -- el rediseño de esta sesión ya
+	está aplicado consistentemente en toda la app, nada bloqueante. Se
+	corrigieron 2 inconsistencias menores encontradas (avatar de "Mi
+	perfil" sin el sistema de iniciales con color; borde punteado en el
+	panel vacío de Esfob/Discipulado). Quedan 2 pulidos menores sin
+	urgencia (scroll horizontal sin pista visual en tablas móviles de
+	Reportes/Registrar asistencia; formulario angosto con espacio vacío
+	en Soporte/Solicitudes en desktop). Ver
+	`docs/fixes/auditoria-visual-frontend-2026-09-11.md`. Sin acción
+	pendiente del usuario -- ya desplegado.
 
 ## Prioridad alta
 

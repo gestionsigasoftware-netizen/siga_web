@@ -6,6 +6,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
 import { NIVEL_LABEL, describirAlcance } from '../components/layout/RoleChooser'
+import { avatarTone, initialesDe } from '../lib/avatar'
 
 export default function Perfil() {
   const { user, updatePassword, updateProfile } = useAuth()
@@ -39,6 +40,8 @@ export default function Perfil() {
   const personaVinculada = roles[0]?.personas ?? null
   const nombreCuentaSinCenso = user?.user_metadata?.nombres ? `${user.user_metadata.nombres} ${user.user_metadata.apellidos || ''}`.trim() : null
   const displayName = personaVinculada ? `${personaVinculada.nombres} ${personaVinculada.apellidos}` : nombreCuentaSinCenso || 'Usuario SIGAP'
+  const personaParaAvatar = personaVinculada || { nombres: nombreCuentaSinCenso || user?.email || 'Usuario' }
+  const avatarColor = avatarTone(user?.id || user?.email || '')
 
   useEffect(() => {
     if (nombres || apellidos) return
@@ -84,7 +87,7 @@ export default function Perfil() {
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
       <div><p className="eyebrow">Cuenta</p><h1 className="section-title">Mi perfil</h1><p className="text-sm text-secondary mt-1">Administra tu acceso y consulta tus permisos dentro de SIGAP.</p></div>
-      <section className="card p-6 flex items-center gap-4"><div className="w-14 h-14 rounded-full bg-ink text-white flex items-center justify-center text-xl font-semibold">{(user?.email?.[0] || 'U').toUpperCase()}</div><div><h2 className="font-medium">{displayName}</h2><p className="text-sm text-secondary flex items-center gap-2 mt-1"><Mail className="w-4 h-4" /> {user?.email}</p></div></section>
+      <section className="card p-6 flex items-center gap-4"><div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-semibold" style={{ background: avatarColor.bg, color: avatarColor.fg, boxShadow: '0 3px 6px rgba(11, 11, 11, 0.16), 0 1px 2px rgba(11, 11, 11, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55)' }}>{initialesDe(personaParaAvatar)}</div><div><h2 className="font-medium">{displayName}</h2><p className="text-sm text-secondary flex items-center gap-2 mt-1"><Mail className="w-4 h-4" /> {user?.email}</p></div></section>
       <section className="card p-6">
         <h2 className="font-medium mb-1">Nombre</h2>
         <p className="text-xs text-secondary mb-4">{personaVinculada ? 'Corrige tu nombre si quedó mal escrito o vacío al registrarte. Es el mismo nombre que aparece en el censo de tu congregación — no se guardan nombres distintos en cada lado.' : 'El nombre con el que te vas a identificar dentro de SIGAP.'}</p>
