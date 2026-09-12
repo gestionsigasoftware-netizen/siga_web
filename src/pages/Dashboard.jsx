@@ -760,6 +760,7 @@ function DashboardSuperAdmin() {
   const { formato_fecha } = usePreferencias()
   const [congregaciones, setCongregaciones] = useState([])
   const [suscripciones, setSuscripciones] = useState({})
+  const [snapshots, setSnapshots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [metaNuevasPorMes, setMetaNuevasPorMes] = useState(null)
@@ -769,11 +770,13 @@ function DashboardSuperAdmin() {
     Promise.all([
       supabase.from('congregaciones').select('id, nombre, estado, madurez, created_at, distritos(numero)').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('congregacion_id, plan, monto, fecha_proximo_pago, dias_gracia'),
-    ]).then(([{ data: congData, error: congError }, { data: suscData, error: suscError }]) => {
+      supabase.from('negocio_snapshots_diarios').select('fecha, activas, mrr_estimado').order('fecha', { ascending: true }).limit(180),
+    ]).then(([{ data: congData, error: congError }, { data: suscData, error: suscError }, { data: snapData }]) => {
       if (!active) return
       if (congError || suscError) setError('No se pudo cargar el panel de negocio.')
       setCongregaciones(congData ?? [])
       setSuscripciones(Object.fromEntries((suscData ?? []).map((item) => [item.congregacion_id, item])))
+      setSnapshots(snapData ?? [])
       setLoading(false)
     })
     return () => { active = false }
@@ -909,6 +912,37 @@ function DashboardSuperAdmin() {
               value={nuevasParaDuplicar === null ? '—' : `${nuevasParaDuplicar}/mes`}
               insight={nuevasParaDuplicar === null ? 'Aún no hay congregaciones activas para proyectar una meta.' : `Necesitas aprobar y mantener activas ${nuevasParaDuplicar} congregaciones nuevas por mes para llegar a ${activas * 2} congregaciones activas en 12 meses.`}
             />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="eyebrow">Histórico real</p>
+            <h2 className="font-medium mt-1 flex items-center gap-1.5">Congregaciones activas y MRR día a día<InfoTip texto="Este historial se captura solo, una vez al día. A diferencia de los gráficos de arriba (calculados a partir de la fecha de registro), esto es una foto real guardada cada día -- pero solo existe desde que se activó esta captura." /></h2>
+          </div>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="card chart-card p-5">
+            <h3 className="font-medium">Congregaciones activas</h3>
+            <div className="h-56 mt-4">
+              {snapshots.length >= 2 ? (
+                <Line data={trendDataset(snapshots.map((s) => formatFecha(s.fecha, { formato: formato_fecha })), snapshots.map((s) => s.activas), { label: 'Activas', colorIndex: 2 })} options={CHART_OPTIONS_NEGOCIO} />
+              ) : (
+                <ChartEmpty message="Este historial se está armando desde hoy. Vuelve en unos días para ver la tendencia real." />
+              )}
+            </div>
+          </div>
+          <div className="card chart-card p-5">
+            <h3 className="font-medium">MRR estimado</h3>
+            <div className="h-56 mt-4">
+              {snapshots.length >= 2 ? (
+                <Line data={trendDataset(snapshots.map((s) => formatFecha(s.fecha, { formato: formato_fecha })), snapshots.map((s) => Math.round(s.mrr_estimado)), { label: 'MRR', colorIndex: 0 })} options={CHART_OPTIONS_NEGOCIO} />
+              ) : (
+                <ChartEmpty message="Este historial se está armando desde hoy. Vuelve en unos días para ver la tendencia real." />
+              )}
+            </div>
           </div>
         </div>
       </section>

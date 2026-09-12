@@ -96,6 +96,43 @@ Agregado a `DashboardSuperAdmin`:
   lado para medir abandono real; solo las suspendidas, que son
   reversibles, dejan rastro).
 
+## Segunda ampliación (mismo día) — historial real, no aproximado
+
+El usuario preguntó explícitamente si se podía resolver la limitación
+que se le explicó ("SIGAP no guarda historial de MRR ni de cambios de
+estado"). Sí se puede -- es el patrón estándar de cualquier SaaS:
+capturar una "foto" diaria en vez de reconstruir el pasado (lo pasado
+no guardado no se puede recuperar, pero desde hoy en adelante sí).
+
+Construido:
+
+- `supabase/schema/negocio_snapshots_diarios.sql` (nuevo): tabla
+  `negocio_snapshots_diarios` (una fila por día: congregaciones
+  totales/activas/pendientes/suspendidas, estado de suscripciones, MRR
+  estimado). RLS exclusiva de `super_admin`, mismo patrón que el resto
+  del negocio.
+- Función `capturar_snapshot_negocio()` (`security definer`, recalcula
+  todo con la misma lógica que ya usa el frontend --
+  `estado_suscripcion()`, la misma función SQL detrás de
+  `calcularEstadoSuscripcion()` en JS) que inserta o actualiza
+  (`on conflict (fecha) do update`) la fila de hoy -- así, si se llama
+  más de una vez el mismo día, no duplica.
+- Programada con `pg_cron` (`cron.schedule('snapshot-negocio-diario',
+  '5 5 * * *', ...)`, 05:05 UTC = 00:05 Bogotá) para correr sola todos
+  los días, sin que nadie tenga que acordarse de nada.
+- `DashboardSuperAdmin` ahora consulta esta tabla y muestra dos
+  gráficos de línea reales ("Congregaciones activas" y "MRR
+  estimado" día a día), claramente etiquetados como "Histórico real"
+  para distinguirlos de los gráficos de arriba (que son aproximaciones
+  a partir de `created_at`). Mientras haya menos de 2 días de datos
+  capturados, muestra un estado vacío explicando que el historial se
+  está armando.
+
+**Importante para el usuario**: esto no rellena el pasado -- el
+historial empieza a existir desde el día en que se ejecute el script.
+Los gráficos de tendencia real quedarán vacíos hasta que pasen un par
+de días desde que el usuario ejecute el script.
+
 ## Verificación
 
 - `npm run build` sin errores.
@@ -109,3 +146,21 @@ Agregado a `DashboardSuperAdmin`:
 - Repetido tras la ampliación: `npm run build` sin errores, y
   Playwright confirmó de nuevo que el rol `local` sigue sin errores de
   consola después de tocar el mismo archivo por segunda vez.
+- Repetido una tercera vez tras agregar el histórico real: `npm run
+  build` sin errores, Playwright confirmó login y `/app` sin errores
+  de consola para el rol `local` (un primer intento dio timeout de
+  red transitorio, un reintento inmediato confirmó que no era un bug
+  real).
+
+## Pendiente de ejecutar por el usuario
+
+`supabase/schema/negocio_snapshots_diarios.sql`. Si falla la línea
+`create extension if not exists pg_cron` por permisos, habilitar
+primero la extensión "pg_cron" desde el dashboard de Supabase
+(Database -> Extensions) y volver a ejecutar el script completo.
+Opcional, para ver el primer punto del histórico de inmediato en vez
+de esperar al día siguiente: ejecutar `select
+capturar_snapshot_negocio();` una vez a mano después de correr el
+script (con dos días distintos con al menos un `select
+capturar_snapshot_negocio();` cada uno, ya aparece la primera línea de
+tendencia).

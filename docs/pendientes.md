@@ -1253,6 +1253,19 @@
 	del copy del panel (ya solo habla de crecer). Ver ampliación en
 	`docs/fixes/dashboard-super-admin-negocio-2026-09-12.md`. Sin acción
 	pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-12)**: el usuario preguntó si se podía resolver
+	la limitación de "SIGAP no guarda historial de MRR ni de cambios de
+	estado" -- sí. Nueva tabla `negocio_snapshots_diarios` + función
+	`capturar_snapshot_negocio()` programada con `pg_cron` para correr
+	sola todos los días (no rellena el pasado, empieza a existir desde
+	que se ejecute). El panel de negocio ahora tiene una sección
+	"Histórico real" con 2 gráficos de línea (congregaciones activas y
+	MRR día a día) que se van a ir llenando solos. Ver ampliación en
+	`docs/fixes/dashboard-super-admin-negocio-2026-09-12.md`.
+	**Pendiente de ejecutar por el usuario**:
+	`supabase/schema/negocio_snapshots_diarios.sql` (si falla por
+	permisos de `pg_cron`, habilitar primero esa extensión desde
+	Database -> Extensions en Supabase).
 
 ## Prioridad alta
 
