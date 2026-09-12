@@ -1291,8 +1291,14 @@
 	(antes veía el contenido pastoral de "nacional"), y las 4 pestañas
 	ahora enseñan paso a paso (qué es + cómo se usa) en vez de solo
 	listar qué es cada pantalla, verificado contra el código real de
-	~35 páginas. Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Sin
-	acción de base de datos pendiente -- solo frontend.
+	~35 páginas. **Corregido tras feedback del usuario el mismo día**:
+	el Manual no debía dejar navegar entre niveles (se quitó el
+	selector de pestañas, ahora muestra solo el nivel del rol activo),
+	y se quitó el botón "Solicitar acceso" del inicio (el acceso nunca
+	se solicita desde ahí, siempre lo inicia el pastor o el distrital).
+	Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Privacidad y
+	términos: el usuario decidió completarlo él mismo. Sin acción de
+	base de datos pendiente -- solo frontend.
 
 ## Prioridad alta
 

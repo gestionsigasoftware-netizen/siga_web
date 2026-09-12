@@ -103,8 +103,39 @@ botones y campos, evitando inventar texto genérico.
   debajo de una línea divisoria, uno o más bloques "ACCIÓN" con pasos
   numerados.
 
+## Corrección tras feedback del usuario (mismo día)
+
+El usuario corrigió dos decisiones equivocadas de la primera versión:
+
+1. **El Manual no debía dejar navegar entre niveles.** La primera
+   versión traía un selector de pestañas (local/distrital/nacional/
+   super_admin) que cualquier usuario podía cambiar libremente -- se
+   asumió, sin preguntar, que era "informativo, para que cualquiera
+   consulte cómo trabajan los demás niveles". El usuario aclaró que
+   no: cada rol debe ver **únicamente** su propio manual. Corregido:
+   se quitó el selector de pestañas y el `useState` que lo controlaba
+   -- `Manual.jsx` ahora deriva el contenido directamente de
+   `rolPrincipal.nivel` (con un `loading` guard para no mostrar el
+   nivel equivocado un instante mientras carga el rol), y el
+   encabezado muestra el nivel actual solo como etiqueta de contexto,
+   sin ningún control para cambiarlo.
+2. **El botón "Solicitar acceso" no debía existir.** El usuario señaló
+   que el acceso a SIGAP nunca se solicita desde el login/inicio --
+   siempre lo inicia el pastor o el distrital, nunca la persona que
+   necesita el acceso. Se quitó el botón de `InicioPublico.jsx` (el
+   contenido informativo de `/ayuda#acceso` se dejó intacto, sigue
+   siendo válido como referencia si alguien llega ahí por otro medio,
+   pero ya no hay ningún CTA en el inicio que sugiera una acción de
+   autoservicio que no existe).
+
+Verificado con Playwright (cuenta real `pueba691@gmail.com`, rol
+local): el Manual ya no muestra "Nivel distrital"/"Super admin" en
+ningún lado, y el botón "Solicitar acceso" ya no aparece en el inicio.
+`npm run build` sin errores.
+
 ## Pendiente
 
-Ninguna acción de base de datos. Solo frontend, ya desplegado. Falta
-que el usuario aporte los datos institucionales reales para
-Privacidad y términos cuando los tenga listos.
+Ninguna acción de base de datos. Solo frontend, ya desplegado.
+Privacidad y términos: el usuario decidió completarlo directamente --
+pendiente que aporte los datos institucionales (ver mensaje al
+usuario en el chat con la lista exacta de lo que hace falta).

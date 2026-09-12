@@ -118,7 +118,6 @@ export default function InicioPublico() {
           <p className="text-lg text-secondary leading-8 mt-6 max-w-xl">SIGAP convierte el censo, la asistencia y los comités en pirámide poblacional, ciclo de vida espiritual y proyección de crecimiento — con la misma claridad para el pastor local, el distrital y la dirección nacional.</p>
           <div className="flex flex-col sm:flex-row gap-3 mt-8">
             <Link to="/login" className="btn-primary py-3"><span>Entrar a SIGAP</span><ArrowRight className="w-4 h-4" /></Link>
-            <Link to="/ayuda#acceso" className="btn-secondary py-3">Solicitar acceso</Link>
           </div>
           <p className="text-xs text-muted mt-5 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success" /> Acceso privado por invitación y perfil autorizado.</p>
         </div>

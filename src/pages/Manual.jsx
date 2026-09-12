@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { useMiRol } from '../hooks/useMiRol'
 
@@ -398,12 +397,12 @@ const HERRAMIENTAS_GENERALES = [
   },
 ]
 
-const NIVELES = [
-  { key: 'local', label: 'Nivel local' },
-  { key: 'distrital', label: 'Nivel distrital' },
-  { key: 'nacional', label: 'Nivel nacional' },
-  { key: 'super_admin', label: 'Super admin' },
-]
+const NIVEL_LABEL = {
+  local: 'Nivel local',
+  distrital: 'Nivel distrital',
+  nacional: 'Nivel nacional',
+  super_admin: 'Super admin',
+}
 
 function ManualItem({ item }) {
   return (
@@ -427,26 +426,20 @@ function ManualItem({ item }) {
 }
 
 export default function Manual() {
-  const { rolPrincipal } = useMiRol()
-  const [nivelActivo, setNivelActivo] = useState(
-    rolPrincipal?.nivel === 'distrital' ? 'distrital' : rolPrincipal?.nivel === 'nacional' ? 'nacional' : rolPrincipal?.nivel === 'super_admin' ? 'super_admin' : 'local'
-  )
+  const { rolPrincipal, loading } = useMiRol()
 
-  const secciones = MANUAL[nivelActivo] ?? MANUAL.local
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el manual...</div>
+
+  const nivel = rolPrincipal?.nivel ?? 'local'
+  const secciones = MANUAL[nivel] ?? MANUAL.local
 
   return (
     <div className="page-shell">
       <header>
-        <p className="eyebrow">Documentación</p>
+        <p className="eyebrow">Documentación · {NIVEL_LABEL[nivel] ?? 'Nivel local'}</p>
         <h1 className="section-title">Manual de uso</h1>
-        <p className="text-sm text-secondary mt-0.5">Qué es cada pantalla de SIGAP y cómo se usa, paso a paso — organizado por nivel.</p>
+        <p className="text-sm text-secondary mt-0.5">Qué es cada pantalla de SIGAP y cómo se usa, paso a paso — según tu propio rol.</p>
       </header>
-
-      <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Nivel del manual" role="tablist">
-        {NIVELES.map((item) => (
-          <button key={item.key} type="button" role="tab" aria-selected={nivelActivo === item.key} onClick={() => setNivelActivo(item.key)} className={`px-4 py-2.5 text-sm whitespace-nowrap border-b-2 ${nivelActivo === item.key ? 'border-accent text-accent font-medium' : 'border-transparent text-secondary'}`}>{item.label}</button>
-        ))}
-      </nav>
 
       <div className="flex flex-col gap-8">
         {secciones.map((grupo) => (
