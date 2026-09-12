@@ -28,6 +28,7 @@ const Solicitudes = lazy(() => import("./pages/Solicitudes"));
 const Manual = lazy(() => import("./pages/Manual"));
 const SaludDatos = lazy(() => import("./pages/SaludDatos"));
 const Suscripciones = lazy(() => import("./pages/Suscripciones"));
+const ErroresSistema = lazy(() => import("./pages/ErroresSistema"));
 const Perfil = lazy(() => import("./pages/Perfil"));
 const ConfiguracionSistema = lazy(() => import("./pages/ConfiguracionSistema"));
 const Feligresia = lazy(() => import("./pages/FeligresiaAdmin"));
@@ -126,6 +127,7 @@ export default function App() {
           <Route path="/manual" element={<Manual />} />
           <Route path="/salud-datos" element={<SaludDatos />} />
           <Route path="/suscripciones" element={<Suscripciones />} />
+          <Route path="/errores-sistema" element={<ErroresSistema />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route
             path="/configuracion-sistema"

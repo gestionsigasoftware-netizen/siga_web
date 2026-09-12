@@ -1,7 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { instalarCapturaGlobalDeErrores } from './lib/errorLogging'
+import { inicializarSentry } from './lib/sentry'
 import './index.css'
+
+inicializarSentry()
+instalarCapturaGlobalDeErrores()
 
 // Las rutas se cargan con lazy() -- si el navegador tenia la pagina
 // abierta desde ANTES de un despliegue nuevo, el archivo que pide (con
@@ -20,7 +26,9 @@ window.addEventListener('vite:preloadError', () => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 )
 

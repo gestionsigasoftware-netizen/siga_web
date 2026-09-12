@@ -35,6 +35,7 @@ import {
   Send,
   Database,
   CreditCard,
+  Bug,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
@@ -255,6 +256,12 @@ export default function Sidebar() {
       to: "/suscripciones",
       label: "Suscripciones",
       icon: CreditCard,
+      show: nivel === "super_admin",
+    },
+    {
+      to: "/errores-sistema",
+      label: "Errores del sistema",
+      icon: Bug,
       show: nivel === "super_admin",
     },
     {

@@ -1186,12 +1186,22 @@
 	incluidas las dos con mapa) sin ninguna violación de CSP. Ver
 	`docs/fixes/csp-hsts-headers-seguridad-2026-09-11.md`. Sin acción
 	pendiente del usuario -- ya desplegado.
-- **Pendiente de decidir alcance (2026-09-11)**: monitoreo/alertas/
-	logs -- único punto que queda del checklist de producción del
-	2026-09-10. Requiere decidir entre construir algo propio (tabla de
-	errores + panel, sin depender de terceros) o usar un servicio
-	externo (ej. Sentry para errores de frontend, UptimeRobot para
-	caída del sitio), que exige que el usuario cree esas cuentas.
+- **Resuelto (2026-09-11)**: monitoreo/alertas/logs -- último punto
+	del checklist de producción del 2026-09-10, cerrado con ambos
+	enfoques (el usuario pidió los dos). Propio, ya funcionando: tabla
+	`errores_frontend` + captura global de errores de JS
+	(`window.onerror`/`unhandledrejection`) + un `ErrorBoundary` de
+	React que antes no existía (un error de render dejaba pantalla en
+	blanco) + pantalla nueva "Errores del sistema", **exclusiva de
+	super_admin** (nacional NO tiene acceso, a pedido explícito del
+	usuario -- mismo patrón que "Suscripciones"). Externo, dejado listo
+	para activar sin tocar código: Sentry ya instalado y conectado
+	(apagado hasta que exista `VITE_SENTRY_DSN`) + instrucciones paso a
+	paso para Sentry y UptimeRobot. Ver
+	`docs/fixes/monitoreo-errores-frontend-2026-09-11.md`.
+	**Pendiente de ejecutar por el usuario**:
+	`supabase/schema/monitoreo_errores_frontend.sql`, y seguir los
+	pasos del documento para activar Sentry/UptimeRobot cuando quiera.
 
 ## Prioridad alta
 
