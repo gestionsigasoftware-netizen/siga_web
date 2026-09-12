@@ -1176,6 +1176,22 @@
 	avisan con el Toast flotante. Ver
 	`docs/fixes/guardado-silencioso-sin-aviso-2026-09-11.md`. Sin acción
 	pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-11)**: CSP/HSTS/anti-clickjacking, último punto
+	pendiente de la verificación de producción del 2026-09-10. Nuevo
+	`public/_headers` (Cloudflare Workers Static Assets, mismo formato
+	que Pages) con HSTS, X-Frame-Options, CSP restrictiva calibrada a
+	los dominios externos reales (Supabase, Google Fonts, OpenStreetMap/
+	Nominatim), Permissions-Policy y demás. Verificado con `wrangler dev`
+	+ Playwright (login real y navegación por varias pantallas,
+	incluidas las dos con mapa) sin ninguna violación de CSP. Ver
+	`docs/fixes/csp-hsts-headers-seguridad-2026-09-11.md`. Sin acción
+	pendiente del usuario -- ya desplegado.
+- **Pendiente de decidir alcance (2026-09-11)**: monitoreo/alertas/
+	logs -- único punto que queda del checklist de producción del
+	2026-09-10. Requiere decidir entre construir algo propio (tabla de
+	errores + panel, sin depender de terceros) o usar un servicio
+	externo (ej. Sentry para errores de frontend, UptimeRobot para
+	caída del sitio), que exige que el usuario cree esas cuentas.
 
 ## Prioridad alta
 
