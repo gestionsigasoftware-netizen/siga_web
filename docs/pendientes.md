@@ -1275,6 +1275,24 @@
 	pantalla existente. Ver
 	`docs/fixes/exportar-informe-negocio-2026-09-12.md`. Sin acción
 	pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-12)**: 4 puntos de orientación al usuario
+	revisados a pedido del usuario. (1) Botón "Solicitar acceso" del
+	inicio -- hallazgo real: no distinguía "tu congregación ya usa
+	SIGAP" (pide a tu pastor) de "nunca la ha usado" (solo el distrital
+	puede darla de alta, no hay registro público) -- corregido en
+	`Ayuda.jsx`. (2) Página de Ayuda -- ya estaba bien salvo el mismo
+	hueco, corregido. (3) Privacidad y términos -- nunca fue una
+	política real (plantilla marcada como borrador); se actualizó lo
+	técnico que sí se sabe con certeza (categorías de datos reales,
+	proveedores reales: Supabase/Cloudflare/Resend/Sentry); sigue
+	faltando que el usuario aporte datos institucionales (razón social,
+	domicilio, retención) para completarla. (4) Manual de uso --
+	reescrito por completo: nueva pestaña "Super admin" que no existía
+	(antes veía el contenido pastoral de "nacional"), y las 4 pestañas
+	ahora enseñan paso a paso (qué es + cómo se usa) en vez de solo
+	listar qué es cada pantalla, verificado contra el código real de
+	~35 páginas. Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Sin
+	acción de base de datos pendiente -- solo frontend.
 
 ## Prioridad alta
 
