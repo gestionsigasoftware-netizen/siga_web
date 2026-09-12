@@ -1229,7 +1229,7 @@
 	(Aprobaciones, Solicitudes, Comités Nacional, Distritos, Salud de
 	datos) -- todo legítimamente pastoral, sin más hallazgos. Ver
 	`docs/fixes/soporte-exclusivo-super-admin-2026-09-11.md`.
-	**Pendiente de ejecutar por el usuario**:
+	**Confirmado ejecutado por el usuario**:
 	`supabase/soporte/fix_reportes_soporte_solo_super_admin.sql`.
 
 ## Prioridad alta
