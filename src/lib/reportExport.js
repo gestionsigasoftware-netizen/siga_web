@@ -16,28 +16,54 @@ export const BRAND = {
   lema: 'Un Señor, una fe, un bautismo.',
   colorHex: '#0b4a8c',
   colorArgb: 'FF0B4A8C',
+  logoUrl,
+  logoBox: { excelWidth: 84, excelHeight: 59, pdfWidth: 20, pdfHeight: 14 },
+  piePagina: 'IPUC · SIGAP — Sistema Integrado de Gestión y Analítica Pastoral',
 }
 
-let logoPromise
-// Convierte el logo (bundleado por Vite como URL) a data URL una sola vez
-// por sesion — tanto jsPDF como exceljs necesitan los bytes de la imagen,
-// no una URL.
-export function cargarLogo() {
-  if (!logoPromise) {
-    logoPromise = fetch(logoUrl)
+// Marca para informes del NEGOCIO SIGAP (panel de super_admin) -- un
+// informe de negocio para el CEO no debe llevar el logo/nombre
+// eclesiastico de la IPUC, que es el cliente, no la empresa. Mismo
+// principio que feedback_super_admin_vs_nacional en memoria de proyecto.
+// '/email-logo.png' es un logo horizontal (1793x480, ratio ~3.74:1),
+// muy distinto del cuadrado de IPUC -- logoBox propio para no
+// deformarlo dentro de la misma caja fija.
+export const SIGAP_BRAND = {
+  nombre: 'Sistema Integrado de Gestión y Analítica Pastoral',
+  sigla: 'SIGAP',
+  lema: 'Panel de negocio (uso interno)',
+  colorHex: '#2a78d6',
+  colorArgb: 'FF2A78D6',
+  logoUrl: '/email-logo.png',
+  logoBox: { excelWidth: 90, excelHeight: 24, pdfWidth: 24, pdfHeight: 6.4 },
+  piePagina: 'SIGAP — Panel de negocio (uso interno)',
+}
+
+const logoCache = new Map()
+// Convierte el logo (bundleado por Vite como URL, o una ruta publica
+// como '/email-logo.png') a data URL una sola vez por URL -- tanto
+// jsPDF como exceljs necesitan los bytes de la imagen, no una URL.
+export function cargarLogo(url = logoUrl) {
+  if (!logoCache.has(url)) {
+    logoCache.set(url, fetch(url)
       .then((response) => response.blob())
       .then((blob) => new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
         reader.onerror = () => reject(reader.error)
         reader.readAsDataURL(blob)
-      }))
+      })))
   }
-  return logoPromise
+  return logoCache.get(url)
 }
 
 function marcaTiempo() {
   return new Date().toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })
+}
+
+function hexToRgb(hex) {
+  const value = hex.replace('#', '')
+  return [parseInt(value.substring(0, 2), 16), parseInt(value.substring(2, 4), 16), parseInt(value.substring(4, 6), 16)]
 }
 
 function descargarBlob(blob, filename) {
@@ -64,10 +90,10 @@ function formatoNumero(value) {
 // hace que Excel lo trate como texto (alineado a la izquierda, sin poder
 // sumarlo ni ordenarlo numericamente), justo lo contrario de lo que
 // alguien espera al abrir una columna de "Asistentes".
-export function descargarCsv({ filename, titulo, meta = [], headers, rows }) {
+export function descargarCsv({ filename, titulo, meta = [], headers, rows, brand = BRAND }) {
   const escape = (value) => (typeof value === 'number' ? String(value) : `"${String(value ?? '').replace(/"/g, '""')}"`)
   const encabezado = [
-    [`${BRAND.sigla} — ${BRAND.nombre}`],
+    [`${brand.sigla} — ${brand.nombre}`],
     ...(titulo ? [[titulo]] : []),
     ...meta.map((linea) => [linea]),
     [`Generado: ${marcaTiempo()}`],
@@ -81,19 +107,19 @@ export function descargarCsv({ filename, titulo, meta = [], headers, rows }) {
 // Membrete (logo + nombre + titulo + meta) compartido entre la hoja de
 // Resumen y la de Datos -- antes solo existia en una hoja, esto evita
 // duplicar la lógica al agregar una segunda.
-function escribirMembrete(workbook, sheet, logo, { titulo, subtitulo, meta }) {
+function escribirMembrete(workbook, sheet, logo, { titulo, subtitulo, meta, brand = BRAND }) {
   if (logo) {
     try {
       const imageId = workbook.addImage({ base64: logo, extension: 'png' })
-      sheet.addImage(imageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 84, height: 59 } })
+      sheet.addImage(imageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: brand.logoBox.excelWidth, height: brand.logoBox.excelHeight } })
     } catch {
       // Sin logo el export sigue siendo util — no se bloquea la descarga por esto.
     }
   }
   sheet.getColumn(1).width = 15
   sheet.mergeCells('B1:F1')
-  sheet.getCell('B1').value = BRAND.nombre
-  sheet.getCell('B1').font = { bold: true, size: 13, color: { argb: BRAND.colorArgb } }
+  sheet.getCell('B1').value = brand.nombre
+  sheet.getCell('B1').font = { bold: true, size: 13, color: { argb: brand.colorArgb } }
   sheet.mergeCells('B2:F2')
   sheet.getCell('B2').value = titulo || subtitulo
   sheet.getCell('B2').font = { size: 11, color: { argb: 'FF52514E' } }
@@ -113,13 +139,13 @@ function escribirMembrete(workbook, sheet, logo, { titulo, subtitulo, meta }) {
 // columna de valores -- es lo mas cercano a un grafico real que soporta
 // ExcelJS (no tiene API para insertar graficos de verdad), pero da una
 // señal visual inmediata de magnitud relativa sin salir de la celda.
-function agregarBarrasDatos(sheet, ref) {
+function agregarBarrasDatos(sheet, ref, brand = BRAND) {
   sheet.addConditionalFormatting({
     ref,
     rules: [{
       type: 'dataBar', priority: 1, gradient: true, showValue: true, border: false,
       cfvo: [{ type: 'min' }, { type: 'max' }],
-      color: { argb: BRAND.colorArgb },
+      color: { argb: brand.colorArgb },
     }],
   })
 }
@@ -132,7 +158,7 @@ function agregarBarrasDatos(sheet, ref) {
 // interpretar a mano. `desgloses` acepta un arreglo de
 // { titulo, items: [{label, valor}] }; por compatibilidad tambien acepta
 // un unico `desglose` (objeto, no arreglo).
-function escribirResumen(sheet, resumen, filaInicio) {
+function escribirResumen(sheet, resumen, filaInicio, brand = BRAND) {
   let fila = filaInicio
   if (resumen.kpis?.length) {
     resumen.kpis.forEach((kpi) => {
@@ -140,7 +166,7 @@ function escribirResumen(sheet, resumen, filaInicio) {
       sheet.getCell(`B${fila}`).font = { size: 10, color: { argb: 'FF52514E' } }
       const celdaValor = sheet.getCell(`D${fila}`)
       celdaValor.value = kpi.value
-      celdaValor.font = { bold: true, size: 16, color: { argb: BRAND.colorArgb } }
+      celdaValor.font = { bold: true, size: 16, color: { argb: brand.colorArgb } }
       if (typeof kpi.value === 'number') celdaValor.numFmt = '#,##0'
       celdaValor.alignment = { horizontal: 'left' }
       sheet.getRow(fila).height = 22
@@ -177,7 +203,7 @@ function escribirResumen(sheet, resumen, filaInicio) {
         if (typeof item.valor === 'number') celda.numFmt = '#,##0'
         filaDesglose += 1
       })
-      if (desglose.items.length) agregarBarrasDatos(sheet, `${colLetra(columnaBase + 1)}${inicioTabla}:${colLetra(columnaBase + 1)}${filaDesglose - 1}`)
+      if (desglose.items.length) agregarBarrasDatos(sheet, `${colLetra(columnaBase + 1)}${inicioTabla}:${colLetra(columnaBase + 1)}${filaDesglose - 1}`, brand)
       sheet.getColumn(columnaBase).width = 28
       sheet.getColumn(columnaBase + 1).width = 14
       maxFilaUsada = Math.max(maxFilaUsada, filaDesglose)
@@ -187,12 +213,12 @@ function escribirResumen(sheet, resumen, filaInicio) {
   return fila
 }
 
-export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos, resumen, resaltarFila }) {
+export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = [], headers, rows, anchos, resumen, resaltarFila, brand = BRAND }) {
   const { default: ExcelJS } = await import('exceljs')
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = BRAND.sigla
+  workbook.creator = brand.sigla
   workbook.created = new Date()
-  const logo = await cargarLogo().catch(() => null)
+  const logo = await cargarLogo(brand.logoUrl).catch(() => null)
 
   // Columnas donde TODAS las filas traen un numero real -- se les aplica
   // formato de miles y, en la tabla nativa, funcion de suma en la fila
@@ -202,14 +228,14 @@ export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = 
 
   if (resumen) {
     const resumenSheet = workbook.addWorksheet('Resumen')
-    resumenSheet.properties.tabColor = { argb: BRAND.colorArgb }
-    const filaTrasMembrete = escribirMembrete(workbook, resumenSheet, logo, { titulo, subtitulo: hoja, meta })
-    escribirResumen(resumenSheet, resumen, filaTrasMembrete)
+    resumenSheet.properties.tabColor = { argb: brand.colorArgb }
+    const filaTrasMembrete = escribirMembrete(workbook, resumenSheet, logo, { titulo, subtitulo: hoja, meta, brand })
+    escribirResumen(resumenSheet, resumen, filaTrasMembrete, brand)
   }
 
   const sheet = workbook.addWorksheet(hoja)
   sheet.properties.tabColor = { argb: 'FF52514E' }
-  const filaMembrete = escribirMembrete(workbook, sheet, logo, { titulo, subtitulo: hoja, meta })
+  const filaMembrete = escribirMembrete(workbook, sheet, logo, { titulo, subtitulo: hoja, meta, brand })
 
   // Tabla nativa de Excel (no una tabla "a mano" con estilos por celda):
   // da filtro desplegable en cada columna, bandas de color automaticas y
@@ -258,7 +284,7 @@ export async function descargarExcel({ filename, hoja = 'Datos', titulo, meta = 
 // exportado a PNG -- jsPDF no dibuja graficos, pero si puede insertar
 // una imagen, y Chart.js (ya usado en toda la app) puede generar esa
 // imagen sin necesidad de tenerlo montado en el DOM visible.
-async function generarGraficoPng(labels, valores) {
+async function generarGraficoPng(labels, valores, brand = BRAND) {
   const { Chart, BarController, BarElement, CategoryScale, LinearScale } = await import('chart.js')
   Chart.register(BarController, BarElement, CategoryScale, LinearScale)
   const canvas = document.createElement('canvas')
@@ -266,7 +292,7 @@ async function generarGraficoPng(labels, valores) {
   canvas.height = 380
   const chart = new Chart(canvas, {
     type: 'bar',
-    data: { labels, datasets: [{ data: valores, backgroundColor: BRAND.colorHex, borderRadius: 4, maxBarThickness: 46 }] },
+    data: { labels, datasets: [{ data: valores, backgroundColor: brand.colorHex, borderRadius: 4, maxBarThickness: 46 }] },
     options: {
       responsive: false,
       animation: false,
@@ -282,28 +308,29 @@ async function generarGraficoPng(labels, valores) {
   return dataUrl
 }
 
-export async function descargarPdf({ filename, titulo, meta = [], headers, rows, orientacion = 'portrait', resumen, resaltarFila }) {
+export async function descargarPdf({ filename, titulo, meta = [], headers, rows, orientacion = 'portrait', resumen, resaltarFila, brand = BRAND }) {
   const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF({ orientation: orientacion, unit: 'mm', format: 'letter' })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
+  const colorRgb = hexToRgb(brand.colorHex)
 
   try {
-    const logo = await cargarLogo()
-    doc.addImage(logo, 'PNG', 14, 10, 20, 14)
+    const logo = await cargarLogo(brand.logoUrl)
+    doc.addImage(logo, 'PNG', 14, 10, brand.logoBox.pdfWidth, brand.logoBox.pdfHeight)
   } catch {
     // sin logo, el resto del membrete (texto) sigue siendo valido
   }
 
   doc.setFontSize(13)
-  doc.setTextColor(11, 74, 140)
-  doc.text(BRAND.nombre, 38, 16)
+  doc.setTextColor(...colorRgb)
+  doc.text(brand.nombre, 38, 16)
   doc.setFontSize(9)
   doc.setTextColor(137, 135, 129)
-  doc.text(BRAND.lema, 38, 21)
+  doc.text(brand.lema, 38, 21)
 
-  doc.setDrawColor(11, 74, 140)
+  doc.setDrawColor(...colorRgb)
   doc.setLineWidth(0.6)
   doc.line(14, 29, pageWidth - 14, 29)
 
@@ -330,7 +357,7 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
       doc.setFillColor(245, 246, 248)
       doc.roundedRect(x, y, anchoTarjeta, altoTarjeta, 2, 2, 'F')
       doc.setFontSize(13)
-      doc.setTextColor(11, 74, 140)
+      doc.setTextColor(...colorRgb)
       doc.text(String(formatoNumero(kpi.value)), x + 4, y + 8)
       doc.setFontSize(7.5)
       doc.setTextColor(82, 81, 78)
@@ -350,7 +377,7 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
   if (primerDesglose?.items?.length) {
     try {
       const itemsGrafico = primerDesglose.items.slice(0, 8)
-      const chartUrl = await generarGraficoPng(itemsGrafico.map((item) => item.label), itemsGrafico.map((item) => item.valor))
+      const chartUrl = await generarGraficoPng(itemsGrafico.map((item) => item.label), itemsGrafico.map((item) => item.valor), brand)
       doc.setFontSize(10)
       doc.setTextColor(17, 24, 32)
       doc.text(primerDesglose.titulo || 'Desglose', 14, y)
@@ -392,7 +419,7 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
     body: filasFormateadas,
     theme: 'grid',
     styles: { fontSize, cellPadding, lineColor: [223, 224, 226], lineWidth: 0.15, valign: 'middle', overflow: 'linebreak' },
-    headStyles: { fillColor: [11, 74, 140], textColor: 255, fontStyle: 'bold', fontSize, cellPadding: cellPadding + 0.5 },
+    headStyles: { fillColor: colorRgb, textColor: 255, fontStyle: 'bold', fontSize, cellPadding: cellPadding + 0.5 },
     alternateRowStyles: { fillColor: [247, 248, 249] },
     margin: { left: margenLateral, right: margenLateral, top: 22, bottom: 18 },
     didParseCell: (data) => {
@@ -408,7 +435,7 @@ export async function descargarPdf({ filename, titulo, meta = [], headers, rows,
     doc.setPage(pagina)
     doc.setFontSize(7.5)
     doc.setTextColor(137, 135, 129)
-    doc.text(`${BRAND.sigla} · SIGAP — Sistema Integrado de Gestión y Analítica Pastoral`, 14, pageHeight - 8)
+    doc.text(brand.piePagina, 14, pageHeight - 8)
     doc.text(`Página ${pagina} de ${totalPaginas}`, pageWidth - 14, pageHeight - 8, { align: 'right' })
   }
 

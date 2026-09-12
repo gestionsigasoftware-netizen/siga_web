@@ -1262,10 +1262,19 @@
 	"Histórico real" con 2 gráficos de línea (congregaciones activas y
 	MRR día a día) que se van a ir llenando solos. Ver ampliación en
 	`docs/fixes/dashboard-super-admin-negocio-2026-09-12.md`.
-	**Pendiente de ejecutar por el usuario**:
-	`supabase/schema/negocio_snapshots_diarios.sql` (si falla por
-	permisos de `pg_cron`, habilitar primero esa extensión desde
-	Database -> Extensions en Supabase).
+	**Confirmado ejecutado por el usuario**:
+	`supabase/schema/negocio_snapshots_diarios.sql`.
+- **Resuelto (2026-09-12)**: super_admin no tenía forma de descargar
+	un informe de negocio (ej. para pasárselo al CEO, que es el mismo
+	usuario). Nuevo botón "Informe de negocio" (CSV/Excel/PDF) en el
+	panel de negocio, con KPIs, estado de suscripciones, segmentación
+	por plan/etapa y la tabla de congregaciones que requieren atención.
+	`src/lib/reportExport.js` (compartido por 19+ pantallas) ahora
+	soporta una marca alternativa `SIGAP_BRAND` (logo/nombre/color
+	propios, sin nada de IPUC) sin cambiar el comportamiento de ninguna
+	pantalla existente. Ver
+	`docs/fixes/exportar-informe-negocio-2026-09-12.md`. Sin acción
+	pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 

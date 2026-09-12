@@ -15,7 +15,8 @@ import { construirCicloVida } from '../lib/cicloVida'
 import ChartEmpty from '../components/ChartEmpty'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
-import { descargarPdf } from '../lib/reportExport'
+import ExportButtons from '../components/ExportButtons'
+import { descargarCsv, descargarExcel, descargarPdf, SIGAP_BRAND } from '../lib/reportExport'
 import { calcularEstadoSuscripcion } from '../lib/suscripciones'
 
 ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
@@ -841,17 +842,15 @@ function DashboardSuperAdmin() {
 
   const nuevasParaDuplicar = activas > 0 ? Math.ceil(activas / 12) : null
 
-  const porPlan = distributionDataset(
-    [
-      { label: 'Mensual', total: filas.filter((f) => f.suscripcion?.plan === 'mensual').length },
-      { label: 'Anual', total: filas.filter((f) => f.suscripcion?.plan === 'anual').length },
-    ].filter((item) => item.total > 0),
-  )
-  const porEtapa = distributionDataset(
-    Object.entries(MADUREZ_LABELS_DASH)
-      .map(([key, label]) => ({ label, total: congregaciones.filter((c) => c.madurez === key).length }))
-      .filter((item) => item.total > 0),
-  )
+  const porPlanItems = [
+    { label: 'Mensual', total: filas.filter((f) => f.suscripcion?.plan === 'mensual').length },
+    { label: 'Anual', total: filas.filter((f) => f.suscripcion?.plan === 'anual').length },
+  ].filter((item) => item.total > 0)
+  const porEtapaItems = Object.entries(MADUREZ_LABELS_DASH)
+    .map(([key, label]) => ({ label, total: congregaciones.filter((c) => c.madurez === key).length }))
+    .filter((item) => item.total > 0)
+  const porPlan = distributionDataset(porPlanItems)
+  const porEtapa = distributionDataset(porEtapaItems)
 
   // Simulador: input controlado por el usuario, con el promedio real
   // de los ultimos 3 meses como valor inicial (no un numero inventado).
@@ -860,6 +859,40 @@ function DashboardSuperAdmin() {
     const congregacionesProyectadas = activas + nuevasPorMes * meses
     return { meses, congregaciones: congregacionesProyectadas, mrr: congregacionesProyectadas * arpa }
   })
+
+  // Informe para el CEO (super_admin) -- marca SIGAP, no IPUC: esto es
+  // un documento sobre el negocio, no sobre la iglesia.
+  const informeKpis = [
+    { label: 'Congregaciones totales', value: totalCongregaciones },
+    { label: 'Activas', value: activas },
+    { label: 'Pendientes de aprobación', value: pendientes },
+    { label: 'Nuevas (30 días)', value: nuevas30d },
+    { label: 'Ingreso mensual estimado', value: Math.round(ingresoMensualEstimado) },
+    { label: 'Ingreso promedio por congregación', value: Math.round(arpa) },
+  ]
+  const informeDesgloses = [
+    { titulo: 'Estado de suscripciones', items: [
+      { label: 'Al día', valor: alDia },
+      { label: 'En gracia', valor: enGracia },
+      { label: 'Bloqueadas', valor: bloqueadas },
+      { label: 'Sin configurar', valor: sinConfigurar },
+    ] },
+    ...(porPlanItems.length ? [{ titulo: 'Congregaciones por plan', items: porPlanItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
+    ...(porEtapaItems.length ? [{ titulo: 'Congregaciones por etapa', items: porEtapaItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
+  ]
+  const informeHeaders = ['Congregación', 'Distrito', 'Plan', 'Próximo pago', 'Estado']
+  const informeRows = requierenAtencion.map(({ congregacion, suscripcion, estadoSusc }) => [
+    congregacion.nombre,
+    congregacion.distritos?.numero ? `Distrito ${congregacion.distritos.numero}` : '—',
+    suscripcion ? PLAN_LABELS_DASH[suscripcion.plan] || suscripcion.plan : '—',
+    suscripcion ? formatFecha(suscripcion.fecha_proximo_pago, { formato: formato_fecha }) : '—',
+    ESTADO_SUSC_LABEL_DASH[estadoSusc],
+  ])
+  const informeMeta = [`Congregaciones que requieren atención: ${informeRows.length}`, 'Tabla: bloqueadas, en gracia, o vencen dentro de 7 días.']
+  const informeFilename = (ext) => `sigap-informe-negocio-${fechaBogota(new Date())}.${ext}`
+  const exportarCsv = () => descargarCsv({ filename: informeFilename('csv'), titulo: 'Informe de negocio', meta: informeMeta, headers: informeHeaders, rows: informeRows, brand: SIGAP_BRAND })
+  const exportarExcel = () => descargarExcel({ filename: informeFilename('xlsx'), hoja: 'Requieren atención', titulo: 'Informe de negocio', meta: informeMeta, headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
+  const exportarPdf = () => descargarPdf({ filename: informeFilename('pdf'), titulo: 'Informe de negocio', meta: informeMeta, orientacion: 'landscape', headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
 
   return (
     <div className="flex flex-col gap-6">
@@ -876,6 +909,14 @@ function DashboardSuperAdmin() {
       </section>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Informe de negocio</p>
+          <p className="text-xs text-secondary mt-0.5">KPIs, cobros y congregaciones que requieren atención, listos para compartir.</p>
+        </div>
+        <ExportButtons onCsv={exportarCsv} onExcel={exportarExcel} onPdf={exportarPdf} marca="SIGAP" />
+      </div>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DistritalStatTile label="Congregaciones totales" value={totalCongregaciones} />
