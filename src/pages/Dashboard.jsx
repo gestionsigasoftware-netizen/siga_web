@@ -16,6 +16,7 @@ import ChartEmpty from '../components/ChartEmpty'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
 import { descargarPdf } from '../lib/reportExport'
+import { calcularEstadoSuscripcion } from '../lib/suscripciones'
 
 ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
@@ -742,6 +743,182 @@ function DashboardNacional() {
   )
 }
 
+const PLAN_LABELS_DASH = { mensual: 'Mensual', anual: 'Anual' }
+const ESTADO_SUSC_LABEL_DASH = { activa: 'Al día', en_gracia: 'En gracia', bloqueada: 'Bloqueada', sin_configurar: 'Sin configurar' }
+const ESTADO_SUSC_TONO_DASH = { activa: 'bg-success-bg text-success', en_gracia: 'bg-warning-bg text-warning', bloqueada: 'bg-danger-bg text-danger', sin_configurar: 'bg-surface-1 text-muted' }
+const ESTADO_SUSC_PRIORIDAD_DASH = { bloqueada: 0, en_gracia: 1, activa: 2, sin_configurar: 3 }
+
+function estadoSuscripcionChartData({ alDia, enGracia, bloqueadas, sinConfigurar }) {
+  return {
+    labels: ['Al día', 'En gracia', 'Bloqueadas', 'Sin configurar'],
+    datasets: [{ data: [alDia, enGracia, bloqueadas, sinConfigurar], backgroundColor: ['#008300', '#C98500', '#D03B3B', '#898781'], borderRadius: 6, maxBarThickness: 48 }],
+  }
+}
+
+function estadoSuscripcionChartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(28,31,36,0.06)' } }, x: { grid: { display: false } } },
+  }
+}
+
+// El super_admin administra el NEGOCIO SIGAP (congregaciones, cobros),
+// no la operacion pastoral de la IPUC -- por eso este panel es
+// deliberadamente distinto de DashboardNacional (sin feligreses,
+// bautizados, comites: eso lo ve el rol nacional). Ver
+// feedback_super_admin_vs_nacional en memoria del proyecto.
+function DashboardSuperAdmin() {
+  const { formato_fecha } = usePreferencias()
+  const [congregaciones, setCongregaciones] = useState([])
+  const [suscripciones, setSuscripciones] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      supabase.from('congregaciones').select('id, nombre, estado, madurez, created_at, distritos(numero)').order('created_at', { ascending: false }),
+      supabase.from('suscripciones').select('congregacion_id, plan, monto, fecha_proximo_pago, dias_gracia'),
+    ]).then(([{ data: congData, error: congError }, { data: suscData, error: suscError }]) => {
+      if (!active) return
+      if (congError || suscError) setError('No se pudo cargar el panel de negocio.')
+      setCongregaciones(congData ?? [])
+      setSuscripciones(Object.fromEntries((suscData ?? []).map((item) => [item.congregacion_id, item])))
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [])
+
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el panel de negocio...</div>
+
+  const hace30dias = fechaBogota(new Date(Date.now() - 30 * 86400000))
+  const en7dias = fechaBogota(new Date(Date.now() + 7 * 86400000))
+
+  const totalCongregaciones = congregaciones.length
+  const activas = congregaciones.filter((c) => c.estado === 'activa').length
+  const pendientes = congregaciones.filter((c) => c.estado === 'pendiente_aprobacion').length
+  const nuevas30d = congregaciones.filter((c) => c.created_at >= hace30dias).length
+
+  const filas = congregaciones.map((c) => ({ congregacion: c, suscripcion: suscripciones[c.id], estadoSusc: calcularEstadoSuscripcion(suscripciones[c.id]) }))
+  const contar = (estado) => filas.filter((f) => f.estadoSusc === estado).length
+  const alDia = contar('activa')
+  const enGracia = contar('en_gracia')
+  const bloqueadas = contar('bloqueada')
+  const sinConfigurar = contar('sin_configurar')
+
+  const requierenAtencion = filas
+    .filter((f) => f.estadoSusc === 'bloqueada' || f.estadoSusc === 'en_gracia' || (f.estadoSusc === 'activa' && f.suscripcion?.fecha_proximo_pago <= en7dias))
+    .sort((a, b) => ESTADO_SUSC_PRIORIDAD_DASH[a.estadoSusc] - ESTADO_SUSC_PRIORIDAD_DASH[b.estadoSusc])
+
+  const ingresoMensualEstimado = filas
+    .filter((f) => f.estadoSusc === 'activa' && f.suscripcion?.monto)
+    .reduce((total, f) => total + (f.suscripcion.plan === 'anual' ? Number(f.suscripcion.monto) / 12 : Number(f.suscripcion.monto)), 0)
+
+  const nuevasPendientes = congregaciones.filter((c) => c.estado === 'pendiente_aprobacion')
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+        <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#f0c876_0,transparent_55%)]" />
+        <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · Negocio</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel de negocio</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Salud comercial de SIGAP: congregaciones y cobros. No incluye datos pastorales de la IPUC.</p>
+          </div>
+          <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Suscripciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+        </div>
+      </section>
+
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <DistritalStatTile label="Congregaciones totales" value={totalCongregaciones} />
+        <DistritalStatTile label="Activas" value={activas} tone="success" />
+        <DistritalStatTile label="Pendientes de aprobación" value={pendientes} tone={pendientes > 0 ? 'danger' : 'default'} />
+        <DistritalStatTile label="Nuevas (30 días)" value={nuevas30d} />
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div><p className="eyebrow">Cobros</p><h2 className="font-medium mt-1">Estado de las suscripciones</h2></div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <InsightCard title="Al día" value={alDia} tone="success" insight={`${alDia} de ${totalCongregaciones} congregaciones con el pago al día.`} />
+          <InsightCard title="En periodo de gracia" value={enGracia} tone={enGracia > 0 ? 'warning' : 'default'} insight={enGracia > 0 ? `${enGracia} vencieron pero todavía pueden usar SIGAP mientras pasan los días de gracia.` : 'Ninguna congregación está en periodo de gracia.'} />
+          <InsightCard title="Bloqueadas (en mora)" value={bloqueadas} tone={bloqueadas > 0 ? 'danger' : 'default'} insight={bloqueadas > 0 ? `${bloqueadas} pasaron los días de gracia sin pagar y ya no pueden usar SIGAP.` : 'Ninguna congregación está bloqueada.'} />
+          <InsightCard title="Sin configurar" value={sinConfigurar} insight={`${sinConfigurar} congregaciones aún no tienen una suscripción configurada.`} />
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <div className="card p-5">
+          <p className="text-xs uppercase tracking-[0.14em] text-secondary">Ingreso mensual estimado</p>
+          <p className="text-3xl font-semibold tracking-tight mt-2">{ingresoMensualEstimado ? `$${Math.round(ingresoMensualEstimado).toLocaleString('es-CO')}` : '—'}</p>
+          <p className="summary-insight mt-3">Suma de las suscripciones al día (los planes anuales se dividen entre 12). No incluye congregaciones en gracia, bloqueadas o sin configurar.</p>
+        </div>
+        <div className="card p-5">
+          <h3 className="font-medium">Distribución de suscripciones</h3>
+          <div className="h-40 mt-3">
+            <Bar data={estadoSuscripcionChartData({ alDia, enGracia, bloqueadas, sinConfigurar })} options={estadoSuscripcionChartOptions()} />
+          </div>
+        </div>
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-medium">Requieren atención pronto</h2>
+          <p className="text-sm text-secondary mt-1">Bloqueadas, en periodo de gracia, o vencen dentro de 7 días.</p>
+        </div>
+        {requierenAtencion.length === 0 ? (
+          <p className="p-6 text-sm text-muted">Ninguna congregación necesita atención de cobro en este momento.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Plan</th><th className="font-normal px-5 py-3">Próximo pago</th><th className="font-normal px-5 py-3">Estado</th></tr></thead>
+              <tbody>
+                {requierenAtencion.map(({ congregacion, suscripcion, estadoSusc }) => (
+                  <tr key={congregacion.id} className="border-t border-border">
+                    <td className="px-5 py-3 font-medium">{congregacion.nombre}{congregacion.distritos?.numero ? <span className="text-xs text-secondary"> · Distrito {congregacion.distritos.numero}</span> : ''}</td>
+                    <td className="px-5 py-3 text-secondary">{suscripcion ? PLAN_LABELS_DASH[suscripcion.plan] || suscripcion.plan : '—'}</td>
+                    <td className="px-5 py-3 text-secondary">{suscripcion ? formatFecha(suscripcion.fecha_proximo_pago, { formato: formato_fecha }) : '—'}</td>
+                    <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded ${ESTADO_SUSC_TONO_DASH[estadoSusc]}`}>{ESTADO_SUSC_LABEL_DASH[estadoSusc]}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {nuevasPendientes.length > 0 && (
+        <section className="card overflow-hidden">
+          <div className="p-5 border-b border-border flex items-center justify-between">
+            <div><h2 className="font-medium">Nuevas, pendientes de aprobación</h2><p className="text-sm text-secondary mt-1">Todavía no pueden usar SIGAP hasta ser aprobadas.</p></div>
+            <Link to="/aprobaciones" className="text-xs text-accent hover:underline flex items-center gap-1 whitespace-nowrap">Ir a Aprobaciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Distrito</th><th className="font-normal px-5 py-3">Registrada</th></tr></thead>
+              <tbody>
+                {nuevasPendientes.map((c) => (
+                  <tr key={c.id} className="border-t border-border">
+                    <td className="px-5 py-3 font-medium">{c.nombre}</td>
+                    <td className="px-5 py-3 text-secondary">{c.distritos?.numero ? `Distrito ${c.distritos.numero}` : '—'}</td>
+                    <td className="px-5 py-3 text-secondary">{formatFecha(c.created_at, { formato: formato_fecha })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { rolPrincipal, loading: loadingRol } = useMiRol()
   const { formato_fecha } = usePreferencias()
@@ -888,7 +1065,8 @@ export default function Dashboard() {
 
   if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
   if (rolPrincipal.nivel === 'distrital') return <DashboardDistrital rolPrincipal={rolPrincipal} />
-  if (rolPrincipal.nivel === 'nacional' || rolPrincipal.nivel === 'super_admin') return <DashboardNacional />
+  if (rolPrincipal.nivel === 'nacional') return <DashboardNacional />
+  if (rolPrincipal.nivel === 'super_admin') return <DashboardSuperAdmin />
   if (loadingData) return (
     <div className="flex flex-col gap-6" role="status" aria-label="Cargando indicadores del resumen">
       <div className="rounded-card bg-ink/90 p-7 sm:p-9 animate-pulse">

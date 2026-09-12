@@ -1231,6 +1231,19 @@
 	`docs/fixes/soporte-exclusivo-super-admin-2026-09-11.md`.
 	**Confirmado ejecutado por el usuario**:
 	`supabase/soporte/fix_reportes_soporte_solo_super_admin.sql`.
+- **Resuelto (2026-09-12)**: el "Resumen" (Dashboard) de super_admin
+	mostraba exactamente lo mismo que nacional (pirámide poblacional,
+	sellados, comparativa de distritos) -- cifras pastorales que
+	super_admin no necesita para operar el negocio. Nuevo componente
+	`DashboardSuperAdmin` (en `src/pages/Dashboard.jsx`): congregaciones
+	activas/pendientes/nuevas, estado de suscripciones (al día/en
+	gracia/bloqueadas/sin configurar) con gráfico, ingreso mensual
+	estimado, y tablas de "requieren atención pronto" y "nuevas
+	pendientes de aprobación". Sin ninguna cifra pastoral. Ver
+	`docs/fixes/dashboard-super-admin-negocio-2026-09-12.md`.
+	**Sin verificación visual directa** (no hay cuenta de prueba
+	super_admin disponible) -- pendiente que el usuario lo revise con su
+	cuenta real. Sin acción de base de datos pendiente (solo frontend).
 
 ## Prioridad alta
 
