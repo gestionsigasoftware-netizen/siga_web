@@ -1199,9 +1199,11 @@
 	(apagado hasta que exista `VITE_SENTRY_DSN`) + instrucciones paso a
 	paso para Sentry y UptimeRobot. Ver
 	`docs/fixes/monitoreo-errores-frontend-2026-09-11.md`.
-	**Pendiente de ejecutar por el usuario**:
-	`supabase/schema/monitoreo_errores_frontend.sql`, y seguir los
-	pasos del documento para activar Sentry/UptimeRobot cuando quiera.
+	**Confirmado ejecutado por el usuario**:
+	`supabase/schema/monitoreo_errores_frontend.sql`. Sentry ya activo
+	en producción (DSN configurado en Cloudflare, confirmado viendo el
+	DSN dentro del bundle desplegado). Queda solo UptimeRobot, opcional,
+	cuando el usuario quiera.
 - **Resuelto (2026-09-11)**: auditoría visual de las 31 pantallas de
 	la app (desktop y móvil) para responder si el frontend está listo
 	para producción. Conclusión: sí -- el rediseño de esta sesión ya
