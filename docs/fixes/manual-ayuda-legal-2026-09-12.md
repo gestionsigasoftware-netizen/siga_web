@@ -133,9 +133,45 @@ local): el Manual ya no muestra "Nivel distrital"/"Super admin" en
 ningún lado, y el botón "Solicitar acceso" ya no aparece en el inicio.
 `npm run build` sin errores.
 
+## Privacidad y términos — completado con datos reales del usuario
+
+El usuario aportó los datos institucionales y aclaró una regla
+importante: **nunca nombrar proveedores externos (ni tecnologías como
+"React") en contenido público** -- esa información es interna del
+producto, no para divulgar. Esto obligó a corregir la sección 7, que
+en la primera versión sí nombraba explícitamente Supabase, Cloudflare,
+Resend y Sentry.
+
+`src/pages/Legal.jsx` actualizado:
+- **Responsable**: Jormelia Soft, domicilio Cali, Colombia.
+- **Contacto para derechos de datos**: mismo correo de soporte
+  (`soportesigasoftware@gmail.com`), reutilizado también en la
+  sección de contacto final (antes decía "el canal institucional que
+  la organización publique", ahora referencia el correo real).
+- **Retención** (sugerida por Claude, a falta de una política previa
+  del usuario): mientras la congregación tenga una relación activa
+  con SIGAP, más 12 meses adicionales tras terminar el servicio o
+  pedir eliminación, antes de borrar de sistemas activos.
+- **Copias de seguridad**: descrito en términos genéricos, sin nombrar
+  proveedor ni tecnología ("copias periódicas... se sobrescriben de
+  forma rotativa").
+- **Eliminación**: sugerido un plazo de 30 días hábiles desde una
+  solicitud válida, salvo obligación legal de conservar.
+- **Sección 7 reescrita** para no nombrar ningún proveedor --
+  "proveedores externos de infraestructura tecnológica (alojamiento en
+  la nube, autenticación y envío de correos electrónicos)", sin
+  detalle, aclarando explícitamente que esa información no se hace
+  pública.
+- Quitado el aviso de "documento base, no definitivo"; queda un aviso
+  más liviano recomendando revisión jurídica periódica (dato religioso
+  y de menores).
+
+Verificado: `grep` sobre `Legal.jsx` confirma cero menciones de
+proveedores/tecnologías en el texto renderizado (solo aparecen en
+imports de código, invisibles al usuario). `npm run build` sin
+errores. Captura visual de la página completa revisada.
+
 ## Pendiente
 
-Ninguna acción de base de datos. Solo frontend, ya desplegado.
-Privacidad y términos: el usuario decidió completarlo directamente --
-pendiente que aporte los datos institucionales (ver mensaje al
-usuario en el chat con la lista exacta de lo que hace falta).
+Ninguna acción de base de datos. Todo el trabajo de esta pieza (Manual,
+Ayuda, Legal) está cerrado y desplegado.

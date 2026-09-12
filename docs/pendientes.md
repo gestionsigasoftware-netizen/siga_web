@@ -1296,9 +1296,15 @@
 	selector de pestañas, ahora muestra solo el nivel del rol activo),
 	y se quitó el botón "Solicitar acceso" del inicio (el acceso nunca
 	se solicita desde ahí, siempre lo inicia el pastor o el distrital).
-	Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Privacidad y
-	términos: el usuario decidió completarlo él mismo. Sin acción de
-	base de datos pendiente -- solo frontend.
+	Privacidad y términos: completado con datos reales del usuario
+	(Jormelia Soft, Cali, correo de soporte como canal de derechos de
+	datos, retención de 12 meses, backups y eliminación en términos
+	genéricos) -- **regla importante del usuario**: nunca nombrar
+	proveedores externos ni tecnologías en contenido público, esa
+	información es interna del producto (se corrigió la sección 7, que
+	en la primera versión sí nombraba Supabase/Cloudflare/Resend/
+	Sentry). Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Sin
+	acción de base de datos pendiente -- solo frontend.
 
 ## Prioridad alta
 
