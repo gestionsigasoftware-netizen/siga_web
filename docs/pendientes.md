@@ -1244,6 +1244,15 @@
 	**Sin verificación visual directa** (no hay cuenta de prueba
 	super_admin disponible) -- pendiente que el usuario lo revise con su
 	cuenta real. Sin acción de base de datos pendiente (solo frontend).
+- **Resuelto (2026-09-12)**: ampliado el mismo panel con KPIs de
+	crecimiento -- congregaciones nuevas por mes (gráfico de tendencia),
+	% de crecimiento mensual, ingreso promedio por congregación (ARPA),
+	meta de "para duplicar en 12 meses", un simulador interactivo
+	(nuevas por mes → proyección de congregaciones y MRR a 3/6/12
+	meses), y segmentación por plan/etapa. Quitada la mención a "IPUC"
+	del copy del panel (ya solo habla de crecer). Ver ampliación en
+	`docs/fixes/dashboard-super-admin-negocio-2026-09-12.md`. Sin acción
+	pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 

@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { fechaBogota } from "../lib/fechaBogota";
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
-import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset } from '../lib/chartTheme'
+import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset, trendDataset, distributionDataset, chartOptions } from '../lib/chartTheme'
 import { construirPiramide, piramideChartData, piramideChartOptions } from '../lib/piramide'
 import { construirCicloVida } from '../lib/cicloVida'
 import ChartEmpty from '../components/ChartEmpty'
@@ -747,34 +747,22 @@ const PLAN_LABELS_DASH = { mensual: 'Mensual', anual: 'Anual' }
 const ESTADO_SUSC_LABEL_DASH = { activa: 'Al día', en_gracia: 'En gracia', bloqueada: 'Bloqueada', sin_configurar: 'Sin configurar' }
 const ESTADO_SUSC_TONO_DASH = { activa: 'bg-success-bg text-success', en_gracia: 'bg-warning-bg text-warning', bloqueada: 'bg-danger-bg text-danger', sin_configurar: 'bg-surface-1 text-muted' }
 const ESTADO_SUSC_PRIORIDAD_DASH = { bloqueada: 0, en_gracia: 1, activa: 2, sin_configurar: 3 }
+const CHART_OPTIONS_NEGOCIO = chartOptions()
+const MONEDA_FMT = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
+const formatoMoneda = (valor) => `$${MONEDA_FMT.format(Math.round(valor || 0))}`
 
-function estadoSuscripcionChartData({ alDia, enGracia, bloqueadas, sinConfigurar }) {
-  return {
-    labels: ['Al día', 'En gracia', 'Bloqueadas', 'Sin configurar'],
-    datasets: [{ data: [alDia, enGracia, bloqueadas, sinConfigurar], backgroundColor: ['#008300', '#C98500', '#D03B3B', '#898781'], borderRadius: 6, maxBarThickness: 48 }],
-  }
-}
-
-function estadoSuscripcionChartOptions() {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(28,31,36,0.06)' } }, x: { grid: { display: false } } },
-  }
-}
-
-// El super_admin administra el NEGOCIO SIGAP (congregaciones, cobros),
-// no la operacion pastoral de la IPUC -- por eso este panel es
-// deliberadamente distinto de DashboardNacional (sin feligreses,
-// bautizados, comites: eso lo ve el rol nacional). Ver
-// feedback_super_admin_vs_nacional en memoria del proyecto.
+// El super_admin administra el NEGOCIO de SIGAP (congregaciones,
+// cobros, crecimiento) -- por eso este panel es deliberadamente
+// distinto de DashboardNacional (sin feligreses, bautizados, comités:
+// eso lo ve el rol nacional). Ver feedback_super_admin_vs_nacional en
+// memoria del proyecto.
 function DashboardSuperAdmin() {
   const { formato_fecha } = usePreferencias()
   const [congregaciones, setCongregaciones] = useState([])
   const [suscripciones, setSuscripciones] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [metaNuevasPorMes, setMetaNuevasPorMes] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -799,6 +787,7 @@ function DashboardSuperAdmin() {
   const totalCongregaciones = congregaciones.length
   const activas = congregaciones.filter((c) => c.estado === 'activa').length
   const pendientes = congregaciones.filter((c) => c.estado === 'pendiente_aprobacion').length
+  const suspendidas = congregaciones.filter((c) => c.estado === 'suspendida').length
   const nuevas30d = congregaciones.filter((c) => c.created_at >= hace30dias).length
 
   const filas = congregaciones.map((c) => ({ congregacion: c, suscripcion: suscripciones[c.id], estadoSusc: calcularEstadoSuscripcion(suscripciones[c.id]) }))
@@ -816,7 +805,58 @@ function DashboardSuperAdmin() {
     .filter((f) => f.estadoSusc === 'activa' && f.suscripcion?.monto)
     .reduce((total, f) => total + (f.suscripcion.plan === 'anual' ? Number(f.suscripcion.monto) / 12 : Number(f.suscripcion.monto)), 0)
 
+  const arpa = alDia > 0 ? ingresoMensualEstimado / alDia : 0
+
   const nuevasPendientes = congregaciones.filter((c) => c.estado === 'pendiente_aprobacion')
+
+  // Crecimiento: nuevas por mes (ultimos 12 meses con datos), a partir
+  // de created_at -- es lo unico que SIGAP tiene con fecha real e
+  // historica; no hay snapshots de MRR/estado pasados, asi que las
+  // metricas de abajo se calculan siempre a partir de esto, nunca
+  // inventadas.
+  const porMes = new Map()
+  congregaciones.forEach((c) => {
+    const clave = c.created_at?.slice(0, 7)
+    if (clave) porMes.set(clave, (porMes.get(clave) || 0) + 1)
+  })
+  const mesesConDatos = [...porMes.keys()].sort().slice(-12)
+  const crecimientoTrend = trendDataset(
+    mesesConDatos.map((mes) => new Date(`${mes}-01T00:00:00`).toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })),
+    mesesConDatos.map((mes) => porMes.get(mes)),
+    { label: 'Congregaciones nuevas', colorIndex: 0 }
+  )
+  const promedioUltimos3Meses = mesesConDatos.length
+    ? Math.round(mesesConDatos.slice(-3).reduce((total, mes) => total + (porMes.get(mes) || 0), 0) / Math.min(3, mesesConDatos.length))
+    : 0
+
+  // Aproximacion (no un dato guardado): asume que una congregacion que
+  // ya era 'activa' y existia hace 30 dias, seguia activa entonces --
+  // razonable porque las suspensiones son manuales y poco frecuentes,
+  // pero no es un historial real de estados.
+  const activasHace30d = congregaciones.filter((c) => c.estado === 'activa' && c.created_at <= hace30dias).length
+  const tasaCrecimientoMensual = activasHace30d > 0 ? Math.round(((activas - activasHace30d) / activasHace30d) * 100) : null
+
+  const nuevasParaDuplicar = activas > 0 ? Math.ceil(activas / 12) : null
+
+  const porPlan = distributionDataset(
+    [
+      { label: 'Mensual', total: filas.filter((f) => f.suscripcion?.plan === 'mensual').length },
+      { label: 'Anual', total: filas.filter((f) => f.suscripcion?.plan === 'anual').length },
+    ].filter((item) => item.total > 0),
+  )
+  const porEtapa = distributionDataset(
+    Object.entries(MADUREZ_LABELS_DASH)
+      .map(([key, label]) => ({ label, total: congregaciones.filter((c) => c.madurez === key).length }))
+      .filter((item) => item.total > 0),
+  )
+
+  // Simulador: input controlado por el usuario, con el promedio real
+  // de los ultimos 3 meses como valor inicial (no un numero inventado).
+  const nuevasPorMes = metaNuevasPorMes ?? promedioUltimos3Meses
+  const proyecciones = [3, 6, 12].map((meses) => {
+    const congregacionesProyectadas = activas + nuevasPorMes * meses
+    return { meses, congregaciones: congregacionesProyectadas, mrr: congregacionesProyectadas * arpa }
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -826,7 +866,7 @@ function DashboardSuperAdmin() {
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · Negocio</p>
             <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel de negocio</h1>
-            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Salud comercial de SIGAP: congregaciones y cobros. No incluye datos pastorales de la IPUC.</p>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Cuánto estamos creciendo, cuánto estamos cobrando, y qué necesita tu atención hoy para seguir sumando congregaciones.</p>
           </div>
           <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Suscripciones <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
@@ -839,6 +879,58 @@ function DashboardSuperAdmin() {
         <DistritalStatTile label="Activas" value={activas} tone="success" />
         <DistritalStatTile label="Pendientes de aprobación" value={pendientes} tone={pendientes > 0 ? 'danger' : 'default'} />
         <DistritalStatTile label="Nuevas (30 días)" value={nuevas30d} />
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div><p className="eyebrow">Crecimiento</p><h2 className="font-medium mt-1">Qué tan rápido está creciendo SIGAP</h2></div>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+          <div className="card chart-card p-5">
+            <p className="eyebrow">Últimos 12 meses</p>
+            <h3 className="font-medium mt-1">Congregaciones nuevas por mes</h3>
+            <div className="h-56 mt-4">{mesesConDatos.length ? <Line data={crecimientoTrend} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay suficientes congregaciones para ver una tendencia." />}</div>
+          </div>
+          <div className="grid gap-3">
+            <InsightCard
+              title="Crecimiento mensual"
+              value={tasaCrecimientoMensual === null ? '—' : `${tasaCrecimientoMensual > 0 ? '+' : ''}${tasaCrecimientoMensual}%`}
+              tone={tasaCrecimientoMensual === null ? 'default' : tasaCrecimientoMensual >= 0 ? 'success' : 'danger'}
+              insight={tasaCrecimientoMensual === null ? 'Aún no hay suficiente historial para medir el crecimiento mensual.' : `Congregaciones activas hoy vs. hace 30 días (${activasHace30d} → ${activas}). Estimado a partir de la fecha de registro -- no es un historial de estados guardado.`}
+              tip="Compara las congregaciones activas hoy contra las que ya existían hace 30 días. Es una aproximación, no un historial exacto de cambios de estado."
+            />
+            <InsightCard
+              title="Ingreso promedio por congregación"
+              value={formatoMoneda(arpa)}
+              insight={alDia === 0 ? 'Aún no hay congregaciones con el pago al día para calcular un promedio.' : `Ingreso mensual estimado dividido entre las ${alDia} congregaciones al día con su pago.`}
+            />
+            <InsightCard
+              title="Para duplicar en 12 meses"
+              value={nuevasParaDuplicar === null ? '—' : `${nuevasParaDuplicar}/mes`}
+              insight={nuevasParaDuplicar === null ? 'Aún no hay congregaciones activas para proyectar una meta.' : `Necesitas aprobar y mantener activas ${nuevasParaDuplicar} congregaciones nuevas por mes para llegar a ${activas * 2} congregaciones activas en 12 meses.`}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="card p-5">
+        <p className="eyebrow">Simulador</p>
+        <h2 className="font-medium mt-1">¿Cuántas congregaciones nuevas necesitas por mes?</h2>
+        <p className="text-sm text-secondary mt-1">Ajusta el número y mira la proyección. Empieza con el promedio real de los últimos 3 meses.</p>
+        <label className="text-sm mt-4 block max-w-xs">
+          Nuevas congregaciones activas esperadas por mes
+          <input type="number" min="0" step="1" className="input-field mt-1.5" value={nuevasPorMes} onChange={(event) => setMetaNuevasPorMes(Math.max(0, Number(event.target.value) || 0))} />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-3 mt-4">
+          {proyecciones.map((p) => (
+            <div key={p.meses} className="stat-tile">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">En {p.meses} meses</p>
+              <p className="text-2xl font-semibold mt-3">{Math.round(p.congregaciones)} congregaciones</p>
+              <p className="text-sm text-secondary mt-1">{formatoMoneda(p.mrr)}/mes estimado</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted mt-3">Proyección simple: congregaciones activas hoy + (nuevas por mes × meses), multiplicado por el ingreso promedio actual por congregación. No asume abandono (churn) ni cambios de precio.</p>
       </section>
 
       <section>
@@ -856,14 +948,27 @@ function DashboardSuperAdmin() {
       <section className="grid gap-3 md:grid-cols-2">
         <div className="card p-5">
           <p className="text-xs uppercase tracking-[0.14em] text-secondary">Ingreso mensual estimado</p>
-          <p className="text-3xl font-semibold tracking-tight mt-2">{ingresoMensualEstimado ? `$${Math.round(ingresoMensualEstimado).toLocaleString('es-CO')}` : '—'}</p>
+          <p className="text-3xl font-semibold tracking-tight mt-2">{ingresoMensualEstimado ? formatoMoneda(ingresoMensualEstimado) : '—'}</p>
           <p className="summary-insight mt-3">Suma de las suscripciones al día (los planes anuales se dividen entre 12). No incluye congregaciones en gracia, bloqueadas o sin configurar.</p>
         </div>
         <div className="card p-5">
           <h3 className="font-medium">Distribución de suscripciones</h3>
           <div className="h-40 mt-3">
-            <Bar data={estadoSuscripcionChartData({ alDia, enGracia, bloqueadas, sinConfigurar })} options={estadoSuscripcionChartOptions()} />
+            <Bar data={distributionDataset([{ label: 'Al día', total: alDia }, { label: 'En gracia', total: enGracia }, { label: 'Bloqueadas', total: bloqueadas }, { label: 'Sin configurar', total: sinConfigurar }])} options={CHART_OPTIONS_NEGOCIO} />
           </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <div className="card p-5">
+          <h3 className="font-medium">Congregaciones por plan</h3>
+          <p className="text-xs text-secondary mt-1">Anual es mejor para el flujo de caja y suele indicar mayor compromiso.</p>
+          <div className="h-40 mt-3">{porPlan.labels.length ? <Bar data={porPlan} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay suscripciones configuradas." />}</div>
+        </div>
+        <div className="card p-5">
+          <h3 className="font-medium">Congregaciones por etapa</h3>
+          <p className="text-xs text-secondary mt-1 flex items-center gap-1.5">Segmento de madurez de cada sede -- útil para priorizar acompañamiento comercial.{suspendidas > 0 && <InfoTip texto={`Hay ${suspendidas} congregación(es) suspendida(s), fuera de este conteo.`} />}</p>
+          <div className="h-40 mt-3">{porEtapa.labels.length ? <Bar data={porEtapa} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay congregaciones para clasificar." />}</div>
         </div>
       </section>
 
