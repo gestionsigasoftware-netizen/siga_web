@@ -18,6 +18,7 @@ import { chartOptions, trendDataset, distributionDataset } from "../lib/chartThe
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
@@ -277,7 +278,7 @@ export default function Musica() {
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Música.</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric label="Grupos activos" value={gruposActivos.length} progress={gruposActivos.length ? 100 : 0} detail={`${grupoSinInstructor} sin instructor`} insight={grupoSinInstructor ? "Asigna un instructor a cada grupo para dar continuidad." : "Todos los grupos tienen instructor."} />

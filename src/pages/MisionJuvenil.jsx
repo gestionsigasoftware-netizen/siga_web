@@ -20,6 +20,7 @@ import Pager from "../components/Pager";
 import InfoTip from "../components/InfoTip";
 import ChartEmpty from "../components/ChartEmpty";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(
@@ -565,14 +566,7 @@ export default function MisionJuvenil() {
         </p>
       )}
       {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Misión Juvenil.</p>}
-      {notice && (
-        <p
-          role="status"
-          className="text-sm text-success bg-success-bg rounded p-3"
-        >
-          {notice}
-        </p>
-      )}
+      <Toast>{notice}</Toast>
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric label="Instituciones" value={instituciones.length} progress={instituciones.length ? Math.round((establishedInstitutions / instituciones.length) * 100) : 0} detail={`${establishedInstitutions} con grupo establecido`} insight={instituciones.length ? "Fortalece las instituciones que aún están en contacto inicial." : "Registra la primera institución para iniciar el trabajo."} />
         <Metric label="Estudiantes en proceso" value={activeSympathizers} progress={students.length ? Math.round((activeSympathizers / students.length) * 100) : 0} detail={`${activeSympathizers} de ${students.length} estudiantes`} insight={activeSympathizers ? "Revisa quién necesita avanzar a REFAM o discipulado." : "Aún no hay estudiantes en proceso activo."} />

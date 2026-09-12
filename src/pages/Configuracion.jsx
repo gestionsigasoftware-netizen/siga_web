@@ -7,6 +7,7 @@ import { useUndoDelete } from '../hooks/useUndoDelete'
 import { geocodeAddress } from '../lib/geocoding'
 import UndoToast from '../components/UndoToast'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const configuracionCache = new Map()
 
@@ -229,7 +230,8 @@ export default function Configuracion() {
           <label className="text-sm flex items-center gap-1">Módulo predeterminado<InfoTip texto="El módulo que se abre primero al entrar a registrar asistencia, para ahorrar clics al equipo que más lo usa." /><select className="input-field mt-1.5 w-full" value={preferencias.modulo_predeterminado} onChange={(e) => setPreferencias({ ...preferencias, modulo_predeterminado: e.target.value })}><option value="">Sin preferencia</option>{modulos.filter((modulo) => modulo.activo !== false).map((modulo) => <option key={modulo.id} value={modulo.id}>{modulo.nombre}</option>)}</select></label>
         </div>
         <div className="flex flex-col gap-3 mt-5"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_responsable} onChange={(e) => setPreferencias({ ...preferencias, exigir_responsable: e.target.checked })} /> Exigir responsable al registrar asistencia<InfoTip texto="Si lo activas, nadie podrá guardar un registro de asistencia sin indicar quién lo hizo." /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={preferencias.exigir_novedades} onChange={(e) => setPreferencias({ ...preferencias, exigir_novedades: e.target.checked })} /> Solicitar novedades en cada registro<InfoTip texto="Si lo activas, cada registro de asistencia deberá incluir una nota (aunque sea 'sin novedad') antes de poder guardarse." /></label></div>
-        <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button>{notice && <p role="status" className="text-sm text-success">{notice}</p>}</div>
+        <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button></div>
+        <Toast>{notice}</Toast>
       </form>
 
       <div className="grid md:grid-cols-3 gap-4">

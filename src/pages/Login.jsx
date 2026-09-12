@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
 import sigapLogo from '../assets/sigap-logo.svg'
 import sigapLogoWhite from '../assets/sigap-logo-white.svg'
+import Toast from '../components/Toast'
 
 export default function Login() {
   const { signIn, resetPassword, updatePassword } = useAuth()
@@ -224,7 +225,7 @@ export default function Login() {
               <div><label htmlFor="new-password" className="text-sm font-medium block mb-1.5">Nueva contraseña</label><input id="new-password" type="password" required minLength={8} autoComplete="new-password" placeholder="Crea una contraseña segura" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(null) }} className="input-field" /></div>
               <div aria-live="polite" className="rounded bg-surface-1 p-3"><p className="text-xs font-medium text-secondary mb-2">Requisitos de seguridad</p><div className="grid gap-1.5">{passwordRules.map((rule) => <p key={rule.label} className={`text-xs ${rule.valid ? 'text-success' : 'text-muted'}`}>{rule.valid ? '✓' : '○'} {rule.label}</p>)}</div></div>
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-              {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+              <Toast>{notice}</Toast>
               <button type="submit" disabled={loading || !validNewPassword} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isInvitation ? 'Activar acceso' : 'Actualizar contraseña'}</button>
               <Link to="/login" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver al inicio de sesión</Link>
             </form> : <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -244,9 +245,9 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-              {sessionExpiredNotice && <p role="status" className="text-sm text-danger bg-danger-bg rounded p-3">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</p>}
+              {sessionExpiredNotice && <Toast tone="danger">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</Toast>}
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-              {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+              <Toast>{notice}</Toast>
               <button type="submit" disabled={loading} className="btn-primary justify-center mt-2 py-3">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Ingresar a SIGAP <ArrowUpRight className="w-4 h-4" /></>}
               </button>

@@ -443,6 +443,15 @@
     50% { opacity: 1; transform: scale(1); }
   }
 
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .toast-success {
+    animation: toast-in 220ms ease-out;
+  }
+
   .page-shell { @apply flex flex-col gap-6; }
   .toolbar { @apply flex flex-wrap items-center gap-2; }
 

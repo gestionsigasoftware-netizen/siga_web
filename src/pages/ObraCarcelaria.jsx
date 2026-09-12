@@ -27,6 +27,7 @@ import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
@@ -415,7 +416,7 @@ export default function ObraCarcelaria() {
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Carcelaria.</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Internos activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${internos.length} registrados en total`} insight="Población atendida actualmente dentro del centro." />

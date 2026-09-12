@@ -7,6 +7,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const soporteCache = new Map()
 
@@ -114,7 +115,7 @@ export default function Soporte() {
           <label className="text-sm">Descripción<textarea required minLength={10} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} placeholder="Cuéntanos qué pasó, en qué pantalla, y qué esperabas que pasara." className="input-field mt-1.5 min-h-32" /></label>
           <div className="flex items-center gap-3">
             <button disabled={saving} className="btn-primary">{saving ? 'Enviando...' : 'Enviar reporte'}</button>
-            {notice && <p role="status" className="text-sm text-success">{notice}</p>}
+            <Toast>{notice}</Toast>
           </div>
         </form>
         <div className="flex items-center gap-2 text-xs text-muted mt-5 pt-4 border-t border-border">

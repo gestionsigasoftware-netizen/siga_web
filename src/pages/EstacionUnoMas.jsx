@@ -10,6 +10,7 @@ import { chartOptions, distributionDataset } from "../lib/chartTheme";
 import { DETALLE_ESTACION, UMBRAL_DIAS_ESTACION, diasDesde, getEstacion, getEstacionActivos, iniciarOMoverEstacion, trasladarEstacion } from "../lib/rutaEvangelistica";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
@@ -221,7 +222,7 @@ export default function EstacionUnoMas() {
         <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activos</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Amigos que llevan más de ${UMBRAL} días en Uno Más, o cuyo compromiso ya se cumplió. Revisa si están listos para pasar a BIS o REFAM.`} /></p><p className={`text-2xl font-semibold mt-3 ${candidatos.length ? "text-warning" : ""}`}>{candidatos.length}</p></div>

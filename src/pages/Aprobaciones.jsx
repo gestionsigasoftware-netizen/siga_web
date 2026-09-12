@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const aprobacionesCache = new Map()
 
@@ -93,7 +94,7 @@ export default function Aprobaciones() {
       </div>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
       {loading && <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>}
 
       <div className="card overflow-hidden">

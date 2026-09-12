@@ -21,6 +21,7 @@ import GeoMap from "../components/charts/GeoMap";
 import InfoTip from "../components/InfoTip";
 import ChartEmpty from "../components/ChartEmpty";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(
@@ -523,14 +524,7 @@ export default function Evangelismo() {
           {error}
         </p>
       )}
-      {notice && (
-        <p
-          role="status"
-          className="text-sm text-success bg-success-bg rounded p-3"
-        >
-          {notice}
-        </p>
-      )}
+      <Toast>{notice}</Toast>
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric label="Lugares en cobertura" value={zonas.length} />
         <Metric label="Capturas móviles" value={visibles.length} />

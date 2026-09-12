@@ -24,6 +24,7 @@ import { avatarTone, initialesDe } from "../lib/avatar";
 import { descargarPdf } from "../lib/reportExport";
 import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
 import InfoTip from "../components/InfoTip";
+import Toast from "../components/Toast";
 
 const amigosCache = new Map();
 
@@ -615,14 +616,7 @@ export default function Amigos() {
           {error}
         </p>
       )}
-      {notice && (
-        <p
-          role="status"
-          className="text-sm text-success bg-success-bg rounded p-3"
-        >
-          {notice}
-        </p>
-      )}
+      <Toast>{notice}</Toast>
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">

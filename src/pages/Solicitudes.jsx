@@ -6,6 +6,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const solicitudesCache = new Map()
 
@@ -179,7 +180,7 @@ export default function Solicitudes() {
           <label className="text-sm">Descripción<textarea required minLength={10} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} className="input-field mt-1.5 min-h-28" /></label>
           <div className="flex items-center gap-3">
             <button disabled={saving} className="btn-primary"><Send className="w-4 h-4" /> {saving ? 'Enviando...' : 'Enviar solicitud'}</button>
-            {notice && <p role="status" className="text-sm text-success">{notice}</p>}
+            <Toast>{notice}</Toast>
           </div>
         </form>
       </section>

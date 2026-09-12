@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useMiRol } from '../hooks/useMiRol'
 import { formatFecha } from '../lib/dateFormat'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 import { confirmEnrollment, enrollTotp, listFactors, unenrollFactor } from '../lib/mfa'
 
 const configuracionSistemaCache = new Map()
@@ -174,7 +175,7 @@ export default function ConfiguracionSistema() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-5">
           <button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar preferencias'}</button>
-          {notice && <p role="status" className="text-sm text-success">{notice}</p>}
+          <Toast>{notice}</Toast>
         </div>
       </form>
       <section className="card p-5 max-w-2xl">

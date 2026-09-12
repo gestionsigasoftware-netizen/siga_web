@@ -5,6 +5,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import GeoMap from '../components/charts/GeoMap'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const gestionDistritosCache = new Map()
 
@@ -179,7 +180,7 @@ export default function GestionDistritos() {
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <form onSubmit={saveDistrito} className="card p-5 grid sm:grid-cols-4 gap-3 items-end">
         <div className="sm:col-span-4 flex items-center justify-between gap-3">

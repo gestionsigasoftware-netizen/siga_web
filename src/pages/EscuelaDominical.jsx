@@ -18,6 +18,7 @@ import { chartOptions, trendDataset, distributionDataset } from "../lib/chartThe
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
+import Toast from "../components/Toast";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
@@ -316,7 +317,7 @@ export default function EscuelaDominical() {
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Escuela Dominical.</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Clases activas" value={clasesActivas.length} progress={clasesActivas.length ? 100 : 0} detail={`${claseSinMaestro} sin maestro líder`} insight={claseSinMaestro ? "Asigna un maestro líder a cada clase para dar continuidad." : "Todas las clases tienen maestro líder."} />

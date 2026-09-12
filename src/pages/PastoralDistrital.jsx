@@ -5,6 +5,7 @@ import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 import { descargarPdf } from '../lib/reportExport'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 
@@ -1067,7 +1068,7 @@ export default function PastoralDistrital() {
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="stat-tile">

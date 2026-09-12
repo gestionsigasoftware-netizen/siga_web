@@ -7,6 +7,7 @@ import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { calcularEstadoSuscripcion } from '../lib/suscripciones'
 import InfoTip from '../components/InfoTip'
+import Toast from '../components/Toast'
 
 const suscripcionesCache = new Map()
 
@@ -132,7 +133,7 @@ export default function Suscripciones() {
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {notice && <p role="status" className="text-sm text-success bg-success-bg rounded p-3">{notice}</p>}
+      <Toast>{notice}</Toast>
 
       <section className="card p-5">
         <div className="flex items-center gap-2 mb-1"><Landmark className="w-4 h-4 text-accent" /><h2 className="font-medium">Método de pago para las congregaciones</h2></div>
