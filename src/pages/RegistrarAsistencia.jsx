@@ -23,6 +23,7 @@ export default function RegistrarAsistencia() {
   const [categorias, setCategorias] = useState([])
   const [conteos, setConteos] = useState({})
   const [responsables, setResponsables] = useState([])
+  const [ujieresCongregacion, setUjieresCongregacion] = useState([])
   const [responsableId, setResponsableId] = useState('')
   const [novedades, setNovedades] = useState('')
   const [fecha, setFecha] = useState(hoyBogota())
@@ -44,6 +45,7 @@ export default function RegistrarAsistencia() {
       setModulos(cached.modulos)
       setCategorias(cached.categorias)
       setResponsables(cached.responsables)
+      setUjieresCongregacion(cached.ujieresCongregacion ?? [])
       if (cached.captureRules) setCaptureRules(cached.captureRules)
       setRegistros(cached.registros)
       setCanCapture(cached.canCapture)
@@ -57,22 +59,25 @@ export default function RegistrarAsistencia() {
       supabase.from('modulos').select('id, nombre_modulo, requiere_zona').eq('congregacion_id', congregacionId).eq('activo', true),
       supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('personas').select('id, nombres, apellidos').eq('congregacion_id', congregacionId).eq('estado_membresia', 'activo'),
+      supabase.from('ujieres_congregacion').select('id, nombre').eq('congregacion_id', congregacionId).eq('activo', true).order('nombre'),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
       supabase.from('configuracion_congregacion').select('exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle(),
-      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }).limit(10),
-    ]).then(([modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult]) => {
-      const failed = [modulosResult, categoriasResult, responsablesResult, capture, admin, configResult, registrosResult].find((result) => result.error)
+      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }).limit(10),
+    ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult]) => {
+      const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult].find((result) => result.error)
       if (failed) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
       const newModulos = modulosResult.data ?? []
       const newCategorias = categoriasResult.data ?? []
       const newResponsables = responsablesResult.data ?? []
+      const newUjieres = ujieresResult.data ?? []
       const newCaptureRules = configResult.data || null
       const newRegistros = registrosResult.data ?? []
       const newCanCapture = Boolean(capture.data || admin.data)
       setModulos(newModulos)
       setCategorias(newCategorias)
       setResponsables(newResponsables)
+      setUjieresCongregacion(newUjieres)
       if (newCaptureRules) setCaptureRules(newCaptureRules)
       setRegistros(newRegistros)
       setCanCapture(newCanCapture)
@@ -82,6 +87,7 @@ export default function RegistrarAsistencia() {
         modulos: newModulos,
         categorias: newCategorias,
         responsables: newResponsables,
+        ujieresCongregacion: newUjieres,
         captureRules: newCaptureRules,
         registros: newRegistros,
         canCapture: newCanCapture,
@@ -101,12 +107,16 @@ export default function RegistrarAsistencia() {
         .then(({ data }) => setZonas(data ?? []))
       setZonaId('')
       setTipoId('')
+      setResponsableId('')
   }, [moduloId])
+
+  const moduloSeleccionado = modulos.find((item) => item.id === moduloId)
+  const esModuloUjieres = moduloSeleccionado?.nombre_modulo?.trim().toLowerCase() === 'ujieres'
 
   async function loadRegistros() {
     const { data } = await supabase
       .from('registros_actividad')
-      .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos)')
+      .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)')
       .eq('congregacion_id', congregacionId)
       .order('fecha', { ascending: false })
       .limit(10)
@@ -141,7 +151,8 @@ export default function RegistrarAsistencia() {
         modulo_id: moduloId,
         tipo_actividad_id: tipoId,
         zona_id: zonaId || null,
-        responsable_persona_id: responsableId,
+        responsable_persona_id: esModuloUjieres ? null : (responsableId || null),
+        ujier_responsable_id: esModuloUjieres ? (responsableId || null) : null,
         fecha,
         novedades,
         origen_captura: 'web',
@@ -201,8 +212,11 @@ export default function RegistrarAsistencia() {
           </label>
           <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field w-full" required={captureRules.exigir_responsable}>
             <option value="">Selecciona un responsable</option>
-            {responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
+            {esModuloUjieres
+              ? ujieresCongregacion.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)
+              : responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
           </select>
+          {esModuloUjieres && ujieresCongregacion.length === 0 && <p className="text-xs text-muted mt-1">Aún no hay ujieres registrados — agrégalos desde "Módulos y actividades".</p>}
         </div>
 
         <div>
@@ -259,7 +273,7 @@ export default function RegistrarAsistencia() {
               <tr key={r.id} className="border-t border-border">
                 <td className="py-2">{r.fecha}</td>
                 <td className="py-2">{r.tipos_actividad?.nombre}</td>
-                <td className="py-2">{r.personas ? `${r.personas.nombres} ${r.personas.apellidos}` : '—'}</td>
+                <td className="py-2">{r.personas ? `${r.personas.nombres} ${r.personas.apellidos}` : r.ujieres_congregacion ? r.ujieres_congregacion.nombre : '—'}</td>
                 <td className="py-2">{r.total_asistentes}</td>
               </tr>
             ))}

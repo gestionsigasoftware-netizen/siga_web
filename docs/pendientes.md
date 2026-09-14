@@ -1305,6 +1305,21 @@
 	en la primera versión sí nombraba Supabase/Cloudflare/Resend/
 	Sentry). Ver `docs/fixes/manual-ayuda-legal-2026-09-12.md`. Sin
 	acción de base de datos pendiente -- solo frontend.
+- **Resuelto (2026-09-14)**: en "Corrección / contingencia de
+	asistencia" (pantalla de respaldo cuando la PWA no está disponible),
+	el campo "Responsable" mostraba todo el censo de Feligresía al
+	elegir el módulo Ujieres, en vez de la lista fija de ujieres que
+	cada congregación administra en "Módulos y actividades" (la misma
+	que sí usa la PWA). Causa: la pantalla nunca se actualizó tras
+	crearse `ujieres_congregacion`/`ujier_responsable_id` el
+	2026-09-04. Corregido: el selector cambia de lista según el módulo
+	elegido, y el guardado usa la columna correcta
+	(`ujier_responsable_id` para Ujieres, `responsable_persona_id` para
+	cualquier otro módulo). Verificado contra la base real con un
+	guardado de prueba real, confirmado en la columna correcta y
+	eliminado después. Ver
+	`docs/fixes/responsable-ujieres-correccion-contingencia-2026-09-14.md`.
+	Sin acción pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 
