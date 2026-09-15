@@ -58,6 +58,28 @@
     @apply bg-surface-1 border border-border rounded-card shadow-[0_8px_22px_rgba(21,27,34,0.045)];
   }
 
+  /* Aviso visual de que una tabla ancha se puede deslizar horizontal
+     -- sin esto, en movil una tabla con overflow-x-auto no da ninguna
+     pista de que hay mas columnas fuera de vista (encontrado en la
+     auditoria visual de produccion del 2026-09-11). Truco de "scroll
+     shadows" en CSS puro: dos capas fijas a la ventana (la sombra,
+     "scroll") mas dos capas que se mueven con el contenido ("local",
+     del mismo color del fondo) -- la sombra solo se ve cuando todavia
+     hay contenido sin revelar de ese lado, y desaparece sola al llegar
+     al final. No requiere JS ni saber la posicion del scroll.  */
+  .table-scroll {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, #ffffff 30%, rgba(255, 255, 255, 0)),
+      linear-gradient(to right, rgba(255, 255, 255, 0), #ffffff 70%) 100% 0,
+      linear-gradient(to right, rgba(21, 27, 34, 0.12), rgba(21, 27, 34, 0)),
+      linear-gradient(to left, rgba(21, 27, 34, 0.12), rgba(21, 27, 34, 0)) 100% 0;
+    background-repeat: no-repeat;
+    background-color: #ffffff;
+    background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+
   /* Clases compartidas por todas las vistas de tipo censo (listas de
      personas/beneficiarios con avatar de iniciales + badge de estado)
      -- pensadas para reusarse igual en Feligresia, Amigos, Red de

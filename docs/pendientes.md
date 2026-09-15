@@ -1320,6 +1320,18 @@
 	eliminado después. Ver
 	`docs/fixes/responsable-ujieres-correccion-contingencia-2026-09-14.md`.
 	Sin acción pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-14)**: pedida una recomendación de mejora para
+	escalar en producción; se investigó invalidación de cache entre
+	pantallas (Aprobaciones/Suscripciones/Pastoral Distrital) pero al
+	revisar a fondo se confirmó que NO es un bug real -- todas usan
+	"stale-while-revalidate" y se autocorrigen solas en cada montaje.
+	Se avanzó en cambio con el hallazgo ya confirmado de la auditoría
+	visual (2026-09-11): tablas anchas en móvil sin pista de que se
+	pueden deslizar horizontal. Nueva clase `.table-scroll` (sombra de
+	scroll en CSS puro, sin JS) aplicada en Reportes y en "Registros
+	recientes" de Corrección/contingencia. Ver
+	`docs/fixes/pista-scroll-tablas-moviles-2026-09-14.md`. Sin acción
+	pendiente del usuario -- solo frontend.
 
 ## Prioridad alta
 

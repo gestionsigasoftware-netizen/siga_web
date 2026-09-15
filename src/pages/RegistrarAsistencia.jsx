@@ -259,6 +259,7 @@ export default function RegistrarAsistencia() {
 
       <div>
         <h3 className="font-medium mb-3">Registros recientes</h3>
+        <div className="table-scroll">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-muted text-left">
@@ -279,6 +280,7 @@ export default function RegistrarAsistencia() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
