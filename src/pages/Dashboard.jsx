@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { fechaBogota, hoyBogota } from "../lib/fechaBogota";
 import { calcularEdad, sugerirComites, getRangosEdadComite } from '../lib/comitesPorPoblacion'
 import { MOVIMIENTO_LABELS } from '../lib/movimientos'
+import { CARGO_DISTRITAL_LABELS, CARGOS_DISTRITALES_REQUERIDOS } from '../lib/cargosDistritales'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset, trendDataset, distributionDataset, chartOptions } from '../lib/chartTheme'
@@ -116,6 +117,18 @@ const FRECUENCIA_ESTA = { diaria: 'este día', semanal: 'esta semana', quincenal
 // Mismo motivo que FRECUENCIA_ESTA, para frases que comparan contra el
 // periodo anterior ("3 más que la quincena pasada").
 const FRECUENCIA_PASADO = { diaria: 'el día anterior', semanal: 'la semana pasada', quincenal: 'la quincena pasada', mensual: 'el mes pasado', semestral: 'el semestre pasado', anual: 'el año pasado' }
+
+// Nombra a quién(es) más aportaron a un total (asistencia/altas/
+// bautismos por congregación o por distrito) -- hasta 2 nombres, solo
+// si de verdad aportaron algo. Se usa para que los insights de
+// distrital/nacional digan "Puerto Tejada aporta X de las Y" en vez de
+// solo un numero agregado.
+function topContribuyentes(lista, campo, etiqueta = (item) => item.nombre) {
+  const ordenados = [...lista].filter((item) => Number(item[campo] || 0) > 0).sort((a, b) => Number(b[campo]) - Number(a[campo]))
+  if (!ordenados.length) return null
+  const top = ordenados.slice(0, 2)
+  return { nombres: top.map(etiqueta), suma: top.reduce((total, item) => total + Number(item[campo]), 0) }
+}
 
 function alertRecommendation(alert) {
   if (alert.tipo === 'familia') return 'Revisa la ficha y completa la asociación familiar.'
@@ -269,7 +282,7 @@ function DashboardDistrital({ rolPrincipal }) {
   const distritoId = rolPrincipal?.distrito_id
   const [personasPiramide, setPersonasPiramide] = useState([])
   const [personaIdsConCargo, setPersonaIdsConCargo] = useState(new Set())
-  const [cargosVigentes, setCargosVigentes] = useState([])
+  const [cargosDistritalesHistorial, setCargosDistritalesHistorial] = useState([])
   const [congregacionesActivas60d, setCongregacionesActivas60d] = useState(new Set())
 
   useEffect(() => {
@@ -280,7 +293,7 @@ function DashboardDistrital({ rolPrincipal }) {
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
       supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, congregaciones!inner(distrito_id)').eq('estado_membresia', 'activo').eq('congregaciones.distrito_id', distritoId),
       supabase.from('membresias_comite').select('persona_id, comites!inner(congregaciones!inner(distrito_id))').is('fecha_fin', null).eq('comites.congregaciones.distrito_id', distritoId),
-      supabase.from('cargos_distritales').select('cargo').eq('distrito_id', distritoId).is('fecha_fin', null),
+      supabase.from('cargos_distritales').select('cargo, fecha_fin').eq('distrito_id', distritoId).order('fecha_fin', { ascending: false, nullsFirst: false }),
       supabase.from('registros_actividad').select('congregacion_id, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).gte('fecha', desde60),
     ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: cargosData, error: cargosError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
@@ -288,7 +301,7 @@ function DashboardDistrital({ rolPrincipal }) {
       setCongregaciones(data ?? [])
       setPersonasPiramide(personasData ?? [])
       setPersonaIdsConCargo(new Set((membresiasData ?? []).map((item) => item.persona_id)))
-      setCargosVigentes(cargosData ?? [])
+      setCargosDistritalesHistorial(cargosData ?? [])
       setCongregacionesActivas60d(new Set((actividadData ?? []).map((item) => item.congregacion_id)))
       setLoading(false)
     })
@@ -344,9 +357,24 @@ function DashboardDistrital({ rolPrincipal }) {
   const proyeccion12m = Math.max(0, Math.round(totalFeligreses + netoMensual3m * 12))
   const piramide = construirPiramide(personasPiramide)
   const ciclo = construirCicloVida(personasPiramide, personaIdsConCargo)
-  const cargosOcupados = new Set(cargosVigentes.map((item) => item.cargo).filter((cargo) => cargo !== 'otro')).size
-  const cargosVacantes = Math.max(0, 6 - cargosOcupados)
+  const cargosActivos = cargosDistritalesHistorial.filter((item) => !item.fecha_fin)
+  const cargosOcupadosKeys = new Set(cargosActivos.map((item) => item.cargo).filter((cargo) => cargo !== 'otro'))
+  const cargosVacantesKeys = CARGOS_DISTRITALES_REQUERIDOS.filter((cargo) => !cargosOcupadosKeys.has(cargo))
+  const cargosVacantes = cargosVacantesKeys.length
   const congregacionesInactivas = Math.max(0, congregaciones.length - congregacionesActivas60d.size)
+  // Nombra el/los cargo(s) que faltan -- si es solo uno, se busca en el
+  // historial (fecha_fin no nula) hace cuanto quedo vacante; con varios
+  // vacantes a la vez no se calcula la duracion de cada uno para no
+  // alargar demasiado la frase.
+  const detalleDirectivaDistrital = cargosVacantes === 0
+    ? 'Los 6 cargos de la junta distrital están cubiertos.'
+    : cargosVacantes === 1
+      ? (() => {
+          const ultimoRegistro = cargosDistritalesHistorial.find((item) => item.cargo === cargosVacantesKeys[0] && item.fecha_fin)
+          const dias = ultimoRegistro ? Math.floor((Date.now() - new Date(`${ultimoRegistro.fecha_fin}T00:00:00`).getTime()) / 86400000) : null
+          return `Falta cubrir ${CARGO_DISTRITAL_LABELS[cargosVacantesKeys[0]]}${dias !== null ? ` desde hace ${dias} día${dias === 1 ? '' : 's'}` : ' (nunca ha tenido responsable asignado)'}.`
+        })()
+      : `Falta cubrir ${cargosVacantesKeys.map((cargo) => CARGO_DISTRITAL_LABELS[cargo]).join(', ')}.`
 
   // --- "Como estuvimos este mes" -- usa exactamente los mismos campos
   // que ya trae resumen_distrital() (asistencia_ultimo_mes/
@@ -382,7 +410,10 @@ function DashboardDistrital({ rolPrincipal }) {
   // contexto con datos que ya estan calculados arriba, sin consultas
   // nuevas ni inventar nada que resumen_distrital() no traiga.
   const promedioPorCongregacionMes = congregaciones.length ? Math.round(asistenciaMesActual / congregaciones.length) : 0
-  const insightAsistenciaDistrital = congregaciones.length === 0 ? 'Aún no hay congregaciones para promediar.' : `Promedio de ${promedioPorCongregacionMes} asistencias por congregación este mes.`
+  const topAsistenciaDistrital = topContribuyentes(congregaciones, 'asistencia_ultimo_mes')
+  const insightAsistenciaDistrital = congregaciones.length === 0
+    ? 'Aún no hay congregaciones para promediar.'
+    : `Promedio de ${promedioPorCongregacionMes} asistencias por congregación este mes.${topAsistenciaDistrital && congregaciones.length > 1 ? ` ${topAsistenciaDistrital.nombres.join(' y ')} aporta${topAsistenciaDistrital.nombres.length === 1 ? '' : 'n'} ${topAsistenciaDistrital.suma} de las ${asistenciaMesActual}.` : ''}`
   const congregacionesEstancadas = congregaciones.filter((c) => !congregacionesConCrecimiento.includes(c))
   const insightCrecimientoDistrital = congregaciones.length === 0
     ? 'Aún no hay congregaciones para comparar.'
@@ -390,20 +421,27 @@ function DashboardDistrital({ rolPrincipal }) {
       ? 'Ninguna se quedó atrás este mes.'
       : `${congregacionesEstancadas.slice(0, 3).map((c) => c.nombre).join(', ')}${congregacionesEstancadas.length > 3 ? ` y ${congregacionesEstancadas.length - 3} más` : ''} no crecieron este mes.`
   const congregacionesBalanceNegativo = congregaciones.filter((c) => Number(c.altas_3m || 0) - Number(c.bajas_3m || 0) < 0).length
+  const topAltasDistrital = topContribuyentes(congregaciones, 'altas_3m')
   const insightAltasBajasDistrital = congregaciones.length === 0
     ? 'Aún no hay congregaciones para medir.'
-    : congregacionesBalanceNegativo === 0
-      ? 'Ninguna congregación tiene más bajas que altas en 3 meses.'
-      : `${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} con más bajas que altas en 3 meses.`
-  const congregacionesConBautismos = congregaciones.filter((c) => Number(c.bautismos_3m || 0) > 0).length
-  const insightBautismosDistrital = congregaciones.length === 0 ? 'Aún no hay congregaciones para medir.' : `${congregacionesConBautismos} de ${congregaciones.length} congregaciones tuvieron al menos un bautismo en 3 meses.`
+    : topAltasDistrital
+      ? `${topAltasDistrital.nombres.join(' y ')} aporta${topAltasDistrital.nombres.length === 1 ? '' : 'n'} ${topAltasDistrital.suma} de las ${totalAltas3m} altas en 3 meses.${congregacionesBalanceNegativo > 0 ? ` ${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} tiene${congregacionesBalanceNegativo === 1 ? '' : 'n'} más bajas que altas.` : ''}`
+      : congregacionesBalanceNegativo > 0
+        ? `${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} con más bajas que altas en 3 meses.`
+        : 'Sin altas ni bajas en el distrito en 3 meses.'
+  const topBautismosDistrital = topContribuyentes(congregaciones, 'bautismos_3m')
+  const insightBautismosDistrital = congregaciones.length === 0
+    ? 'Aún no hay congregaciones para medir.'
+    : topBautismosDistrital
+      ? `${topBautismosDistrital.nombres.join(' y ')} aporta${topBautismosDistrital.nombres.length === 1 ? '' : 'n'} ${topBautismosDistrital.suma} de los ${totalBautismos3m}${congregaciones.length > topBautismosDistrital.nombres.length ? ', el resto repartido en el distrito.' : '.'}`
+      : 'Sin bautismos en el distrito en 3 meses.'
 
   const semaforo = [
     { label: 'Vacantes de pastor', ok: vacantes === 0, detalle: vacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${vacantes} congregación(es) sin pastor asignado.` },
     { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
     { label: 'Movimiento de membresía', ok: balanceMembresia >= 0, detalle: `${totalAltas3m} altas y ${totalBajas3m} bajas en los últimos 3 meses.` },
     { label: 'Actividad congregacional', ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? 'Todas las congregaciones registraron actividad en 60 días.' : `${congregacionesInactivas} congregación(es) sin ninguna actividad registrada en 60 días.` },
-    { label: 'Directiva distrital', ok: cargosVacantes === 0, detalle: cargosVacantes === 0 ? 'Los 6 cargos de la junta distrital están cubiertos.' : `${cargosVacantes} de 6 cargos de la junta distrital vacante(s).` },
+    { label: 'Directiva distrital', ok: cargosVacantes === 0, detalle: detalleDirectivaDistrital },
   ]
 
   return (
@@ -720,7 +758,11 @@ function DashboardNacional() {
   // Insight por tarjeta -- mismo criterio que distrital/local, agregado
   // por distrito en vez de por congregación.
   const promedioPorDistritoMes = distritos.length ? Math.round(asistenciaMesActual / distritos.length) : 0
-  const insightAsistenciaNacional = distritos.length === 0 ? 'Aún no hay distritos para promediar.' : `Promedio de ${promedioPorDistritoMes} asistencias por distrito este mes.`
+  const etiquetaDistrito = (d) => `Distrito ${d.numero}`
+  const topAsistenciaNacional = topContribuyentes(distritos, 'asistencia_ultimo_mes', etiquetaDistrito)
+  const insightAsistenciaNacional = distritos.length === 0
+    ? 'Aún no hay distritos para promediar.'
+    : `Promedio de ${promedioPorDistritoMes} asistencias por distrito este mes.${topAsistenciaNacional && distritos.length > 1 ? ` ${topAsistenciaNacional.nombres.join(' y ')} aporta${topAsistenciaNacional.nombres.length === 1 ? '' : 'n'} ${topAsistenciaNacional.suma} de las ${asistenciaMesActual}.` : ''}`
   const distritosEstancados = distritos.filter((d) => !distritosConCrecimiento.includes(d))
   const insightCrecimientoNacional = distritos.length === 0
     ? 'Aún no hay distritos para comparar.'
@@ -728,13 +770,20 @@ function DashboardNacional() {
       ? 'Ningún distrito se quedó atrás este mes.'
       : `Distrito${distritosEstancados.length === 1 ? '' : 's'} ${distritosEstancados.slice(0, 3).map((d) => d.numero).join(', ')}${distritosEstancados.length > 3 ? ` y ${distritosEstancados.length - 3} más` : ''} no crecieron este mes.`
   const distritosBalanceNegativo = distritos.filter((d) => Number(d.altas_3m || 0) - Number(d.bajas_3m || 0) < 0).length
+  const topAltasNacional = topContribuyentes(distritos, 'altas_3m', etiquetaDistrito)
   const insightAltasBajasNacional = distritos.length === 0
     ? 'Aún no hay distritos para medir.'
-    : distritosBalanceNegativo === 0
-      ? 'Ningún distrito tiene más bajas que altas en 3 meses.'
-      : `${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas en 3 meses.`
-  const distritosConBautismos = distritos.filter((d) => Number(d.bautismos_3m || 0) > 0).length
-  const insightBautismosNacional = distritos.length === 0 ? 'Aún no hay distritos para medir.' : `${distritosConBautismos} de ${distritos.length} distritos tuvieron al menos un bautismo en 3 meses.`
+    : topAltasNacional
+      ? `${topAltasNacional.nombres.join(' y ')} aporta${topAltasNacional.nombres.length === 1 ? '' : 'n'} ${topAltasNacional.suma} de las ${totalAltas3m} altas en 3 meses.${distritosBalanceNegativo > 0 ? ` ${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas.` : ''}`
+      : distritosBalanceNegativo > 0
+        ? `${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas en 3 meses.`
+        : 'Sin altas ni bajas a nivel nacional en 3 meses.'
+  const topBautismosNacional = topContribuyentes(distritos, 'bautismos_3m', etiquetaDistrito)
+  const insightBautismosNacional = distritos.length === 0
+    ? 'Aún no hay distritos para medir.'
+    : topBautismosNacional
+      ? `${topBautismosNacional.nombres.join(' y ')} aporta${topBautismosNacional.nombres.length === 1 ? '' : 'n'} ${topBautismosNacional.suma} de los ${totalBautismos3m}${distritos.length > topBautismosNacional.nombres.length ? ', el resto repartido en el país.' : '.'}`
+      : 'Sin bautismos a nivel nacional en 3 meses.'
 
   const semaforo = [
     { label: 'Vacantes de pastor', ok: totalVacantes === 0, detalle: totalVacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${totalVacantes} congregación(es) sin pastor asignado en el país.` },

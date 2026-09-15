@@ -8,6 +8,7 @@ import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
 import { descargarPdf } from '../lib/reportExport'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
+import { CARGO_DISTRITAL_LABELS } from '../lib/cargosDistritales'
 
 const pastoralDistritalCache = new Map()
 
@@ -35,7 +36,6 @@ const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pas
 const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
 const EMPTY_CENTRO = { nombre: '', tipo: 'municipal', ciudad: '', direccion: '' }
 const TIPO_CENTRO_LABELS = { maxima_seguridad: 'Máxima seguridad', mediana_seguridad: 'Mediana seguridad', municipal: 'Municipal', correccional_menores: 'Correccional de menores', otro: 'Otro' }
-const CARGO_DISTRITAL_LABELS = { supervisor: 'Supervisor', secretario: 'Secretario', tesorero: 'Tesorero', presbitero_a: 'Presbítero A', presbitero_b: 'Presbítero B', veedor: 'Veedor', otro: 'Otro' }
 const ESTADO_REINSERCION_LABELS = { asignado: 'Asignado', contactado: 'Contactado', activo: 'Activo', inactivo: 'Inactivo', reincidencia: 'Reincidencia' }
 
 const formatDate = (value) => {

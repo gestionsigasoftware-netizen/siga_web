@@ -1372,6 +1372,22 @@
 	para reutilizarse en dos páginas. Ver
 	`docs/fixes/como-estuvimos-insight-y-necesita-atencion-2026-09-15.md`.
 	Sin acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: siguiendo con la comparación mockup vs.
+	producción, el usuario notó que los insights de distrital/nacional
+	eran más genéricos que el mockup (conteos agregados en vez de
+	nombrar quién aportó más). Se agregó `topContribuyentes()` (helper
+	compartido) para nombrar la congregación/distrito que más aportó en
+	asistencia/altas/bautismos, y se amplió la fila "Directiva distrital"
+	del Semáforo para nombrar el cargo específico vacante (reutilizando
+	el catálogo de `PastoralDistrital.jsx`, movido a
+	`src/lib/cargosDistritales.js`) y, si hay historial, hace cuántos
+	días. Nacional se quedó con el conteo agregado de cargos (nombrar un
+	cargo por cada uno de ~36 distritos no tiene sentido en una sola
+	frase). Pendiente cosmético identificado y comunicado, no
+	construido: los 3 niveles comparten el mismo color de acento azul,
+	el mockup usaba un tono distinto por nivel -- no afecta datos. Ver
+	`docs/fixes/como-estuvimos-desgloses-distrital-nacional-2026-09-15.md`.
+	Sin acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 
