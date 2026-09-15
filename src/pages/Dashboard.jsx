@@ -342,6 +342,37 @@ function DashboardDistrital({ rolPrincipal }) {
   const cargosOcupados = new Set(cargosVigentes.map((item) => item.cargo).filter((cargo) => cargo !== 'otro')).size
   const cargosVacantes = Math.max(0, 6 - cargosOcupados)
   const congregacionesInactivas = Math.max(0, congregaciones.length - congregacionesActivas60d.size)
+
+  // --- "Como estuvimos este mes" -- usa exactamente los mismos campos
+  // que ya trae resumen_distrital() (asistencia_ultimo_mes/
+  // asistencia_mes_anterior), sin ninguna consulta nueva. A diferencia
+  // del rol local, aqui no hay frecuencia seleccionable (semana/
+  // quincena) porque esos campos solo existen a nivel mensual -- por
+  // eso altas/bautismos se muestran en su ventana real de 3 meses, no
+  // se etiquetan como "este mes" sin serlo.
+  const asistenciaMesActual = sumar('asistencia_ultimo_mes')
+  const asistenciaMesAnteriorTotal = sumar('asistencia_mes_anterior')
+  const variacionMes = asistenciaMesAnteriorTotal ? Math.round(((asistenciaMesActual - asistenciaMesAnteriorTotal) / asistenciaMesAnteriorTotal) * 100) : null
+  const congregacionesConCrecimiento = congregaciones.filter((c) => Number(c.asistencia_ultimo_mes || 0) > Number(c.asistencia_mes_anterior || 0))
+  const verdictoDistrital = congregaciones.length === 0
+    ? 'Aún no hay congregaciones para comparar.'
+    : congregacionesConCrecimiento.length === congregaciones.length
+      ? 'Todas las congregaciones crecieron este mes.'
+      : congregacionesConCrecimiento.length === 0
+        ? 'Ninguna congregación creció este mes frente al anterior.'
+        : `${congregacionesConCrecimiento.length} de ${congregaciones.length} congregaciones crecieron este mes.`
+  const rankingCrecimientoDistrital = [...congregaciones]
+    .map((c) => {
+      const actual = Number(c.asistencia_ultimo_mes || 0)
+      const anterior = Number(c.asistencia_mes_anterior || 0)
+      const variacionPct = anterior ? Math.round(((actual - anterior) / anterior) * 100) : null
+      return { ...c, asistenciaActualMes: actual, variacionPct }
+    })
+    .sort((a, b) => (b.variacionPct ?? -999) - (a.variacionPct ?? -999))
+    .slice(0, 5)
+  const maxAsistenciaRankingDistrital = Math.max(1, ...rankingCrecimientoDistrital.map((c) => c.asistenciaActualMes))
+  const liderDistrital = rankingCrecimientoDistrital[0]
+
   const semaforo = [
     { label: 'Vacantes de pastor', ok: vacantes === 0, detalle: vacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${vacantes} congregación(es) sin pastor asignado.` },
     { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
@@ -363,6 +394,48 @@ function DashboardDistrital({ rolPrincipal }) {
           <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Pastoral Distrital <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
       </section>
+
+      {congregaciones.length > 0 && (
+        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos este mes</p>
+            <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoDistrital}</h2>
+            <p className="text-sm text-white/70 mt-2 max-w-xl">{asistenciaMesActual} asistencias en el distrito este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            {liderDistrital && liderDistrital.variacionPct !== null && liderDistrital.variacionPct > 0 && (
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+                <span className="text-lg">🏆</span>
+                <div>
+                  <p className="text-sm font-semibold text-[#F0C876]">{liderDistrital.nombre} lidera el crecimiento este mes</p>
+                  <p className="text-xs text-white/60">+{liderDistrital.variacionPct}% en asistencia frente al mes anterior.</p>
+                </div>
+              </div>
+            )}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia del distrito</p>
+                <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
+                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Congregaciones en crecimiento</p>
+                <p className="text-2xl font-semibold mt-1.5">{congregacionesConCrecimiento.length}/{congregaciones.length}</p>
+                <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
+                <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
+                <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
+                <p className="text-xs text-white/55 mt-1">en el distrito</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
@@ -589,6 +662,31 @@ function DashboardNacional() {
   const totalCargosVacantes = pastoralNacional.reduce((total, d) => total + Number(d.cargos_vacantes || 0), 0)
   const congregacionesInactivas = Math.max(0, totalCongregaciones - congregacionesActivas60d.size)
   const distritosSinDirectivaCompleta = pastoralNacional.filter((d) => Number(d.cargos_vacantes || 0) > 0).length
+
+  // --- "Cómo estuvimos este mes" -- mismo patrón que el distrital,
+  // agregado a nivel de distrito (asistencia_ultimo_mes/
+  // asistencia_mes_anterior ya vienen sumados por distrito desde
+  // resumen_nacional()).
+  const asistenciaMesActual = sumar('asistencia_ultimo_mes')
+  const asistenciaMesAnteriorTotal = sumar('asistencia_mes_anterior')
+  const variacionMes = asistenciaMesAnteriorTotal ? Math.round(((asistenciaMesActual - asistenciaMesAnteriorTotal) / asistenciaMesAnteriorTotal) * 100) : null
+  const distritosConCrecimiento = distritos.filter((d) => Number(d.asistencia_ultimo_mes || 0) > Number(d.asistencia_mes_anterior || 0))
+  const verdictoNacional = distritos.length === 0
+    ? 'Aún no hay distritos para comparar.'
+    : distritosConCrecimiento.length === distritos.length
+      ? 'Todos los distritos crecieron este mes.'
+      : distritosConCrecimiento.length === 0
+        ? 'Ningún distrito creció este mes frente al anterior.'
+        : `${distritosConCrecimiento.length} de ${distritos.length} distritos crecieron este mes.`
+  const rankingCrecimientoNacional = [...distritos]
+    .map((d) => {
+      const actual = Number(d.asistencia_ultimo_mes || 0)
+      const anterior = Number(d.asistencia_mes_anterior || 0)
+      const variacionPct = anterior ? Math.round(((actual - anterior) / anterior) * 100) : null
+      return { ...d, variacionPct }
+    })
+    .sort((a, b) => (b.variacionPct ?? -999) - (a.variacionPct ?? -999))
+  const liderNacional = rankingCrecimientoNacional[0]
   const semaforo = [
     { label: 'Vacantes de pastor', ok: totalVacantes === 0, detalle: totalVacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${totalVacantes} congregación(es) sin pastor asignado en el país.` },
     { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
@@ -610,6 +708,48 @@ function DashboardNacional() {
           <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Gestión Pastoral Nacional <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
       </section>
+
+      {distritos.length > 0 && (
+        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos este mes</p>
+            <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoNacional}</h2>
+            <p className="text-sm text-white/70 mt-2 max-w-xl">{asistenciaMesActual} asistencias a nivel nacional este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            {liderNacional && liderNacional.variacionPct !== null && liderNacional.variacionPct > 0 && (
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+                <span className="text-lg">🏆</span>
+                <div>
+                  <p className="text-sm font-semibold text-[#F0C876]">Distrito {liderNacional.numero} · {liderNacional.nombre} lidera el crecimiento este mes</p>
+                  <p className="text-xs text-white/60">+{liderNacional.variacionPct}% en asistencia frente al mes anterior.</p>
+                </div>
+              </div>
+            )}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia nacional</p>
+                <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
+                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Distritos en crecimiento</p>
+                <p className="text-2xl font-semibold mt-1.5">{distritosConCrecimiento.length}/{distritos.length}</p>
+                <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
+                <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
+                <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
+                <p className="text-xs text-white/55 mt-1">a nivel nacional</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 

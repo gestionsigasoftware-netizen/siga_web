@@ -1343,10 +1343,19 @@
 	reales ("esta mensual" → "este mes"). Se validó primero con un
 	Artifact de vista previa aprobado por el usuario antes de construirlo.
 	Ver `docs/fixes/como-estuvimos-resumen-local-2026-09-14.md`.
-	**Pendiente, alcance no cubierto todavía**: la misma sección para
-	distrital y nacional -- esos dashboards no tienen sistema de
-	frecuencia seleccionable, es una pieza de trabajo aparte. Sin
-	acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-15), distrital y nacional**: misma sección
+	"Cómo estuvimos", ahora en cadencia mensual fija (sin selector de
+	frecuencia, usando `asistencia_ultimo_mes`/`asistencia_mes_anterior`
+	que ya calculan `resumen_distrital()`/`resumen_nacional()` -- cero
+	consultas nuevas). Corrección aplicada antes de dar por bueno el
+	cálculo: el porcentaje de variación por congregación/distrito
+	fabricaba un "+100%" cuando el mes anterior estaba en cero;
+	corregido a no mostrar ningún porcentaje (ni la insignia de logro)
+	sin una base real de comparación. Verificado con datos reales del
+	distrito de Puerto Tejada (RLS vía `mis_congregaciones()`) y
+	Playwright, cero errores de consola. Ver
+	`docs/fixes/como-estuvimos-resumen-distrital-nacional-2026-09-15.md`.
+	Sin acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 
