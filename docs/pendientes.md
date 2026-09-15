@@ -1332,6 +1332,21 @@
 	recientes" de Corrección/contingencia. Ver
 	`docs/fixes/pista-scroll-tablas-moviles-2026-09-14.md`. Sin acción
 	pendiente del usuario -- solo frontend.
+- **Resuelto (2026-09-14), rol local**: nueva sección "Cómo estuvimos
+	[esta semana/quincena/mes...]" en el Resumen local -- veredicto en
+	una frase, logro cuando el período es el mejor de los últimos 6,
+	asistencia/bautizados/sellados/altas-bajas/alertas, todo calculado
+	con datos reales (nunca inventado). Se agregó "Quincenal" como
+	frecuencia real de verdad (no solo la etiqueta) y se corrigió de
+	paso un bug real (`FRECUENCIA_PERIODOS` no tenía la entrada
+	`quincenal`) y un error de gramática encontrado al probar con datos
+	reales ("esta mensual" → "este mes"). Se validó primero con un
+	Artifact de vista previa aprobado por el usuario antes de construirlo.
+	Ver `docs/fixes/como-estuvimos-resumen-local-2026-09-14.md`.
+	**Pendiente, alcance no cubierto todavía**: la misma sección para
+	distrital y nacional -- esos dashboards no tienen sistema de
+	frecuencia seleccionable, es una pieza de trabajo aparte. Sin
+	acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 

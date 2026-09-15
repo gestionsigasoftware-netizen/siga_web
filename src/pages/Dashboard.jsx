@@ -34,6 +34,7 @@ const ALERT_TYPE_LABELS = { familia: 'Familia', bautismo: 'Bautismo', asistencia
 const FRECUENCIAS = [
   ['diaria', 'Diaria'],
   ['semanal', 'Semanal'],
+  ['quincenal', 'Quincenal'],
   ['mensual', 'Mensual'],
   ['semestral', 'Semestral'],
   ['anual', 'Anual'],
@@ -49,6 +50,7 @@ function inicioSemanaISO(fecha) {
 function inicioPeriodo(fecha, frecuencia) {
   if (frecuencia === 'diaria') return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
   if (frecuencia === 'semanal') return inicioSemanaISO(fecha)
+  if (frecuencia === 'quincenal') { const inicio = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()); inicio.setDate(inicio.getDate() - 13); return inicio }
   if (frecuencia === 'semestral') return new Date(fecha.getFullYear(), fecha.getMonth() < 6 ? 0 : 6, 1)
   if (frecuencia === 'anual') return new Date(fecha.getFullYear(), 0, 1)
   return new Date(fecha.getFullYear(), fecha.getMonth(), 1)
@@ -58,6 +60,7 @@ function desplazarPeriodo(inicio, frecuencia, cantidad) {
   const desplazado = new Date(inicio)
   if (frecuencia === 'diaria') desplazado.setDate(desplazado.getDate() + cantidad)
   else if (frecuencia === 'semanal') desplazado.setDate(desplazado.getDate() + cantidad * 7)
+  else if (frecuencia === 'quincenal') desplazado.setDate(desplazado.getDate() + cantidad * 14)
   else if (frecuencia === 'semestral') desplazado.setMonth(desplazado.getMonth() + cantidad * 6)
   else if (frecuencia === 'anual') desplazado.setFullYear(desplazado.getFullYear() + cantidad)
   else desplazado.setMonth(desplazado.getMonth() + cantidad)
@@ -67,6 +70,7 @@ function desplazarPeriodo(inicio, frecuencia, cantidad) {
 function etiquetaPeriodo(inicio, frecuencia) {
   if (frecuencia === 'diaria') return inicio.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
   if (frecuencia === 'semanal') return `Sem. ${inicio.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`
+  if (frecuencia === 'quincenal') return `Quinc. ${inicio.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`
   if (frecuencia === 'semestral') return `S${inicio.getMonth() < 6 ? 1 : 2} ${inicio.getFullYear()}`
   if (frecuencia === 'anual') return String(inicio.getFullYear())
   return inicio.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })
@@ -101,7 +105,12 @@ function cantidadRegistros(registros) {
 }
 
 const FRECUENCIA_LABELS = Object.fromEntries(FRECUENCIAS)
-const FRECUENCIA_PERIODOS = { diaria: 'día', semanal: 'semana', mensual: 'mes', semestral: 'semestre', anual: 'año' }
+const FRECUENCIA_PERIODOS = { diaria: 'día', semanal: 'semana', quincenal: 'quincena', mensual: 'mes', semestral: 'semestre', anual: 'año' }
+// "esta/este [periodo]" con el genero correcto -- FRECUENCIA_PERIODOS
+// por si solo no basta para armar una frase ("esta mensual" no es
+// espanol valido), y no vale la pena declinar genero en cada lugar
+// donde se arma un texto con el nombre del periodo.
+const FRECUENCIA_ESTA = { diaria: 'este día', semanal: 'esta semana', quincenal: 'esta quincena', mensual: 'este mes', semestral: 'este semestre', anual: 'este año' }
 
 function alertRecommendation(alert) {
   if (alert.tipo === 'familia') return 'Revisa la ficha y completa la asociación familiar.'
@@ -1108,6 +1117,8 @@ export default function Dashboard() {
   const [amigos, setAmigos] = useState([])
   const [cumpleanos, setCumpleanos] = useState([])
   const [riesgoApartamiento, setRiesgoApartamiento] = useState([])
+  const [movimientosRaw, setMovimientosRaw] = useState([])
+  const [personasActivasDetalle, setPersonasActivasDetalle] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
@@ -1147,6 +1158,8 @@ export default function Dashboard() {
         setAmigos(cached.amigos)
         setCumpleanos(cached.cumpleanos ?? [])
         setRiesgoApartamiento(cached.riesgoApartamiento ?? [])
+        setMovimientosRaw(cached.movimientosRaw ?? [])
+        setPersonasActivasDetalle(cached.personasActivasDetalle ?? [])
         setLoadingData(false)
       } else {
         setLoadingData(true)
@@ -1163,13 +1176,15 @@ export default function Dashboard() {
         alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
-        rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', fechaBogota(new Date(Date.now() - 90 * 86400000))) : Promise.resolve({ data: [], error: null }),
-        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo, fecha').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', fechaBogota(new Date(Date.now() - 90 * 86400000))) : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
       setAlertas(alertasData ?? [])
       setCumpleanos(proximosCumpleanos(cumpleanosData ?? []))
       setRiesgoApartamiento(calcularRiesgoApartamiento(cumpleanosData ?? []))
+      setMovimientosRaw(movimientosData ?? [])
+      setPersonasActivasDetalle(cumpleanosData ?? [])
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
       setCanHandleAlerts(Boolean(permisoAlertas))
@@ -1218,6 +1233,8 @@ export default function Dashboard() {
         amigos: nuevosAmigos,
         cumpleanos: proximosCumpleanos(cumpleanosData ?? []),
         riesgoApartamiento: calcularRiesgoApartamiento(cumpleanosData ?? []),
+        movimientosRaw: movimientosData ?? [],
+        personasActivasDetalle: cumpleanosData ?? [],
       })
     }
     load()
@@ -1337,6 +1354,37 @@ export default function Dashboard() {
   // baje (mas actividades, cada una con menos gente), y viceversa.
   const promedioAnterior = averageSeries.length > 1 ? averageSeries[averageSeries.length - 2] : null
   const variacionPromedio = promedioAnterior ? Math.round(((promedioPeriodo - promedioAnterior) / promedioAnterior) * 100) : null
+
+  // --- "Cómo estuvimos este [periodo]" -- todo calculado a partir de
+  // fechas reales (nunca inventado): reutiliza registrosEnPeriodo con
+  // los mismos limites de periodo que ya usa "Ritmo de asistencia",
+  // asi que ambas secciones nunca pueden mostrar numeros distintos
+  // para el mismo periodo.
+  const periodoActualRango = periodos[periodos.length - 1]
+  const periodoAnteriorRango = { inicio: desplazarPeriodo(periodoActualRango.inicio, frecuenciaGraficos, -1), fin: periodoActualRango.inicio }
+  const bautismosConFecha = personasActivasDetalle.filter((p) => p.fecha_bautismo).map((p) => ({ fecha: p.fecha_bautismo }))
+  const selladosConFecha = personasActivasDetalle.filter((p) => p.fecha_sellado).map((p) => ({ fecha: p.fecha_sellado }))
+  const altasConFecha = movimientosRaw.filter((m) => m.tipo?.startsWith('alta_'))
+  const bajasConFecha = movimientosRaw.filter((m) => m.tipo?.startsWith('baja_'))
+  const bautizadosPeriodo = registrosEnPeriodo(bautismosConFecha, periodoActualRango).length
+  const selladosPeriodoActual = registrosEnPeriodo(selladosConFecha, periodoActualRango).length
+  const altasPeriodo = registrosEnPeriodo(altasConFecha, periodoActualRango).length
+  const bajasPeriodo = registrosEnPeriodo(bajasConFecha, periodoActualRango).length
+  const altasAnteriorPeriodo = registrosEnPeriodo(altasConFecha, periodoAnteriorRango).length
+  const bajasAnteriorPeriodo = registrosEnPeriodo(bajasConFecha, periodoAnteriorRango).length
+  const balanceNeto = altasPeriodo - bajasPeriodo
+  const balanceNetoAnterior = altasAnteriorPeriodo - bajasAnteriorPeriodo
+  const historicoAsistenciaPeriodos = periodos.map((p) => registrosEnPeriodo(registros, p).reduce((total, r) => total + (r.total_asistentes || 0), 0))
+  const mejorAsistenciaHistorica = Math.max(...historicoAsistenciaPeriodos.slice(0, -1))
+  const esMejorPeriodoReciente = asistentesPeriodo > 0 && asistentesPeriodo >= mejorAsistenciaHistorica && historicoAsistenciaPeriodos.some((valor, index) => index < historicoAsistenciaPeriodos.length - 1 && valor > 0)
+  const estaPeriodo = FRECUENCIA_ESTA[frecuenciaGraficos] ?? `esta ${nombreFrecuencia}`
+  const tendenciaVerbo = variacion === null ? null : variacion > 0 ? 'Creciste' : variacion < 0 ? 'Bajaste' : 'Te mantuviste igual'
+  const veredictoComoEstuvimos = tendenciaVerbo === null
+    ? `Todavía no hay un periodo anterior completo para comparar.`
+    : variacion === 0
+      ? `Tu asistencia se mantuvo igual ${estaPeriodo} frente al periodo anterior.`
+      : `${tendenciaVerbo} ${Math.abs(variacion)}% en asistencia ${estaPeriodo} frente al periodo anterior.`
+
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
   const activeAlertCount = Math.max(alertasTotal - handledAlerts.length, 0)
@@ -1412,6 +1460,51 @@ export default function Dashboard() {
           <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
         </div>
       </section>
+
+      {registros.length > 0 && (
+        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos {estaPeriodo}</p>
+            <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{veredictoComoEstuvimos}</h2>
+            <p className="text-sm text-white/70 mt-2 max-w-xl">{etiquetaRango(periodos, formato_fecha)} · {asistentesPeriodo} asistencias en {cantidadRegistros(registrosPeriodo)} actividades.</p>
+            {esMejorPeriodoReciente && (
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+                <span className="text-lg">🏆</span>
+                <div>
+                  <p className="text-sm font-semibold text-[#F0C876]">Tu mejor {nombrePeriodo} de los últimos {periodos.length} periodos</p>
+                  <p className="text-xs text-white/60">{asistentesPeriodo} asistencias, el nivel más alto que has tenido en este rango.</p>
+                </div>
+              </div>
+            )}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia</p>
+                <p className="text-2xl font-semibold mt-1.5">{asistentesPeriodo}</p>
+                {variacion !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacion >= 0 ? 'text-success' : 'text-danger'}`}>{variacion >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacion > 0 ? '+' : ''}{variacion}% vs. anterior</p>}
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautizados / Sellados</p>
+                <p className="text-2xl font-semibold mt-1.5">{bautizadosPeriodo} / {selladosPeriodoActual}</p>
+                <p className="text-xs text-white/55 mt-1">nuevos {estaPeriodo}</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas</p>
+                <p className="text-2xl font-semibold mt-1.5">{altasPeriodo} / {bajasPeriodo}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceNeto >= 0 ? 'text-success' : 'text-danger'}`}>{balanceNeto >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceNeto > 0 ? '+' : ''}{balanceNeto}{balanceNetoAnterior !== balanceNeto ? ` (antes ${balanceNetoAnterior > 0 ? '+' : ''}${balanceNetoAnterior})` : ''}</p>
+              </div>
+              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Alertas pastorales</p>
+                <p className="text-2xl font-semibold mt-1.5">{activeAlertCount || pendingAlerts.length}</p>
+                <p className="text-xs text-white/55 mt-1">{pendingAlerts.length ? 'requieren tu atención ahora' : 'sin pendientes hoy'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-5">
+              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-white text-ink hover:bg-white/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
