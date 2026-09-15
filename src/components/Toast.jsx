@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 const TONE_CLASS = {
   success: 'text-success bg-success-bg border-success/20',
   danger: 'text-danger bg-danger-bg border-danger/20',
+  info: 'text-accent bg-accent-bg border-accent/20',
 }
 
 export default function Toast({ children, tone = 'success' }) {

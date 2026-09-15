@@ -31,6 +31,7 @@ export default function ConfiguracionSistema() {
   const { user } = useAuth()
   const { roles } = useMiRol()
   const [preferences, setPreferences] = useState(EMPTY_PREFERENCES)
+  const [ultimoAccesoAnterior, setUltimoAccesoAnterior] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -112,16 +113,19 @@ export default function ConfiguracionSistema() {
     const cached = configuracionSistemaCache.get(cacheKey)
     if (cached) {
       setPreferences(cached.preferences)
+      setUltimoAccesoAnterior(cached.ultimoAccesoAnterior)
       setLoading(false)
     } else {
       setLoading(true)
     }
     setError(null)
-    const { data, error: loadError } = await supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas, formato_fecha').eq('usuario_id', user.id).maybeSingle()
+    const { data, error: loadError } = await supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas, formato_fecha, acceso_anterior').eq('usuario_id', user.id).maybeSingle()
     if (loadError) setError(`No se pudieron cargar tus preferencias: ${loadError.message}`)
     if (data) {
-      setPreferences(data)
-      configuracionSistemaCache.set(cacheKey, { preferences: data })
+      const { acceso_anterior, ...restoPreferences } = data
+      setPreferences(restoPreferences)
+      setUltimoAccesoAnterior(acceso_anterior)
+      configuracionSistemaCache.set(cacheKey, { preferences: restoPreferences, ultimoAccesoAnterior: acceso_anterior })
     }
     setLoading(false)
   }
@@ -152,7 +156,7 @@ export default function ConfiguracionSistema() {
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando preferencias...</div>
 
   const nombrePersonaVinculada = roles[0]?.personas ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}` : null
-  const ultimoAcceso = user?.last_sign_in_at ? formatFecha(user.last_sign_in_at, { formato: preferences.formato_fecha, conHora: true }) : 'Sin registro'
+  const ultimoAcceso = ultimoAccesoAnterior ? formatFecha(ultimoAccesoAnterior, { formato: preferences.formato_fecha, conHora: true }) : 'Este es tu primer acceso registrado'
   const correoVerificado = Boolean(user?.email_confirmed_at)
   const cuentaCreada = user?.created_at ? formatFecha(user.created_at, { formato: preferences.formato_fecha }) : 'Sin registro'
 

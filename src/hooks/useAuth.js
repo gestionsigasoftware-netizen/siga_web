@@ -32,3 +32,26 @@ export function useAuth() {
 
   return { session, user: session?.user ?? null, loading, signIn, resetPassword, updatePassword, updateProfile, signOut }
 }
+
+// Se llama una sola vez, justo al completar un login (ver Login.jsx),
+// nunca desde el hook useAuth en si -- useAuth se monta en muchos
+// componentes a la vez y duplicaria la lectura/escritura si viviera
+// en su listener de onAuthStateChange. Lee el acceso anterior guardado
+// (antes de sobrescribirlo) para poder mostrarselo al usuario, y deja
+// listo el valor de "ahora" para la proxima vez que entre.
+export async function registrarAcceso() {
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData?.user?.id
+  if (!userId) return null
+  const { data } = await supabase.from('preferencias_usuario').select('ultimo_acceso').eq('usuario_id', userId).maybeSingle()
+  const accesoAnterior = data?.ultimo_acceso ?? null
+  // acceso_anterior queda "congelado" con este valor durante toda la
+  // sesión (para que Configuración lo muestre bien sin importar cuándo
+  // se visite) -- ultimo_acceso pasa a ser la hora de este login, listo
+  // para convertirse en el "anterior" la próxima vez.
+  // Las consultas de supabase-js son "lazy": si esto no se espera (o no
+  // se le encadena .then()), la petición nunca se dispara. Se espera
+  // para garantizar que sí quede escrita antes de navegar.
+  await supabase.from('preferencias_usuario').upsert({ usuario_id: userId, ultimo_acceso: new Date().toISOString(), acceso_anterior: accesoAnterior })
+  return accesoAnterior
+}

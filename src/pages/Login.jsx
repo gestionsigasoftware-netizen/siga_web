@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, registrarAcceso } from '../hooks/useAuth'
 import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
 import sigapLogo from '../assets/sigap-logo.svg'
 import sigapLogoWhite from '../assets/sigap-logo-white.svg'
@@ -17,12 +17,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
-  // Si ProtectedRoute nos mandó aquí porque la sesión expiró (no por un
-  // cierre manual), lo mostramos explícito -- sin esto, la persona ve
-  // el login de la nada y piensa que la app la sacó sin razón. Es un
-  // aviso informativo, no un error de formulario -- por eso desaparece
-  // solo, igual que "notice", en vez de quedarse fijo como "error".
-  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() => location.state?.reason === 'session_expired')
+  // Si ProtectedRoute o el cierre por inactividad nos mandaron aquí
+  // (no un cierre manual), lo mostramos explícito -- sin esto, la
+  // persona ve el login de la nada y piensa que la app la sacó sin
+  // razón. Es un aviso informativo, no un error de formulario -- por
+  // eso desaparece solo, igual que "notice", en vez de quedarse fijo
+  // como "error". Guarda el motivo (no solo un booleano) para poder
+  // distinguir "expiró tu token" de "te cerramos por inactividad".
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() => (['session_expired', 'idle_timeout'].includes(location.state?.reason) ? location.state.reason : null))
 
   useEffect(() => {
     if (location.state?.reason) window.history.replaceState({}, document.title)
@@ -30,7 +32,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!sessionExpiredNotice) return undefined
-    const timer = setTimeout(() => setSessionExpiredNotice(false), 4500)
+    const timer = setTimeout(() => setSessionExpiredNotice(null), 4500)
     return () => clearTimeout(timer)
   }, [sessionExpiredNotice])
   // Paso de verificacion en dos pasos, solo aparece si la cuenta tiene un
@@ -85,7 +87,8 @@ export default function Login() {
       }
     }
     setLoading(false)
-    navigate('/app')
+    const ultimoAccesoAnterior = await registrarAcceso()
+    navigate('/app', { state: { ultimoAccesoAnterior } })
   }
 
   async function handleMfaSubmit(event) {
@@ -103,7 +106,8 @@ export default function Login() {
       setMfaCode('')
       return
     }
-    navigate('/app')
+    const ultimoAccesoAnterior = await registrarAcceso()
+    navigate('/app', { state: { ultimoAccesoAnterior } })
   }
 
   async function handlePasswordRecovery() {
@@ -134,6 +138,7 @@ export default function Login() {
     if (updateError) { setError('No se pudo actualizar la contraseña. Solicita un enlace nuevo.'); return }
     setNewPassword('')
     if (isInvitation) {
+      await registrarAcceso()
       navigate('/app')
       return
     }
@@ -245,7 +250,8 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-              {sessionExpiredNotice && <Toast tone="danger">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</Toast>}
+              {sessionExpiredNotice === 'idle_timeout' && <Toast tone="danger">Cerramos tu sesión por inactividad. Inicia sesión de nuevo.</Toast>}
+              {sessionExpiredNotice === 'session_expired' && <Toast tone="danger">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</Toast>}
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
               <Toast>{notice}</Toast>
               <button type="submit" disabled={loading} className="btn-primary justify-center mt-2 py-3">

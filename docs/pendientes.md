@@ -1388,6 +1388,24 @@
 	el mockup usaba un tono distinto por nivel -- no afecta datos. Ver
 	`docs/fixes/como-estuvimos-desgloses-distrital-nacional-2026-09-15.md`.
 	Sin acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: pedido de seguridad de sesión -- mostrar
+	"último acceso" y cerrar sesión sola por inactividad. Nuevas
+	columnas `ultimo_acceso`/`acceso_anterior` en `preferencias_usuario`
+	(dos, no una: para que el dato mostrado no se sobrescriba si se
+	consulta más tarde en la misma sesión). `useIdleLogout` (nuevo hook)
+	cierra sesión tras 1 hora sin actividad real (sincronizado entre
+	pestañas vía localStorage), con aviso de 60s antes y botón "Seguir
+	conectado". Se corrigió de paso un bug real ya existente: el
+	"Último acceso" de Configuración usaba `user.last_sign_in_at`, que
+	siempre mostraba la hora del login actual, nunca la anterior. Dos
+	bugs propios encontrados y corregidos durante la prueba: una
+	consulta de supabase-js sin `await` nunca se disparaba (son "lazy"),
+	y una condición de carrera entre `signOut()` y la navegación que
+	hacía que ProtectedRoute mostrara su mensaje genérico en vez del
+	específico de inactividad. Ver
+	`docs/fixes/ultimo-acceso-y-cierre-inactividad-2026-09-15.md`.
+	**Confirmado ejecutado por el usuario** (dos veces, una por cada
+	columna agregada).
 
 ## Prioridad alta
 

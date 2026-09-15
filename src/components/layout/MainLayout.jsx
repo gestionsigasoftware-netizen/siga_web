@@ -6,18 +6,23 @@ import NotificationCenter from './NotificationCenter'
 import GlobalSearch from './GlobalSearch'
 import Footer from '../Footer'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Bell, Lock, UserRound } from 'lucide-react'
+import { AlertTriangle, Bell, Clock, Lock, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
 import { useAuth } from '../../hooks/useAuth'
+import { useIdleLogout } from '../../hooks/useIdleLogout'
+import { usePreferencias } from '../../hooks/usePreferencias'
 import { supabase } from '../../lib/supabase'
 import { calcularEstadoSuscripcion } from '../../lib/suscripciones'
 import { formatFecha } from '../../lib/dateFormat'
+import Toast from '../Toast'
 
 const RUTAS_PERMITIDAS_BLOQUEADO = ['/perfil', '/soporte', '/manual', '/legal', '/ayuda']
 
 export default function MainLayout() {
   const { roles, rolPrincipal, loading: roleLoading, elegirRol } = useMiRol()
   const { user } = useAuth()
+  const { formato_fecha } = usePreferencias()
+  const { segundosParaCierre, seguirConectado } = useIdleLogout()
   const [suscripcion, setSuscripcion] = useState(null)
   const [metodoPago, setMetodoPago] = useState(null)
   const [rolElegidoEnSesion, setRolElegidoEnSesion] = useState(() => {
@@ -39,6 +44,19 @@ export default function MainLayout() {
   const nombrePersona = roles[0]?.personas
     ? `${roles[0].personas.nombres} ${roles[0].personas.apellidos}`
     : (user?.user_metadata?.nombres ? `${user.user_metadata.nombres} ${user.user_metadata.apellidos || ''}`.trim() : null)
+
+  // Aviso de "tu último acceso fue..." que Login.jsx manda en el state
+  // de la navegación justo al completar el login -- se muestra una
+  // sola vez y desaparece solo, igual que el resto de avisos de la app.
+  const [ultimoAccesoNotice, setUltimoAccesoNotice] = useState(() => location.state?.ultimoAccesoAnterior ?? null)
+  useEffect(() => {
+    if (location.state?.ultimoAccesoAnterior !== undefined) window.history.replaceState({}, document.title)
+  }, [location.state])
+  useEffect(() => {
+    if (!ultimoAccesoNotice) return undefined
+    const timer = setTimeout(() => setUltimoAccesoNotice(null), 6000)
+    return () => clearTimeout(timer)
+  }, [ultimoAccesoNotice])
 
   function confirmarRol(roleId) {
     elegirRol(roleId)
@@ -175,6 +193,16 @@ export default function MainLayout() {
         </div>
         <Footer variant="app" />
       </main>
+      <Toast tone="info">{ultimoAccesoNotice && <>Tu último acceso fue el {formatFecha(ultimoAccesoNotice, { formato: formato_fecha, conHora: true })}.</>}</Toast>
+      {segundosParaCierre !== null && (
+        <div className="fixed inset-0 z-[300] bg-ink/40 flex items-center justify-center p-4" role="alertdialog" aria-labelledby="idle-title">
+          <div className="w-full max-w-sm bg-surface-2 rounded-card shadow-xl p-6">
+            <h2 id="idle-title" className="font-medium">¿Sigues ahí?</h2>
+            <p className="text-sm text-secondary mt-2">Por seguridad, tu sesión se cerrará en <span className="font-semibold text-ink">{segundosParaCierre}s</span> por inactividad.</p>
+            <button type="button" onClick={seguirConectado} className="btn-primary w-full justify-center mt-5">Seguir conectado</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
