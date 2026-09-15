@@ -1356,6 +1356,22 @@
 	Playwright, cero errores de consola. Ver
 	`docs/fixes/como-estuvimos-resumen-distrital-nacional-2026-09-15.md`.
 	Sin acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: el usuario comparó la vista previa
+	original (Artifact) contra lo construido y pidió completar lo que
+	quedó simplificado. Se agregó texto de insight (frase de contexto
+	real, no solo número) a las 4 tarjetas de "Cómo estuvimos" en local,
+	distrital y nacional, y se construyeron dos secciones nuevas solo
+	para local -- "Necesita tu atención" (familias sin asociar, comités
+	sin integrantes, sugeridos para comité) y "Actividad por categoría"
+	-- reutilizando la misma lógica que ya existía en Feligresía
+	(`CommitteeAnalytics`, `sugerirComites`) para no mostrar números
+	distintos entre pantallas. Distrital/nacional NO recibieron esas dos
+	secciones porque su equivalente real ya existe ahí (Semáforo +
+	Comparativa) -- replicarlo sí habría sido redundancia. Refactor
+	menor de paso: `MOVIMIENTO_LABELS` se movió a `src/lib/movimientos.js`
+	para reutilizarse en dos páginas. Ver
+	`docs/fixes/como-estuvimos-insight-y-necesita-atencion-2026-09-15.md`.
+	Sin acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 

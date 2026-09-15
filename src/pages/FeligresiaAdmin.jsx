@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { UMBRAL_DIAS_NUEVO_BAUTIZADO, diasDesde } from '../lib/rutaEvangelistica'
 import { getRangosEdadComite, sugerirComites } from '../lib/comitesPorPoblacion'
+import { MOVIMIENTO_LABELS } from '../lib/movimientos'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -1132,8 +1133,6 @@ function CargoPanel({ person, cargos, saving, onSubmit, onEdit, embedded = false
   const personCargos = cargos.filter((item) => item.persona_id === person?.id)
   return <section className={`${embedded ? '' : 'fixed z-50 right-4 bottom-[calc(75vh+1rem)] w-[min(24rem,calc(100vw-2rem))] max-h-[30vh] overflow-y-auto bg-surface-2 border border-border rounded-card shadow-xl'} p-4`}><h2 className="font-medium">Historial de cargos</h2>{nuevoBautizado && <p className="text-xs text-warning bg-warning-bg rounded p-2 mt-2 flex items-center gap-1.5"><Droplet className="w-3.5 h-3.5 flex-shrink-0" />Lleva {nuevoBautizado.dias} día{nuevoBautizado.dias === 1 ? '' : 's'} en Discipulado -- aún en formación, evalúa si ya está lista para un cargo.</p>}<form onSubmit={onSubmit} className="grid grid-cols-2 gap-2 mt-3"><input required name="nombre_cargo" className="input-field text-sm col-span-2" placeholder="Nombre del cargo" /><input name="area" className="input-field text-sm" placeholder="Área" /><label className="text-xs text-secondary">Desde<input required name="fecha_inicio" type="date" aria-label="Fecha desde" className="input-field text-sm mt-1" defaultValue={hoyBogota()} /></label><label className="text-xs text-secondary">Hasta (opcional)<input name="fecha_fin" type="date" aria-label="Fecha hasta opcional" className="input-field text-sm mt-1" /></label><input name="observaciones" className="input-field text-sm col-span-2" placeholder="Observaciones" /><button disabled={saving} className="btn-primary text-sm col-span-2 justify-center">{saving ? 'Guardando...' : 'Registrar cargo'}</button></form><div className="divide-y divide-border mt-3">{personCargos.map((item) => <div key={item.id} className="flex items-center justify-between gap-2 py-2"><div><p className="text-xs font-medium">{item.nombre_cargo}{item.area ? ` · ${item.area}` : ''}</p><p className="text-xs text-muted">{item.fecha_inicio}{item.fecha_fin ? ` hasta ${item.fecha_fin}` : ' · Actual'}</p></div><button type="button" onClick={() => onEdit(item)} className="text-xs text-accent">Editar</button></div>)}</div></section>
 }
-
-const MOVIMIENTO_LABELS = { alta_bautismo: 'Alta por bautismo', alta_recibimiento: 'Alta por recibimiento (carta)', baja_traslado: 'Baja por traslado', baja_disciplina: 'Baja por disciplina', baja_exclusion: 'Baja por exclusión', reactivacion: 'Reactivación' }
 
 function MembershipMovementsPanel({ person, movimientosMembresia, saving, onSubmit, trasladoBusqueda, trasladoResultados, trasladoDestinoId, setTrasladoDestinoId, trasladoObservaciones, setTrasladoObservaciones, savingTraslado, onBuscarDestino, onIniciarTraslado, embedded = false }) {
   const personMovements = (movimientosMembresia ?? []).filter((item) => item.persona_id === person?.id)

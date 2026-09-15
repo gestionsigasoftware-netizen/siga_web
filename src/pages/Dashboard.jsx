@@ -6,7 +6,9 @@ import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, C
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { supabase } from '../lib/supabase'
-import { fechaBogota } from "../lib/fechaBogota";
+import { fechaBogota, hoyBogota } from "../lib/fechaBogota";
+import { calcularEdad, sugerirComites, getRangosEdadComite } from '../lib/comitesPorPoblacion'
+import { MOVIMIENTO_LABELS } from '../lib/movimientos'
 import { formatFecha } from '../lib/dateFormat'
 import { SkeletonChart, SkeletonStatTiles } from '../components/Skeleton'
 import { PALETTE as CATEGORIA_COLORS_OBJ, gradientFill, sparklineOptions, sparklineDataset, trendDataset, distributionDataset, chartOptions } from '../lib/chartTheme'
@@ -111,6 +113,9 @@ const FRECUENCIA_PERIODOS = { diaria: 'día', semanal: 'semana', quincenal: 'qui
 // espanol valido), y no vale la pena declinar genero en cada lugar
 // donde se arma un texto con el nombre del periodo.
 const FRECUENCIA_ESTA = { diaria: 'este día', semanal: 'esta semana', quincenal: 'esta quincena', mensual: 'este mes', semestral: 'este semestre', anual: 'este año' }
+// Mismo motivo que FRECUENCIA_ESTA, para frases que comparan contra el
+// periodo anterior ("3 más que la quincena pasada").
+const FRECUENCIA_PASADO = { diaria: 'el día anterior', semanal: 'la semana pasada', quincenal: 'la quincena pasada', mensual: 'el mes pasado', semestral: 'el semestre pasado', anual: 'el año pasado' }
 
 function alertRecommendation(alert) {
   if (alert.tipo === 'familia') return 'Revisa la ficha y completa la asociación familiar.'
@@ -373,6 +378,26 @@ function DashboardDistrital({ rolPrincipal }) {
   const maxAsistenciaRankingDistrital = Math.max(1, ...rankingCrecimientoDistrital.map((c) => c.asistenciaActualMes))
   const liderDistrital = rankingCrecimientoDistrital[0]
 
+  // Insight por tarjeta -- mismo criterio que el rol local: una frase de
+  // contexto con datos que ya estan calculados arriba, sin consultas
+  // nuevas ni inventar nada que resumen_distrital() no traiga.
+  const promedioPorCongregacionMes = congregaciones.length ? Math.round(asistenciaMesActual / congregaciones.length) : 0
+  const insightAsistenciaDistrital = congregaciones.length === 0 ? 'Aún no hay congregaciones para promediar.' : `Promedio de ${promedioPorCongregacionMes} asistencias por congregación este mes.`
+  const congregacionesEstancadas = congregaciones.filter((c) => !congregacionesConCrecimiento.includes(c))
+  const insightCrecimientoDistrital = congregaciones.length === 0
+    ? 'Aún no hay congregaciones para comparar.'
+    : congregacionesEstancadas.length === 0
+      ? 'Ninguna se quedó atrás este mes.'
+      : `${congregacionesEstancadas.slice(0, 3).map((c) => c.nombre).join(', ')}${congregacionesEstancadas.length > 3 ? ` y ${congregacionesEstancadas.length - 3} más` : ''} no crecieron este mes.`
+  const congregacionesBalanceNegativo = congregaciones.filter((c) => Number(c.altas_3m || 0) - Number(c.bajas_3m || 0) < 0).length
+  const insightAltasBajasDistrital = congregaciones.length === 0
+    ? 'Aún no hay congregaciones para medir.'
+    : congregacionesBalanceNegativo === 0
+      ? 'Ninguna congregación tiene más bajas que altas en 3 meses.'
+      : `${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} con más bajas que altas en 3 meses.`
+  const congregacionesConBautismos = congregaciones.filter((c) => Number(c.bautismos_3m || 0) > 0).length
+  const insightBautismosDistrital = congregaciones.length === 0 ? 'Aún no hay congregaciones para medir.' : `${congregacionesConBautismos} de ${congregaciones.length} congregaciones tuvieron al menos un bautismo en 3 meses.`
+
   const semaforo = [
     { label: 'Vacantes de pastor', ok: vacantes === 0, detalle: vacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${vacantes} congregación(es) sin pastor asignado.` },
     { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
@@ -416,21 +441,25 @@ function DashboardDistrital({ rolPrincipal }) {
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia del distrito</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
                 {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistenciaDistrital}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Congregaciones en crecimiento</p>
                 <p className="text-2xl font-semibold mt-1.5">{congregacionesConCrecimiento.length}/{congregaciones.length}</p>
                 <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightCrecimientoDistrital}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajasDistrital}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
                 <p className="text-xs text-white/55 mt-1">en el distrito</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautismosDistrital}</p>
               </div>
             </div>
           </div>
@@ -687,6 +716,26 @@ function DashboardNacional() {
     })
     .sort((a, b) => (b.variacionPct ?? -999) - (a.variacionPct ?? -999))
   const liderNacional = rankingCrecimientoNacional[0]
+
+  // Insight por tarjeta -- mismo criterio que distrital/local, agregado
+  // por distrito en vez de por congregación.
+  const promedioPorDistritoMes = distritos.length ? Math.round(asistenciaMesActual / distritos.length) : 0
+  const insightAsistenciaNacional = distritos.length === 0 ? 'Aún no hay distritos para promediar.' : `Promedio de ${promedioPorDistritoMes} asistencias por distrito este mes.`
+  const distritosEstancados = distritos.filter((d) => !distritosConCrecimiento.includes(d))
+  const insightCrecimientoNacional = distritos.length === 0
+    ? 'Aún no hay distritos para comparar.'
+    : distritosEstancados.length === 0
+      ? 'Ningún distrito se quedó atrás este mes.'
+      : `Distrito${distritosEstancados.length === 1 ? '' : 's'} ${distritosEstancados.slice(0, 3).map((d) => d.numero).join(', ')}${distritosEstancados.length > 3 ? ` y ${distritosEstancados.length - 3} más` : ''} no crecieron este mes.`
+  const distritosBalanceNegativo = distritos.filter((d) => Number(d.altas_3m || 0) - Number(d.bajas_3m || 0) < 0).length
+  const insightAltasBajasNacional = distritos.length === 0
+    ? 'Aún no hay distritos para medir.'
+    : distritosBalanceNegativo === 0
+      ? 'Ningún distrito tiene más bajas que altas en 3 meses.'
+      : `${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas en 3 meses.`
+  const distritosConBautismos = distritos.filter((d) => Number(d.bautismos_3m || 0) > 0).length
+  const insightBautismosNacional = distritos.length === 0 ? 'Aún no hay distritos para medir.' : `${distritosConBautismos} de ${distritos.length} distritos tuvieron al menos un bautismo en 3 meses.`
+
   const semaforo = [
     { label: 'Vacantes de pastor', ok: totalVacantes === 0, detalle: totalVacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${totalVacantes} congregación(es) sin pastor asignado en el país.` },
     { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
@@ -730,21 +779,25 @@ function DashboardNacional() {
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia nacional</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
                 {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistenciaNacional}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Distritos en crecimiento</p>
                 <p className="text-2xl font-semibold mt-1.5">{distritosConCrecimiento.length}/{distritos.length}</p>
                 <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightCrecimientoNacional}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajasNacional}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
                 <p className="text-xs text-white/55 mt-1">a nivel nacional</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautismosNacional}</p>
               </div>
             </div>
           </div>
@@ -1259,6 +1312,8 @@ export default function Dashboard() {
   const [riesgoApartamiento, setRiesgoApartamiento] = useState([])
   const [movimientosRaw, setMovimientosRaw] = useState([])
   const [personasActivasDetalle, setPersonasActivasDetalle] = useState([])
+  const [comitesLocal, setComitesLocal] = useState([])
+  const [rangosEdadComite, setRangosEdadComite] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
@@ -1300,6 +1355,8 @@ export default function Dashboard() {
         setRiesgoApartamiento(cached.riesgoApartamiento ?? [])
         setMovimientosRaw(cached.movimientosRaw ?? [])
         setPersonasActivasDetalle(cached.personasActivasDetalle ?? [])
+        setComitesLocal(cached.comitesLocal ?? [])
+        setRangosEdadComite(cached.rangosEdadComite ?? [])
         setLoadingData(false)
       } else {
         setLoadingData(true)
@@ -1311,13 +1368,15 @@ export default function Dashboard() {
         alertasQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
         alertasCountQuery.eq('congregacion_id', rolPrincipal.congregacion_id)
       }
-      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }, { data: movimientosData, error: movimientosError }, { data: cumpleanosData, error: cumpleanosError }] = await Promise.all([
+      const [{ data: alertasData, error: alertasError }, { count: alertasCount, error: alertasCountError }, { data: feligresiaData, error: feligresiaError }, { data: permisoAlertas, error: permisoError }, { data: movimientosData, error: movimientosError }, { data: cumpleanosData, error: cumpleanosError }, { data: comitesData, error: comitesError }, { data: rangosEdadData, error: rangosEdadError }] = await Promise.all([
         alertasQuery,
         alertasCountQuery,
         rolPrincipal.nivel === 'local' ? supabase.from('vw_resumen_feligresia').select('personas_activas, bautizados, apartados, familias_asociadas').eq('congregacion_id', rolPrincipal.congregacion_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.rpc('tiene_permiso', { p_congregacion_id: rolPrincipal.congregacion_id, p_permiso: 'feligresia.editar' }) : Promise.resolve({ data: false, error: null }),
         rolPrincipal.nivel === 'local' ? supabase.from('movimientos_membresia').select('tipo, fecha').eq('congregacion_id', rolPrincipal.congregacion_id).gte('fecha', fechaBogota(new Date(Date.now() - 90 * 86400000))) : Promise.resolve({ data: [], error: null }),
-        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('personas').select('id, nombres, apellidos, fecha_nacimiento, fecha_ultima_asistencia, fecha_ingreso, familia_id, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, genero, estado_civil').eq('congregacion_id', rolPrincipal.congregacion_id).eq('estado_membresia', 'activo') : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? supabase.from('comites').select('id, nombre, activo, fecha_fin, membresias_comite(persona_id, estado, fecha_fin)').eq('congregacion_id', rolPrincipal.congregacion_id) : Promise.resolve({ data: [], error: null }),
+        rolPrincipal.nivel === 'local' ? getRangosEdadComite(rolPrincipal.congregacion_id) : Promise.resolve({ data: [], error: null }),
       ])
       if (!active) return
       setAlertas(alertasData ?? [])
@@ -1325,6 +1384,8 @@ export default function Dashboard() {
       setRiesgoApartamiento(calcularRiesgoApartamiento(cumpleanosData ?? []))
       setMovimientosRaw(movimientosData ?? [])
       setPersonasActivasDetalle(cumpleanosData ?? [])
+      setComitesLocal(comitesData ?? [])
+      setRangosEdadComite(rangosEdadData ?? [])
       setAlertasTotal(alertasCount ?? 0)
       setResumenFeligresia(feligresiaData)
       setCanHandleAlerts(Boolean(permisoAlertas))
@@ -1354,7 +1415,7 @@ export default function Dashboard() {
         })(),
       ])
       if (!active) return
-      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || cumpleanosError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || cumpleanosError || comitesError || rangosEdadError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
       const nuevosRegistros = registrosData ?? []
       const nuevasCategorias = categoriasData ?? []
       const nuevosAmigos = amigosData ?? []
@@ -1375,6 +1436,8 @@ export default function Dashboard() {
         riesgoApartamiento: calcularRiesgoApartamiento(cumpleanosData ?? []),
         movimientosRaw: movimientosData ?? [],
         personasActivasDetalle: cumpleanosData ?? [],
+        comitesLocal: comitesData ?? [],
+        rangosEdadComite: rangosEdadData ?? [],
       })
     }
     load()
@@ -1502,14 +1565,21 @@ export default function Dashboard() {
   // para el mismo periodo.
   const periodoActualRango = periodos[periodos.length - 1]
   const periodoAnteriorRango = { inicio: desplazarPeriodo(periodoActualRango.inicio, frecuenciaGraficos, -1), fin: periodoActualRango.inicio }
-  const bautismosConFecha = personasActivasDetalle.filter((p) => p.fecha_bautismo).map((p) => ({ fecha: p.fecha_bautismo }))
-  const selladosConFecha = personasActivasDetalle.filter((p) => p.fecha_sellado).map((p) => ({ fecha: p.fecha_sellado }))
+  // Se conserva el registro completo (no solo `fecha`) para poder armar
+  // los textos de insight de cada tarjeta sin volver a consultar nada:
+  // p.ej. saber si un bautizado del periodo ya quedo sellado, o de que
+  // tipo fue cada alta/baja.
+  const bautismosConFecha = personasActivasDetalle.filter((p) => p.fecha_bautismo).map((p) => ({ ...p, fecha: p.fecha_bautismo }))
+  const selladosConFecha = personasActivasDetalle.filter((p) => p.fecha_sellado).map((p) => ({ ...p, fecha: p.fecha_sellado }))
   const altasConFecha = movimientosRaw.filter((m) => m.tipo?.startsWith('alta_'))
   const bajasConFecha = movimientosRaw.filter((m) => m.tipo?.startsWith('baja_'))
-  const bautizadosPeriodo = registrosEnPeriodo(bautismosConFecha, periodoActualRango).length
+  const bautizadosPeriodoRegistros = registrosEnPeriodo(bautismosConFecha, periodoActualRango)
+  const bautizadosPeriodo = bautizadosPeriodoRegistros.length
   const selladosPeriodoActual = registrosEnPeriodo(selladosConFecha, periodoActualRango).length
-  const altasPeriodo = registrosEnPeriodo(altasConFecha, periodoActualRango).length
-  const bajasPeriodo = registrosEnPeriodo(bajasConFecha, periodoActualRango).length
+  const altasPeriodoRegistros = registrosEnPeriodo(altasConFecha, periodoActualRango)
+  const bajasPeriodoRegistros = registrosEnPeriodo(bajasConFecha, periodoActualRango)
+  const altasPeriodo = altasPeriodoRegistros.length
+  const bajasPeriodo = bajasPeriodoRegistros.length
   const altasAnteriorPeriodo = registrosEnPeriodo(altasConFecha, periodoAnteriorRango).length
   const bajasAnteriorPeriodo = registrosEnPeriodo(bajasConFecha, periodoAnteriorRango).length
   const balanceNeto = altasPeriodo - bajasPeriodo
@@ -1524,6 +1594,56 @@ export default function Dashboard() {
     : variacion === 0
       ? `Tu asistencia se mantuvo igual ${estaPeriodo} frente al periodo anterior.`
       : `${tendenciaVerbo} ${Math.abs(variacion)}% en asistencia ${estaPeriodo} frente al periodo anterior.`
+  const periodoPasado = FRECUENCIA_PASADO[frecuenciaGraficos] ?? 'el periodo anterior'
+
+  // --- Insight por tarjeta -- una frase de contexto debajo de cada
+  // numero, igual que el resto de tarjetas de insight de esta pantalla
+  // (InsightCard mas abajo). Todo con datos ya calculados arriba, sin
+  // consultas nuevas.
+  const actividadesPeriodo = cantidadRegistros(registrosPeriodo)
+  const actividadesPeriodoAnterior = cantidadRegistros(registrosEnPeriodo(registros, periodoAnteriorRango))
+  const diferenciaActividades = actividadesPeriodo - actividadesPeriodoAnterior
+  const insightAsistencia = actividadesPeriodoAnterior === 0
+    ? `${actividadesPeriodo} actividad${actividadesPeriodo === 1 ? '' : 'es'} registrada${actividadesPeriodo === 1 ? '' : 's'}, sin ${periodoPasado} para comparar.`
+    : `${actividadesPeriodo} actividad${actividadesPeriodo === 1 ? '' : 'es'} registrada${actividadesPeriodo === 1 ? '' : 's'} — ${diferenciaActividades === 0 ? `igual que ${periodoPasado}` : diferenciaActividades > 0 ? `${diferenciaActividades} más que ${periodoPasado}` : `${Math.abs(diferenciaActividades)} menos que ${periodoPasado}`}.`
+
+  const pendientesSelladoPeriodo = bautizadosPeriodoRegistros.filter((p) => !p.sellado_espiritu_santo).length
+  const insightBautizadosSellados = bautizadosPeriodo === 0 && selladosPeriodoActual === 0
+    ? `Sin bautismos ni sellados nuevos ${estaPeriodo}.`
+    : pendientesSelladoPeriodo > 0
+      ? `${pendientesSelladoPeriodo} de los bautizados ${estaPeriodo} aún no ${pendientesSelladoPeriodo === 1 ? 'está sellado' : 'están sellados'}.`
+      : bautizadosPeriodo > 0
+        ? `Todos los bautizados ${estaPeriodo} ya están sellados.`
+        : `${selladosPeriodoActual} sellado${selladosPeriodoActual === 1 ? '' : 's'} nuevo${selladosPeriodoActual === 1 ? '' : 's'}, sin bautismos nuevos ${estaPeriodo}.`
+
+  const contarPorTipoMovimiento = (regs) => regs.reduce((mapa, r) => ({ ...mapa, [r.tipo]: (mapa[r.tipo] || 0) + 1 }), {})
+  const describirMotivosMovimiento = (porTipo) => Object.entries(porTipo).map(([tipo, cantidad]) => `${cantidad} por ${(MOVIMIENTO_LABELS[tipo] || tipo).replace(/^(Alta|Baja) por /, '').toLowerCase()}`).join(', ')
+  const altasPorTipoPeriodo = contarPorTipoMovimiento(altasPeriodoRegistros)
+  const bajasPorTipoPeriodo = contarPorTipoMovimiento(bajasPeriodoRegistros)
+  const insightAltasBajas = altasPeriodo === 0 && bajasPeriodo === 0
+    ? `Sin movimientos de membresía ${estaPeriodo}.`
+    : altasPeriodo > 0 && bajasPeriodo > 0
+      ? `Altas: ${describirMotivosMovimiento(altasPorTipoPeriodo)}. Bajas: ${describirMotivosMovimiento(bajasPorTipoPeriodo)}.`
+      : altasPeriodo > 0
+        ? `Altas ${estaPeriodo}: ${describirMotivosMovimiento(altasPorTipoPeriodo)}.`
+        : `Bajas ${estaPeriodo}: ${describirMotivosMovimiento(bajasPorTipoPeriodo)}.`
+
+  // --- "Necesita tu atención" -- reutiliza exactamente las mismas
+  // definiciones que "Análisis de comités" en Feligresía (comité activo
+  // sin integrantes vigentes) para no mostrar nunca un número distinto
+  // al de esa pantalla, y agrega la sugerencia de comité por edad/
+  // género/estado civil que ya usa la ficha de cada persona.
+  const familiasSinAsociarCount = personasActivasDetalle.filter((p) => !p.familia_id).length
+  const hoyComites = hoyBogota()
+  const comitesActivosLocal = comitesLocal.filter((c) => c.activo && (!c.fecha_fin || c.fecha_fin >= hoyComites))
+  const membresiasActivasDe = (comite) => (comite.membresias_comite ?? []).filter((m) => m.estado !== 'historico' && !m.fecha_fin)
+  const comitesSinIntegrantes = comitesActivosLocal.filter((c) => membresiasActivasDe(c).length === 0)
+  const personasEnComite = new Set(comitesActivosLocal.flatMap((c) => membresiasActivasDe(c).map((m) => m.persona_id)))
+  const personasSugeridasComite = personasActivasDetalle.filter((p) => p.bautizado && !personasEnComite.has(p.id) && sugerirComites({ edad: calcularEdad(p.fecha_nacimiento), genero: p.genero, estadoCivil: p.estado_civil }, rangosEdadComite).length > 0)
+  const atencionItems = []
+  if (familiasSinAsociarCount > 0) atencionItems.push({ tono: 'warning', titulo: `${familiasSinAsociarCount} persona${familiasSinAsociarCount === 1 ? '' : 's'} activa${familiasSinAsociarCount === 1 ? '' : 's'} sin familia asociada`, detalle: 'Detectado automáticamente en el censo.' })
+  if (comitesSinIntegrantes.length > 0) atencionItems.push({ tono: 'danger', titulo: `${comitesSinIntegrantes.length} comité${comitesSinIntegrantes.length === 1 ? '' : 's'} activo${comitesSinIntegrantes.length === 1 ? '' : 's'} sin integrantes`, detalle: comitesSinIntegrantes.map((c) => c.nombre).join(', ') })
+  if (personasSugeridasComite.length > 0) atencionItems.push({ tono: 'success', titulo: `Sugerido: ${personasSugeridasComite.length} persona${personasSugeridasComite.length === 1 ? '' : 's'} lista${personasSugeridasComite.length === 1 ? '' : 's'} para comité`, detalle: 'Ya bautizadas, encajan por edad/género con un comité configurado.' })
 
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
@@ -1622,26 +1742,67 @@ export default function Dashboard() {
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistentesPeriodo}</p>
                 {variacion !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacion >= 0 ? 'text-success' : 'text-danger'}`}>{variacion >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacion > 0 ? '+' : ''}{variacion}% vs. anterior</p>}
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistencia}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautizados / Sellados</p>
                 <p className="text-2xl font-semibold mt-1.5">{bautizadosPeriodo} / {selladosPeriodoActual}</p>
                 <p className="text-xs text-white/55 mt-1">nuevos {estaPeriodo}</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautizadosSellados}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas</p>
                 <p className="text-2xl font-semibold mt-1.5">{altasPeriodo} / {bajasPeriodo}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceNeto >= 0 ? 'text-success' : 'text-danger'}`}>{balanceNeto >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceNeto > 0 ? '+' : ''}{balanceNeto}{balanceNetoAnterior !== balanceNeto ? ` (antes ${balanceNetoAnterior > 0 ? '+' : ''}${balanceNetoAnterior})` : ''}</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajas}</p>
               </div>
               <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Alertas pastorales</p>
                 <p className="text-2xl font-semibold mt-1.5">{activeAlertCount || pendingAlerts.length}</p>
                 <p className="text-xs text-white/55 mt-1">{pendingAlerts.length ? 'requieren tu atención ahora' : 'sin pendientes hoy'}</p>
+                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{atencionItems.length > 0 ? `${atencionItems.length} señal${atencionItems.length === 1 ? '' : 'es'} operativa${atencionItems.length === 1 ? '' : 's'} en "Necesita tu atención".` : 'Sin pendientes en familias o comités ahora mismo.'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-5">
               <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-white text-ink hover:bg-white/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
             </div>
+          </div>
+        </section>
+      )}
+
+      {registros.length > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <div className="card p-5">
+            <p className="eyebrow">Necesita tu atención</p>
+            <h2 className="font-medium mt-1">{atencionItems.length > 0 ? `${atencionItems.length} pendiente${atencionItems.length === 1 ? '' : 's'} ${estaPeriodo}` : `Sin pendientes ${estaPeriodo}`}</h2>
+            <div className="divide-y divide-border mt-3">
+              {atencionItems.length > 0 ? atencionItems.map((item) => {
+                const toneClass = { default: 'bg-accent-bg text-accent', danger: 'bg-danger-bg text-danger', success: 'bg-success-bg text-success', warning: 'bg-warning-bg text-warning' }[item.tono]
+                return (
+                  <div key={item.titulo} className="flex items-start gap-3 py-3">
+                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${toneClass}`} />
+                    <div>
+                      <p className="text-sm font-medium">{item.titulo}</p>
+                      {item.detalle && <p className="text-xs text-secondary mt-0.5">{item.detalle}</p>}
+                    </div>
+                  </div>
+                )
+              }) : <p className="text-sm text-secondary py-3">Sin familias por asociar, comités sin integrantes ni sugerencias pendientes -- todo al día.</p>}
+            </div>
+          </div>
+          <div className="card p-5">
+            <p className="eyebrow">Actividad por categoría</p>
+            <h2 className="font-medium mt-1">Cómo se movió cada frente {estaPeriodo}</h2>
+            {categoriasConTotal.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                {categoriasConTotal.map((categoria) => (
+                  <div key={categoria.id} className="rounded-card border border-border p-3">
+                    <p className="text-xl font-semibold">{categoria.total}</p>
+                    <p className="text-xs text-secondary mt-0.5">{categoria.nombre}</p>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm text-secondary mt-3">Aún no hay categorías configuradas para desglosar la asistencia.</p>}
           </div>
         </section>
       )}
