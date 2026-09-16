@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, Check, ChevronDown, Edit3, GraduationCap, HeartHandshake, Layers3, Plus, Power, Search, Sparkles, UsersRound, X } from 'lucide-react'
+import { BookOpen, Check, ChevronDown, Edit3, GraduationCap, HeartHandshake, Layers3, Plus, Power, Search, Sparkles, Trash2, UsersRound, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import { useUndoDelete } from '../hooks/useUndoDelete'
 import InfoTip from '../components/InfoTip'
+import UndoToast from '../components/UndoToast'
 
 // Estos módulos los siembran sus propias migraciones y sus pantallas los
 // ubican por nombre exacto (ver Evangelismo.jsx y MisionJuvenil.jsx). No deben
@@ -15,6 +17,7 @@ const modulosCache = new Map()
 export default function Modulos() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
+  const { pending: pendingUndo, registerDelete, undo } = useUndoDelete(load)
   const [modulos, setModulos] = useState([])
   const [seleccionado, setSeleccionado] = useState(null)
   const [nombre, setNombre] = useState('')
@@ -255,6 +258,20 @@ export default function Modulos() {
     else load()
   }
 
+  // Borrado real (no solo desactivar), pensado para corregir errores al
+  // escribir o al pegar una lista -- con "deshacer" 8s en vez de un
+  // window.confirm(), igual que el resto de catálogos de esta pantalla
+  // (Configuracion.jsx). Si el ujier ya tomó asistencia antes,
+  // registros_actividad.ujier_responsable_id queda en null (así está
+  // definido el on delete de esa columna) -- el registro de asistencia
+  // en sí no se borra, solo deja de decir quién fue el responsable.
+  async function quitarUjier(item) {
+    const { error: deleteError } = await supabase.from('ujieres_congregacion').delete().eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (deleteError) { setError(`No se pudo eliminar el ujier: ${deleteError.message}`); return }
+    registerDelete('ujieres_congregacion', { ...item, congregacion_id: congregacionId }, item.nombre)
+    load()
+  }
+
   async function agregarLeccionRefam(event) {
     event.preventDefault()
     const titulo = nuevaLeccionRefamTitulo.trim()
@@ -419,7 +436,7 @@ export default function Modulos() {
           <button disabled={saving} className="btn-secondary self-start px-3">Agregar lista</button>
         </form>
       </details>
-      <div className="flex flex-wrap gap-2">{ujieres.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingUjierId(item.id); setEditingUjierName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleUjier(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
+      <div className="flex flex-wrap gap-2">{ujieres.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingUjierId(item.id); setEditingUjierName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleUjier(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={`Eliminar ${item.nombre}`} title="Eliminar (usa esto para corregir un error al escribirlo, no para alguien que ya no presta el servicio -- para eso, desactívalo)" onClick={() => quitarUjier(item)} className="text-muted hover:text-danger p-1"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div>
       {ujieres.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay ujieres registrados.</p>}
     </section>
     <section className="card p-5">
@@ -509,5 +526,6 @@ export default function Modulos() {
       <label className="text-sm mt-3 block">Comité<select required className="input-field mt-1.5" value={editingRangoEdad.comite_id} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, comite_id: event.target.value })}>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
       <div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingRangoEdadId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div>
     </form></div>}
+    <UndoToast pending={pendingUndo} onUndo={undo} />
   </div>
 }

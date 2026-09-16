@@ -1425,6 +1425,13 @@
 	Nombre"), y el texto de ayuda ahora es fijo, no un placeholder. Ver
 	`docs/fixes/pegar-lista-ujieres-separador-2026-09-15.md`. Sin acción
 	de base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: faltaba forma de eliminar un ujier de
+	verdad -- solo se podía editar o desactivar. Agregado botón de
+	papelera, reutilizando el mismo patrón "borrar + deshacer 8s" que ya
+	usa Configuración para sus catálogos (`useUndoDelete`/`UndoToast`),
+	en vez de un `window.confirm()`. Ver
+	`docs/fixes/eliminar-ujier-2026-09-15.md`. Sin acción de base de
+	datos -- solo frontend.
 
 ## Prioridad alta
 
