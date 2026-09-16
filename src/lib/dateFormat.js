@@ -4,6 +4,12 @@
 // necesitan porque no hay ambiguedad que resolver.
 export function formatFecha(value, { formato = 'DD/MM/AAAA', conHora = false } = {}) {
   if (!value) return 'Sin datos'
+  // Acepta también un Date ya construido (varios llamadores pasan uno) --
+  // sin esto, .includes() de abajo revienta porque Date no es string.
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return 'Sin datos'
+    return formatFecha(value.toISOString(), { formato, conHora })
+  }
   // Un valor de solo fecha ("2026-09-10", sin hora) lo interpreta el
   // motor de JS como medianoche UTC -- en cualquier zona detras de UTC
   // (Colombia es UTC-5, todo el año) eso cae en el día anterior al
@@ -12,6 +18,7 @@ export function formatFecha(value, { formato = 'DD/MM/AAAA', conHora = false } =
   // fechas sin hora fuerza a interpretarlo en hora local -- mismo
   // arreglo que ya usa formatearFechaLarga() en los certificados. Los
   // timestamps completos (con hora, ej. creado_en) no se tocan.
+  if (typeof value !== 'string') return 'Sin datos'
   const date = new Date(!value.includes('T') ? `${value}T00:00:00` : value)
   if (Number.isNaN(date.getTime())) return 'Sin datos'
   const day = String(date.getDate()).padStart(2, '0')

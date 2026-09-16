@@ -1506,6 +1506,18 @@
 	(creyentes + amigos), acudiente obligatorio/vinculado en Escuela
 	Dominical -- retomar si se piden explícitamente. **Confirmado
 	ejecutado por el usuario.**
+- **Resuelto (2026-09-16)**: caída real en producción reportada por el
+	usuario con capturas de Sentry (`sigap.com.co/app` mostrando "Algo
+	salió mal", issue `JAVASCRIPT-REACT-3`). Causa: el arreglo de zona
+	horaria de `formatFecha()` hecho más temprano ese mismo día asumía
+	que su argumento siempre es un string; `etiquetaRango()`
+	(`Dashboard.jsx`, rango de fechas del selector de periodo en el
+	Resumen local) le pasaba objetos `Date`, que no tienen `.includes()`
+	-- reventaba la página completa al abrir el Resumen local después
+	del despliegue anterior. `formatFecha()` ahora acepta `Date`
+	directamente y descarta con seguridad ('Sin datos') cualquier otro
+	tipo inesperado, ya que es una función compartida en 12 archivos.
+	Ver `docs/fixes/formatfecha-crash-date-object-2026-09-16.md`.
 
 ## Prioridad alta
 
