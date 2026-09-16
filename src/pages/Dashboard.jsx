@@ -459,45 +459,45 @@ function DashboardDistrital({ rolPrincipal }) {
       </section>
 
       {congregaciones.length > 0 && (
-        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
-          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+        <section className="relative overflow-hidden card p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos este mes</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos este mes</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoDistrital}</h2>
-            <p className="text-sm text-white/70 mt-2 max-w-xl">{asistenciaMesActual} asistencias en el distrito este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{asistenciaMesActual} asistencias en el distrito este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
             {liderDistrital && liderDistrital.variacionPct !== null && liderDistrital.variacionPct > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-[#F0C876]">{liderDistrital.nombre} lidera el crecimiento este mes</p>
-                  <p className="text-xs text-white/60">+{liderDistrital.variacionPct}% en asistencia frente al mes anterior.</p>
+                  <p className="text-sm font-semibold text-warning-dark">{liderDistrital.nombre} lidera el crecimiento este mes</p>
+                  <p className="text-xs text-secondary">+{liderDistrital.variacionPct}% en asistencia frente al mes anterior.</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia del distrito</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia del distrito</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
                 {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistenciaDistrital}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistenciaDistrital}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Congregaciones en crecimiento</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Congregaciones en crecimiento</p>
                 <p className="text-2xl font-semibold mt-1.5">{congregacionesConCrecimiento.length}/{congregaciones.length}</p>
-                <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightCrecimientoDistrital}</p>
+                <p className="text-xs text-muted mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightCrecimientoDistrital}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajasDistrital}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajasDistrital}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautismos (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
-                <p className="text-xs text-white/55 mt-1">en el distrito</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautismosDistrital}</p>
+                <p className="text-xs text-muted mt-1">en el distrito</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautismosDistrital}</p>
               </div>
             </div>
           </div>
@@ -808,45 +808,45 @@ function DashboardNacional() {
       </section>
 
       {distritos.length > 0 && (
-        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
-          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+        <section className="relative overflow-hidden card p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos este mes</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos este mes</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoNacional}</h2>
-            <p className="text-sm text-white/70 mt-2 max-w-xl">{asistenciaMesActual} asistencias a nivel nacional este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{asistenciaMesActual} asistencias a nivel nacional este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
             {liderNacional && liderNacional.variacionPct !== null && liderNacional.variacionPct > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-[#F0C876]">Distrito {liderNacional.numero} · {liderNacional.nombre} lidera el crecimiento este mes</p>
-                  <p className="text-xs text-white/60">+{liderNacional.variacionPct}% en asistencia frente al mes anterior.</p>
+                  <p className="text-sm font-semibold text-warning-dark">Distrito {liderNacional.numero} · {liderNacional.nombre} lidera el crecimiento este mes</p>
+                  <p className="text-xs text-secondary">+{liderNacional.variacionPct}% en asistencia frente al mes anterior.</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia nacional</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia nacional</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
                 {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistenciaNacional}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistenciaNacional}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Distritos en crecimiento</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Distritos en crecimiento</p>
                 <p className="text-2xl font-semibold mt-1.5">{distritosConCrecimiento.length}/{distritos.length}</p>
-                <p className="text-xs text-white/55 mt-1">crecieron este mes frente al anterior</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightCrecimientoNacional}</p>
+                <p className="text-xs text-muted mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightCrecimientoNacional}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas (3 meses)</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajasNacional}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajasNacional}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautismos (3 meses)</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautismos (3 meses)</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
-                <p className="text-xs text-white/55 mt-1">a nivel nacional</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautismosNacional}</p>
+                <p className="text-xs text-muted mt-1">a nivel nacional</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautismosNacional}</p>
               </div>
             </div>
           </div>
@@ -1771,49 +1771,49 @@ export default function Dashboard() {
       </section>
 
       {registros.length > 0 && (
-        <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
-          <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_75%_15%,#2a78d6_0,transparent_50%)]" />
+        <section className="relative overflow-hidden card p-7 sm:p-9">
+          <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">Cómo estuvimos {estaPeriodo}</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos {estaPeriodo}</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{veredictoComoEstuvimos}</h2>
-            <p className="text-sm text-white/70 mt-2 max-w-xl">{etiquetaRango(periodos, formato_fecha)} · {asistentesPeriodo} asistencias en {cantidadRegistros(registrosPeriodo)} actividades.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{etiquetaRango(periodos, formato_fecha)} · {asistentesPeriodo} asistencias en {cantidadRegistros(registrosPeriodo)} actividades.</p>
             {esMejorPeriodoReciente && (
-              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-[#F0C876]/40 bg-[#F0C876]/10 px-4 py-2.5">
+              <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-[#F0C876]">Tu mejor {nombrePeriodo} de los últimos {periodos.length} periodos</p>
-                  <p className="text-xs text-white/60">{asistentesPeriodo} asistencias, el nivel más alto que has tenido en este rango.</p>
+                  <p className="text-sm font-semibold text-warning-dark">Tu mejor {nombrePeriodo} de los últimos {periodos.length} periodos</p>
+                  <p className="text-xs text-secondary">{asistentesPeriodo} asistencias, el nivel más alto que has tenido en este rango.</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Asistencia</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistentesPeriodo}</p>
                 {variacion !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacion >= 0 ? 'text-success' : 'text-danger'}`}>{variacion >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacion > 0 ? '+' : ''}{variacion}% vs. anterior</p>}
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAsistencia}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistencia}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Bautizados / Sellados</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautizados / Sellados</p>
                 <p className="text-2xl font-semibold mt-1.5">{bautizadosPeriodo} / {selladosPeriodoActual}</p>
-                <p className="text-xs text-white/55 mt-1">nuevos {estaPeriodo}</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightBautizadosSellados}</p>
+                <p className="text-xs text-muted mt-1">nuevos {estaPeriodo}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautizadosSellados}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Altas / Bajas</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas</p>
                 <p className="text-2xl font-semibold mt-1.5">{altasPeriodo} / {bajasPeriodo}</p>
                 <p className={`text-xs mt-1 flex items-center gap-1 ${balanceNeto >= 0 ? 'text-success' : 'text-danger'}`}>{balanceNeto >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceNeto > 0 ? '+' : ''}{balanceNeto}{balanceNetoAnterior !== balanceNeto ? ` (antes ${balanceNetoAnterior > 0 ? '+' : ''}${balanceNetoAnterior})` : ''}</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{insightAltasBajas}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajas}</p>
               </div>
-              <div className="rounded-card bg-white/[0.06] border border-white/10 p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">Alertas pastorales</p>
+              <div className="rounded-card bg-surface-1 border border-border p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Alertas pastorales</p>
                 <p className="text-2xl font-semibold mt-1.5">{activeAlertCount || pendingAlerts.length}</p>
-                <p className="text-xs text-white/55 mt-1">{pendingAlerts.length ? 'requieren tu atención ahora' : 'sin pendientes hoy'}</p>
-                <p className="text-xs text-white/55 mt-1.5 border-t border-white/10 pt-1.5">{atencionItems.length > 0 ? `${atencionItems.length} señal${atencionItems.length === 1 ? '' : 'es'} operativa${atencionItems.length === 1 ? '' : 's'} en "Necesita tu atención".` : 'Sin pendientes en familias o comités ahora mismo.'}</p>
+                <p className="text-xs text-muted mt-1">{pendingAlerts.length ? 'requieren tu atención ahora' : 'sin pendientes hoy'}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{atencionItems.length > 0 ? `${atencionItems.length} señal${atencionItems.length === 1 ? '' : 'es'} operativa${atencionItems.length === 1 ? '' : 's'} en "Necesita tu atención".` : 'Sin pendientes en familias o comités ahora mismo.'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-5">
-              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-white text-ink hover:bg-white/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
+              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-ink text-white hover:bg-ink/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
             </div>
           </div>
         </section>

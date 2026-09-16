@@ -1406,6 +1406,15 @@
 	`docs/fixes/ultimo-acceso-y-cierre-inactividad-2026-09-15.md`.
 	**Confirmado ejecutado por el usuario** (dos veces, una por cada
 	columna agregada).
+- **Resuelto (2026-09-15)**: pedido de suavizar el color de "Cómo
+	estuvimos" (los 3 roles) -- cambiado de `bg-ink text-white` a la
+	misma tarjeta blanca (`card`) que usa el resto de la app, con cada
+	color reemplazado por su token real (`accent`, `warning-bg`,
+	`surface-1`, `border`, `secondary`, `muted`), sin inventar colores
+	nuevos. El hero de bienvenida de arriba (oscuro) no se tocó -- el
+	pedido era solo sobre "Cómo estuvimos". Ver
+	`docs/fixes/como-estuvimos-tema-claro-2026-09-15.md`. Sin acción de
+	base de datos -- solo frontend.
 
 ## Prioridad alta
 
