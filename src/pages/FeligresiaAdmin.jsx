@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react'
-import { ArrowRightLeft, Award, BarChart3, CheckCircle2, ChevronRight, ClipboardList, Clock, Download, Droplet, ExternalLink, Flame, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
+import { ArrowRightLeft, Award, BarChart3, CheckCircle2, ChevronRight, ClipboardList, Clock, Download, Droplet, ExternalLink, Flame, Flower2, Heart, HeartHandshake, LogIn, Plus, Search, UsersRound, XCircle } from 'lucide-react'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useLocation } from 'react-router-dom'
@@ -8,6 +8,7 @@ import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { UMBRAL_DIAS_NUEVO_BAUTIZADO, diasDesde } from '../lib/rutaEvangelistica'
 import { getRangosEdadComite, sugerirComites } from '../lib/comitesPorPoblacion'
 import { MOVIMIENTO_LABELS } from '../lib/movimientos'
+import { descargarCertificadoDefuncion } from '../lib/certificadoDefuncion'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente, trimestreDe } from '../lib/trimestre'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -50,7 +51,7 @@ function committeeMemberGroups(committee, cargoCatalog) {
   if (other.length) groups.push({ key: 'otros', label: other.some((member) => member.cargo) ? 'Otro' : 'Sin cargo', members: other })
   return groups.filter((group) => group.members.length)
 }
-const EMPTY_PERSON = { nombres: '', apellidos: '', telefono: '', fecha_nacimiento: '', estado_membresia: 'activo', estado_civil: 'soltero', genero: '', bautizado: false, fecha_bautismo: '', sellado_espiritu_santo: false, fecha_sellado: '', fecha_ingreso: '', fecha_ultima_asistencia: '', familia_id: '', parentesco_familiar: '', observaciones_pastorales: '' }
+const EMPTY_PERSON = { nombres: '', apellidos: '', telefono: '', fecha_nacimiento: '', estado_membresia: 'activo', estado_civil: 'soltero', genero: '', bautizado: false, fecha_bautismo: '', sellado_espiritu_santo: false, fecha_sellado: '', fecha_ingreso: '', fecha_ultima_asistencia: '', familia_id: '', parentesco_familiar: '', observaciones_pastorales: '', conyuge_id: '', fecha_matrimonio: '', fecha_fallecimiento: '', notas_fallecimiento: '' }
 const MARITAL_STATUSES = { soltero: 'Soltero/a', casado: 'Casado/a', union_libre: 'Unión libre', divorciado: 'Divorciado/a', viudo: 'Viudo/a' }
 const GENERO_LABELS = { masculino: 'Masculino', femenino: 'Femenino' }
 // Traduce el registro crudo de auditoria_feligresia (nombre de tabla +
@@ -95,19 +96,23 @@ function SpiritualTimeline({ person, cargos }) {
   if (person.fecha_ingreso) events.push({ date: person.fecha_ingreso, label: 'Ingresó a la congregación', icon: LogIn, tone: 'accent' })
   if (person.bautizado && person.fecha_bautismo) events.push({ date: person.fecha_bautismo, label: 'Bautizado en agua', icon: Droplet, tone: 'accent' })
   if (person.sellado_espiritu_santo && person.fecha_sellado) events.push({ date: person.fecha_sellado, label: 'Sellado con el Espíritu Santo', icon: Flame, tone: 'success' })
+  if (person.fecha_matrimonio) events.push({ date: person.fecha_matrimonio, label: 'Contrajo matrimonio', icon: Heart, tone: 'success' })
+  if (person.fecha_fallecimiento) events.push({ date: person.fecha_fallecimiento, label: 'Falleció', icon: Flower2, tone: 'muted' })
   cargos.forEach((cargo) => { if (cargo.fecha_inicio) events.push({ date: cargo.fecha_inicio, endDate: cargo.fecha_fin, label: `Asumió el cargo: ${cargo.nombre_cargo}`, icon: Award, tone: cargo.fecha_fin ? 'muted' : 'accent' }) })
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
   if (!sorted.length) return <p className="text-xs text-muted mt-2">Aún no hay hitos espirituales registrados.</p>
   return <div className="flex flex-col mt-2">{sorted.map((event, index) => <div key={index} className="flex gap-3"><div className="flex flex-col items-center"><span className={`timeline-dot timeline-dot-${event.tone}`}><event.icon className="w-3.5 h-3.5" /></span>{index < sorted.length - 1 && <span className="timeline-line" />}</div><div className="pb-4 -mt-0.5"><p className="text-sm font-medium">{event.label}</p><p className="text-xs text-muted mt-0.5">{event.date}{event.endDate ? ` → ${event.endDate}` : ''}</p></div></div>)}</div>
 }
 
-function PersonFormEditor({ form, setForm, families, committees, cargoHistory, selected, saving, canEdit, editing, error, close, onSubmit, onReconciliar, nuevoBautizado, rangosEdad }) {
+function PersonFormEditor({ form, setForm, families, committees, cargoHistory, selected, saving, canEdit, editing, error, close, onSubmit, onReconciliar, onVincularConyuge, onDesvincularConyuge, onMarcarFallecido, onDescargarCertificadoDefuncion, analyticsPeople, nuevoBautizado, rangosEdad }) {
   const memberships = committees.flatMap((committee) => (committee.membresias_comite ?? []).filter((member) => member.persona_id === selected?.id).map((member) => `${committee.nombre}${member.cargo ? ` · ${member.cargo}` : ''}`))
   const cargoEvents = cargoHistory.filter((item) => item.persona_id === selected?.id)
   const cargos = cargoHistory.filter((item) => item.persona_id === selected?.id).map((item) => item.nombre_cargo)
   const edadSelected = selected ? calcularEdad(selected.fecha_nacimiento) : null
   const comitesSugeridos = edadSelected !== null ? sugerirComites({ edad: edadSelected, genero: selected.genero, estadoCivil: selected.estado_civil }, rangosEdad ?? []) : []
-  return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}{nuevoBautizado && <p className="text-sm text-warning bg-warning-bg rounded p-3 mb-4 flex items-center gap-2"><Droplet className="w-4 h-4 flex-shrink-0" />Nuevo bautizado · lleva {nuevoBautizado.dias} día{nuevoBautizado.dias === 1 ? '' : 's'} en Discipulado. Aún está en formación -- espera a que complete al menos {UMBRAL_DIAS_NUEVO_BAUTIZADO} días antes de asignarle un cargo o comité.</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(value) => setForm({ ...form, fecha_nacimiento: value })} /><label className="text-sm flex items-center gap-1">Estado<InfoTip texto="'Apartado' es alguien que sigue siendo miembro pero se alejó por un tiempo; 'Trasladado' ya pertenece a otra congregación." /><select className="input-field mt-1.5 w-full" value={form.estado_membresia} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{Object.entries(STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>{editing && selected?.estado_membresia === 'apartado' && <button type="button" onClick={() => onReconciliar(selected)} className="text-xs text-accent mt-1.5">Reconciliar (vuelve a Activo y queda en su historial)</button>}</label><label className="text-sm">Estado civil<select className="input-field mt-1.5" value={form.estado_civil} onChange={(event) => setForm({ ...form, estado_civil: event.target.value })}>{Object.entries(MARITAL_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="text-sm">Género<select className="input-field mt-1.5" value={form.genero || ''} onChange={(event) => setForm({ ...form, genero: event.target.value })}><option value="">Sin registrar</option>{Object.entries(GENERO_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value, parentesco_familiar: event.target.value ? form.parentesco_familiar : '' })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="text-sm flex items-center gap-1">Parentesco familiar<InfoTip texto="Solo se puede elegir después de asignar una familia; define su lugar en el árbol genealógico de ese núcleo." /><select className="input-field mt-1.5 w-full" value={form.parentesco_familiar || ''} onChange={(event) => setForm({ ...form, parentesco_familiar: event.target.value })} disabled={!form.familia_id}><option value="">Seleccionar...</option>{Object.entries(FAMILY_RELATIONSHIPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado<InfoTip texto="Debe estar bautizada para poder asignarse a un comité." /></label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.sellado_espiritu_santo} onChange={(event) => setForm({ ...form, sellado_espiritu_santo: event.target.checked })} /> Sellado con el Espíritu Santo<InfoTip texto="Algunos cargos de comité (por ejemplo presidente o tesorero) solo pueden asignarse a personas selladas." /></label><Field label="Fecha de sellado" type="date" value={form.fecha_sellado} onChange={(value) => setForm({ ...form, fecha_sellado: value })} /><label className="text-sm sm:col-span-2">Observaciones pastorales<textarea className="input-field mt-1.5 min-h-24" value={form.observaciones_pastorales || ''} onChange={(event) => setForm({ ...form, observaciones_pastorales: event.target.value })} /></label></div>{editing && <div className="mt-5 border-t border-border pt-4"><p className="text-sm font-medium">Ciclo de vida espiritual</p><SpiritualTimeline person={selected} cargos={cargoEvents} /></div>}{editing && <div className="mt-2 border-t border-border pt-4"><p className="text-sm font-medium">Participación y responsabilidades</p>{memberships.length ? <p className="text-xs text-secondary mt-2">{memberships.join(' · ')}</p> : <p className="text-xs text-muted mt-2">Sin participación en comités.</p>}{cargos.length > 0 && <p className="text-xs text-secondary mt-2">Cargos históricos: {cargos.join(', ')}</p>}</div>}{editing && comitesSugeridos.length > 0 && <p className="text-xs text-secondary mt-2 flex items-center gap-1">Comités sugeridos: {comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean).join(', ')}<InfoTip texto="Sugerido según edad, género y estado civil, comparado con el catálogo de rangos de edad configurado en Módulos. Es solo informativo -- no traslada ni asigna a nadie automáticamente." /></p>}<button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div>
+  const conyuge = form.conyuge_id ? (analyticsPeople ?? []).find((item) => item.id === form.conyuge_id) : null
+  const estadosSeleccionables = Object.entries(STATES).filter(([key]) => key !== 'fallecido' || selected?.estado_membresia === 'fallecido')
+  return <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4"><form onSubmit={onSubmit} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6"><div className="flex justify-between mb-5"><h2 className="font-medium">{editing ? 'Editar ficha de persona' : 'Registrar persona'}</h2><button type="button" aria-label="Cerrar" onClick={close} className="text-sm text-secondary hover:text-ink">Cerrar</button></div>{error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3 mb-4">{error}</p>}{nuevoBautizado && <p className="text-sm text-warning bg-warning-bg rounded p-3 mb-4 flex items-center gap-2"><Droplet className="w-4 h-4 flex-shrink-0" />Nuevo bautizado · lleva {nuevoBautizado.dias} día{nuevoBautizado.dias === 1 ? '' : 's'} en Discipulado. Aún está en formación -- espera a que complete al menos {UMBRAL_DIAS_NUEVO_BAUTIZADO} días antes de asignarle un cargo o comité.</p>}<div className="grid sm:grid-cols-2 gap-3"><Field label="Nombres" required value={form.nombres} onChange={(value) => setForm({ ...form, nombres: value })} /><Field label="Apellidos" required value={form.apellidos} onChange={(value) => setForm({ ...form, apellidos: value })} /><Field label="Teléfono" value={form.telefono} onChange={(value) => setForm({ ...form, telefono: value })} /><Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(value) => setForm({ ...form, fecha_nacimiento: value })} /><label className="text-sm flex items-center gap-1">Estado<InfoTip texto="'Apartado' es alguien que sigue siendo miembro pero se alejó por un tiempo; 'Trasladado' ya pertenece a otra congregación. 'Fallecido' no se elige aquí -- usa el botón de abajo, porque exige fecha y cierra cargos/comités vigentes." /><select className="input-field mt-1.5 w-full" value={form.estado_membresia} disabled={selected?.estado_membresia === 'fallecido'} onChange={(event) => setForm({ ...form, estado_membresia: event.target.value })}>{estadosSeleccionables.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>{editing && selected?.estado_membresia === 'apartado' && <button type="button" onClick={() => onReconciliar(selected)} className="text-xs text-accent mt-1.5">Reconciliar (vuelve a Activo y queda en su historial)</button>}{editing && selected?.estado_membresia !== 'fallecido' && <button type="button" onClick={() => onMarcarFallecido(selected)} className="text-xs text-danger mt-1.5">Registrar fallecimiento</button>}{editing && selected?.estado_membresia === 'fallecido' && <p className="text-xs text-muted mt-1.5">Falleció el {formatFecha(selected.fecha_fallecimiento)}{selected.notas_fallecimiento ? ` · ${selected.notas_fallecimiento}` : ''}</p>}</label><label className="text-sm">Estado civil<select className="input-field mt-1.5" value={form.estado_civil} onChange={(event) => setForm({ ...form, estado_civil: event.target.value })}>{Object.entries(MARITAL_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="text-sm sm:col-span-2">Cónyuge<InfoTip texto="Vincula a la persona del censo con quien está casado/a -- actualiza el estado civil de ambos a 'Casado/a' automáticamente." />{conyuge ? <div className="flex items-center gap-2 mt-1.5 flex-wrap"><span className="text-sm">{conyuge.nombres} {conyuge.apellidos}{form.fecha_matrimonio ? ` · casados desde ${formatFecha(form.fecha_matrimonio)}` : ''}</span>{editing && <button type="button" onClick={() => onVincularConyuge(selected)} className="text-xs text-accent">Cambiar</button>}{editing && <button type="button" onClick={() => onDesvincularConyuge(selected)} className="text-xs text-danger">Desvincular</button>}</div> : editing ? <button type="button" onClick={() => onVincularConyuge(selected)} className="btn-secondary text-xs mt-1.5">Vincular cónyuge</button> : <p className="text-xs text-muted mt-1.5">Guarda la ficha primero para poder vincular cónyuge.</p>}</label><label className="text-sm">Género<select className="input-field mt-1.5" value={form.genero || ''} onChange={(event) => setForm({ ...form, genero: event.target.value })}><option value="">Sin registrar</option>{Object.entries(GENERO_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fecha de ingreso" type="date" value={form.fecha_ingreso} onChange={(value) => setForm({ ...form, fecha_ingreso: value })} /><Field label="Última asistencia" type="date" value={form.fecha_ultima_asistencia} onChange={(value) => setForm({ ...form, fecha_ultima_asistencia: value })} /><label className="text-sm">Familia<select className="input-field mt-1.5" value={form.familia_id} onChange={(event) => setForm({ ...form, familia_id: event.target.value, parentesco_familiar: event.target.value ? form.parentesco_familiar : '' })}><option value="">Sin familia</option>{families.map((family) => <option key={family.id} value={family.id}>{family.nombre_familia}</option>)}</select></label><label className="text-sm flex items-center gap-1">Parentesco familiar<InfoTip texto="Solo se puede elegir después de asignar una familia; define su lugar en el árbol genealógico de ese núcleo." /><select className="input-field mt-1.5 w-full" value={form.parentesco_familiar || ''} onChange={(event) => setForm({ ...form, parentesco_familiar: event.target.value })} disabled={!form.familia_id}><option value="">Seleccionar...</option>{Object.entries(FAMILY_RELATIONSHIPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.bautizado} onChange={(event) => setForm({ ...form, bautizado: event.target.checked })} /> Bautizado<InfoTip texto="Debe estar bautizada para poder asignarse a un comité." /></label><Field label="Fecha de bautismo" type="date" value={form.fecha_bautismo} onChange={(value) => setForm({ ...form, fecha_bautismo: value })} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.sellado_espiritu_santo} onChange={(event) => setForm({ ...form, sellado_espiritu_santo: event.target.checked })} /> Sellado con el Espíritu Santo<InfoTip texto="Algunos cargos de comité (por ejemplo presidente o tesorero) solo pueden asignarse a personas selladas." /></label><Field label="Fecha de sellado" type="date" value={form.fecha_sellado} onChange={(value) => setForm({ ...form, fecha_sellado: value })} /><label className="text-sm sm:col-span-2">Observaciones pastorales<textarea className="input-field mt-1.5 min-h-24" value={form.observaciones_pastorales || ''} onChange={(event) => setForm({ ...form, observaciones_pastorales: event.target.value })} /></label></div>{editing && <div className="mt-5 border-t border-border pt-4"><p className="text-sm font-medium">Ciclo de vida espiritual</p><SpiritualTimeline person={selected} cargos={cargoEvents} /></div>}{editing && <div className="mt-2 border-t border-border pt-4"><p className="text-sm font-medium">Participación y responsabilidades</p>{memberships.length ? <p className="text-xs text-secondary mt-2">{memberships.join(' · ')}</p> : <p className="text-xs text-muted mt-2">Sin participación en comités.</p>}{cargos.length > 0 && <p className="text-xs text-secondary mt-2">Cargos históricos: {cargos.join(', ')}</p>}</div>}{editing && comitesSugeridos.length > 0 && <p className="text-xs text-secondary mt-2 flex items-center gap-1">Comités sugeridos: {comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean).join(', ')}<InfoTip texto="Sugerido según edad, género y estado civil, comparado con el catálogo de rangos de edad configurado en Módulos. Es solo informativo -- no traslada ni asigna a nadie automáticamente." /></p>}{editing && selected?.estado_membresia === 'fallecido' && <button type="button" onClick={() => onDescargarCertificadoDefuncion(selected)} className="btn-secondary w-full justify-center mt-3">Descargar certificado de defunción</button>}<button disabled={saving} className="btn-primary w-full justify-center mt-5">{saving ? 'Guardando...' : 'Guardar ficha'}</button></form></div>
 }
 
 
@@ -435,13 +440,13 @@ export default function FeligresiaAdmin() {
     } else {
       setLoading(true)
     }
-    let peopleQuery = supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)', { count: 'exact' }).eq('congregacion_id', congregacionId)
+    let peopleQuery = supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, conyuge_id, fecha_matrimonio, fecha_fallecimiento, notas_fallecimiento, familias(nombre_familia)', { count: 'exact' }).eq('congregacion_id', congregacionId)
     if (personStatus !== 'todos') peopleQuery = peopleQuery.eq('estado_membresia', personStatus)
     if (deferredSearch.trim()) peopleQuery = peopleQuery.or(`nombres.ilike.%${deferredSearch.trim()}%,apellidos.ilike.%${deferredSearch.trim()}%`)
     peopleQuery = peopleQuery.order('nombres').order('id').range(peoplePage * peoplePageSize, peoplePage * peoplePageSize + peoplePageSize - 1)
     const [peopleResult, analyticsPeopleResult, familyResult, familyMembersResult, familyRelationsResult, committeeResult, committeeCargoResult, committeeTypeResult, cargoResult, followupResult, summaryResult, alertsResult, committeeAuditResult, movementsResult, trasladosResult, discipuladoActivosResult] = await Promise.all([
       peopleQuery,
-      supabase.from('personas').select('id, nombres, apellidos, auth_user_id, estado_membresia, estado_civil, genero, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id').eq('congregacion_id', congregacionId),
+      supabase.from('personas').select('id, nombres, apellidos, auth_user_id, estado_membresia, estado_civil, genero, bautizado, fecha_nacimiento, fecha_ingreso, fecha_ultima_asistencia, familia_id, conyuge_id, fecha_fallecimiento').eq('congregacion_id', congregacionId),
       supabase.from('familias').select('id, nombre_familia, direccion, telefono').eq('congregacion_id', congregacionId).order('nombre_familia'),
       supabase.from('familia_miembros').select('id, familia_id, persona_id, parentesco, es_referente, familias!inner(congregacion_id)').eq('familias.congregacion_id', congregacionId),
       supabase.from('relaciones_familiares').select('id, persona_id, relacionada_id, tipo'),
@@ -815,6 +820,131 @@ export default function FeligresiaAdmin() {
     } })
   }
 
+  // conyuge_id es simetrico (A.conyuge_id=B implica B.conyuge_id=A) --
+  // se mantiene con dos updates explicitos aqui, no con un trigger (ver
+  // supabase/modulos/matrimonio_y_defuncion.sql para el porque). Solo se
+  // ofrecen como candidatos personas activas que todavia no tienen
+  // conyuge, para no pisar por accidente el matrimonio de alguien mas.
+  function vincularConyuge(person) {
+    if (!canEdit || !person) return
+    const candidatos = analyticsPeople.filter((item) => item.id !== person.id && item.estado_membresia === 'activo' && !item.conyuge_id)
+    setDialog({
+      title: person.conyuge_id ? 'Cambiar cónyuge' : 'Vincular cónyuge',
+      message: 'Selecciona la persona del censo con quien está casado/a. Ambas fichas quedarán vinculadas y en estado civil "Casado/a".',
+      fields: [
+        { name: 'conyuge_id', label: 'Cónyuge', value: person.conyuge_id || '', required: true, type: 'select', options: [{ value: '', label: 'Seleccionar...' }, ...candidatos.map((item) => ({ value: item.id, label: `${item.nombres} ${item.apellidos}` }))] },
+        { name: 'fecha_matrimonio', label: 'Fecha de matrimonio (opcional)', value: person.fecha_matrimonio || '' , type: 'date' },
+      ],
+      onSubmit: async (values) => {
+        setSaving(true); setError(null)
+        let result
+        try {
+          if (person.conyuge_id && person.conyuge_id !== values.conyuge_id) {
+            result = await withRequestTimeout(supabase.from('personas').update({ conyuge_id: null, fecha_matrimonio: null }).eq('id', person.conyuge_id))
+          }
+          if (!result?.error) {
+            result = await withRequestTimeout(supabase.from('personas').update({ conyuge_id: values.conyuge_id, fecha_matrimonio: values.fecha_matrimonio || null, estado_civil: 'casado' }).eq('id', person.id))
+          }
+          if (!result.error) {
+            result = await withRequestTimeout(supabase.from('personas').update({ conyuge_id: person.id, fecha_matrimonio: values.fecha_matrimonio || null, estado_civil: 'casado' }).eq('id', values.conyuge_id))
+          }
+        } catch (requestError) {
+          setSaving(false); setError(requestError.message); return
+        }
+        setSaving(false)
+        if (result.error) { setError(`No se pudo vincular el cónyuge: ${result.error.message}`); return }
+        setDialog(null); setNotice('Cónyuge vinculado correctamente.'); load()
+      },
+    })
+  }
+
+  function desvincularConyuge(person) {
+    if (!canEdit || !person?.conyuge_id) return
+    setDialog({ title: 'Desvincular cónyuge', message: 'Se quitará el vínculo matrimonial entre ambas fichas. El estado civil no cambia automáticamente -- actualízalo tú si corresponde (ej. a Divorciado/a).', confirmLabel: 'Desvincular', onConfirm: async () => {
+      setSaving(true); setError(null)
+      let result
+      try {
+        result = await withRequestTimeout(supabase.from('personas').update({ conyuge_id: null, fecha_matrimonio: null }).eq('id', person.id))
+        if (!result.error) {
+          result = await withRequestTimeout(supabase.from('personas').update({ conyuge_id: null, fecha_matrimonio: null }).eq('id', person.conyuge_id))
+        }
+      } catch (requestError) {
+        setSaving(false); setError(requestError.message); return
+      }
+      setSaving(false)
+      if (result.error) { setError(`No se pudo desvincular: ${result.error.message}`); return }
+      setDialog(null); setNotice('Cónyuge desvinculado.'); load()
+    } })
+  }
+
+  // Unico camino para llegar a estado_membresia='fallecido' -- no se deja
+  // elegir desde el select generico de estado porque requiere fecha
+  // obligatoria y dispara varios efectos que no tendria sentido dejar a
+  // medias: se registra en movimientos_membresia (igual que traslados,
+  // disciplina, exclusion), el conyuge (si esta vinculado) pasa a Viudo/a,
+  // y se cierran sus cargos y membresias de comite vigentes -- decisiones
+  // confirmadas explicitamente por el usuario, no supuestos.
+  function marcarFallecido(person) {
+    if (!canEdit || !person) return
+    setDialog({
+      title: 'Registrar fallecimiento',
+      message: `${person.nombres} ${person.apellidos} pasará a estado Fallecido. Se cerrarán sus cargos y comités vigentes${person.conyuge_id ? ', y su cónyuge quedará como Viudo/a' : ''}.`,
+      fields: [
+        { name: 'fecha_fallecimiento', label: 'Fecha de fallecimiento', value: hoyBogota(), required: true, type: 'date' },
+        { name: 'notas_fallecimiento', label: 'Notas (opcional)', value: '' },
+      ],
+      onSubmit: async (values) => {
+        setSaving(true); setError(null)
+        let result
+        try {
+          result = await withRequestTimeout(supabase.from('personas').update({
+            estado_membresia: 'fallecido',
+            fecha_fallecimiento: values.fecha_fallecimiento,
+            notas_fallecimiento: values.notas_fallecimiento.trim() || null,
+          }).eq('id', person.id))
+          if (!result.error) {
+            result = await withRequestTimeout(supabase.from('movimientos_membresia').insert({
+              persona_id: person.id,
+              congregacion_id: congregacionId,
+              tipo: 'baja_fallecimiento',
+              fecha: values.fecha_fallecimiento,
+              observaciones: values.notas_fallecimiento.trim() || null,
+            }))
+          }
+          if (!result.error && person.conyuge_id) {
+            result = await withRequestTimeout(supabase.from('personas').update({ estado_civil: 'viudo' }).eq('id', person.conyuge_id))
+          }
+          if (!result.error) {
+            result = await withRequestTimeout(supabase.from('historial_cargos').update({ fecha_fin: values.fecha_fallecimiento }).eq('persona_id', person.id).is('fecha_fin', null))
+          }
+          if (!result.error) {
+            result = await withRequestTimeout(supabase.from('membresias_comite').update({ fecha_fin: values.fecha_fallecimiento, estado: 'historico', motivo_retiro: 'Fallecimiento', usuario_cambio_id: (await supabase.auth.getUser()).data.user?.id || null }).eq('persona_id', person.id).is('fecha_fin', null))
+          }
+        } catch (requestError) {
+          setSaving(false); setError(requestError.message); return
+        }
+        setSaving(false)
+        if (result.error) { setError(`No se pudo registrar el fallecimiento: ${result.error.message}`); return }
+        setDialog(null); setNotice(`Se registró el fallecimiento de ${person.nombres} ${person.apellidos}.`); load()
+      },
+    })
+  }
+
+  async function descargarCertificadoDefuncionPersona(person) {
+    if (!person || person.estado_membresia !== 'fallecido') return
+    setError(null)
+    try {
+      await descargarCertificadoDefuncion({
+        nombreCompleto: `${person.nombres} ${person.apellidos}`,
+        fechaFallecimiento: person.fecha_fallecimiento,
+        congregacionNombre: rolPrincipal?.congregaciones?.nombre,
+        pastorNombre: rolPrincipal?.congregaciones?.pastor_nombre,
+      })
+    } catch (pdfError) {
+      setError(`No se pudo generar el certificado: ${pdfError.message}`)
+    }
+  }
+
   async function buscarCongregacionesDestino(texto) {
     setTrasladoBusqueda(texto)
     if (texto.trim().length < 2) { setTrasladoResultados([]); return }
@@ -901,7 +1031,7 @@ export default function FeligresiaAdmin() {
   async function openPersonFromFollowup(personaId) {
     const visiblePerson = people.find((person) => person.id === personaId)
     if (visiblePerson) { editPerson(visiblePerson); return }
-    const result = await withRequestTimeout(supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, familias(nombre_familia)').eq('id', personaId).maybeSingle())
+    const result = await withRequestTimeout(supabase.from('personas').select('id, nombres, apellidos, telefono, fecha_nacimiento, fecha_ingreso, estado_membresia, estado_civil, genero, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, fecha_ultima_asistencia, familia_id, parentesco_familiar, observaciones_pastorales, conyuge_id, fecha_matrimonio, fecha_fallecimiento, notas_fallecimiento, familias(nombre_familia)').eq('id', personaId).maybeSingle())
     if (result.error || !result.data) { setError('No se pudo abrir la ficha de la persona.'); return }
     editPerson(result.data)
   }
@@ -1051,7 +1181,7 @@ export default function FeligresiaAdmin() {
   const apart = summary?.apartados ?? 0
   const familiesWithPeople = summary?.familias_asociadas ?? 0
   function startNewPerson() { setSelected(null); setForm(EMPTY_PERSON); setShowForm(true) }
-  function editPerson(person) { if (!canEdit) return; setSelected(person); setForm({ ...EMPTY_PERSON, ...person, fecha_bautismo: person.fecha_bautismo || '', fecha_sellado: person.fecha_sellado || '', fecha_ingreso: person.fecha_ingreso || '', fecha_ultima_asistencia: person.fecha_ultima_asistencia || '', familia_id: person.familia_id || '' }); setShowForm(true) }
+  function editPerson(person) { if (!canEdit) return; setSelected(person); setForm({ ...EMPTY_PERSON, ...person, fecha_bautismo: person.fecha_bautismo || '', fecha_sellado: person.fecha_sellado || '', fecha_ingreso: person.fecha_ingreso || '', fecha_ultima_asistencia: person.fecha_ultima_asistencia || '', familia_id: person.familia_id || '', conyuge_id: person.conyuge_id || '', fecha_matrimonio: person.fecha_matrimonio || '', fecha_fallecimiento: person.fecha_fallecimiento || '', notas_fallecimiento: person.notas_fallecimiento || '' }); setShowForm(true) }
 
   return <div className={`flex flex-col gap-6 ${canEdit === false ? 'feligresia-read-only' : ''}`}>
     {loading && <p role="status" className="text-sm text-muted bg-surface-1 rounded p-3">Cargando información de feligresía...</p>}
@@ -1143,7 +1273,7 @@ export default function FeligresiaAdmin() {
     {tab === 'comites' && <section className="flex flex-col gap-4"><form onSubmit={assignCommittee} className="card p-4 grid sm:grid-cols-3 gap-2"><select required name="comite_id" className="input-field"><option value="">Comité...</option>{committees.filter((committee) => committee.activo).map((committee) => <option key={committee.id} value={committee.id}>{committee.nombre}</option>)}</select><select required name="persona_id" className="input-field"><option value="">Integrante...</option>{people.map((person) => <option key={person.id} value={person.id}>{person.nombres} {person.apellidos}</option>)}</select><div className="flex gap-2">{committeeCargoCatalog.length > 0 ? <select required name="cargo_id" className="input-field"><option value="">Cargo...</option>{committeeCargoCatalog.map((cargo) => <option key={cargo.id} value={cargo.id}>{cargo.nombre}</option>)}</select> : <input required name="cargo" className="input-field" placeholder="Cargo (configúralos en Configuración)" />}<button disabled={saving} className="btn-secondary px-3" title="Asignar integrante"><Plus className="w-4 h-4" /></button></div></form><div className="grid md:grid-cols-2 gap-4">{committees.map((committee) => <div key={committee.id} className={`card p-5 ${!committee.activo ? 'opacity-60' : ''}`}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{committee.nombre}</h2><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => renameCommittee(committee)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => deactivateCommittee(committee)}>{committee.activo ? 'Desactivar' : 'Reactivar'}</button></div></div><p className="text-sm text-secondary mt-1">{committee.membresias_comite?.filter((member) => !member.fecha_fin).length ?? 0} integrantes activos</p><div className="flex flex-col gap-2 mt-4">{committeeMemberGroups(committee, committeeCargoCatalog).map((group) => <div key={group.key}><p className="text-xs font-medium text-secondary">{group.label}{group.members.length > 1 ? ` (${group.members.length})` : ''}</p>{group.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-2 mt-1"><span className="text-xs bg-surface-1 rounded px-2 py-1">{people.find((person) => person.id === member.persona_id)?.nombres || 'Integrante'} {people.find((person) => person.id === member.persona_id)?.apellidos || ''}</span><div className="flex gap-2"><button type="button" className="text-xs text-accent" onClick={() => editCommitteeMember(member)}>Editar</button><button type="button" className="text-xs text-danger" onClick={() => removeCommitteeMember(member)}>Retirar</button></div></div>)}</div>)}</div></div>)}</div>{committees.length === 0 && <Empty text="Aún no hay comités registrados." />}</section>}
     {tab === 'historial' && <><CommitteeAnalytics people={analyticsPeople} committees={allCommittees} cargos={committeeCargoCatalog} audit={committeeAudit} /><FeligresiaInsights people={analyticsPeople} families={families} committees={committees} cargoHistory={cargoHistory} followups={pastoralFollowups} alerts={pastoralAlerts} /></>}
     {tab === 'informe' && <InformeTrimestralLocal congregacionId={congregacionId} />}
-    {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} rangosEdad={rangosEdad} pastoralFollowups={pastoralFollowups} movimientosMembresia={movimientosMembresia} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} onSaveMovimiento={saveMovimiento} onReconciliar={reconciliarPersona} trasladoBusqueda={trasladoBusqueda} trasladoResultados={trasladoResultados} trasladoDestinoId={trasladoDestinoId} setTrasladoDestinoId={setTrasladoDestinoId} trasladoObservaciones={trasladoObservaciones} setTrasladoObservaciones={setTrasladoObservaciones} savingTraslado={savingTraslado} onBuscarDestino={buscarCongregacionesDestino} onIniciarTraslado={iniciarTraslado} nuevoBautizado={selected ? nuevoBautizadoInfo(selected.id) : null} />}
+    {showForm && <PersonFormDetailed form={form} setForm={setForm} families={families} committees={committees} cargoHistory={cargoHistory} rangosEdad={rangosEdad} pastoralFollowups={pastoralFollowups} movimientosMembresia={movimientosMembresia} canEdit={canEdit} saving={saving} editing={Boolean(selected)} selected={selected} error={error} close={() => { setShowForm(false); setError(null) }} onSubmit={savePerson} onSavePastoralFollowup={savePastoralFollowup} onSaveCargo={saveCargo} onEditCargo={editCargo} onSaveMovimiento={saveMovimiento} onReconciliar={reconciliarPersona} onVincularConyuge={vincularConyuge} onDesvincularConyuge={desvincularConyuge} onMarcarFallecido={marcarFallecido} onDescargarCertificadoDefuncion={descargarCertificadoDefuncionPersona} analyticsPeople={analyticsPeople} trasladoBusqueda={trasladoBusqueda} trasladoResultados={trasladoResultados} trasladoDestinoId={trasladoDestinoId} setTrasladoDestinoId={setTrasladoDestinoId} trasladoObservaciones={trasladoObservaciones} setTrasladoObservaciones={setTrasladoObservaciones} savingTraslado={savingTraslado} onBuscarDestino={buscarCongregacionesDestino} onIniciarTraslado={iniciarTraslado} nuevoBautizado={selected ? nuevoBautizadoInfo(selected.id) : null} />}
     {dialog && <AdminDialog dialog={dialog} saving={saving} error={error} close={() => setDialog(null)} />}
   </div>
 }

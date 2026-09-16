@@ -1471,6 +1471,23 @@
 	distrital/nacional para verificarlo. Ver
 	`docs/fixes/categorias-demograficas-sin-filtrar-2026-09-16.md`. Sin
 	acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-16)**: el usuario pidió matrimonio (vínculo real
+	a otra persona del censo, no solo la etiqueta `estado_civil`),
+	defunción (fecha + qué pasa después) y certificado de defunción.
+	Construido: `conyuge_id`/`fecha_matrimonio` simétricos (mantenidos
+	por la app, no por trigger -- ver el .sql), flujo dedicado
+	"Registrar fallecimiento" (único camino a `estado_membresia=
+	'fallecido'`, ya no se puede elegir desde el select genérico) que
+	registra el movimiento, pasa al cónyuge a "Viudo/a" y cierra cargos/
+	comités vigentes -- las 3 decisiones confirmadas explícitamente por
+	el usuario. Certificado de defunción nuevo, mismo patrón HTML+
+	html2canvas que el de bautismo. **Bug real encontrado y corregido de
+	paso** (no relacionado, pero afecta a 12 archivos): `formatFecha()`
+	mostraba cualquier fecha de tipo `date` un día atrás en Colombia
+	(UTC-5) por un problema clásico de interpretación UTC vs. hora local
+	de JavaScript -- se guardaba "2026-09-10" y se veía "09/09/2026". Ver
+	`docs/fixes/matrimonio-defuncion-certificado-2026-09-16.md`.
+	**Confirmado ejecutado por el usuario.**
 
 ## Prioridad alta
 

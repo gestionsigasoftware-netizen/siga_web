@@ -4,5 +4,6 @@ export const MOVIMIENTO_LABELS = {
   baja_traslado: 'Baja por traslado',
   baja_disciplina: 'Baja por disciplina',
   baja_exclusion: 'Baja por exclusión',
+  baja_fallecimiento: 'Baja por fallecimiento',
   reactivacion: 'Reactivación',
 }
