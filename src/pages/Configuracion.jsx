@@ -11,8 +11,9 @@ import Toast from '../components/Toast'
 
 const configuracionCache = new Map()
 
-function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
+function ListaCatalogo({ titulo, items, onAdd, onRemove, onAddBulk, placeholder, busy }) {
   const [valor, setValor] = useState('')
+  const [bulkValor, setBulkValor] = useState('')
   return (
     <div className="card p-5">
       <h3 className="font-medium mb-3">{titulo}</h3>
@@ -38,6 +39,23 @@ function ListaCatalogo({ titulo, items, onAdd, onRemove, placeholder, busy }) {
           <Plus className="w-4 h-4" />
         </button>
       </div>
+      {onAddBulk && (
+        <details className="mt-3">
+          <summary className="text-xs text-accent cursor-pointer select-none">Agregar varias a la vez (pegar una lista)</summary>
+          <div className="flex flex-col gap-2 mt-3">
+            <p className="text-xs text-secondary">Un nombre por línea (Enter) o separados por punto y coma <span className="font-mono">;</span> — nunca con coma. Ejemplo: <span className="font-mono">Damas; Jóvenes; Caballeros</span></p>
+            <textarea className="input-field min-h-20" placeholder={'Damas\nJóvenes\nCaballeros'} value={bulkValor} onChange={(e) => setBulkValor(e.target.value)} />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => { if (bulkValor.trim() && await onAddBulk(bulkValor)) setBulkValor('') }}
+              className="btn-secondary self-start px-3"
+            >
+              Agregar lista
+            </button>
+          </div>
+        </details>
+      )}
     </div>
   )
 }
@@ -163,6 +181,19 @@ export default function Configuracion() {
     if (insertError) { setError(`No se pudo agregar la categoría: ${insertError.message}`); return false }
     await loadAll(); return true
   }
+  // Mismo separador que "pegar una lista" de Ujieres (Modulos.jsx):
+  // salto de línea o punto y coma, nunca coma (un nombre real podría
+  // venir como "Adultos, mayores" y una coma lo partiría en dos).
+  async function agregarCategoriasEnBloque(texto) {
+    const existentes = new Set(categorias.map((item) => item.nombre.toLowerCase()))
+    const nombresNuevos = [...new Set(
+      texto.split(/[\n;]+/).map((linea) => linea.trim()).filter(Boolean)
+    )].filter((nombre) => !existentes.has(nombre.toLowerCase()))
+    if (nombresNuevos.length === 0) { setError('No hay categorías nuevas para agregar (revisa que no estén ya en la lista).'); return false }
+    const { error: insertError } = await supabase.from('categorias_demograficas').insert(nombresNuevos.map((nombre, index) => ({ congregacion_id: congregacionId, nombre, orden: categorias.length + index + 1 })))
+    if (insertError) { setError(`No se pudieron agregar las categorías: ${insertError.message}`); return false }
+    await loadAll(); return true
+  }
   async function quitarCategoria(item) {
     const { error: deleteError } = await supabase.from('categorias_demograficas').delete().eq('id', item.id)
     if (deleteError) { setError(`No se pudo eliminar la categoría: ${deleteError.message}`); return false }
@@ -235,7 +266,7 @@ export default function Configuracion() {
       </form>
 
       <div className="grid md:grid-cols-3 gap-4">
-        <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" busy={saving} />
+        <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onAddBulk={agregarCategoriasEnBloque} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" busy={saving} />
         <div className="card p-5"><h3 className="font-medium mb-3">Módulos (Ujieres, Evangelismo...)</h3><p className="text-sm text-secondary leading-6">Crear, renombrar y activar o desactivar módulos y sus tipos de actividad se hace ahora desde <Link to="/modulos" className="text-accent">Módulos y actividades</Link>, donde también se administran sus tipos de actividad.</p></div>
         <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" busy={saving} />
         <div className="card p-5"><h3 className="font-medium mb-3">Zonas de Evangelismo</h3><p className="text-sm text-secondary leading-6">Crear y editar zonas con su responsable se hace ahora desde <Link to="/evangelismo" className="text-accent">Evangelismo</Link>, donde quedan vinculadas al módulo correcto.</p></div>

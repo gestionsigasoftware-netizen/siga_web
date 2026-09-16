@@ -1432,6 +1432,13 @@
 	en vez de un `window.confirm()`. Ver
 	`docs/fixes/eliminar-ujier-2026-09-15.md`. Sin acción de base de
 	datos -- solo frontend.
+- **Resuelto (2026-09-15)**: agregado "pegar una lista" también para
+	Categorías demográficas (Configuración), a pedido explícito del
+	usuario -- solo esa tarjeta, no Etapas de seguimiento ni Tipos de
+	comité (mismo componente compartido, ahora con `onAddBulk` opcional
+	para no afectar a las otras dos). Mismo separador que Ujieres. Ver
+	`docs/fixes/pegar-lista-categorias-demograficas-2026-09-15.md`. Sin
+	acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 
