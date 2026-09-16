@@ -1453,6 +1453,24 @@
 	`docs/fixes/retencion-por-cohorte-2026-09-15.md`. Las otras 2
 	brechas quedan pendientes de retomar si se piden explícitamente. Sin
 	acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-16)**: bug real reportado por el usuario (captura
+	de pantalla) -- "Actividad por categoría" en el Resumen local
+	mostraba las 9 categorías duplicadas, la segunda copia siempre en
+	cero. Causa: la consulta de `categorias_demograficas` en
+	`Dashboard.jsx` no filtraba por congregación (a diferencia de todas
+	las demás consultas del mismo `Promise.all`), y para una cuenta con
+	rol super_admin -- cuyo permiso `mis_congregaciones()` abarca TODAS
+	las congregaciones del país -- trajo también las categorías
+	(mismo nombre, otro id) de otra congregación, sembradas con el mismo
+	set por defecto que trae toda congregación nueva. Corregido
+	agregando el filtro por congregación que faltaba. **Hallazgo
+	relacionado sin corregir**: `ReportesOptimizado.jsx` tiene el mismo
+	patrón sin filtrar; ahí el síntoma sería distinto (categorías del
+	mismo nombre de congregaciones distintas sumando por separado en vez
+	de combinarse) y no se corrigió por falta de cuenta real
+	distrital/nacional para verificarlo. Ver
+	`docs/fixes/categorias-demograficas-sin-filtrar-2026-09-16.md`. Sin
+	acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 

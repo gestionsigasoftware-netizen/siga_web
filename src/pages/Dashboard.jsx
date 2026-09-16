@@ -1457,7 +1457,7 @@ export default function Dashboard() {
             error,
           }))
         })(),
-        supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
+        supabase.from('categorias_demograficas').select('id, nombre').eq('congregacion_id', rolPrincipal.congregacion_id).order('orden'),
         (() => {
           const query = supabase.from('amigos').select('id, convertido, etapa_id, categoria_asignada_id, etapas_seguimiento(nombre, orden)')
           return rolPrincipal.nivel === 'local' ? query.eq('congregacion_id', rolPrincipal.congregacion_id) : query
