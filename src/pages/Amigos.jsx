@@ -23,6 +23,7 @@ import { calcularEdad, getRangosEdadComite, sugerirComites } from "../lib/comite
 import { avatarTone, initialesDe } from "../lib/avatar";
 import { descargarPdf } from "../lib/reportExport";
 import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
+import { TELEFONO_TIPO_LABELS } from "../lib/contacto";
 import InfoTip from "../components/InfoTip";
 import Toast from "../components/Toast";
 
@@ -46,6 +47,10 @@ const TONO_ESTACION = {
 const EMPTY_FORM = {
   nombres: "",
   telefono: "",
+  telefono_tipo: "",
+  tiene_whatsapp: false,
+  telefono_alterno: "",
+  red_social: "",
   direccion: "",
   sector: "",
   invitado_por: "",
@@ -59,7 +64,7 @@ const EMPTY_FORM = {
   comite_origen_id: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
+  "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -279,6 +284,10 @@ export default function Amigos() {
     setEditForm({
       nombres: friend.nombres || "",
       telefono: friend.telefono || "",
+      telefono_tipo: friend.telefono_tipo || "",
+      tiene_whatsapp: Boolean(friend.tiene_whatsapp),
+      telefono_alterno: friend.telefono_alterno || "",
+      red_social: friend.red_social || "",
       direccion: friend.direccion || "",
       sector: friend.sector || "",
       invitado_por: friend.invitado_por || "",
@@ -669,6 +678,53 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
+            Tipo de teléfono
+            <select
+              className="input-field mt-1.5 w-full"
+              value={form.telefono_tipo}
+              onChange={(event) =>
+                setForm({ ...form, telefono_tipo: event.target.value })
+              }
+            >
+              <option value="">Sin registrar</option>
+              {Object.entries(TELEFONO_TIPO_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm mt-6">
+            <input
+              type="checkbox"
+              checked={form.tiene_whatsapp}
+              onChange={(event) =>
+                setForm({ ...form, tiene_whatsapp: event.target.checked })
+              }
+            />
+            Tiene WhatsApp en ese número
+          </label>
+          <label className="text-sm">
+            Teléfono alterno
+            <input
+              className="input-field mt-1.5"
+              value={form.telefono_alterno}
+              onChange={(event) =>
+                setForm({ ...form, telefono_alterno: event.target.value })
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Red social
+            <InfoTip texto="Para cuando no se puede contactar por los medios habituales. Ej. 'Facebook: Juan Pérez'." />
+            <input
+              className="input-field mt-1.5 w-full"
+              placeholder="Ej. Facebook: Juan Pérez"
+              value={form.red_social}
+              onChange={(event) =>
+                setForm({ ...form, red_social: event.target.value })
+              }
+            />
+          </label>
+          <label className="text-sm">
             Dirección
             <input
               className="input-field mt-1.5"
@@ -914,6 +970,54 @@ export default function Amigos() {
                     value={editForm.sector}
                     onChange={(event) =>
                       setEditForm({ ...editForm, sector: event.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-sm">
+                  Tipo de teléfono
+                  <select
+                    className="input-field mt-1.5 w-full"
+                    value={editForm.telefono_tipo}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, telefono_tipo: event.target.value })
+                    }
+                  >
+                    <option value="">Sin registrar</option>
+                    {Object.entries(TELEFONO_TIPO_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm mt-6">
+                  <input
+                    type="checkbox"
+                    checked={editForm.tiene_whatsapp}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, tiene_whatsapp: event.target.checked })
+                    }
+                  />
+                  Tiene WhatsApp
+                </label>
+                <label className="text-sm">
+                  Teléfono alterno
+                  <input
+                    className="input-field mt-1.5"
+                    value={editForm.telefono_alterno}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, telefono_alterno: event.target.value })
+                    }
+                  />
+                </label>
+                <label className="text-sm">
+                  Red social
+                  <input
+                    className="input-field mt-1.5"
+                    placeholder="Ej. Facebook: Juan Pérez"
+                    value={editForm.red_social}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, red_social: event.target.value })
                     }
                   />
                 </label>

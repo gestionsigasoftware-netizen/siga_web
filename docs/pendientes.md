@@ -1488,6 +1488,24 @@
 	de JavaScript -- se guardaba "2026-09-10" y se veía "09/09/2026". Ver
 	`docs/fixes/matrimonio-defuncion-certificado-2026-09-16.md`.
 	**Confirmado ejecutado por el usuario.**
+- **Resuelto (2026-09-16)**: el usuario mandó 13 pedidos por WhatsApp
+	para revisar. Se auditó cada uno contra el código real (existe /
+	existe parcial / no existe) y se priorizó el grupo "campos rápidos":
+	tipo y número de documento, nivel educativo, ocupación (texto libre,
+	decisión delegada por el usuario), contacto ampliado (tipo de
+	teléfono, WhatsApp, teléfono alterno, red social -- en `personas` Y
+	`amigos`, como se pidió explícitamente), y lugar/oficiante del
+	bautismo (país, municipio, congregación con buscador + nombre
+	manual si no aparece, pastor que bautizó). "Cantidad de hijos"
+	deliberadamente no se guardó como columna -- se calcula contando la
+	familia, para no desactualizarse. Ver
+	`docs/fixes/campos-rapidos-censo-2026-09-16.md`. **Quedan
+	pendientes de los 13 originales** (no se tocaron en esta pieza):
+	módulo de salud/EPS, disciplina/suspensión de cargos, consentimiento
+	de datos con archivo/firma, familias con composición mixta
+	(creyentes + amigos), acudiente obligatorio/vinculado en Escuela
+	Dominical -- retomar si se piden explícitamente. **Confirmado
+	ejecutado por el usuario.**
 
 ## Prioridad alta
 
