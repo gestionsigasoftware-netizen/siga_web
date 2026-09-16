@@ -1415,6 +1415,16 @@
 	pedido era solo sobre "Cómo estuvimos". Ver
 	`docs/fixes/como-estuvimos-tema-claro-2026-09-15.md`. Sin acción de
 	base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: bug real reportado por un pastor (Agua
+	Bonita Suárez Cauca) -- al pegar una lista de ujieres separados por
+	punto y coma en Módulos y actividades, todos quedaron guardados
+	como un solo nombre gigante. Causa: el código solo dividía por
+	salto de línea, y la ayuda era solo un placeholder que desaparece al
+	escribir. Corregido para aceptar también punto y coma como
+	separador (nunca coma, para no partir nombres tipo "Apellido,
+	Nombre"), y el texto de ayuda ahora es fijo, no un placeholder. Ver
+	`docs/fixes/pegar-lista-ujieres-separador-2026-09-15.md`. Sin acción
+	de base de datos -- solo frontend.
 
 ## Prioridad alta
 

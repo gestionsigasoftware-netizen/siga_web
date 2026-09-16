@@ -225,8 +225,11 @@ export default function Modulos() {
   async function agregarUjieresEnBloque(event) {
     event.preventDefault()
     const existentes = new Set(ujieres.map((item) => item.nombre.toLowerCase()))
+    // Acepta un nombre por línea (Enter) O separados por punto y coma --
+    // nunca coma, porque un nombre real puede venir escrito "Apellido,
+    // Nombre" y partirlo por coma rompería ese nombre en dos.
     const nombresNuevos = [...new Set(
-      bulkUjieres.split('\n').map((line) => line.trim()).filter(Boolean)
+      bulkUjieres.split(/[\n;]+/).map((line) => line.trim()).filter(Boolean)
     )].filter((nombreLinea) => !existentes.has(nombreLinea.toLowerCase()))
     if (nombresNuevos.length === 0) { setError('No hay nombres nuevos para agregar (revisa que no estén ya en la lista).'); return }
     setSaving(true); setError(null)
@@ -411,7 +414,8 @@ export default function Modulos() {
       <details className="mb-4">
         <summary className="text-xs text-accent cursor-pointer select-none">Agregar varios a la vez (pegar una lista)</summary>
         <form onSubmit={agregarUjieresEnBloque} className="flex flex-col gap-2 mt-3">
-          <textarea className="input-field min-h-24" placeholder={'Un nombre por línea, ej:\nJuan Pérez\nPepito Pérez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
+          <p className="text-xs text-secondary">Un nombre completo por línea (presiona Enter entre uno y otro) o sepáralos con punto y coma <span className="font-mono">;</span> — nunca con coma, para no partir un nombre a la mitad. Ejemplo: <span className="font-mono">Juan Pérez; Pepito Pérez</span></p>
+          <textarea className="input-field min-h-24" placeholder={'Juan Pérez\nPepito Pérez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
           <button disabled={saving} className="btn-secondary self-start px-3">Agregar lista</button>
         </form>
       </details>
