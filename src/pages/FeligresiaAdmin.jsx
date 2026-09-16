@@ -8,7 +8,7 @@ import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { UMBRAL_DIAS_NUEVO_BAUTIZADO, diasDesde } from '../lib/rutaEvangelistica'
 import { getRangosEdadComite, sugerirComites } from '../lib/comitesPorPoblacion'
 import { MOVIMIENTO_LABELS } from '../lib/movimientos'
-import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
+import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente, trimestreDe } from '../lib/trimestre'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { formatFecha } from '../lib/dateFormat'
@@ -226,6 +226,47 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
   const ageData = distributionDataset(ageGroups.map(([label, value]) => ({ label, value })), { valueKey: 'value', datasetLabel: 'Personas' })
   const followupData = distributionDataset(followupStatuses.map(([label, value]) => ({ label, value })), { valueKey: 'value', datasetLabel: 'Seguimientos' })
   const admissionsData = { labels: admissionsHistory.map((item) => item.label), datasets: [{ label: 'Nuevos ingresos', data: admissionsHistory.map((item) => item.total), backgroundColor: gradientFill('#2a78d6'), borderRadius: 4, barThickness: months > 24 ? 10 : 18 }] }
+
+  // --- Retención por cohorte de ingreso -- usa `people` (censo
+  // completo, sin el filtro de estado/edad de arriba: filtrar por
+  // "activo" dejaría cada cohorte en 100% de forma trivial) agrupado
+  // por trimestre de fecha_ingreso. No es una curva real de "% activo
+  // a los N meses" -- eso requeriría reconstruir el estado histórico
+  // mes a mes, y SIGAP solo guarda el estado actual. Es honesto: mide
+  // "de los que entraron en tal trimestre, cuántos siguen activos HOY",
+  // que sí es calculable con los datos que existen.
+  const cohortesMapa = new Map()
+  people.forEach((person) => {
+    if (!person.fecha_ingreso) return
+    const { anio, trimestre } = trimestreDe(person.fecha_ingreso)
+    const key = `${anio}-${trimestre}`
+    if (!cohortesMapa.has(key)) cohortesMapa.set(key, { anio, trimestre, personas: [] })
+    cohortesMapa.get(key).personas.push(person)
+  })
+  const retencionCohortes = [...cohortesMapa.values()]
+    .sort((a, b) => a.anio - b.anio || a.trimestre - b.trimestre)
+    .map((cohorte) => {
+      const totalCohorte = cohorte.personas.length
+      const activosCohorte = cohorte.personas.filter((p) => p.estado_membresia === 'activo').length
+      const apartadosCohorte = cohorte.personas.filter((p) => p.estado_membresia === 'apartado').length
+      const trasladadosCohorte = cohorte.personas.filter((p) => p.estado_membresia === 'trasladado').length
+      const otrasBajasCohorte = cohorte.personas.filter((p) => p.estado_membresia === 'inactivo' || p.estado_membresia === 'fallecido').length
+      return {
+        etiqueta: `${ETIQUETA_TRIMESTRE[cohorte.trimestre].split(' ')[0]} ${cohorte.anio}`,
+        total: totalCohorte,
+        activos: activosCohorte,
+        apartados: apartadosCohorte,
+        trasladados: trasladadosCohorte,
+        otrasBajas: otrasBajasCohorte,
+        retencionPct: totalCohorte ? Math.round((activosCohorte / totalCohorte) * 100) : 0,
+      }
+    })
+  const cohortesConRiesgo = retencionCohortes.filter((c) => c.total >= 3 && c.retencionPct < 60)
+  const insightRetencion = retencionCohortes.length === 0
+    ? 'Aún no hay fecha de ingreso registrada para calcular cohortes.'
+    : cohortesConRiesgo.length > 0
+      ? `${cohortesConRiesgo.map((c) => c.etiqueta).join(', ')}: menos del 60% de quienes ingresaron ese trimestre siguen activos hoy. Vale la pena revisar qué pasó con ese grupo.`
+      : 'Ninguna cohorte con al menos 3 ingresos está por debajo del 60% de retención.'
   const pyramidData = {
     labels: AGE_BRACKETS,
     datasets: [
@@ -255,6 +296,45 @@ function FeligresiaInsights({ people, families, committees, cargoHistory, follow
     <div className="grid lg:grid-cols-4 gap-4"><div className="card p-5"><h3 className="font-medium">Estado del censo</h3><p className="text-xs text-secondary mt-1">Distribución por estado de membresía.</p><div className="h-56 mt-4"><Bar data={statusData} options={chartOptions} /></div></div><div className="card p-5"><h3 className="font-medium">Bautismo</h3><p className="text-xs text-secondary mt-1">Nivel de consolidación espiritual entre personas activas.</p><div className="h-56 mt-4"><Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: '#52514e', padding: 14, font: { size: 11 } } } } }} /></div></div><div className="card p-5"><h3 className="font-medium">Rangos de edad</h3><p className="text-xs text-secondary mt-1">Personas con fecha de nacimiento registrada.</p><div className="h-56 mt-4"><Bar data={ageData} options={chartOptions} /></div></div><div className="card p-5"><h3 className="font-medium">Situación familiar</h3><p className="text-xs text-secondary mt-1">Estado civil de las personas activas.</p><div className="h-56 mt-4"><Bar data={maritalData} options={chartOptions} /></div></div></div>
     <div className="card p-5"><h3 className="font-medium">Pirámide poblacional</h3><p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas.{peopleWithGenero < activePeople.length && ` Basada en ${peopleWithGenero} de ${activePeople.length} activas con género registrado.`}</p>{peopleWithGenero ? <div className="h-72 mt-4"><Bar data={pyramidData} options={pyramidOptions} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado." /></div>}</div>
     <div className="card p-5"><div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 className="font-medium">Evolución de ingresos</h3><p className="text-xs text-secondary mt-1">Nuevas personas registradas en el periodo seleccionado.</p></div><select aria-label="Periodo de evolución de ingresos" className="input-field text-xs" value={historyMonths} onChange={(event) => setHistoryMonths(event.target.value)}><option value="12">Últimos 12 meses</option><option value="24">Últimos 24 meses</option><option value="60">Últimos 5 años</option></select></div><div className="h-56 mt-4"><Bar data={admissionsData} options={chartOptions} /></div></div>
+    <div className="card p-5">
+      <h3 className="font-medium">Retención por cohorte de ingreso</h3>
+      <p className="text-xs text-secondary mt-1">De quienes ingresaron en cada trimestre, cuántos siguen activos hoy. No es una curva de retención mes a mes -- SIGAP solo guarda el estado actual, no el historial completo -- pero sí muestra con datos reales si un trimestre en particular retuvo peor que otros.</p>
+      {retencionCohortes.length === 0 ? (
+        <p className="text-sm text-muted text-center py-8">Aún no hay personas con fecha de ingreso registrada.</p>
+      ) : (
+        <>
+          <p className={`text-sm rounded p-3 mt-4 ${cohortesConRiesgo.length > 0 ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{insightRetencion}</p>
+          <div className="table-scroll mt-4">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="text-left text-muted bg-surface-1">
+                  <th className="px-4 py-3">Cohorte de ingreso</th>
+                  <th className="px-4 py-3">Ingresaron</th>
+                  <th className="px-4 py-3">Activos hoy</th>
+                  <th className="px-4 py-3">Retención</th>
+                  <th className="px-4 py-3">Apartados</th>
+                  <th className="px-4 py-3">Trasladados</th>
+                  <th className="px-4 py-3">Otras bajas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {retencionCohortes.map((cohorte) => (
+                  <tr key={cohorte.etiqueta} className="border-t border-border">
+                    <td className="px-4 py-3 font-medium">{cohorte.etiqueta}</td>
+                    <td className="px-4 py-3">{cohorte.total}</td>
+                    <td className="px-4 py-3">{cohorte.activos}</td>
+                    <td className={`px-4 py-3 font-medium ${cohorte.total >= 3 && cohorte.retencionPct < 60 ? 'text-danger' : 'text-success'}`}>{cohorte.retencionPct}%</td>
+                    <td className="px-4 py-3 text-secondary">{cohorte.apartados || '—'}</td>
+                    <td className="px-4 py-3 text-secondary">{cohorte.trasladados || '—'}</td>
+                    <td className="px-4 py-3 text-secondary">{cohorte.otrasBajas || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
     <div className="grid lg:grid-cols-2 gap-4"><div className="card p-5"><h3 className="font-medium">Seguimiento pastoral</h3><p className="text-xs text-secondary mt-1">Carga de trabajo y resultado de acompañamientos.</p><div className="h-52 mt-4"><Bar data={followupData} options={chartOptions} /></div><p className="summary-insight mt-3">{pending} pendientes · {overdue} vencidos · {followups.length} registros totales.</p></div><div className="card p-5"><h3 className="font-medium">Capacidad de organización</h3><p className="text-xs text-secondary mt-1">Participación en comités y cargos vigentes.</p><div className="grid grid-cols-3 gap-3 mt-6"><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Comités activos</p><p className="text-2xl font-semibold mt-1">{committees.filter((committee) => committee.activo).length}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Personas en comités</p><p className="text-2xl font-semibold mt-1">{committeePeople}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-secondary">Cargos vigentes</p><p className="text-2xl font-semibold mt-1">{activeCharges}</p></div></div><p className="summary-insight mt-5">Hay {families.length} familias registradas, con un promedio de {averageFamilySize} integrante{averageFamilySize === '1.0' ? '' : 's'} por familia.</p>{cargoHistory.filter((item) => !item.fecha_fin).slice(0, 5).map((item) => { const person = people.find((candidate) => candidate.id === item.persona_id); return <p key={item.id} className="text-xs text-muted mt-2">{item.nombre_cargo} · {person ? `${person.nombres} ${person.apellidos}` : 'Persona'}</p> })}</div></div>
   </section>
 }

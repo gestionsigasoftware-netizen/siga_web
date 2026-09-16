@@ -1439,6 +1439,20 @@
 	para no afectar a las otras dos). Mismo separador que Ujieres. Ver
 	`docs/fixes/pegar-lista-categorias-demograficas-2026-09-15.md`. Sin
 	acción de base de datos -- solo frontend.
+- **Resuelto (2026-09-15)**: el usuario preguntó si SIGAP ya es
+	suficiente para toma de decisiones. Se identificaron 3 brechas
+	reales (tendencia histórica distrital/nacional, retención/cohortes,
+	detección de anomalías) y se construyó la única calculable hoy sin
+	nueva infraestructura: "Retención por cohorte de ingreso" en
+	Feligresía → pestaña Evolución. Agrupa el censo por trimestre de
+	`fecha_ingreso` (reutiliza `trimestreDe()` del Informe Trimestral) y
+	muestra cuántos de cada cohorte siguen activos hoy, con desglose de
+	apartados/trasladados/otras bajas. Deliberadamente NO es una curva
+	mes a mes (SIGAP no guarda historial de estados, solo el actual --
+	inventar esa curva habría sido fabricar datos). Ver
+	`docs/fixes/retencion-por-cohorte-2026-09-15.md`. Las otras 2
+	brechas quedan pendientes de retomar si se piden explícitamente. Sin
+	acción de base de datos -- solo frontend.
 
 ## Prioridad alta
 
