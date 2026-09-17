@@ -1521,6 +1521,18 @@
 	módulo completo de consentimiento con archivo/firma (item 8, sigue
 	pendiente). Ver `docs/fixes/salud-emergencia-2026-09-16.md`.
 	**Confirmado ejecutado por el usuario.**
+- **Resuelto (2026-09-16)**: item 11 de los 13 pedidos por WhatsApp --
+	disciplina/suspensión de cargos, con motivo, seguimiento fechado y
+	restauración. Bloquea automáticamente la asignación a un cargo o
+	comité nuevo mientras esté activa (decisión explícita del usuario).
+	Se integró en el panel "Análisis de comités" ya existente (métrica +
+	insight) en vez de crear una pantalla aparte, siguiendo el pedido de
+	que las piezas nuevas alimenten la misma analítica de decisión
+	pastoral. De paso se corrigió un bug real de `event.currentTarget`
+	usado después de un `await` en 3 funciones del mismo archivo (la
+	asignación se guardaba pero el aviso de éxito nunca aparecía). Ver
+	`docs/fixes/disciplina-suspension-cargos-2026-09-16.md`.
+	**Confirmado ejecutado por el usuario.**
 - **Resuelto (2026-09-16)**: caída real en producción reportada por el
 	usuario con capturas de Sentry (`sigap.com.co/app` mostrando "Algo
 	salió mal", issue `JAVASCRIPT-REACT-3`). Causa: el arreglo de zona
