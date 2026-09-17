@@ -63,7 +63,7 @@ export default function EscuelaDominical() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [claseForm, setClaseForm] = useState({ nombre: "", etapa: ETAPAS[0], metodologia: "", maestro_lider_persona_id: "" });
-  const [ninoForm, setNinoForm] = useState({ nombres: "", apellidos: "", clase_id: "", fecha_nacimiento: "", acudiente_nombre: "", acudiente_telefono: "" });
+  const [ninoForm, setNinoForm] = useState({ nombres: "", apellidos: "", clase_id: "", fecha_nacimiento: "", tipo_familia: "", acudiente_nombre: "", acudiente_telefono: "" });
   const [maestroForm, setMaestroForm] = useState({ persona_id: "", rol: "maestro" });
   const [selectedClaseId, setSelectedClaseId] = useState(null);
   const [lecciones, setLecciones] = useState([]);
@@ -93,7 +93,7 @@ export default function EscuelaDominical() {
     start.setDate(start.getDate() - Number(periodo));
     const [c, n, m, p, l] = await Promise.all([
       supabase.from("escuela_dominical_clases").select("id, nombre, etapa, metodologia, maestro_lider_persona_id, leccion_actual, activo, personas:maestro_lider_persona_id(nombres, apellidos)").eq("congregacion_id", congregacionId).order("nombre"),
-      supabase.from("escuela_dominical_ninos").select("id, nombres, apellidos, clase_id, fecha_nacimiento, acudiente_nombre, acudiente_telefono, estado, bautizado, fecha_bautismo, sellado, fecha_sellado").eq("congregacion_id", congregacionId).order("nombres"),
+      supabase.from("escuela_dominical_ninos").select("id, nombres, apellidos, clase_id, fecha_nacimiento, tipo_familia, acudiente_nombre, acudiente_telefono, estado, bautizado, fecha_bautismo, sellado, fecha_sellado").eq("congregacion_id", congregacionId).order("nombres"),
       supabase.from("escuela_dominical_maestros").select("id, persona_id, rol, activo, personas(nombres, apellidos)").eq("congregacion_id", congregacionId).order("created_at", { ascending: false }),
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
       supabase.from("escuela_dominical_lecciones").select("id, clase_id, numero, tema, fecha, asistentes, escuela_dominical_clases!inner(congregacion_id, nombre)").eq("escuela_dominical_clases.congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha"),
@@ -180,6 +180,8 @@ export default function EscuelaDominical() {
   async function createNino(event) {
     event.preventDefault();
     if (!canEdit || !ninoForm.nombres.trim() || !ninoForm.apellidos.trim()) return;
+    if (!ninoForm.tipo_familia) { setError("Indica si el niño es hijo de un creyente o de un amigo en ruta evangelística."); return; }
+    if (!ninoForm.acudiente_nombre.trim() || !ninoForm.acudiente_telefono.trim()) { setError("El acudiente es obligatorio: registra su nombre y teléfono antes de guardar al niño."); return; }
     setSaving(true); setError(null);
     const result = await supabase.from("escuela_dominical_ninos").insert({
       congregacion_id: congregacionId,
@@ -187,13 +189,14 @@ export default function EscuelaDominical() {
       nombres: ninoForm.nombres.trim(),
       apellidos: ninoForm.apellidos.trim(),
       fecha_nacimiento: ninoForm.fecha_nacimiento || null,
-      acudiente_nombre: ninoForm.acudiente_nombre.trim() || null,
-      acudiente_telefono: ninoForm.acudiente_telefono.trim() || null,
+      tipo_familia: ninoForm.tipo_familia,
+      acudiente_nombre: ninoForm.acudiente_nombre.trim(),
+      acudiente_telefono: ninoForm.acudiente_telefono.trim(),
     });
     setSaving(false);
     if (result.error) { setError("No se pudo registrar al niño."); return; }
     setNotice("Niño registrado en Escuela Dominical.");
-    setNinoForm({ nombres: "", apellidos: "", clase_id: "", fecha_nacimiento: "", acudiente_nombre: "", acudiente_telefono: "" });
+    setNinoForm({ nombres: "", apellidos: "", clase_id: "", fecha_nacimiento: "", tipo_familia: "", acudiente_nombre: "", acudiente_telefono: "" });
     load();
   }
 
@@ -238,6 +241,8 @@ export default function EscuelaDominical() {
   const ninosActivos = ninos.filter((n) => n.estado === "activo");
   const ninosBautizados = ninosActivos.filter((n) => n.bautizado);
   const ninosSellados = ninosActivos.filter((n) => n.sellado);
+  const ninosSinAcudiente = ninosActivos.filter((n) => !n.acudiente_nombre?.trim());
+  const ninosDeAmigos = ninosActivos.filter((n) => n.tipo_familia === "amigo_en_ruta");
   const clasesActivas = clases.filter((c) => c.activo !== false);
   const maestrosActivos = maestros.filter((m) => m.activo !== false);
   const ninosPorClase = clasesActivas.length ? Math.round(ninosActivos.length / clasesActivas.length) : 0;
@@ -328,6 +333,7 @@ export default function EscuelaDominical() {
         <Metric label="Niños por etapa líder" value={ninosActivos.length ? (etapasConTotal.sort((a, b) => b.total - a.total)[0]?.etapa ?? "—") : "—"} progress={ninosActivos.length ? Math.round((etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / ninosActivos.length * 100) : 0} detail={`${etapasConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} niños`} insight={ninosActivos.length ? "Concentra materiales y capacitación según la etapa con más niños." : "Registra niños activos para identificar la etapa con más niños."} />
         <Metric label="Bautizados" value={ninosBautizados.length} progress={ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0} detail={`${ninosActivos.length ? Math.round((ninosBautizados.length / ninosActivos.length) * 100) : 0}% de los activos`} insight="Bautizado y sellado son hitos independientes: compáralos con la métrica de sellados." />
         <Metric label="Sellados" value={ninosSellados.length} progress={ninosActivos.length ? Math.round((ninosSellados.length / ninosActivos.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
+        <Metric label="Sin acudiente registrado" value={ninosSinAcudiente.length} tone={ninosSinAcudiente.length ? "text-danger" : "text-success"} progress={ninosActivos.length ? Math.round((ninosSinAcudiente.length / ninosActivos.length) * 100) : 0} detail={`${ninosDeAmigos.length} son hijos de amigos en ruta`} insight={ninosSinAcudiente.length ? "Completa el acudiente de estos niños -- desde ahora es obligatorio para registrar uno nuevo." : "Todos los niños activos tienen acudiente registrado."} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
@@ -486,9 +492,14 @@ export default function EscuelaDominical() {
             {clases.map((clase) => <option key={clase.id} value={clase.id}>{clase.nombre}</option>)}
           </select>
           <input type="date" className="input-field" placeholder="Fecha de nacimiento" value={ninoForm.fecha_nacimiento} onChange={(event) => setNinoForm({ ...ninoForm, fecha_nacimiento: event.target.value })} />
+          <select required className="input-field" value={ninoForm.tipo_familia} onChange={(event) => setNinoForm({ ...ninoForm, tipo_familia: event.target.value })}>
+            <option value="">¿Hijo de creyente o de amigo en ruta?</option>
+            <option value="creyente">Hijo de creyente del censo</option>
+            <option value="amigo_en_ruta">Hijo de amigo en ruta evangelística</option>
+          </select>
           <div className="grid grid-cols-2 gap-2">
-            <input className="input-field" placeholder="Nombre del acudiente" value={ninoForm.acudiente_nombre} onChange={(event) => setNinoForm({ ...ninoForm, acudiente_nombre: event.target.value })} />
-            <input className="input-field" placeholder="Teléfono del acudiente" value={ninoForm.acudiente_telefono} onChange={(event) => setNinoForm({ ...ninoForm, acudiente_telefono: event.target.value })} />
+            <input required className="input-field" placeholder="Nombre del acudiente (obligatorio)" value={ninoForm.acudiente_nombre} onChange={(event) => setNinoForm({ ...ninoForm, acudiente_nombre: event.target.value })} />
+            <input required className="input-field" placeholder="Teléfono del acudiente (obligatorio)" value={ninoForm.acudiente_telefono} onChange={(event) => setNinoForm({ ...ninoForm, acudiente_telefono: event.target.value })} />
           </div>
           <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" /> Registrar niño</button>
         </form>

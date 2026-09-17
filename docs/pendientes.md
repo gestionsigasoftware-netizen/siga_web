@@ -1499,14 +1499,12 @@
 	manual si no aparece, pastor que bautizó). "Cantidad de hijos"
 	deliberadamente no se guardó como columna -- se calcula contando la
 	familia, para no desactualizarse. Ver
-	`docs/fixes/campos-rapidos-censo-2026-09-16.md`. **Quedan
-	pendientes de los 13 originales** (no se tocaron en esta pieza):
-	disciplina/suspensión de cargos, consentimiento de datos con
-	archivo/firma, familias con composición mixta (creyentes + amigos),
-	acudiente obligatorio/vinculado en Escuela Dominical -- retomar si
-	se piden explícitamente. El módulo de salud/EPS (que también estaba
-	en esta lista) ya se construyó por separado, ver la entrada
-	siguiente. **Confirmado ejecutado por el usuario.**
+	`docs/fixes/campos-rapidos-censo-2026-09-16.md`. Los 4 pendientes
+	restantes de los 13 originales (salud/EPS, disciplina/suspensión,
+	consentimiento de datos, familias mixtas + acudiente en Escuela
+	Dominical) se construyeron por separado ese mismo día -- ver las
+	entradas siguientes. **Los 13 pedidos quedaron completos.**
+	**Confirmado ejecutado por el usuario.**
 - **Resuelto (2026-09-16)**: item 5 de los 13 pedidos por WhatsApp --
 	ficha de salud de emergencia (no historia clínica formal, no autoriza
 	a diagnosticar/medicar) para creyentes del censo y amigos en
@@ -1532,6 +1530,21 @@
 	usado después de un `await` en 3 funciones del mismo archivo (la
 	asignación se guardaba pero el aviso de éxito nunca aparecía). Ver
 	`docs/fixes/disciplina-suspension-cargos-2026-09-16.md`.
+	**Confirmado ejecutado por el usuario.**
+- **Resuelto (2026-09-16)**: últimos 3 de los 13 pedidos por WhatsApp
+	(items 8, 10 y 13) -- **cierra la lista completa de los 13**.
+	Consentimiento de datos con firma dibujada en pantalla (sin Storage,
+	sin dispositivo externo -- decisión del usuario tras evaluar
+	alternativas) en personas y amigos, con métrica de cobertura en
+	Evolución. Familias con composición mixta: tabla nueva
+	`familia_amigos` (sin tocar `familia_miembros`, que ya usan el árbol
+	genealógico y las relaciones familiares) que permite vincular amigos
+	en ruta a un núcleo familiar, con línea de composición
+	creyentes/amigos/niños. Acudiente obligatorio en Escuela Dominical,
+	distinguiendo hijo de creyente vs. hijo de amigo en ruta, con
+	bloqueo real del registro sin esos datos y métrica de cobertura para
+	los registros anteriores al cambio. Ver
+	`docs/fixes/familias-mixtas-consentimiento-acudiente-2026-09-16.md`.
 	**Confirmado ejecutado por el usuario.**
 - **Resuelto (2026-09-16)**: caída real en producción reportada por el
 	usuario con capturas de Sentry (`sigap.com.co/app` mostrando "Algo

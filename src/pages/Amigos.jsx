@@ -25,6 +25,7 @@ import { descargarPdf } from "../lib/reportExport";
 import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
 import { TELEFONO_TIPO_LABELS } from "../lib/contacto";
 import { TIPO_SANGRE_OPCIONES, categoriasPrioridad } from "../lib/saludEmergencia";
+import SignaturePad from "../components/SignaturePad";
 import InfoTip from "../components/InfoTip";
 import Toast from "../components/Toast";
 
@@ -76,9 +77,11 @@ const EMPTY_FORM = {
   contacto_emergencia_parentesco: "",
   autorizacion_datos_salud: false,
   fecha_autorizacion_datos_salud: "",
+  consentimiento_datos_firma: "",
+  fecha_consentimiento_datos: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, tipo_sangre, eps_nombre, condiciones_medicas, alergias, medicamentos_actuales, discapacidad, embarazada, fecha_probable_parto, contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco, autorizacion_datos_salud, fecha_autorizacion_datos_salud, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
+  "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, tipo_sangre, eps_nombre, condiciones_medicas, alergias, medicamentos_actuales, discapacidad, embarazada, fecha_probable_parto, contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco, autorizacion_datos_salud, fecha_autorizacion_datos_salud, consentimiento_datos_firma, fecha_consentimiento_datos, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -109,6 +112,8 @@ export default function Amigos() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [mostrarFirmaNueva, setMostrarFirmaNueva] = useState(false);
+  const [mostrarFirmaEdit, setMostrarFirmaEdit] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -326,6 +331,8 @@ export default function Amigos() {
       contacto_emergencia_parentesco: friend.contacto_emergencia_parentesco || "",
       autorizacion_datos_salud: Boolean(friend.autorizacion_datos_salud),
       fecha_autorizacion_datos_salud: friend.fecha_autorizacion_datos_salud || "",
+      consentimiento_datos_firma: friend.consentimiento_datos_firma || "",
+      fecha_consentimiento_datos: friend.fecha_consentimiento_datos || "",
     });
     const nameParts = (friend.nombres || "").trim().split(/\s+/);
     setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
@@ -403,6 +410,8 @@ export default function Amigos() {
       contacto_emergencia_nombre: form.autorizacion_datos_salud ? (form.contacto_emergencia_nombre?.trim() || null) : null,
       contacto_emergencia_telefono: form.autorizacion_datos_salud ? (form.contacto_emergencia_telefono?.trim() || null) : null,
       contacto_emergencia_parentesco: form.autorizacion_datos_salud ? (form.contacto_emergencia_parentesco?.trim() || null) : null,
+      consentimiento_datos_firma: form.consentimiento_datos_firma || null,
+      fecha_consentimiento_datos: form.consentimiento_datos_firma ? (form.fecha_consentimiento_datos || hoyBogota()) : null,
       congregacion_id: congregacionId,
     };
     const { data, error: insertError } = await supabase
@@ -451,6 +460,8 @@ export default function Amigos() {
       contacto_emergencia_nombre: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_nombre?.trim() || null) : null,
       contacto_emergencia_telefono: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_telefono?.trim() || null) : null,
       contacto_emergencia_parentesco: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_parentesco?.trim() || null) : null,
+      consentimiento_datos_firma: editForm.consentimiento_datos_firma || null,
+      fecha_consentimiento_datos: editForm.consentimiento_datos_firma ? (editForm.fecha_consentimiento_datos || hoyBogota()) : null,
     };
     const { data, error: updateError } = await supabase
       .from("amigos")
@@ -909,6 +920,15 @@ export default function Amigos() {
               <label className="text-sm mt-6"><input className="input-field" placeholder="Parentesco" value={form.contacto_emergencia_parentesco} onChange={(event) => setForm({ ...form, contacto_emergencia_parentesco: event.target.value })} /></label>
             </div>}
           </details>
+          <details className="sm:col-span-2 lg:col-span-4 border-t border-border pt-3">
+            <summary className="text-sm font-medium cursor-pointer select-none">Consentimiento de datos{form.consentimiento_datos_firma ? " · Firmado" : ""}</summary>
+            <p className="text-xs text-secondary mt-2">Autorización para el uso de sus datos personales dentro de SIGAP, firmada a mano en pantalla.</p>
+            {form.consentimiento_datos_firma ? <div className="mt-3">
+              <p className="text-xs text-secondary">Firmado el {formatFecha(form.fecha_consentimiento_datos, { formato: formato_fecha })}</p>
+              <img src={form.consentimiento_datos_firma} alt="Firma de consentimiento" className="border border-border rounded bg-white mt-2 h-20" />
+              <div className="mt-2"><button type="button" onClick={() => setForm({ ...form, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">Revocar consentimiento</button></div>
+            </div> : mostrarFirmaNueva ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setForm({ ...form, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaNueva(false) }} onCancelar={() => setMostrarFirmaNueva(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaNueva(true)} className="btn-secondary text-xs mt-3">Capturar firma</button>}
+          </details>
           <button disabled={saving} className="btn-secondary justify-center">
             {saving ? "Guardando..." : "Guardar amigo"}
           </button>
@@ -1248,6 +1268,15 @@ export default function Amigos() {
                   </div>
                   <label className="text-sm">Parentesco<input className="input-field mt-1.5" value={editForm.contacto_emergencia_parentesco} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_parentesco: event.target.value })} /></label>
                 </>}
+              </details>
+              <details className="border-t border-border pt-3">
+                <summary className="text-sm font-medium cursor-pointer select-none">Consentimiento de datos{editForm.consentimiento_datos_firma ? " · Firmado" : ""}</summary>
+                <p className="text-xs text-secondary mt-2">Autorización para el uso de sus datos personales dentro de SIGAP, firmada a mano en pantalla.</p>
+                {editForm.consentimiento_datos_firma ? <div className="mt-3">
+                  <p className="text-xs text-secondary">Firmado el {formatFecha(editForm.fecha_consentimiento_datos, { formato: formato_fecha })}</p>
+                  <img src={editForm.consentimiento_datos_firma} alt="Firma de consentimiento" className="border border-border rounded bg-white mt-2 h-20" />
+                  <div className="mt-2"><button type="button" onClick={() => setEditForm({ ...editForm, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">Revocar consentimiento</button></div>
+                </div> : mostrarFirmaEdit ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setEditForm({ ...editForm, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaEdit(false) }} onCancelar={() => setMostrarFirmaEdit(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaEdit(true)} className="btn-secondary text-xs mt-3">Capturar firma</button>}
               </details>
               <button disabled={saving} className="btn-primary justify-center">
                 <Pencil className="w-4 h-4" />
