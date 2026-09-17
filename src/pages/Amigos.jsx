@@ -24,6 +24,7 @@ import { avatarTone, initialesDe } from "../lib/avatar";
 import { descargarPdf } from "../lib/reportExport";
 import { descargarCertificadoBautismo } from "../lib/certificadoBautismo";
 import { TELEFONO_TIPO_LABELS } from "../lib/contacto";
+import { TIPO_SANGRE_OPCIONES, categoriasPrioridad } from "../lib/saludEmergencia";
 import InfoTip from "../components/InfoTip";
 import Toast from "../components/Toast";
 
@@ -62,9 +63,22 @@ const EMPTY_FORM = {
   estado_civil: "soltero",
   genero: "",
   comite_origen_id: "",
+  tipo_sangre: "",
+  eps_nombre: "",
+  condiciones_medicas: "",
+  alergias: "",
+  medicamentos_actuales: "",
+  discapacidad: "",
+  embarazada: false,
+  fecha_probable_parto: "",
+  contacto_emergencia_nombre: "",
+  contacto_emergencia_telefono: "",
+  contacto_emergencia_parentesco: "",
+  autorizacion_datos_salud: false,
+  fecha_autorizacion_datos_salud: "",
 };
 const FRIEND_FIELDS =
-  "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
+  "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, tipo_sangre, eps_nombre, condiciones_medicas, alergias, medicamentos_actuales, discapacidad, embarazada, fecha_probable_parto, contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco, autorizacion_datos_salud, fecha_autorizacion_datos_salud, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
 
 export default function Amigos() {
   const pageSize = 50;
@@ -299,6 +313,19 @@ export default function Amigos() {
       estado_civil: friend.estado_civil || "soltero",
       genero: friend.genero || "",
       comite_origen_id: friend.comite_origen_id || "",
+      tipo_sangre: friend.tipo_sangre || "",
+      eps_nombre: friend.eps_nombre || "",
+      condiciones_medicas: friend.condiciones_medicas || "",
+      alergias: friend.alergias || "",
+      medicamentos_actuales: friend.medicamentos_actuales || "",
+      discapacidad: friend.discapacidad || "",
+      embarazada: Boolean(friend.embarazada),
+      fecha_probable_parto: friend.fecha_probable_parto || "",
+      contacto_emergencia_nombre: friend.contacto_emergencia_nombre || "",
+      contacto_emergencia_telefono: friend.contacto_emergencia_telefono || "",
+      contacto_emergencia_parentesco: friend.contacto_emergencia_parentesco || "",
+      autorizacion_datos_salud: Boolean(friend.autorizacion_datos_salud),
+      fecha_autorizacion_datos_salud: friend.fecha_autorizacion_datos_salud || "",
     });
     const nameParts = (friend.nombres || "").trim().split(/\s+/);
     setTransferName({ nombres: nameParts.slice(0, -1).join(" ") || friend.nombres || "", apellidos: nameParts.slice(-1).join("") });
@@ -363,6 +390,19 @@ export default function Amigos() {
       fecha_nacimiento: form.fecha_nacimiento || null,
       genero: form.genero || null,
       comite_origen_id: form.comite_origen_id || null,
+      autorizacion_datos_salud: Boolean(form.autorizacion_datos_salud),
+      fecha_autorizacion_datos_salud: form.autorizacion_datos_salud ? (form.fecha_autorizacion_datos_salud || hoyBogota()) : null,
+      tipo_sangre: form.autorizacion_datos_salud ? (form.tipo_sangre || null) : null,
+      eps_nombre: form.autorizacion_datos_salud ? (form.eps_nombre?.trim() || null) : null,
+      condiciones_medicas: form.autorizacion_datos_salud ? (form.condiciones_medicas?.trim() || null) : null,
+      alergias: form.autorizacion_datos_salud ? (form.alergias?.trim() || null) : null,
+      medicamentos_actuales: form.autorizacion_datos_salud ? (form.medicamentos_actuales?.trim() || null) : null,
+      discapacidad: form.autorizacion_datos_salud ? (form.discapacidad?.trim() || null) : null,
+      embarazada: form.autorizacion_datos_salud ? Boolean(form.embarazada) : false,
+      fecha_probable_parto: form.autorizacion_datos_salud && form.embarazada ? (form.fecha_probable_parto || null) : null,
+      contacto_emergencia_nombre: form.autorizacion_datos_salud ? (form.contacto_emergencia_nombre?.trim() || null) : null,
+      contacto_emergencia_telefono: form.autorizacion_datos_salud ? (form.contacto_emergencia_telefono?.trim() || null) : null,
+      contacto_emergencia_parentesco: form.autorizacion_datos_salud ? (form.contacto_emergencia_parentesco?.trim() || null) : null,
       congregacion_id: congregacionId,
     };
     const { data, error: insertError } = await supabase
@@ -398,6 +438,19 @@ export default function Amigos() {
       fecha_nacimiento: editForm.fecha_nacimiento || null,
       genero: editForm.genero || null,
       comite_origen_id: editForm.comite_origen_id || null,
+      autorizacion_datos_salud: Boolean(editForm.autorizacion_datos_salud),
+      fecha_autorizacion_datos_salud: editForm.autorizacion_datos_salud ? (editForm.fecha_autorizacion_datos_salud || hoyBogota()) : null,
+      tipo_sangre: editForm.autorizacion_datos_salud ? (editForm.tipo_sangre || null) : null,
+      eps_nombre: editForm.autorizacion_datos_salud ? (editForm.eps_nombre?.trim() || null) : null,
+      condiciones_medicas: editForm.autorizacion_datos_salud ? (editForm.condiciones_medicas?.trim() || null) : null,
+      alergias: editForm.autorizacion_datos_salud ? (editForm.alergias?.trim() || null) : null,
+      medicamentos_actuales: editForm.autorizacion_datos_salud ? (editForm.medicamentos_actuales?.trim() || null) : null,
+      discapacidad: editForm.autorizacion_datos_salud ? (editForm.discapacidad?.trim() || null) : null,
+      embarazada: editForm.autorizacion_datos_salud ? Boolean(editForm.embarazada) : false,
+      fecha_probable_parto: editForm.autorizacion_datos_salud && editForm.embarazada ? (editForm.fecha_probable_parto || null) : null,
+      contacto_emergencia_nombre: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_nombre?.trim() || null) : null,
+      contacto_emergencia_telefono: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_telefono?.trim() || null) : null,
+      contacto_emergencia_parentesco: editForm.autorizacion_datos_salud ? (editForm.contacto_emergencia_parentesco?.trim() || null) : null,
     };
     const { data, error: updateError } = await supabase
       .from("amigos")
@@ -834,6 +887,28 @@ export default function Amigos() {
               ))}
             </select>
           </label>
+          <details className="sm:col-span-2 lg:col-span-4 border-t border-border pt-3">
+            <summary className="text-sm font-medium cursor-pointer select-none">Ficha de salud de emergencia</summary>
+            <p className="text-xs text-secondary mt-2">Es información de referencia para una emergencia (qué hacer, a quién avisar) -- la congregación no diagnostica, no prescribe ni administra medicamentos.</p>
+            <label className="flex items-center gap-2 text-sm mt-3">
+              <input type="checkbox" checked={Boolean(form.autorizacion_datos_salud)} onChange={(event) => setForm({ ...form, autorizacion_datos_salud: event.target.checked, fecha_autorizacion_datos_salud: event.target.checked ? (form.fecha_autorizacion_datos_salud || hoyBogota()) : "" })} />
+              La persona autoriza registrar su información de salud
+              <InfoTip texto="Requerido antes de guardar cualquier campo de esta sección -- la información de salud es un dato sensible (Ley 1581 de 2012)." />
+            </label>
+            {form.autorizacion_datos_salud && <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+              <label className="text-sm">Tipo de sangre<select className="input-field mt-1.5 w-full" value={form.tipo_sangre} onChange={(event) => setForm({ ...form, tipo_sangre: event.target.value })}><option value="">Sin registrar</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
+              <label className="text-sm">EPS<input className="input-field mt-1.5" value={form.eps_nombre} onChange={(event) => setForm({ ...form, eps_nombre: event.target.value })} /></label>
+              <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={Boolean(form.embarazada)} onChange={(event) => setForm({ ...form, embarazada: event.target.checked })} /> Embarazada</label>
+              {form.embarazada && <label className="text-sm">Fecha probable de parto<input type="date" className="input-field mt-1.5" value={form.fecha_probable_parto} onChange={(event) => setForm({ ...form, fecha_probable_parto: event.target.value })} /></label>}
+              <label className="text-sm sm:col-span-2 lg:col-span-4">Condiciones médicas relevantes<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.condiciones_medicas} onChange={(event) => setForm({ ...form, condiciones_medicas: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">Alergias<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.alergias} onChange={(event) => setForm({ ...form, alergias: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">Medicamentos que toma actualmente<InfoTip texto="Solo de referencia para quien atienda una emergencia -- recetados por su propio médico, la congregación no los administra." /><textarea className="input-field mt-1.5 min-h-16 w-full" value={form.medicamentos_actuales} onChange={(event) => setForm({ ...form, medicamentos_actuales: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">Discapacidad<input className="input-field mt-1.5 w-full" placeholder="Ej. movilidad reducida, auditiva -- dejar vacío si no aplica" value={form.discapacidad} onChange={(event) => setForm({ ...form, discapacidad: event.target.value })} /></label>
+              <label className="text-sm">Contacto de emergencia<input className="input-field mt-1.5" placeholder="Nombre" value={form.contacto_emergencia_nombre} onChange={(event) => setForm({ ...form, contacto_emergencia_nombre: event.target.value })} /></label>
+              <label className="text-sm mt-6"><input className="input-field" placeholder="Teléfono" value={form.contacto_emergencia_telefono} onChange={(event) => setForm({ ...form, contacto_emergencia_telefono: event.target.value })} /></label>
+              <label className="text-sm mt-6"><input className="input-field" placeholder="Parentesco" value={form.contacto_emergencia_parentesco} onChange={(event) => setForm({ ...form, contacto_emergencia_parentesco: event.target.value })} /></label>
+            </div>}
+          </details>
           <button disabled={saving} className="btn-secondary justify-center">
             {saving ? "Guardando..." : "Guardar amigo"}
           </button>
@@ -1144,6 +1219,36 @@ export default function Amigos() {
                   ))}
                 </select>
               </label>
+              <details className="border-t border-border pt-3">
+                <summary className="text-sm font-medium cursor-pointer select-none">Ficha de salud de emergencia</summary>
+                <p className="text-xs text-secondary mt-2">Es información de referencia para una emergencia (qué hacer, a quién avisar) -- la congregación no diagnostica, no prescribe ni administra medicamentos.</p>
+                <label className="flex items-center gap-2 text-sm mt-3">
+                  <input type="checkbox" checked={Boolean(editForm.autorizacion_datos_salud)} onChange={(event) => setEditForm({ ...editForm, autorizacion_datos_salud: event.target.checked, fecha_autorizacion_datos_salud: event.target.checked ? (editForm.fecha_autorizacion_datos_salud || hoyBogota()) : "" })} />
+                  La persona autoriza registrar su información de salud
+                  <InfoTip texto="Requerido antes de guardar cualquier campo de esta sección -- la información de salud es un dato sensible (Ley 1581 de 2012)." />
+                </label>
+                {editForm.autorizacion_datos_salud && <>
+                  {categoriasPrioridad(editForm, calcularEdad(editForm.fecha_nacimiento)).length > 0 && <div className="flex flex-wrap gap-1.5 mt-3">{categoriasPrioridad(editForm, calcularEdad(editForm.fecha_nacimiento)).map((categoria) => <span key={categoria.key} className="text-[10px] uppercase tracking-wide bg-warning-bg text-warning rounded px-2 py-1">{categoria.label}</span>)}</div>}
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <label className="text-sm">Tipo de sangre<select className="input-field mt-1.5 w-full" value={editForm.tipo_sangre} onChange={(event) => setEditForm({ ...editForm, tipo_sangre: event.target.value })}><option value="">Sin registrar</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
+                    <label className="text-sm">EPS<input className="input-field mt-1.5" value={editForm.eps_nombre} onChange={(event) => setEditForm({ ...editForm, eps_nombre: event.target.value })} /></label>
+                  </div>
+                  <label className="text-sm">Condiciones médicas relevantes<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.condiciones_medicas} onChange={(event) => setEditForm({ ...editForm, condiciones_medicas: event.target.value })} /></label>
+                  <label className="text-sm">Alergias<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.alergias} onChange={(event) => setEditForm({ ...editForm, alergias: event.target.value })} /></label>
+                  <label className="text-sm">Medicamentos que toma actualmente<InfoTip texto="Solo de referencia para quien atienda una emergencia -- recetados por su propio médico, la congregación no los administra." /><textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.medicamentos_actuales} onChange={(event) => setEditForm({ ...editForm, medicamentos_actuales: event.target.value })} /></label>
+                  <label className="text-sm">Discapacidad<input className="input-field mt-1.5 w-full" placeholder="Ej. movilidad reducida, auditiva -- dejar vacío si no aplica" value={editForm.discapacidad} onChange={(event) => setEditForm({ ...editForm, discapacidad: event.target.value })} /></label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 text-sm mt-1"><input type="checkbox" checked={Boolean(editForm.embarazada)} onChange={(event) => setEditForm({ ...editForm, embarazada: event.target.checked })} /> Embarazada</label>
+                    {editForm.embarazada && <label className="text-sm">Fecha probable de parto<input type="date" className="input-field mt-1.5" value={editForm.fecha_probable_parto} onChange={(event) => setEditForm({ ...editForm, fecha_probable_parto: event.target.value })} /></label>}
+                  </div>
+                  <p className="text-sm font-medium mt-2">Contacto de emergencia</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="text-sm">Nombre<input className="input-field mt-1.5" value={editForm.contacto_emergencia_nombre} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_nombre: event.target.value })} /></label>
+                    <label className="text-sm">Teléfono<input className="input-field mt-1.5" value={editForm.contacto_emergencia_telefono} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_telefono: event.target.value })} /></label>
+                  </div>
+                  <label className="text-sm">Parentesco<input className="input-field mt-1.5" value={editForm.contacto_emergencia_parentesco} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_parentesco: event.target.value })} /></label>
+                </>}
+              </details>
               <button disabled={saving} className="btn-primary justify-center">
                 <Pencil className="w-4 h-4" />
                 {saving ? "Guardando..." : "Guardar cambios"}

@@ -1501,11 +1501,26 @@
 	familia, para no desactualizarse. Ver
 	`docs/fixes/campos-rapidos-censo-2026-09-16.md`. **Quedan
 	pendientes de los 13 originales** (no se tocaron en esta pieza):
-	módulo de salud/EPS, disciplina/suspensión de cargos, consentimiento
-	de datos con archivo/firma, familias con composición mixta
-	(creyentes + amigos), acudiente obligatorio/vinculado en Escuela
-	Dominical -- retomar si se piden explícitamente. **Confirmado
-	ejecutado por el usuario.**
+	disciplina/suspensión de cargos, consentimiento de datos con
+	archivo/firma, familias con composición mixta (creyentes + amigos),
+	acudiente obligatorio/vinculado en Escuela Dominical -- retomar si
+	se piden explícitamente. El módulo de salud/EPS (que también estaba
+	en esta lista) ya se construyó por separado, ver la entrada
+	siguiente. **Confirmado ejecutado por el usuario.**
+- **Resuelto (2026-09-16)**: item 5 de los 13 pedidos por WhatsApp --
+	ficha de salud de emergencia (no historia clínica formal, no autoriza
+	a diagnosticar/medicar) para creyentes del censo y amigos en
+	seguimiento activo de la Ruta Evangelística, con categorías de
+	prioridad (niño, adulto mayor, embarazada, condición médica, alergia,
+	discapacidad), EPS, medicamentos que la persona ya toma bajo receta
+	propia (solo de referencia para un primer respondiente), contacto de
+	emergencia, y un panel de analítica con cobertura del censo y gráfico
+	por categoría. Incluye un consentimiento mínimo
+	(`autorizacion_datos_salud` + fecha) porque es dato sensible bajo la
+	Ley 1581 de 2012 -- decisión del usuario mientras se construye el
+	módulo completo de consentimiento con archivo/firma (item 8, sigue
+	pendiente). Ver `docs/fixes/salud-emergencia-2026-09-16.md`.
+	**Confirmado ejecutado por el usuario.**
 - **Resuelto (2026-09-16)**: caída real en producción reportada por el
 	usuario con capturas de Sentry (`sigap.com.co/app` mostrando "Algo
 	salió mal", issue `JAVASCRIPT-REACT-3`). Causa: el arreglo de zona
