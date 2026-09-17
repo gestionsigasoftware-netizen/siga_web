@@ -13,10 +13,11 @@
 	`RegistrarAsistencia.jsx`), 1 bug de caché entre distritos
 	(`ImpactoMisionero.jsx`) y 1 mejora de rendimiento (búsqueda sin
 	debounce en `Personas.jsx`). Ver
-	`docs/fixes/auditoria-fallos-silenciosos-2026-09-16.md`. **Pendiente
-	no bloqueante**: `src/pages/Feligresia.jsx` es un archivo muerto (no
-	enrutado, reemplazado por `FeligresiaAdmin.jsx`) -- se puede borrar
-	con seguridad si el usuario lo confirma.
+	`docs/fixes/auditoria-fallos-silenciosos-2026-09-16.md`.
+	`src/pages/Feligresia.jsx` (archivo muerto, no enrutado, reemplazado
+	por `FeligresiaAdmin.jsx`) fue eliminado -- confirmado con `npm run
+	build` y Playwright que `/feligresia` sigue funcionando igual.
+	**Confirmado por el usuario.**
 - **Resuelto (2026-09-10), reportado en produccion real por el usuario
 	mientras daba de alta un cliente**: "Crear congregacion e invitar
 	pastor" en Pastoral Distrital fallaba con "column reference
