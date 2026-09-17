@@ -190,6 +190,7 @@ export default function EstacionRefam() {
       supabase.from("refam_participantes").select("id, amigo_id, persona_id, fecha_ingreso, estado, leccion_actual_id, amigos:amigo_id(nombres), personas:persona_id(nombres, apellidos), leccion_actual:refam_lecciones(numero, titulo)").eq("grupo_id", grupoId).order("fecha_ingreso", { ascending: false }),
       supabase.from("refam_reuniones").select("id, fecha, numero_leccion, tema, asistentes, visitantes, resultado, novedades").eq("grupo_id", grupoId).order("fecha", { ascending: false }),
     ]);
+    if (participantesResult.error || reunionesResult.error) { setError("No se pudo cargar el detalle del grupo REFAM. Intenta nuevamente."); return; }
     const participantes = participantesResult.data ?? [];
     setRefamParticipantes(participantes);
     setRefamReuniones(reunionesResult.data ?? []);
@@ -199,6 +200,7 @@ export default function EstacionRefam() {
         supabase.from("refam_asistencia_participante").select("participante_id, asistio").in("participante_id", participantes.map((item) => item.id)).eq("asistio", true),
         supabase.from("refam_progreso_leccion").select("participante_id").in("participante_id", participantes.map((item) => item.id)),
       ]);
+      if (asistenciaResult.error || progresoResult.error) { setError("No se pudo cargar la asistencia y el progreso de los participantes."); return; }
       const conteo = {};
       (asistenciaResult.data ?? []).forEach((item) => { conteo[item.participante_id] = (conteo[item.participante_id] || 0) + 1; });
       setAsistenciaPorParticipante(conteo);
@@ -232,11 +234,12 @@ export default function EstacionRefam() {
   }
 
   async function refrescarNotasRefam(participanteId) {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("refam_notas_leccion")
       .select("id, nota, created_at, leccion:refam_lecciones(numero, titulo), responsable:personas(nombres, apellidos)")
       .eq("participante_id", participanteId)
       .order("created_at", { ascending: false });
+    if (fetchError) { setError("No se pudo cargar las notas registradas."); return; }
     setNotasPorParticipante((current) => ({ ...current, [participanteId]: data ?? [] }));
   }
 

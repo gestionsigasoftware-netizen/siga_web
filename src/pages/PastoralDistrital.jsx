@@ -61,12 +61,15 @@ const getCurrentMonthTransfers = (assignments = []) => {
 // quien habia que visitar.
 function ContinuidadPastoral({ vacantes }) {
   const [resumenes, setResumenes] = useState({})
+  const [errores, setErrores] = useState({})
 
   useEffect(() => {
     let active = true
     vacantes.forEach((congregacion) => {
-      supabase.rpc('resumen_continuidad_congregacion', { p_congregacion_id: congregacion.id }).then(({ data }) => {
-        if (!active || !data?.[0]) return
+      supabase.rpc('resumen_continuidad_congregacion', { p_congregacion_id: congregacion.id }).then(({ data, error }) => {
+        if (!active) return
+        if (error) { setErrores((current) => ({ ...current, [congregacion.id]: true })); return }
+        if (!data?.[0]) return
         setResumenes((current) => ({ ...current, [congregacion.id]: data[0] }))
       })
     })
@@ -87,7 +90,9 @@ function ContinuidadPastoral({ vacantes }) {
           return (
             <div key={congregacion.id} className="p-4">
               <p className="text-sm font-medium">{congregacion.nombre}</p>
-              {!resumen ? (
+              {errores[congregacion.id] ? (
+                <p className="text-xs text-danger mt-1">No se pudo cargar la continuidad de esta congregación. Intenta recargar la página.</p>
+              ) : !resumen ? (
                 <p className="text-xs text-muted mt-1">Cargando pendientes...</p>
               ) : (
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -681,7 +686,11 @@ export default function PastoralDistrital() {
     setLoadingInformeTrimestral(true)
     supabase
       .rpc('resumen_informe_trimestral_distrital', { p_distrito_id: distritoId, ...limitesInformeTrimestral(informeAnio, informeTrimestre) })
-      .then(({ data, error }) => { setLoadingInformeTrimestral(false); setResumenInformeTrimestral(error ? [] : data ?? []) })
+      .then(({ data, error }) => {
+        setLoadingInformeTrimestral(false)
+        if (error) { setError('No se pudo cargar el informe trimestral. Intenta nuevamente o contacta al administrador.'); setResumenInformeTrimestral([]); return }
+        setResumenInformeTrimestral(data ?? [])
+      })
   }, [distritoId, isDistrictLeader, informeAnio, informeTrimestre])
 
   useEffect(() => {

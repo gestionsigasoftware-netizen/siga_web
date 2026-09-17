@@ -48,7 +48,12 @@ export default function ImpactoMisionero() {
   }, [rolPrincipal]);
 
   async function load() {
-    const cacheKey = `${nivel}:${congregacionId || 'all'}`;
+    // rolPrincipal.id (la fila de roles_sistema, no congregacionId) --
+    // un distrital no tiene congregacion_id, así que una clave basada
+    // en nivel+congregacion colisionaba entre distritos distintos si la
+    // misma persona tiene varios roles distritales y cambia de rol
+    // activo sin recargar la página completa.
+    const cacheKey = rolPrincipal.id;
     const cached = impactoMisioneroCache.get(cacheKey);
     if (cached) {
       setData(cached);

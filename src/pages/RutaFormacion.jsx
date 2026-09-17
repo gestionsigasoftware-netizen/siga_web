@@ -301,20 +301,22 @@ export default function RutaFormacion({ mode }) {
   }
 
   async function refrescarProgreso(procesoId) {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from(config.progresoTabla)
       .select(`id, fecha_completada, leccion:${config.leccionesTabla}(numero, titulo)`)
       .eq(config.progresoColumna, procesoId)
       .order("fecha_completada", { ascending: false });
+    if (fetchError) { setError("No se pudo cargar el historial de lecciones completadas."); return; }
     setProgreso(data ?? []);
   }
 
   async function refrescarNotas(procesoId) {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from(config.notasTabla)
       .select(`id, nota, created_at, leccion:${config.leccionesTabla}(numero, titulo), responsable:personas(nombres, apellidos)`)
       .eq(config.notasColumna, procesoId)
       .order("created_at", { ascending: false });
+    if (fetchError) { setError("No se pudo cargar las notas registradas."); return; }
     setNotasLeccion(data ?? []);
   }
 

@@ -141,7 +141,8 @@ export default function RegistrarAsistencia() {
 
     let duplicateQuery = supabase.from('registros_actividad').select('id', { count: 'exact', head: true }).eq('congregacion_id', congregacionId).eq('fecha', fecha).eq('modulo_id', moduloId).eq('tipo_actividad_id', tipoId)
     duplicateQuery = zonaId ? duplicateQuery.eq('zona_id', zonaId) : duplicateQuery.is('zona_id', null)
-    const { count: duplicateCount } = await duplicateQuery
+    const { count: duplicateCount, error: duplicateError } = await duplicateQuery
+    if (duplicateError) { setSaving(false); setError('No se pudo verificar si ya existe un registro duplicado. Intenta nuevamente.'); return }
     if (duplicateCount > 0 && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) { setSaving(false); return }
 
     let result

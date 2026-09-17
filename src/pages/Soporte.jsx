@@ -42,16 +42,18 @@ export default function Soporte() {
       setLoading(true)
     }
     if (esAdmin) {
-      const { data } = await supabase.from('reportes_soporte').select('*').order('created_at', { ascending: false }).limit(100)
+      const { data, error: fetchError } = await supabase.from('reportes_soporte').select('*').order('created_at', { ascending: false }).limit(100)
+      setLoading(false)
+      if (fetchError) { setError('No se pudieron cargar los reportes de soporte. Intenta nuevamente o contacta al administrador.'); return }
       const nuevosTodosReportes = data ?? []
       setTodosReportes(nuevosTodosReportes)
-      setLoading(false)
       soporteCache.set(cacheKey, { todosReportes: nuevosTodosReportes, misReportes: [] })
     } else {
-      const { data } = await supabase.from('reportes_soporte').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false })
+      const { data, error: fetchError } = await supabase.from('reportes_soporte').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false })
+      setLoading(false)
+      if (fetchError) { setError('No se pudieron cargar tus reportes. Intenta nuevamente o contacta al administrador.'); return }
       const nuevosMisReportes = data ?? []
       setMisReportes(nuevosMisReportes)
-      setLoading(false)
       soporteCache.set(cacheKey, { todosReportes: [], misReportes: nuevosMisReportes })
     }
   }

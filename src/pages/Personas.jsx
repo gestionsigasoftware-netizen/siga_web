@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { Plus, Search, UserRound, Phone } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -17,19 +17,20 @@ export default function Personas() {
   const [form, setForm] = useState({ nombres: '', apellidos: '', telefono: '' })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const deferredBusqueda = useDeferredValue(busqueda)
 
   async function load() {
     if (!congregacionId) return
     let query = supabase.from('personas').select('id, nombres, apellidos, telefono, created_at', { count: 'exact' }).eq('congregacion_id', congregacionId).order('nombres').order('id').range(page * pageSize, page * pageSize + pageSize - 1)
-    if (busqueda.trim()) query = query.or(`nombres.ilike.%${busqueda.trim()}%,apellidos.ilike.%${busqueda.trim()}%`)
+    if (deferredBusqueda.trim()) query = query.or(`nombres.ilike.%${deferredBusqueda.trim()}%,apellidos.ilike.%${deferredBusqueda.trim()}%`)
     const { data, count, error: loadError } = await query
     if (loadError) setError('No se pudieron cargar las personas.')
     setPersonas(data ?? [])
     setTotalPersonas(count ?? 0)
   }
 
-  useEffect(() => { load() }, [congregacionId, page, busqueda])
-  useEffect(() => { setPage(0) }, [busqueda])
+  useEffect(() => { load() }, [congregacionId, page, deferredBusqueda])
+  useEffect(() => { setPage(0) }, [deferredBusqueda])
 
   async function agregarPersona(event) {
     event.preventDefault()

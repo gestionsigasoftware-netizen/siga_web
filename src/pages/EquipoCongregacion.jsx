@@ -67,7 +67,7 @@ export default function EquipoCongregacion() {
       supabase.from('asignaciones_acceso').select('id, persona_id, perfil_id, fecha_inicio').eq('congregacion_id', congregacionId).is('fecha_fin', null).order('created_at', { ascending: false }),
       supabase.from('asignaciones_cargo').select('id, persona_id, fecha_inicio, zonas(nombre), centros_reclusion(nombre), cargos!inner(nombre_cargo, modulos!inner(nombre_modulo, congregacion_id))').eq('cargos.modulos.congregacion_id', congregacionId).is('fecha_fin', null).order('fecha_inicio', { ascending: false }),
     ])
-    const failed = [peopleResult, profilesResult, modulesResult, assignmentsResult, cargoAssignmentsResult].find((result) => result.error)
+    const failed = [peopleResult, profilesResult, modulesResult, zonasResult, centrosResult, assignmentsResult, cargoAssignmentsResult].find((result) => result.error)
     if (failed) setMessage({ type: 'error', text: 'No se pudo cargar el equipo de trabajo. Intenta nuevamente o contacta al administrador.' })
     const loadedPeople = peopleResult.data ?? []
     const loadedProfiles = profilesResult.data ?? []

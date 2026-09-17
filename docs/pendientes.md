@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-16)**: auditoría completa de bugs en toda la web
+	pedida por el usuario (rendimiento, consultas que no cargan bien,
+	fallos silenciosos, loops). 4 agentes en paralelo auditaron los 47
+	archivos de `src/pages/` + hooks compartidos. 13 fallos silenciosos
+	reales corregidos (un error de Supabase se descartaba sin avisar al
+	usuario, en `FeligresiaAdmin.jsx` FamilyTree, `PastoralDistrital.jsx`,
+	`GestionPastoralNacional.jsx`, `RutaFormacion.jsx`, `EstacionRefam.jsx`,
+	`EquipoCongregacion.jsx`, `Suscripciones.jsx`, `Soporte.jsx`,
+	`RegistrarAsistencia.jsx`), 1 bug de caché entre distritos
+	(`ImpactoMisionero.jsx`) y 1 mejora de rendimiento (búsqueda sin
+	debounce en `Personas.jsx`). Ver
+	`docs/fixes/auditoria-fallos-silenciosos-2026-09-16.md`. **Pendiente
+	no bloqueante**: `src/pages/Feligresia.jsx` es un archivo muerto (no
+	enrutado, reemplazado por `FeligresiaAdmin.jsx`) -- se puede borrar
+	con seguridad si el usuario lo confirma.
 - **Resuelto (2026-09-10), reportado en produccion real por el usuario
 	mientras daba de alta un cliente**: "Crear congregacion e invitar
 	pastor" en Pastoral Distrital fallaba con "column reference

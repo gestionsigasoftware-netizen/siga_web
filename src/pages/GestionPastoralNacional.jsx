@@ -204,7 +204,11 @@ export default function GestionPastoralNacional() {
     setLoadingInformeTrimestral(true);
     supabase
       .rpc("resumen_informe_trimestral_nacional", limitesInformeTrimestral(informeAnio, informeTrimestre))
-      .then(({ data, error: rpcError }) => { setLoadingInformeTrimestral(false); setResumenInformeTrimestral(rpcError ? [] : data ?? []); });
+      .then(({ data, error: rpcError }) => {
+        setLoadingInformeTrimestral(false);
+        if (rpcError) { setError("No se pudo cargar el informe trimestral nacional. Intenta nuevamente o contacta al administrador."); setResumenInformeTrimestral([]); return; }
+        setResumenInformeTrimestral(data ?? []);
+      });
   }, [rolPrincipal, informeAnio, informeTrimestre]);
 
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Validando permisos...</div>;

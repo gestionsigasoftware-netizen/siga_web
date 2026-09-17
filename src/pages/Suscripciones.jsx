@@ -42,12 +42,12 @@ export default function Suscripciones() {
     } else {
       setLoading(true)
     }
-    const [{ data: congregacionesData, error: congregacionesError }, { data: suscripcionesData, error: suscripcionesError }, { data: metodoPagoData }] = await Promise.all([
+    const [{ data: congregacionesData, error: congregacionesError }, { data: suscripcionesData, error: suscripcionesError }, { data: metodoPagoData, error: metodoPagoError }] = await Promise.all([
       supabase.from('congregaciones').select('id, nombre, ciudad, distritos(nombre, numero)').order('nombre'),
       supabase.from('suscripciones').select('*'),
       supabase.from('metodos_pago_sigap').select('*').maybeSingle(),
     ])
-    if (congregacionesError || suscripcionesError) setError('No se pudieron cargar las suscripciones.')
+    if (congregacionesError || suscripcionesError || metodoPagoError) setError('No se pudieron cargar las suscripciones.')
     const newCongregaciones = congregacionesData ?? []
     const newSuscripciones = Object.fromEntries((suscripcionesData ?? []).map((item) => [item.congregacion_id, item]))
     const newMetodoPago = metodoPagoData ? { ...METODO_PAGO_VACIO, ...metodoPagoData } : null
