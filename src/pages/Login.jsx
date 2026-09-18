@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowUpRight, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuth, registrarAcceso } from '../hooks/useAuth'
 import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
 import sigapLogo from '../assets/sigap-logo.svg'
 import sigapLogoWhite from '../assets/sigap-logo-white.svg'
 import Toast from '../components/Toast'
-import EnterIllustration from '../components/illustrations/EnterIllustration'
 
 export default function Login() {
   const { signIn, resetPassword, updatePassword } = useAuth()
@@ -201,7 +200,7 @@ export default function Login() {
                 <span key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#8fca68]" />{item}</span>
               ))}
             </div>
-            <div className="w-44 h-44 rounded-full bg-white/95 flex items-center justify-center p-4 flex-shrink-0"><EnterIllustration className="w-full h-auto" /></div>
+            <BarChart3 className="w-20 h-20 text-white/15" strokeWidth={1} />
           </div>
         </section>
 
