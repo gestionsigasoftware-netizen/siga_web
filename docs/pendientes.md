@@ -5,16 +5,22 @@
 - **Resuelto (2026-09-17)**: ilustraciones reales (unDraw, licencia
 	libre, recoloreadas al azul de SIGAP, tono de piel neutralizado a un
 	gris cálido -- ni blanco ni negro) para: error inesperado
-	(`ErrorBoundary`), 404 (web y PWA), login (web y PWA), y estados
-	vacíos de familias/comités/resultados (`Empty`, unificado desde 3
-	copias duplicadas, y `ChartEmpty`, usado en 16 archivos). De paso se
+	(`ErrorBoundary`), 404 (web y PWA), y estados vacíos de
+	familias/comités/resultados (`Empty`, unificado desde 3 copias
+	duplicadas, y `ChartEmpty`, usado en 16 archivos). De paso se
 	corrigió un bug real: los 6 componentes usaban `height="auto"` como
 	atributo XML del SVG (inválido, ensuciaba la consola). Ver
 	`docs/fixes/ilustraciones-estados-vacios-2026-09-17.md`.
+	**Se probó también en el login (web y PWA), pero el usuario pidió
+	explícitamente quitarla de ahí (2026-09-18, con captura real)** --
+	restaurado el ícono original en ambos. El componente
+	`EnterIllustration` queda sin usar en el código por si se reutiliza
+	en otro lugar más adelante; no volver a ponerla en el login sin
+	pedido explícito.
 	**Pendiente no bloqueante**: no se pudo verificar visualmente el
 	estado "0 familias"/"0 comités" con datos reales (la cuenta de
 	prueba ya tiene datos) -- verificado por código y por el mismo
-	patrón confirmado en 404/Login.
+	patrón confirmado en 404.
 
 - **Resuelto (2026-09-16)**: auditoría completa de bugs en toda la web
 	pedida por el usuario (rendimiento, consultas que no cargan bien,

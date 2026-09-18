@@ -58,10 +58,12 @@ neutralizado.
   real en producción esta sesión.
 - **`src/pages/NotFound.jsx`** (web): `EmptyStreetIllustration`
   reemplaza el ícono de brújula.
-- **`src/pages/Login.jsx`** (web): `EnterIllustration` reemplaza el
-  ícono `BarChart3` decorativo del panel oscuro, dentro de una insignia
-  circular blanca (el panel es oscuro y la ilustración está pensada
-  para fondo claro -- sin esa insignia, sus tonos oscuros se perderían).
+- **`src/pages/Login.jsx`** (web): se probó `EnterIllustration` en el
+  panel oscuro, pero el usuario pidió explícitamente quitarla de ahí
+  (2026-09-18, con captura real) -- se restauró el ícono `BarChart3`
+  original. El componente queda disponible en
+  `src/components/illustrations/EnterIllustration.jsx` por si se usa
+  en otro lugar más adelante.
 - **`src/components/Empty.jsx`** (nuevo, compartido): antes existían
   **3 copias idénticas** de este componente (`FeligresiaAdmin.jsx`,
   `ObraCarcelaria.jsx`, `Sepri.jsx`) -- unificado en uno solo con un
@@ -82,8 +84,9 @@ Se copiaron `EmptyStreetIllustration.jsx` y `EnterIllustration.jsx` a
 la web, sin modificaciones).
 
 - **`src/pages/NotFound.jsx`**: mismo tratamiento que la web.
-- **`src/pages/Login.jsx`**: `EnterIllustration` en una insignia
-  circular blanca junto al titular del encabezado oscuro.
+- **`src/pages/Login.jsx`**: se probó igual que en la web y se retiró
+  por el mismo pedido del usuario (2026-09-18) -- encabezado restaurado
+  a su versión original, sin ilustración.
 
 ## Bug real encontrado y corregido durante la verificación
 
