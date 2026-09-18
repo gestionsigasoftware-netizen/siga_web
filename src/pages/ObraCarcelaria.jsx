@@ -25,6 +25,7 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset, paletteAt } from "../lib/chartTheme";
 import { getEstacion, iniciarOMoverEstacion } from "../lib/rutaEvangelistica";
 import ChartEmpty from "../components/ChartEmpty";
+import Empty from "../components/Empty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
 import Toast from "../components/Toast";
@@ -60,9 +61,6 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "", info }
   );
 }
 
-function Empty({ text }) {
-  return <div className="p-8 text-center text-sm text-secondary bg-surface-1 rounded-card border border-dashed border-border">{text}</div>;
-}
 
 export default function ObraCarcelaria() {
   const { rolPrincipal, loading: roleLoading } = useMiRol();
@@ -613,7 +611,7 @@ export default function ObraCarcelaria() {
                   </tbody>
                 </table>
               </div>
-            ) : <Empty text="Aún no hay delegados registrados." />}
+            ) : <Empty text="Aún no hay delegados registrados." illustration="equipo" />}
           </div>
 
           {canEdit && (

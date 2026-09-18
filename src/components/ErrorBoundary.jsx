@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { logClientError } from '../lib/errorLogging'
 import { sentryCaptureException } from '../lib/sentry'
+import BugFixingIllustration from './illustrations/BugFixingIllustration'
 
 // Sin esto, un error de render en cualquier pantalla dejaba a un
 // pastor real viendo una pagina en blanco, sin ningun mensaje ni forma
@@ -22,6 +23,7 @@ export default class ErrorBoundary extends Component {
     return (
       <div className="min-h-svh flex items-center justify-center p-6 bg-surface">
         <div className="card max-w-sm w-full text-center p-8">
+          <BugFixingIllustration className="w-48 h-auto mx-auto mb-2" />
           <h1 className="font-semibold text-lg">Algo salió mal</h1>
           <p className="text-sm text-secondary mt-2">
             SIGAP encontró un error inesperado. Ya quedó registrado para

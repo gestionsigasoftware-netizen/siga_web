@@ -8,6 +8,7 @@ import { useMiRol } from "../hooks/useMiRol";
 import { chartOptions, trendDataset, distributionDataset } from "../lib/chartTheme";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 import ChartEmpty from "../components/ChartEmpty";
+import Empty from "../components/Empty";
 import ExportButtons from "../components/ExportButtons";
 import InfoTip from "../components/InfoTip";
 import Toast from "../components/Toast";
@@ -34,9 +35,6 @@ function Metric({ label, value, tone = "", detail, info }) {
   );
 }
 
-function Empty({ text }) {
-  return <div className="p-8 text-center text-sm text-secondary bg-surface-1 rounded-card border border-dashed border-border">{text}</div>;
-}
 
 function diasAnticipacion(fechaEvento, creadoEn) {
   const evento = new Date(`${fechaEvento}T00:00:00Z`);
@@ -311,7 +309,7 @@ export default function Sepri() {
                   </tbody>
                 </table>
               </div>
-            ) : <Empty text="Aún no hay delegados registrados." />}
+            ) : <Empty text="Aún no hay delegados registrados." illustration="equipo" />}
           </div>
 
           {canEdit && (
