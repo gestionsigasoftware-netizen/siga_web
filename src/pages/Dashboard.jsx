@@ -291,7 +291,7 @@ function DashboardDistrital({ rolPrincipal }) {
     const desde60 = fechaBogota(new Date(Date.now() - 60 * 86400000))
     Promise.all([
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
-      supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, congregaciones!inner(distrito_id)').eq('estado_membresia', 'activo').eq('congregaciones.distrito_id', distritoId),
+      supabase.from('personas').select('id, fecha_nacimiento, genero, fecha_ingreso, bautizado, fecha_bautismo, sellado_espiritu_santo, fecha_sellado, congregaciones!personas_congregacion_id_fkey!inner(distrito_id)').eq('estado_membresia', 'activo').eq('congregaciones.distrito_id', distritoId),
       supabase.from('membresias_comite').select('persona_id, comites!inner(congregaciones!inner(distrito_id))').is('fecha_fin', null).eq('comites.congregaciones.distrito_id', distritoId),
       supabase.from('cargos_distritales').select('cargo, fecha_fin').eq('distrito_id', distritoId).order('fecha_fin', { ascending: false, nullsFirst: false }),
       supabase.from('registros_actividad').select('congregacion_id, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).gte('fecha', desde60),

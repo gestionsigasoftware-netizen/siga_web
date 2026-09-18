@@ -470,7 +470,7 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_mision_juvenil_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_red_familias_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_ruta_evangelistica_distrital', { p_distrito_id: distritoId }),
-      supabase.from('personas').select('id, nombres, apellidos, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
+      supabase.from('personas').select('id, nombres, apellidos, congregaciones!personas_congregacion_id_fkey!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).eq('estado_membresia', 'activo').order('nombres'),
       supabase.from('cargos_distritales').select('id, persona_id, nombres, apellidos, cargo, fecha_inicio, fecha_fin, observaciones').eq('distrito_id', distritoId).order('fecha_inicio', { ascending: false }),
       supabase.from('sepri_solicitudes_evento').select('id, congregacion_id, nombre_evento, fecha_evento, ubicacion, lugar, asistentes_esperados, poliza_contratada, estado, notas_distrital, descripcion, created_at, congregaciones(nombre)').eq('distrito_id', distritoId).order('created_at', { ascending: false }),
       supabase.rpc('resumen_sepri_distrital', { p_distrito_id: distritoId }),

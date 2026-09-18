@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-18), reportado en produccion real por el usuario
+	(rol distrital)**: "No se pudo cargar el consolidado del distrito"
+	en Resumen. Causa: `personas.congregacion_bautismo_id` (agregada el
+	2026-09-16) creó una segunda relacion entre `personas` y
+	`congregaciones`, volviendo ambiguas dos consultas que ya existian
+	(`Dashboard.jsx` consolidado distrital, y la lista de personas de
+	`PastoralDistrital.jsx`) -- error real de PostgREST `PGRST201`
+	confirmado contra la base real antes de corregir. Arreglado
+	nombrando la relacion exacta
+	(`congregaciones!personas_congregacion_id_fkey!inner(...)`). Ver
+	`docs/fixes/ambiguedad-fk-personas-congregaciones-2026-09-18.md`.
+	**Confirmado con verificacion visual real (rol distrital simulado
+	con el distrito real de Puerto Tejada).**
+
 - **Resuelto (2026-09-17)**: ilustraciones reales (unDraw, licencia
 	libre, recoloreadas al azul de SIGAP, tono de piel neutralizado a un
 	gris cálido -- ni blanco ni negro) para: error inesperado
