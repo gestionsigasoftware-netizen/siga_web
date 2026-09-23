@@ -32,7 +32,12 @@ export default function Aprobaciones() {
   const [anulandoId, setAnulandoId] = useState(null)
 
   async function load() {
-    const cacheKey = 'todas'
+    // Igual que en Auditoria de Feligresia y Reportes: la lista debe
+    // acotarse al alcance del ROL ACTIVO, no solo a RLS -- una cuenta
+    // que ademas tiene un rol superior (ej. super_admin que tambien es
+    // distrital) sigue pasando la RLS de `congregaciones` para TODO el
+    // pais aunque este "viendo como" distrital.
+    const cacheKey = rolPrincipal.nivel === 'distrital' ? `distrital:${rolPrincipal.distrito_id}` : 'todas'
     const cached = aprobacionesCache.get(cacheKey)
     if (cached) {
       setCongregaciones(cached.congregaciones)
@@ -41,10 +46,12 @@ export default function Aprobaciones() {
       setLoading(true)
     }
     setError(null)
-    const { data, error: loadError } = await supabase
+    let query = supabase
       .from('congregaciones')
       .select('id, nombre, pastor_nombre, estado, madurez, distritos(numero), created_at')
       .order('created_at', { ascending: false })
+    if (rolPrincipal.nivel === 'distrital') query = query.eq('distrito_id', rolPrincipal.distrito_id)
+    const { data, error: loadError } = await query
     const freshData = { congregaciones: data ?? [] }
     setCongregaciones(freshData.congregaciones)
     if (loadError) setError('No se pudieron cargar las congregaciones.')
@@ -52,7 +59,7 @@ export default function Aprobaciones() {
     aprobacionesCache.set(cacheKey, freshData)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (rolPrincipal) load() }, [rolPrincipal])
 
   useEffect(() => {
     if (!notice) return undefined

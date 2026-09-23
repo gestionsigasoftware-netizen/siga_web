@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: tercera instancia del mismo bug
+	(encontrada al auditar sistematicamente el patron a pedido del
+	usuario, no reportada con captura como las otras dos): en
+	`Aprobaciones.jsx`, la lista de congregaciones tampoco filtraba
+	explicito por distrito para el rol distrital -- una cuenta multi-rol
+	viendo la vista distrital veia todas las congregaciones del pais
+	(nombre de pastor, estado, madurez incluidos). El UPDATE real ya
+	estaba bien protegido desde el fix de esta manana; esto era solo de
+	lectura/listado. Corregido con el mismo patron (filtro explicito por
+	`rolPrincipal.distrito_id`, cache con el alcance incluido). Ver
+	`docs/fixes/aprobaciones-lista-nacional-multi-rol-2026-09-23.md`.
+	Se pidio ademas una auditoria sistematica completa de todas las
+	pantallas para este patron -- en curso.
+
 - **Resuelto (2026-09-23), reportado en produccion real por el usuario
 	con captura**: en "Reportes", viendo la congregacion como Puerto
 	Tejada (rol local), el selector "Filtrar por congregacion" mostraba
