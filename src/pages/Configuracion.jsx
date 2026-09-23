@@ -168,7 +168,16 @@ export default function Configuracion() {
     if (error) setError(`No se pudo guardar la configuración: ${error.message}`)
     else {
       window.dispatchEvent(new CustomEvent('siga:organizacion-actualizada', { detail: { congregation: organizacion.nombre.trim(), district: organizacion.distrito } }))
-      setNotice('Información y preferencias de la congregación guardadas.')
+      // Antes esto quedaba en silencio: si Nominatim no encontraba la
+      // direccion, la congregacion se guardaba sin coordenadas y nadie se
+      // enteraba de por que no aparecia en el mapa nacional/distrital.
+      if (organizacion.direccion.trim() && !ubicacion) {
+        setNotice('Guardado, pero no se pudo ubicar esa dirección en el mapa. Revisa que esté bien escrita (o prueba con una más general) y guarda de nuevo.')
+      } else if (ubicacion?.aproximado) {
+        setNotice('Guardado. No se encontró la dirección exacta, así que se ubicó de forma aproximada por ciudad en el mapa.')
+      } else {
+        setNotice('Información y preferencias de la congregación guardadas.')
+      }
     }
   }
 

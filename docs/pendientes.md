@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23), reportado en produccion real por el
+	usuario**: llenar ciudad y direccion en Configuracion no ubicaba la
+	congregacion en el mapa de presencia nuevo. Causa: `geocodeAddress()`
+	fallaba en silencio cuando Nominatim no encontraba la direccion
+	exacta (comun en poblaciones pequenas) -- se guardaba con
+	`latitud`/`longitud` en null sin avisar nada, mismo mensaje de exito
+	de siempre. Corregido con un respaldo (reintenta solo con la ciudad
+	si la direccion exacta falla) y un aviso claro cuando de plano no se
+	pudo ubicar nada. Confirmado en vivo contra Nominatim que el
+	respaldo funciona para Puerto Tejada. Ver
+	`docs/fixes/geocodificacion-fallo-silencioso-2026-09-23.md`.
+	**Pendiente no bloqueante**: el fix no corrige lo ya guardado en
+	null -- Puerto Tejada necesita volver a guardar Configuracion una
+	vez para quedar ubicada.
+
 - **Resuelto (2026-09-23)**: Fase 1 del "mapa de presencia" pedido por
 	el usuario (mapa interactivo de congregaciones + indicadores +
 	graficas para distrital y nacional), agregado a Impacto Misionero.
