@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { supabase } from "../lib/supabase";
 import { fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
-import { chartOptions, distributionDataset } from "../lib/chartTheme";
+import { chartOptions, distributionDataset, trendDataset } from "../lib/chartTheme";
 import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
+import GeoMap from "../components/charts/GeoMap";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 import { hoyBogota } from "../lib/fechaBogota";
 
@@ -74,7 +75,15 @@ export default function ImpactoMisionero() {
       if (esDistrital) return query.eq("congregaciones.distrito_id", rolPrincipal.distrito_id);
       return query;
     };
-    const [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult] = await Promise.all([
+    // Mapa de presencia: solo aplica a distrital/nacional (local ya ve su
+    // propia congregación en todas partes). `congregaciones` trae
+    // distrito_id directo, a diferencia de las tablas de arriba -- no
+    // hace falta el truco de embed para acotarla por distrito.
+    let congregacionesQuery = supabase.from("congregaciones").select("id, nombre, ciudad, latitud, longitud, created_at");
+    if (esDistrital) congregacionesQuery = congregacionesQuery.eq("distrito_id", rolPrincipal.distrito_id);
+    const congregacionesPromise = esLocal ? Promise.resolve({ data: [] }) : congregacionesQuery;
+
+    const [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult, congregacionesResult] = await Promise.all([
       scoped(supabase.from("obra_carcelaria_internos").select(`estado, bautizado, sellado${distritoEmbed}`)),
       scoped(supabase.from("obra_carcelaria_cultos").select(`asistentes_total${distritoEmbed}`).gte("fecha", desde12m)),
       scoped(supabase.from("mision_estudiantes").select(`estado${distritoEmbed}`)),
@@ -85,9 +94,19 @@ export default function ImpactoMisionero() {
         : esDistrital
           ? supabase.from("obra_social_ayudas").select("id, obra_social_casos!inner(congregaciones!inner(distrito_id))", { count: "exact", head: true }).eq("obra_social_casos.congregaciones.distrito_id", rolPrincipal.distrito_id).gte("fecha", desde12m)
           : supabase.from("obra_social_ayudas").select("id", { count: "exact", head: true }).gte("fecha", desde12m),
+      congregacionesPromise,
     ]);
-    const failed = [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult].find((item) => item.error);
+    // vw_resumen_feligresia: consulta aparte (no embebida) por los ids ya
+    // resueltos arriba -- PostgREST no siempre puede inferir un embed a
+    // traves de una vista, asi que dos pasos simples es lo mas seguro.
+    const congregacionesList = congregacionesResult.data ?? [];
+    const congregacionIds = congregacionesList.map((item) => item.id);
+    const resumenResult = congregacionIds.length
+      ? await supabase.from("vw_resumen_feligresia").select("congregacion_id, personas_activas").in("congregacion_id", congregacionIds)
+      : { data: [] };
+    const failed = [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult, congregacionesResult, resumenResult].find((item) => item.error);
     if (failed) setError("No se pudo cargar el impacto misionero. Intenta nuevamente.");
+    const personasPorCongregacion = new Map((resumenResult.data ?? []).map((item) => [item.congregacion_id, item.personas_activas || 0]));
     const newData = {
       internos: internosResult.data ?? [],
       cultos: cultosResult.data ?? [],
@@ -95,6 +114,7 @@ export default function ImpactoMisionero() {
       institucionesCount: institucionesResult.count ?? 0,
       casos: casosResult.data ?? [],
       ayudasCount: ayudasResult.count ?? 0,
+      congregaciones: congregacionesList.map((item) => ({ ...item, personasActivas: personasPorCongregacion.get(item.id) || 0 })),
     };
     setData(newData);
     setLoading(false);
@@ -121,6 +141,48 @@ export default function ImpactoMisionero() {
     { datasetLabel: "Personas alcanzadas" },
   );
   const alcance = esLocal ? "tu congregación" : nivel === "distrital" ? "tu distrito" : "la IPUC en Colombia";
+
+  // Mapa de presencia -- mismo calculo de "agrupar por ciudad" que ya usa
+  // GestionDistritos.jsx, para no inventar uno distinto.
+  const desde12mMapa = fechaBogota(new Date(Date.now() - 365 * 86400000));
+  const congregacionesActivas = data.congregaciones.length;
+  const ciudadesMapa = (() => {
+    const mapa = new Map();
+    for (const congregacion of data.congregaciones) {
+      const ciudad = congregacion.ciudad?.trim();
+      if (!ciudad) continue;
+      const clave = ciudad.toLowerCase();
+      if (!mapa.has(clave)) mapa.set(clave, { ciudad, total: 0 });
+      mapa.get(clave).total += 1;
+    }
+    return [...mapa.values()].sort((a, b) => b.total - a.total);
+  })();
+  const congregacionesNuevas12m = data.congregaciones.filter((item) => item.created_at >= desde12mMapa).length;
+  const personasAlcanzadasMapa = data.congregaciones.reduce((total, item) => total + (item.personasActivas || 0), 0);
+  const puntosMapa = data.congregaciones
+    .filter((item) => Number.isFinite(item.latitud) && Number.isFinite(item.longitud))
+    .map((item) => ({
+      id: item.id,
+      label: item.nombre,
+      valor: item.personasActivas || 1,
+      latitud: item.latitud,
+      longitud: item.longitud,
+      detalle: [item.ciudad, item.personasActivas ? `${item.personasActivas} activos` : null].filter(Boolean).join(" · "),
+    }));
+  const barrasCiudades = distributionDataset(
+    ciudadesMapa.slice(0, 5).map((item) => ({ label: item.ciudad, total: item.total })),
+    { datasetLabel: "Congregaciones" },
+  );
+  const tendenciaCrecimiento = (() => {
+    const hoy = new Date();
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      meses.push({ limite: new Date(fecha.getFullYear(), fecha.getMonth() + 1, 1), label: fecha.toLocaleDateString("es-CO", { month: "short" }) });
+    }
+    const conteos = meses.map(({ limite }) => data.congregaciones.filter((item) => item.created_at && new Date(item.created_at) < limite).length);
+    return trendDataset(meses.map((m) => m.label), conteos, { label: "Congregaciones" });
+  })();
 
   function exportResumen() {
     return {
@@ -189,6 +251,48 @@ export default function ImpactoMisionero() {
           </div>
         </div>
       </section>
+
+      {!esLocal && (
+        <>
+          <div>
+            <p className="eyebrow">Geografía</p>
+            <h2 className="section-title" style={{ fontSize: "1.15rem" }}>Mapa de presencia</h2>
+            <p className="text-sm text-secondary mt-1">Dónde está ubicada cada congregación de {alcance === "tu distrito" ? "tu distrito" : "la IPUC"}, y cómo ha crecido en el tiempo.</p>
+          </div>
+
+          <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Metric label="Congregaciones activas" value={congregacionesActivas} />
+            <Metric label="Ciudades con presencia" value={ciudadesMapa.length} tip="Ciudades distintas con al menos una congregación, según el campo 'Ciudad' de cada congregación." />
+            <Metric label="Nuevas · últimos 12 meses" value={congregacionesNuevas12m} />
+            <Metric label="Personas alcanzadas" value={personasAlcanzadasMapa} tip="Suma de feligreses activos de todas las congregaciones en el mapa. No incluye amigos en ruta ni los frentes de Obra Carcelaria/Misión Juvenil/Obra Social." />
+          </section>
+
+          <section className="card p-2 sm:p-3" style={{ boxShadow: "0 20px 45px -22px rgba(42,120,214,0.35)", border: "1px solid rgba(42,120,214,0.18)" }}>
+            <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm font-medium">Congregaciones ubicadas</p>
+              <p className="text-xs text-muted">El tamaño de cada punto refleja cuántos feligreses activos tiene esa congregación.</p>
+            </div>
+            <GeoMap points={puntosMapa} height={420} />
+          </section>
+
+          <section className="grid lg:grid-cols-2 gap-4">
+            <div className="card chart-card p-5">
+              <p className="eyebrow">Cobertura</p>
+              <h2 className="font-medium mt-1">Congregaciones por ciudad</h2>
+              <div className="h-56 mt-4">
+                {ciudadesMapa.length ? <Bar data={barrasCiudades} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay congregaciones con ciudad registrada." />}
+              </div>
+            </div>
+            <div className="card chart-card p-5">
+              <p className="eyebrow">Tendencia</p>
+              <h2 className="font-medium mt-1">Crecimiento de congregaciones · 6 meses</h2>
+              <div className="h-56 mt-4">
+                {congregacionesActivas ? <Line data={tendenciaCrecimiento} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay congregaciones para mostrar la tendencia." />}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

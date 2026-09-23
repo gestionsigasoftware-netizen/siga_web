@@ -2,6 +2,19 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: Fase 1 del "mapa de presencia" pedido por
+	el usuario (mapa interactivo de congregaciones + indicadores +
+	graficas para distrital y nacional), agregado a Impacto Misionero.
+	Reutiliza `GeoMap.jsx` y el calculo de agrupar-por-ciudad que ya
+	tenia `GestionDistritos.jsx`. Sin cambios de SQL. Ver
+	`docs/fixes/mapa-presencia-impacto-misionero-2026-09-23.md`.
+	**Nota real, no bloqueante**: la unica congregacion real del
+	Distrito 6 hoy no tiene ciudad ni coordenadas registradas, asi que
+	el mapa arrancara vacio para ese distrito hasta que se completen
+	esos datos -- comportamiento esperado, no un bug. Fase 2 (mapa
+	coropletico por municipio) queda fuera de alcance, documentada en
+	el mismo fix como un proyecto aparte mas grande.
+
 - **Pendiente de decision del usuario (2026-09-23), NO ejecutar
 	todavia**: la cuenta `gestionsigasoftware@gmail.com` (super_admin
 	real) tambien tiene rol `local` en Puerto Tejada Cauca Central --
