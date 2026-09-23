@@ -127,6 +127,7 @@ export default function Amigos() {
   }, [notice]);
   const [canEdit, setCanEdit] = useState(null); // null = todavia no se confirma el permiso
   const [rutaActivaPorAmigo, setRutaActivaPorAmigo] = useState({});
+  const [ultimoContactoPorAmigo, setUltimoContactoPorAmigo] = useState({});
   const [sinRutaCount, setSinRutaCount] = useState(0);
   const [routeProcess, setRouteProcess] = useState(null);
   const [routeHistory, setRouteHistory] = useState([]);
@@ -160,7 +161,7 @@ export default function Amigos() {
       setLoading(true);
     }
     setError(null);
-    const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult] =
+    const [stageResult, zoneResult, categoryResult, methodResult, friendResult, convertedResult, analysisResult, ultimoContactoResult] =
       await Promise.all([
         supabase
           .from("etapas_seguimiento")
@@ -197,6 +198,11 @@ export default function Amigos() {
         })(),
         supabase.from("amigos").select("id", { count: "exact", head: true }).eq("congregacion_id", congregacionId).eq("convertido", true),
         supabase.from("amigos").select("id, etapa_id, zona_id, evangelismo_metodologia_id, convertido, fecha_primer_contacto, sellado").eq("congregacion_id", congregacionId),
+        // "Último contacto" calculado (ver vw_ultimo_contacto_amigos): en vez
+        // de un campo nuevo para escribir a mano, toma la fecha mas reciente
+        // entre notas/visitas BIS/lecciones ESFOB/compromisos Uno Mas/cambios
+        // de estacion que el personal ya registra como parte de su trabajo.
+        supabase.from("vw_ultimo_contacto_amigos").select("amigo_id, ultimo_contacto").eq("congregacion_id", congregacionId),
       ]);
     if (
       stageResult.error ||
@@ -230,6 +236,9 @@ export default function Amigos() {
       .not("amigo_id", "is", null);
     const amigosConRutaActiva = new Set((rutaCongregacion ?? []).map((item) => item.amigo_id));
     const enRuta = (analysisResult.data ?? []).filter((amigo) => !amigo.convertido);
+    // No bloquea la carga de la pantalla si la vista todavia no existe
+    // (falta ejecutar el SQL en produccion) -- se degrada a "sin datos".
+    const ultimoContactoPorAmigo = Object.fromEntries((ultimoContactoResult?.data ?? []).map((item) => [item.amigo_id, item.ultimo_contacto]));
     const freshData = {
       etapas: stageResult.data ?? [],
       zonas: zoneResult.data ?? [],
@@ -241,6 +250,7 @@ export default function Amigos() {
       analysisAmigos: analysisResult.data ?? [],
       rutaActivaPorAmigo,
       sinRutaCount: enRuta.filter((amigo) => !amigosConRutaActiva.has(amigo.id)).length,
+      ultimoContactoPorAmigo,
     };
     setEtapas(freshData.etapas);
     setZonas(freshData.zonas);
@@ -252,6 +262,7 @@ export default function Amigos() {
     setAnalysisAmigos(freshData.analysisAmigos);
     setRutaActivaPorAmigo(freshData.rutaActivaPorAmigo);
     setSinRutaCount(freshData.sinRutaCount);
+    setUltimoContactoPorAmigo(freshData.ultimoContactoPorAmigo);
     setLoading(false);
     amigosCache.set(cacheKey, freshData);
   }
@@ -640,6 +651,26 @@ export default function Amigos() {
     setNewNote("");
   }
 
+  // Acción de un solo toque para "último contacto": reutiliza amigos_notas
+  // (la misma tabla que ya alimenta vw_ultimo_contacto_amigos) en vez de un
+  // campo nuevo -- así no hay una fecha manual más que alguien tenga que
+  // recordar escribir, y el badge de "días sin contacto" se actualiza solo.
+  async function marcarContactoHoy() {
+    if (!canEdit) { setError("Tu perfil no permite registrar notas."); return; }
+    if (!selected) return;
+    setSaving(true);
+    const { data, error: noteError } = await supabase
+      .from("amigos_notas")
+      .insert({ amigo_id: selected.id, nota: "Contacto registrado" })
+      .select("id, nota, created_at")
+      .single();
+    setSaving(false);
+    if (noteError) { setError("No se pudo registrar el contacto."); return; }
+    setNotes((current) => [data, ...current]);
+    setUltimoContactoPorAmigo((current) => ({ ...current, [selected.id]: hoyBogota() }));
+    setNotice("Contacto de hoy registrado.");
+  }
+
   if (roleLoading || loading)
     return (
       <div className="module-loading" role="status">
@@ -714,7 +745,7 @@ export default function Amigos() {
           <p className={`text-2xl font-semibold mt-3 ${sinRutaCount ? "text-warning" : ""}`}>{sinRutaCount}</p>
         </div>
       </section>
-      <FriendInsights amigos={analysisAmigos} etapas={etapas} zonas={zonas} metodologias={metodologias} />
+      <FriendInsights amigos={analysisAmigos} etapas={etapas} zonas={zonas} metodologias={metodologias} ultimoContactoPorAmigo={ultimoContactoPorAmigo} />
       {showForm && (
         <form
           onSubmit={createFriend}
@@ -1001,6 +1032,9 @@ export default function Amigos() {
                             friend.zonas?.nombre ||
                             "Sin sector asignado"}
                         </p>
+                        {!friend.convertido && ultimoContactoPorAmigo[friend.id] != null && diasDesde(ultimoContactoPorAmigo[friend.id]) > 21 && (
+                          <p className="text-[10px] text-warning mt-0.5">{diasDesde(ultimoContactoPorAmigo[friend.id])} días sin contacto</p>
+                        )}
                       </div>
                     </div>
                     <span
@@ -1437,9 +1471,24 @@ export default function Amigos() {
               </button>
             </div>
             <div className="mt-5 border-t border-border pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <StickyNote className="w-4 h-4 text-accent" />
-                <h3 className="font-medium text-sm">Notas de acompañamiento</h3>
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="w-4 h-4 text-accent" />
+                  <h3 className="font-medium text-sm">Notas de acompañamiento</h3>
+                </div>
+                {!selected.convertido && (
+                  <div className="flex items-center gap-2">
+                    {ultimoContactoPorAmigo[selected.id] != null && (
+                      <span className="text-xs text-muted">
+                        {diasDesde(ultimoContactoPorAmigo[selected.id])} días sin contacto
+                      </span>
+                    )}
+                    <button type="button" disabled={saving || !canEdit} onClick={marcarContactoHoy} className="btn-secondary text-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Marcar contacto hoy
+                    </button>
+                  </div>
+                )}
               </div>
               <form
                 onSubmit={addNote}
@@ -1494,15 +1543,22 @@ function FriendStageHistory({ history, loading, actorPorAuthId }) {
   return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">Historial de etapas</h3><span className="text-[10px] text-muted">{history.length} cambios</span></div>{loading ? <p className="text-xs text-muted mt-3">Cargando historial...</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || 'Inicio'} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || 'Sin etapa'}</p><p className="text-[10px] text-muted mt-1">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })} · {describirActor(item.usuario_id)}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay cambios de etapa registrados.</p>}</section>
 }
 
-function FriendInsights({ amigos, etapas, zonas, metodologias }) {
-  const oldContactDate = fechaBogota(new Date(Date.now() - 30 * 86400000))
-  const withoutRecentContact = amigos.filter((friend) => !friend.convertido && friend.fecha_primer_contacto && friend.fecha_primer_contacto < oldContactDate).length
+function FriendInsights({ amigos, etapas, zonas, metodologias, ultimoContactoPorAmigo }) {
+  // 21 dias (no 90 como feligresia): una relacion de ruta evangelistica es
+  // mas temprana y fragil, necesita un umbral mas corto para actuar a
+  // tiempo. ultimoContactoPorAmigo viene de vw_ultimo_contacto_amigos
+  // (calculado a partir de notas/visitas/lecciones reales, no de un campo
+  // manual) -- reemplaza el calculo anterior con fecha_primer_contacto, que
+  // se fija una sola vez al crear el registro y queda "vencido" para
+  // siempre en cualquier proceso de varios meses.
+  const oldContactDate = fechaBogota(new Date(Date.now() - 21 * 86400000))
+  const withoutRecentContact = amigos.filter((friend) => !friend.convertido && (ultimoContactoPorAmigo?.[friend.id] ?? friend.fecha_primer_contacto) < oldContactDate).length
   const sealedNotBaptized = amigos.filter((friend) => !friend.convertido && friend.sellado).length
   const countBy = (key, items) => items.map((item) => ({ ...item, total: amigos.filter((friend) => friend[key] === item.id && !friend.convertido).length })).filter((item) => item.total > 0).sort((left, right) => right.total - left.total)
   const stageTotals = countBy('etapa_id', etapas)
   const zoneTotals = countBy('zona_id', zonas)
   const methodTotals = countBy('evangelismo_metodologia_id', metodologias)
-  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 30 días desde el primer contacto. Conviene revisar la agenda, disponibilidad y próximo paso.</p>}{sealedNotBaptized > 0 && <p className="summary-insight mt-3">{sealedNotBaptized} amigo{sealedNotBaptized === 1 ? '' : 's'} en ruta ya {sealedNotBaptized === 1 ? 'fue sellado' : 'fueron sellados'} con el Espíritu Santo aunque aún no se {sealedNotBaptized === 1 ? 'ha bautizado' : 'han bautizado'} — el bautismo y el sellado son hitos independientes.</p>}</section>
+  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 21 días sin contacto registrado (nota, visita o cambio de estación). Conviene revisar la agenda, disponibilidad y próximo paso.</p>}{sealedNotBaptized > 0 && <p className="summary-insight mt-3">{sealedNotBaptized} amigo{sealedNotBaptized === 1 ? '' : 's'} en ruta ya {sealedNotBaptized === 1 ? 'fue sellado' : 'fueron sellados'} con el Espíritu Santo aunque aún no se {sealedNotBaptized === 1 ? 'ha bautizado' : 'han bautizado'} — el bautismo y el sellado son hitos independientes.</p>}</section>
 }
 
 function InsightList({ title, items }) {

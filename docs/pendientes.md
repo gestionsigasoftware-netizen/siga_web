@@ -2,6 +2,34 @@
 
 ## Prioridad critica antes de produccion
 
+- **Codigo listo (2026-09-23), FALTA EJECUTAR SQL EN PRODUCCION** --
+	pedido de un directivo nacional de la IPUC (via el usuario): poder
+	detectar a tiempo cuando un feligres o un amigo (no convertido) deja
+	de tener contacto, para actuar antes de que se convierta en
+	desertor. Dos piezas:
+	- Feligresia: el boton "Atender" de la alerta "sin asistencia 90
+	  dias" nunca actualizaba `fecha_ultima_asistencia` -- solo
+	  silenciaba la alerta por el mes en curso (su clave incluye
+	  YYYY-MM), asi que volvia a aparecer sola al mes siguiente.
+	  Agregado boton "Confirmar contacto hoy" que si cierra el ciclo.
+	  Sin cambios de SQL. Ver
+	  `docs/fixes/confirmar-contacto-feligresia-2026-09-23.md`.
+	- Amigos: no tenia ningun campo ni alerta equivalente (el intento
+	  existente usaba `fecha_primer_contacto`, que nunca se actualiza).
+	  En vez de un campo manual nuevo (repetiria la misma falla), se creo
+	  una vista calculada (`vw_ultimo_contacto_amigos`) que toma la
+	  fecha mas reciente entre notas/visitas BIS/lecciones ESFOB/
+	  compromisos Uno Mas/cambios de estacion -- actividad real que ya
+	  se registra, cero trabajo nuevo. **Falta ejecutar
+	  `supabase/reportes/fix_ultimo_contacto_amigos.sql` en el SQL
+	  Editor de Supabase (produccion real)** -- hasta entonces, la
+	  pantalla de Amigos se degrada bien (sin badges de "dias sin
+	  contacto") pero no muestra la alerta nueva. Limitacion conocida:
+	  REFAM no aporta a este calculo (sus reuniones son conteo grupal,
+	  sin lista de quien asistio) -- documentado, no bloqueante. Ver
+	  `docs/fixes/vista-ultimo-contacto-amigos-2026-09-23.md`.
+	`npm run build` verificado sin errores en ambas piezas.
+
 - **Resuelto (2026-09-23), reportado en produccion real por el usuario
 	con 2 capturas**: en Reportes, un parpadeo al cargar (aparecia una
 	barra extra "Ujieres" y cifras mas altas por un instante, luego se
