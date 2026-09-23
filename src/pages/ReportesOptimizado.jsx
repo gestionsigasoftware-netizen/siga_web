@@ -83,7 +83,16 @@ export default function ReportesOptimizado() {
     setLoading(false)
   }, [congregacionId, rolPrincipal?.nivel, rolPrincipal?.distrito_id, periodo, modulo, congregacion, detailPage])
 
-  useEffect(() => { load() }, [load])
+  // Antes se llamaba load() en cuanto el componente montaba, sin esperar a
+  // que useMiRol() resolviera rolPrincipal -- en esa primera llamada
+  // congregacionId todavia era undefined, asi que el RPC resumen_reportes
+  // se disparaba con p_congregacion_id: null. Para una cuenta con mas de
+  // un rol (ej. super_admin que tambien es pastor local), eso devolvia un
+  // instante de datos del pais entero (visible como un parpadeo con una
+  // barra extra en el grafico) antes de que la llamada correctamente
+  // acotada lo reemplazara. Mismo patron multi-rol de hoy, esta vez como
+  // condicion de carrera en vez de falta de filtro.
+  useEffect(() => { if (rolPrincipal) load() }, [load, rolPrincipal])
   useEffect(() => { setDetailPage(0) }, [periodo, modulo, congregacion])
 
   const filteredSummary = summary.filter((row) => (modulo === 'todos' || row.modulo_id === modulo) && (congregacion === 'todas' || row.congregacion_id === congregacion))

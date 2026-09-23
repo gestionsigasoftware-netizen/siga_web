@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23), reportado en produccion real por el usuario
+	con 2 capturas**: en Reportes, un parpadeo al cargar (aparecia una
+	barra extra "Ujieres" y cifras mas altas por un instante, luego se
+	asentaba en el valor correcto). Variante nueva del mismo patron
+	multi-rol de hoy: no era falta de filtro sino una condicion de
+	carrera -- `load()` se disparaba antes de que `rolPrincipal`
+	terminara de resolver, mandando `p_congregacion_id: null` al RPC en
+	la primera llamada (pais entero para una cuenta multi-rol) antes de
+	que la llamada bien acotada la reemplazara. Corregido esperando a
+	que `rolPrincipal` este listo antes de cargar. De paso se confirmo
+	con datos reales que el comportamiento de "90 dias/Todo" (se ve
+	igual que "30 dias") es correcto, no un bug: Puerto Tejada solo
+	tiene 12 registros historicos, el mas antiguo de hace 29 dias. Ver
+	`docs/fixes/reportes-parpadeo-carrera-rol-2026-09-23.md`.
+
 - **Resuelto (2026-09-23)**: ultimo lote de la auditoria sistematica --
 	13 consultas corregidas en 11 archivos (`FeligresiaAdmin.jsx` x3
 	incluido `vw_alertas_pastorales` visible en pantalla,
