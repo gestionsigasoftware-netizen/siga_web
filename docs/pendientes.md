@@ -3,6 +3,24 @@
 ## Prioridad critica antes de produccion
 
 - **Resuelto (2026-09-23), reportado en produccion real por el usuario
+	con captura**: en "Reportes", viendo la congregacion como Puerto
+	Tejada (rol local), el selector "Filtrar por congregacion" mostraba
+	la lista completa de congregaciones del pais en vez de solo la
+	propia. Mismo patron y misma causa que el bug de Auditoria de
+	Feligresia de mas abajo (cuenta multi-rol, RLS de `congregaciones`
+	sin filtro explicito por rol activo) -- a diferencia de Auditoria,
+	las cifras del reporte (KPIs, graficos, detalle) ya estaban bien
+	acotadas; solo el selector exponia nombres de otras congregaciones.
+	Corregido en `ReportesOptimizado.jsx`: el selector y el detalle
+	distrital ahora filtran explicito por `rolPrincipal.nivel`. Sin
+	cambios de SQL. Ver
+	`docs/fixes/reportes-dropdown-congregaciones-multi-rol-2026-09-23.md`.
+	**Pendiente no bloqueante, documentado ahi mismo**: `resumen_reportes()`
+	(el RPC) solo acepta `p_congregacion_id`, no `p_distrito_id` -- para
+	cerrar del todo el caso distrital multi-rol haria falta ampliar su
+	firma (otra migracion SQL), no se hizo en esta sesion.
+
+- **Resuelto (2026-09-23), reportado en produccion real por el usuario
 	con captura**: en "Auditoria de Feligresia", viendo la congregacion
 	como Puerto Tejada, aparecian cambios de Carlos Alberto Diaz
 	Gonzalez, pastor de Suarez Cauca (otra congregacion). Causa real:

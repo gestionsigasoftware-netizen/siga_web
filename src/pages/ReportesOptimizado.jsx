@@ -48,16 +48,31 @@ export default function ReportesOptimizado() {
     setError(null)
     const desde = periodo === 'all' ? '2000-01-01' : (() => { const date = new Date(); date.setDate(date.getDate() - Number(periodo)); return fechaBogota(date) })()
     const summaryRequest = supabase.rpc('resumen_reportes', { p_congregacion_id: congregacionId || null, p_desde: desde })
-    let detailRequest = supabase.from('registros_actividad').select('id, fecha, total_asistentes, desglose, nombre_actividad, congregacion_id, congregaciones(id, nombre), modulos(id, nombre_modulo), tipos_actividad(nombre)', { count: 'exact' }).order('fecha', { ascending: false }).order('id', { ascending: false }).range(detailPage * PAGE_SIZE, detailPage * PAGE_SIZE + PAGE_SIZE - 1)
+    // igual que en el select de congregaciones de abajo: el embed pasa a
+    // `!inner` solo para distrital, para que el filtro por distrito_id
+    // realmente acote las filas de nivel superior (un embed normal sin
+    // !inner no restringe el resultset, solo el objeto anidado).
+    const detailColumns = `id, fecha, total_asistentes, desglose, nombre_actividad, congregacion_id, congregaciones${rolPrincipal?.nivel === 'distrital' ? '!inner' : ''}(id, nombre${rolPrincipal?.nivel === 'distrital' ? ', distrito_id' : ''}), modulos(id, nombre_modulo), tipos_actividad(nombre)`
+    let detailRequest = supabase.from('registros_actividad').select(detailColumns, { count: 'exact' }).order('fecha', { ascending: false }).order('id', { ascending: false }).range(detailPage * PAGE_SIZE, detailPage * PAGE_SIZE + PAGE_SIZE - 1)
     if (congregacionId) detailRequest = detailRequest.eq('congregacion_id', congregacionId)
+    if (rolPrincipal?.nivel === 'distrital') detailRequest = detailRequest.eq('congregaciones.distrito_id', rolPrincipal.distrito_id)
     if (congregacion !== 'todas') detailRequest = detailRequest.eq('congregacion_id', congregacion)
     if (modulo !== 'todos') detailRequest = detailRequest.eq('modulo_id', modulo)
     if (periodo !== 'all') detailRequest = detailRequest.gte('fecha', desde)
+    // El selector "Filtrar por congregación" debe acotarse al alcance del
+    // ROL ACTIVO (rolPrincipal), no solo a RLS: una cuenta que además
+    // tiene un rol superior (ej. super_admin que también es pastor local)
+    // sigue pasando la RLS de `congregaciones` para TODO el país aunque
+    // esté "viendo como" local -- mismo patrón corregido antes en
+    // AuditoriaFeligresia.jsx (ver docs/fixes/auditoria-feligresia-fuga-multi-rol-2026-09-23.md).
+    let congregationsRequest = supabase.from('congregaciones').select('id, nombre').order('nombre')
+    if (rolPrincipal?.nivel === 'local') congregationsRequest = congregationsRequest.eq('id', congregacionId)
+    if (rolPrincipal?.nivel === 'distrital') congregationsRequest = congregationsRequest.eq('distrito_id', rolPrincipal.distrito_id)
     const [summaryResult, detailResult, categoryResult, congregationResult] = await Promise.all([
       summaryRequest,
       detailRequest,
       supabase.from('categorias_demograficas').select('id, nombre').order('orden'),
-      supabase.from('congregaciones').select('id, nombre').order('nombre'),
+      congregationsRequest,
     ])
     if (summaryResult.error || detailResult.error || categoryResult.error || congregationResult.error) setError('No se pudo cargar el reporte. Intenta nuevamente o contacta al administrador.')
     setSummary(summaryResult.data ?? [])
@@ -66,7 +81,7 @@ export default function ReportesOptimizado() {
     setCategories(categoryResult.data ?? [])
     setCongregations(congregationResult.data ?? [])
     setLoading(false)
-  }, [congregacionId, periodo, modulo, congregacion, detailPage])
+  }, [congregacionId, rolPrincipal?.nivel, rolPrincipal?.distrito_id, periodo, modulo, congregacion, detailPage])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { setDetailPage(0) }, [periodo, modulo, congregacion])
