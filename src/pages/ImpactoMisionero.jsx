@@ -280,19 +280,25 @@ export default function ImpactoMisionero() {
                     ~1000 esta tarjeta queda invisible por debajo del mapa,
                     sin ningun error en consola. Verificado visualmente antes
                     de este fix: con z-index 10 no se veia nada. */}
+                {/* Vidrio oscuro a propósito, aunque el mapa ahora es claro
+                    (navigation-day-v1): un chip oscuro flotante se lee bien
+                    encima de cualquier mosaico, y es el mismo lenguaje visual
+                    que ya usan los controles/tooltips de Leaflet en modo
+                    premium (ver PREMIUM_STYLE en GeoMap.jsx). Un chip claro
+                    aquí se fundiría con el fondo del mapa. */}
                 <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)" }}>
-                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.16)" }}>
+                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
                     <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "rgba(234,241,250,0.65)" }}>Congregaciones</p>
                     <p className="text-xl font-semibold text-white mt-0.5">{congregacionesActivas}</p>
                   </div>
-                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(62,224,200,0.12)", backdropFilter: "blur(16px)", border: "1px solid rgba(62,224,200,0.3)" }}>
+                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(62,224,200,0.35)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
                     <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#8FEFDF" }}>Ciudades</p>
                     <p className="text-xl font-semibold mt-0.5" style={{ color: "#3EE0C8" }}>{ciudadesMapa.length}</p>
                   </div>
                 </div>
-                <div className="absolute bottom-4 left-4 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)" }}>
-                  <p className="text-xs font-medium text-white" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>Congregaciones ubicadas</p>
-                  <p className="text-[11px]" style={{ color: "rgba(234,241,250,0.75)", textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>El tamaño de cada punto refleja feligreses activos</p>
+                <div className="absolute bottom-4 left-4 rounded-xl px-3.5 py-2.5 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)", background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
+                  <p className="text-xs font-medium text-white">Congregaciones ubicadas</p>
+                  <p className="text-[11px]" style={{ color: "rgba(234,241,250,0.75)" }}>El tamaño de cada punto refleja feligreses activos</p>
                 </div>
               </>
             )}

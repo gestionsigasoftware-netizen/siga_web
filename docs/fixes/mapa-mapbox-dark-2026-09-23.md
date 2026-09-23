@@ -1,5 +1,11 @@
 # Mosaico oscuro real (Mapbox dark-v11) para el mapa premium
 
+> **Superado el mismo día** por
+> `docs/fixes/mapa-mapbox-modo-claro-navigation-day-2026-09-23.md`: el
+> usuario pidió pasar el mapa a modo claro. Este documento queda como
+> historial de la investigación de proveedores (CartoDB/Esri/Mapbox),
+> que sigue vigente -- solo cambió el estilo elegido dentro de Mapbox.
+
 **Fecha:** 2026-09-23
 **Módulo:** Impacto Misionero → Mapa de presencia (`src/components/charts/GeoMap.jsx`, prop `premium`)
 

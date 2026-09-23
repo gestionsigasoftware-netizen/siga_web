@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: mapa premium pasado a modo claro (Mapbox
+	`navigation-day-v1`, el mismo tipo de estilo que usan Uber/Waze --
+	jerarquia vial con color, mas rico que `light-v11` sin la sobrecarga
+	de iconos de `streets-v12`) y pulso real "en vivo" en cada punto
+	(anillo animado en bucle, 4 retrasos distintos para que no pulsen
+	sincronizados) -- quedaba pendiente desde el diseno original. Ver
+	`docs/fixes/mapa-mapbox-modo-claro-navigation-day-2026-09-23.md`.
+	Verificado con 2 capturas consecutivas confirmando que la animacion
+	corre de verdad en el navegador. Sin cambios de SQL ni de CSP (mismo
+	dominio `api.mapbox.com` ya autorizado).
+
 - **Resuelto (2026-09-23)**: mosaico oscuro real (Mapbox `dark-v11`)
 	para el mapa premium de presencia, reemplazando el OpenStreetMap
 	estandar que quedo como solucion temporal en el punto anterior (ver
