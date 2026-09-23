@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: auditoria sistematica (pedida por el
+	usuario) encontro 2 instancias mas del mismo patron:
+	- `GlobalSearch.jsx` (buscador del encabezado, alta severidad): para
+	  distrital buscaba congregaciones de TODO el pais sin filtrar por
+	  distrito -- corregido con `.eq('distrito_id', ...)`.
+	- `Suscripciones.jsx` y `ErroresSistema.jsx` (severidad moderada): la
+	  UI ya estaba bien bloqueada para no-super_admin, pero la consulta
+	  se disparaba igual antes de verificar el rol (quedaba en memoria/
+	  red aunque no se mostrara). Corregido moviendo el chequeo de rol
+	  al propio efecto que dispara la carga.
+	Revisado y confirmado SIN problema en el mismo lote: Soporte.jsx,
+	EquipoCongregacion.jsx, Configuracion.jsx, Modulos.jsx,
+	ConfiguracionSistema.jsx, Perfil.jsx, MainLayout.jsx. Ver
+	`docs/fixes/busqueda-global-y-fetch-antes-de-gate-2026-09-23.md`.
+
 - **Resuelto (2026-09-23)**: tercera instancia del mismo bug
 	(encontrada al auditar sistematicamente el patron a pedido del
 	usuario, no reportada con captura como las otras dos): en

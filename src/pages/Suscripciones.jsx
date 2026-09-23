@@ -58,7 +58,15 @@ export default function Suscripciones() {
     suscripcionesCache.set(cacheKey, { congregaciones: newCongregaciones, suscripciones: newSuscripciones, metodoPago: newMetodoPago })
   }
 
-  useEffect(() => { if (!roleLoading) cargar() }, [roleLoading])
+  // No basta con ocultar la tabla si el rol activo no es super_admin: la
+  // consulta debe ni siquiera dispararse, porque una cuenta multi-rol (ej.
+  // super_admin viendo "como" local) igual pasaria la RLS y traeria estos
+  // datos de negocio a memoria/red aunque la pantalla no los muestre.
+  useEffect(() => {
+    if (roleLoading) return
+    if (rolPrincipal?.nivel === 'super_admin') cargar()
+    else setLoading(false)
+  }, [roleLoading, rolPrincipal?.nivel])
 
   useEffect(() => {
     if (!notice) return undefined

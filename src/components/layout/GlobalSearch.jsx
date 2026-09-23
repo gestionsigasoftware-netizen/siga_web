@@ -48,12 +48,18 @@ export default function GlobalSearch() {
           .limit(8)
         if (active) { setPersonas(data ?? []); setCongregaciones([]); setSearching(false) }
       } else {
-        const { data } = await supabase
+        // Igual que en Auditoria/Reportes/Aprobaciones: RLS por si sola no
+        // conoce la vista activa de una cuenta multi-rol, asi que distrital
+        // necesita el filtro explicito por distrito_id (nacional/super_admin
+        // ven todo el pais, que es su alcance legitimo).
+        let query = supabase
           .from('congregaciones')
           .select('id, nombre, ciudad, estado, pastor_nombre, distritos(nombre, numero)')
           .or(`nombre.ilike.%${q}%,ciudad.ilike.%${q}%`)
           .order('nombre')
           .limit(8)
+        if (rolPrincipal.nivel === 'distrital') query = query.eq('distrito_id', rolPrincipal.distrito_id)
+        const { data } = await query
         if (active) { setCongregaciones(data ?? []); setPersonas([]); setSearching(false) }
       }
     }, 300)
