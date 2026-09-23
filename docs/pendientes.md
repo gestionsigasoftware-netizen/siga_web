@@ -2,6 +2,37 @@
 
 ## Prioridad critica antes de produccion
 
+- **Pendiente de decision del usuario (2026-09-23), NO ejecutar
+	todavia**: la cuenta `gestionsigasoftware@gmail.com` (super_admin
+	real) tambien tiene rol `local` en Puerto Tejada Cauca Central --
+	confirmado que es justamente la cuenta multi-rol detras de casi
+	todos los bugs de fuga encontrados hoy. Decision del usuario: por
+	ahora se queda asi porque la sigue usando para mas pruebas
+	funcionales/no funcionales. Cuando termine esa etapa de pruebas:
+	- Revocar SOLO el rol `local` de esa cuenta (dejar `distrital`,
+	  `nacional` y `super_admin` intactos -- el usuario los quiere
+	  conservados a proposito, para poder entrar a cualquier
+	  congregacion/distrito/panel nacional desde la misma cuenta de
+	  administracion). SQL listo para correr cuando decida:
+	  ```sql
+	  update roles_sistema
+	  set fecha_fin = current_date
+	  where fecha_fin is null
+	    and nivel = 'local'
+	    and persona_id in (
+	      select p.id from personas p
+	      join auth.users u on u.id = p.auth_user_id
+	      where u.email = 'gestionsigasoftware@gmail.com'
+	    );
+	  ```
+	- Puerto Tejada Cauca Central (congregacion real, ya existe) necesita
+	  su propia cuenta real de pastor -- falta el nombre y correo real
+	  del pastor para otorgarle acceso (no es "registrar congregacion
+	  nueva", es "otorgar acceso" sobre una que ya existe).
+	- La cuenta de pruebas `pueba691@gmail.com` tambien sigue con rol
+	  local en Puerto Tejada -- revisar si tambien debe liberarse cuando
+	  se cree la cuenta real del pastor.
+
 - **Codigo listo (2026-09-23), FALTA EJECUTAR 2 SQL EN PRODUCCION** --
 	pedido del usuario tras revisar el flujo de alta de congregaciones:
 	confirmo que `congregaciones.estado` no bloqueaba nada tecnicamente
