@@ -1,18 +1,26 @@
--- SIGA - Corregir una congregacion creada por error.
+-- SIGA - Quitar a nacional el acceso al módulo de Aprobaciones (2026-09-22).
 --
--- Hasta ahora no existia forma de deshacer una congregacion creada por
--- error desde "Registrar nueva congregacion" -- por diseno,
--- `congregaciones` no tiene politica de DELETE para el cliente (evita
--- borrados accidentales de un tenant real con datos verdaderos). Esta
--- funcion NO cambia esa regla -- es un "deshacer creacion" muy
--- estrecho, simetrico exacto de lo que hace crear_congregacion_con_pastor():
--- borra la fila de congregaciones, la persona-pastor autocreada, su rol
--- de sistema, su fila en pastores y su asignacion pastoral.
+-- El usuario detectó que Aprobaciones.jsx usaba el mismo módulo para
+-- distrital y nacional (y super_admin), y ambos podían aprobar, suspender
+-- o anular cualquier congregación pendiente. Esto no era el diseño
+-- pretendido: aprobar una congregación nueva es decisión del distrital
+-- dueño del proceso, no de nacional. Nacional sigue viendo todas las
+-- congregaciones del país (dashboards, reportes, "Visión país") porque
+-- mis_congregaciones()/congregaciones_select no cambian aquí -- solo
+-- pierde la capacidad de decidir su estado.
 --
--- Solo funciona si la congregacion sigue "pendiente_aprobacion" (nunca
--- se activo) y no tiene ninguna persona real aparte del pastor
--- autocreado -- si ya se aprobo o ya tiene censo real, se rechaza y hay
--- que usar el SQL Editor a proposito, igual que antes.
+-- Cambia dos cosas del lado de la base de datos (el frontend ya se
+-- corrigió aparte en Aprobaciones.jsx y Sidebar.jsx):
+-- 1. La política de UPDATE de `congregaciones` ya no incluye es_nacional().
+-- 2. anular_congregacion() ya no incluye es_nacional() en su chequeo.
+-- super_admin conserva ambos accesos (operador de la plataforma / soporte).
+--
+-- Ejecutar después de schema.sql y anular_congregacion.sql. Es repetible.
+
+drop policy if exists "congregaciones_update_distrital" on congregaciones;
+create policy "congregaciones_update_distrital" on congregaciones for update using (
+  distrito_id in (select mis_distritos()) or es_super_admin()
+);
 
 create or replace function anular_congregacion(p_congregacion_id uuid)
 returns void language plpgsql security definer set search_path = public as $$

@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
+import { useAuth } from '../hooks/useAuth'
 import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
 
 const aprobacionesCache = new Map()
 
-const ALLOWED_LEVELS = ['distrital', 'nacional', 'super_admin']
+// Nacional NO tiene acceso: aprobar/suspender/anular una congregación es
+// decisión del distrital dueño del proceso. super_admin conserva acceso
+// como operador de la plataforma (soporte).
+const ALLOWED_LEVELS = ['distrital', 'super_admin']
 
 const ESTADO_TONO = {
   pendiente_aprobacion: 'bg-warning-bg text-warning',
@@ -19,6 +23,7 @@ const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 
 
 export default function Aprobaciones() {
   const { rolPrincipal, loading: roleLoading } = useMiRol()
+  const { user } = useAuth()
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(null)
@@ -57,7 +62,7 @@ export default function Aprobaciones() {
 
   async function actualizarEstado(id, estado) {
     setBusy(id)
-    const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString() }).eq('id', id)
+    const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString(), aprobada_por: user?.id ?? null }).eq('id', id)
     setBusy(null)
     if (updateError) { setError('No se pudo actualizar el estado de la congregación.'); return }
     load()

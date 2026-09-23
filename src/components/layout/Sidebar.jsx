@@ -279,10 +279,7 @@ export default function Sidebar() {
       to: "/aprobaciones",
       label: "Aprobaciones",
       icon: CheckSquare,
-      show:
-        nivel === "distrital" ||
-        nivel === "nacional" ||
-        nivel === "super_admin",
+      show: nivel === "distrital" || nivel === "super_admin",
     },
     {
       to: "/configuracion",

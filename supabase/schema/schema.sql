@@ -255,10 +255,13 @@ create or replace function mis_congregaciones() returns setof uuid language sql 
   select id from congregaciones where es_super_admin() or es_nacional();
 $$;
 
--- congregaciones: local ve/edita la suya; distrital ve/aprueba las de su distrito; nacional/super_admin ven todo.
+-- congregaciones: local ve/edita la suya; distrital ve/aprueba las de su distrito;
+-- nacional ve todo (reportes/consolidados) pero NO aprueba/suspende/anula --
+-- esa decisión es exclusiva del distrital dueño del proceso y de super_admin
+-- (operador de la plataforma); super_admin ve y aprueba todo.
 create policy "congregaciones_select" on congregaciones for select using (id in (select mis_congregaciones()));
 create policy "congregaciones_update_distrital" on congregaciones for update using (
-  distrito_id in (select mis_distritos()) or es_super_admin() or es_nacional()
+  distrito_id in (select mis_distritos()) or es_super_admin()
 );
 create policy "congregaciones_insert_self_register" on congregaciones for insert to authenticated with check (true);
 

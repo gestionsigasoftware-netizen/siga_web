@@ -106,7 +106,16 @@ export default function AuditoriaFeligresia() {
     const canAudit = rolPrincipal && (ADMIN_LEVELS.includes(rolPrincipal.nivel) || (rolPrincipal.nivel === 'local' && (!rolPrincipal.rol_local || rolPrincipal.rol_local === 'pastor')))
     if (!canAudit) { setLoading(false); return }
     async function load() {
-      const cacheKey = `${entity}:${action}:${fromDate}:${toDate}:${page}`
+      // El alcance debe fijarlo el ROL ACTIVO (rolPrincipal), no solo la
+      // RLS: una cuenta que además tiene un rol superior (ej. super_admin
+      // que también es pastor local de una congregación) sigue pasando la
+      // RLS de auditoria_feligresia para TODO el país aunque esté "viendo
+      // como" local -- la RLS no sabe qué vista eligió en el selector de
+      // rol. Por eso, a diferencia de RLS sola, aquí se filtra explícito
+      // por el alcance del rol activo, igual que hace el resto de la app
+      // (rolPrincipal.congregacion_id / rolPrincipal.distrito_id).
+      const scopeKey = rolPrincipal.nivel === 'local' ? `local:${rolPrincipal.congregacion_id}` : rolPrincipal.nivel === 'distrital' ? `distrital:${rolPrincipal.distrito_id}` : rolPrincipal.nivel
+      const cacheKey = `${scopeKey}:${entity}:${action}:${fromDate}:${toDate}:${page}`
       const cached = auditoriaFeligresiaCache.get(cacheKey)
       if (cached) {
         setEntries(cached.entries)
@@ -116,7 +125,10 @@ export default function AuditoriaFeligresia() {
         setLoading(true)
       }
       setError(null)
-      let query = supabase.from('auditoria_feligresia').select('id, entidad, entidad_id, entidad_clave, accion, antes, despues, usuario_id, creado_en', { count: 'exact' }).order('creado_en', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1)
+      const columnas = `id, entidad, entidad_id, entidad_clave, accion, antes, despues, usuario_id, creado_en${rolPrincipal.nivel === 'distrital' ? ', congregaciones!inner(distrito_id)' : ''}`
+      let query = supabase.from('auditoria_feligresia').select(columnas, { count: 'exact' }).order('creado_en', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1)
+      if (rolPrincipal.nivel === 'local') query = query.eq('congregacion_id', rolPrincipal.congregacion_id)
+      if (rolPrincipal.nivel === 'distrital') query = query.eq('congregaciones.distrito_id', rolPrincipal.distrito_id)
       if (entity !== 'todas') query = query.eq('entidad', entity)
       if (action !== 'todas') query = query.eq('accion', action)
       if (fromDate) query = query.gte('creado_en', `${fromDate}T00:00:00`)

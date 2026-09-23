@@ -2,6 +2,51 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23), reportado en produccion real por el usuario
+	con captura**: en "Auditoria de Feligresia", viendo la congregacion
+	como Puerto Tejada, aparecian cambios de Carlos Alberto Diaz
+	Gonzalez, pastor de Suarez Cauca (otra congregacion). Causa real:
+	la cuenta del usuario tiene mas de un rol (super_admin + local
+	Puerto Tejada); `mis_congregaciones()` en RLS se evalua sobre TODOS
+	los roles reales de la cuenta, no sobre la "vista" elegida en el
+	selector de rol del frontend -- por eso veia el pais entero aunque
+	estuviera "viendo como" local. Confirmado primero que una cuenta de
+	un solo rol (prueba real contra produccion) SI estaba bien aislada
+	(0 de 500 filas de otra congregacion). `AuditoriaFeligresia.jsx` era
+	la unica pantalla que no filtraba explicito por
+	`rolPrincipal.congregacion_id`/`distrito_id` como el resto de la
+	app -- corregido, mas la clave de cache que tampoco incluia el rol
+	activo. Sin cambios de SQL/RLS necesarios. Ver
+	`docs/fixes/auditoria-feligresia-fuga-multi-rol-2026-09-23.md`.
+	**Pendiente no bloqueante**: no se audito si el mismo patron (RLS sin
+	filtro explicito por rol activo) existe en otro modulo -- solo se
+	corrigio el reportado.
+
+- **Codigo listo (2026-09-22), FALTA EJECUTAR SQL EN PRODUCCION** --
+	pedido por el usuario tras revisar la app: `Aprobaciones.jsx` era el
+	mismo modulo para distrital, nacional y super_admin, y los tres
+	podian aprobar/suspender/anular cualquier congregacion. No era el
+	diseno pretendido: esa decision es exclusiva del distrital dueño del
+	proceso (y de super_admin como operador de la plataforma). Corregido:
+	- Frontend: `nacional` ya no esta en `ALLOWED_LEVELS` de
+	  `Aprobaciones.jsx` ni en el `show` del item del Sidebar; se quito
+	  su entrada del Manual de uso. Nacional sigue viendo congregaciones
+	  en reportes/dashboards (eso no cambio).
+	- Se agrego trazabilidad real: `actualizarEstado()` ahora guarda
+	  `aprobada_por: user.id` (la columna ya existia en el esquema pero
+	  nunca se llenaba).
+	- Base de datos: **falta correr
+	  `supabase/distrital/fix_aprobaciones_solo_distrital.sql` en el SQL
+	  Editor de Supabase (produccion real)** -- quita `es_nacional()` de
+	  la politica `congregaciones_update_distrital` y de
+	  `anular_congregacion()`. `schema.sql` y `anular_congregacion.sql`
+	  ya quedaron actualizados como fuente de verdad para instalaciones
+	  nuevas. Sin ejecutar este SQL, un usuario nacional real todavia
+	  podria aprobar/suspender/anular por RLS aunque ya no vea el boton
+	  en la interfaz. Ver
+	  `docs/fixes/aprobaciones-solo-distrital-2026-09-22.md`.
+	  `npm run build` verificado sin errores.
+
 - **Resuelto (2026-09-18), reportado en produccion real por el usuario
 	(rol distrital)**: "No se pudo cargar el consolidado del distrito"
 	en Resumen. Causa: `personas.congregacion_bautismo_id` (agregada el

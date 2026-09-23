@@ -329,11 +329,6 @@ const MANUAL = {
           queEs: 'Cambios en el censo de cualquier congregación del país.',
           como: [{ accion: 'Investigar un cambio', pasos: ['Aplica los mismos filtros de Entidad/Acción/fechas.', 'Clic en "Ver cambios" para el detalle de cualquier congregación del país.'] }],
         },
-        {
-          titulo: 'Aprobaciones',
-          queEs: 'Igual que distrital, pero para cualquier congregación pendiente de aprobación del país.',
-          como: [{ accion: 'Aprobar, suspender o anular', pasos: ['Ubica la congregación pendiente (columna Distrito indica cuál).', 'Clic en ✓ para aprobar, ✗ para suspender, o la papelera para anular.'] }],
-        },
       ],
     },
   ],
