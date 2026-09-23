@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { geocodeAddress } from '../lib/geocoding'
+import MapaUbicacionEditable from '../components/charts/MapaUbicacionEditable'
 import UndoToast from '../components/UndoToast'
 import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
@@ -74,9 +75,11 @@ export default function Configuracion() {
   const [etapas, setEtapas] = useState([])
   const [tiposComite, setTiposComite] = useState([])
   const [cargosComite, setCargosComite] = useState([])
-  const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '', ciudad: '', direccion: '' })
+  const [organizacion, setOrganizacion] = useState({ nombre: '', distrito: '', ciudad: '', direccion: '', latitud: null, longitud: null })
   const [preferencias, setPreferencias] = useState({ umbral_alerta: 15, modulo_predeterminado: '', exigir_responsable: true, exigir_novedades: false })
   const [saving, setSaving] = useState(false)
+  const [geocoding, setGeocoding] = useState(false)
+  const [recenterKey, setRecenterKey] = useState(0)
   const [notice, setNotice] = useState(null)
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export default function Configuracion() {
       supabase.from('categorias_demograficas').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
       supabase.from('modulos').select('id, nombre_modulo, activo').eq('congregacion_id', congregacionId),
       supabase.from('etapas_seguimiento').select('id, nombre, orden').eq('congregacion_id', congregacionId).order('orden'),
-      supabase.from('congregaciones').select('id, nombre, distrito_id, ciudad, direccion, distritos(numero)').eq('id', congregacionId).single(),
+      supabase.from('congregaciones').select('id, nombre, distrito_id, ciudad, direccion, latitud, longitud, distritos(numero)').eq('id', congregacionId).single(),
       supabase.from('tipos_comite').select('id, nombre, codigo').eq('congregacion_id', congregacionId).order('nombre'),
       supabase.from('cargos_comite').select('id, nombre, codigo, requiere_sellado').eq('congregacion_id', congregacionId).order('orden').order('nombre'),
     ])
@@ -126,7 +129,7 @@ export default function Configuracion() {
     setCargosComite(nuevosCargosComite)
     let nuevaOrganizacion = organizacion
     if (congregation.data) {
-      nuevaOrganizacion = { nombre: congregation.data.nombre, distrito: congregation.data.distritos?.numero ? `Distrito ${congregation.data.distritos.numero}` : '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '' }
+      nuevaOrganizacion = { nombre: congregation.data.nombre, distrito: congregation.data.distritos?.numero ? `Distrito ${congregation.data.distritos.numero}` : '', ciudad: congregation.data.ciudad ?? '', direccion: congregation.data.direccion ?? '', latitud: congregation.data.latitud ?? null, longitud: congregation.data.longitud ?? null }
       setOrganizacion(nuevaOrganizacion)
     }
     const { data: config, error: configError } = await supabase.from('configuracion_congregacion').select('umbral_alerta, modulo_predeterminado, exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle()
@@ -148,19 +151,35 @@ export default function Configuracion() {
     })
   }
 
+  // La geocodificacion automatica (Nominatim, via geocodeAddress) solo da
+  // un punto de partida -- no siempre tiene el detalle de calle de
+  // poblaciones pequeñas. Se dispara solo con este boton (nunca en cada
+  // guardado) para respetar el uso justo de Nominatim y porque el pin que
+  // realmente se guarda es el que quede en el mapa, ajustado a mano si
+  // hace falta -- ver MapaUbicacionEditable.
+  async function buscarEnMapa() {
+    if (!organizacion.direccion.trim() && !organizacion.ciudad.trim()) return
+    setGeocoding(true)
+    const ubicacion = await geocodeAddress(organizacion.direccion.trim(), organizacion.ciudad.trim())
+    setGeocoding(false)
+    if (!ubicacion) { setNotice('No se pudo encontrar esa dirección. Marca el punto exacto haciendo clic en el mapa.'); return }
+    setOrganizacion((prev) => ({ ...prev, latitud: ubicacion.latitud, longitud: ubicacion.longitud }))
+    setRecenterKey((key) => key + 1)
+    setNotice(ubicacion.aproximado
+      ? 'Se encontró solo una ubicación aproximada por ciudad -- ajusta el pin a la dirección exacta antes de guardar.'
+      : 'Ubicación encontrada -- revisa que el pin quede exactamente sobre la congregación y ajústalo si hace falta.')
+  }
+
   async function guardarPreferencias(event) {
     event.preventDefault()
     setSaving(true)
     setNotice(null)
-    const { data: congregation, error: congregationError } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
-    if (congregationError) { setSaving(false); setError(`No se pudo cargar la congregación: ${congregationError.message}`); return }
-    const ubicacion = organizacion.direccion.trim() ? await geocodeAddress(organizacion.direccion.trim(), organizacion.ciudad.trim()) : null
     const { error: organizationError } = await supabase.from('congregaciones').update({
       nombre: organizacion.nombre.trim(),
       ciudad: organizacion.ciudad.trim() || null,
       direccion: organizacion.direccion.trim() || null,
-      latitud: ubicacion?.latitud ?? null,
-      longitud: ubicacion?.longitud ?? null,
+      latitud: organizacion.latitud ?? null,
+      longitud: organizacion.longitud ?? null,
     }).eq('id', congregacionId)
     if (organizationError) { setSaving(false); setError(`No se pudo guardar el nombre de la congregación: ${organizationError.message}`); return }
     const { error } = await supabase.from('configuracion_congregacion').upsert({ ...preferencias, umbral_alerta: Number(preferencias.umbral_alerta) || 15, congregacion_id: congregacionId, modulo_predeterminado: preferencias.modulo_predeterminado || null })
@@ -168,13 +187,8 @@ export default function Configuracion() {
     if (error) setError(`No se pudo guardar la configuración: ${error.message}`)
     else {
       window.dispatchEvent(new CustomEvent('siga:organizacion-actualizada', { detail: { congregation: organizacion.nombre.trim(), district: organizacion.distrito } }))
-      // Antes esto quedaba en silencio: si Nominatim no encontraba la
-      // direccion, la congregacion se guardaba sin coordenadas y nadie se
-      // enteraba de por que no aparecia en el mapa nacional/distrital.
-      if (organizacion.direccion.trim() && !ubicacion) {
-        setNotice('Guardado, pero no se pudo ubicar esa dirección en el mapa. Revisa que esté bien escrita (o prueba con una más general) y guarda de nuevo.')
-      } else if (ubicacion?.aproximado) {
-        setNotice('Guardado. No se encontró la dirección exacta, así que se ubicó de forma aproximada por ciudad en el mapa.')
+      if (organizacion.direccion.trim() && !Number.isFinite(organizacion.latitud)) {
+        setNotice('Guardado, pero aún no hay ubicación en el mapa -- usa "Buscar en el mapa" o haz clic directamente en el mapa para marcarla.')
       } else {
         setNotice('Información y preferencias de la congregación guardadas.')
       }
@@ -259,7 +273,30 @@ export default function Configuracion() {
           <label className="text-sm">Ciudad/Municipio<input maxLength={120} className="input-field mt-1.5" value={organizacion.ciudad} onChange={(e) => setOrganizacion({ ...organizacion, ciudad: e.target.value })} /></label>
           <label className="text-sm">Dirección<input maxLength={200} placeholder="Calle 5 #23-10, Barrio San Fernando" className="input-field mt-1.5" value={organizacion.direccion} onChange={(e) => setOrganizacion({ ...organizacion, direccion: e.target.value })} /></label>
         </div>
-        <p className="text-xs text-muted mt-3">El distrito se muestra como referencia y se administra desde el nivel correspondiente. La dirección se usa para ubicar aproximadamente tu congregación en el mapa nacional.</p>
+        <p className="text-xs text-muted mt-3">El distrito se muestra como referencia y se administra desde el nivel correspondiente.</p>
+
+        <div className="mt-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+            <h3 className="text-sm font-medium">Ubicación exacta en el mapa</h3>
+            <button
+              type="button"
+              disabled={geocoding || (!organizacion.direccion.trim() && !organizacion.ciudad.trim())}
+              onClick={buscarEnMapa}
+              className="btn-secondary text-xs px-3 py-1.5"
+            >
+              {geocoding ? 'Buscando...' : 'Buscar dirección en el mapa'}
+            </button>
+          </div>
+          <MapaUbicacionEditable
+            latitud={organizacion.latitud}
+            longitud={organizacion.longitud}
+            onChange={(lat, lng) => setOrganizacion((prev) => ({ ...prev, latitud: lat, longitud: lng }))}
+            recenterKey={recenterKey}
+          />
+          <p className="text-xs text-muted mt-2">
+            La dirección de arriba es solo texto de referencia. Lo que ubica a tu congregación en el mapa nacional/distrital es el pin: usa el botón para partir de una sugerencia automática, y haz clic en cualquier punto del mapa para moverlo a la ubicación exacta.
+          </p>
+        </div>
         <div className="flex items-center gap-4 mt-5"><button disabled={saving} className="btn-primary">{saving ? 'Guardando...' : 'Guardar información'}</button></div>
       </form>
 

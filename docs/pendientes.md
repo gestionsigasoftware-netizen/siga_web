@@ -2,6 +2,25 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: ubicacion de congregaciones ya no depende
+	100% del geocodificador automatico. El usuario noto que las
+	ubicaciones no eran veraces (aproximadas por ciudad cuando Nominatim
+	no encontraba la direccion exacta, sin forma de corregirlo). Ahora
+	Configuracion (local) tiene un mapa editable
+	(`MapaUbicacionEditable.jsx`): clic en cualquier punto coloca/mueve
+	el pin, y un boton "Buscar direccion en el mapa" sigue ofreciendo el
+	geocodificador automatico como sugerencia de partida. Lo que se
+	guarda es siempre el pin actual, no un resultado silencioso de
+	geocodificacion en cada guardado. Ver
+	`docs/fixes/ubicacion-congregacion-ajuste-manual-2026-09-23.md`.
+	Verificado con Playwright (clic coloca el pin exacto, boton de
+	busqueda centra el mapa con zoom de calle). Sin cambios de SQL
+	(columnas `latitud`/`longitud` y su politica de escritura ya
+	existian). **Accion sugerida, no bloqueante**: las congregaciones que
+	ya tienen coordenadas "aproximadas" (guardadas antes de este cambio)
+	se benefician de que alguien entre a Configuracion y ajuste el pin
+	a mano una vez.
+
 - **Resuelto (2026-09-23)**: mapa premium pasado a modo claro (Mapbox
 	`navigation-day-v1`, el mismo tipo de estilo que usan Uber/Waze --
 	jerarquia vial con color, mas rico que `light-v11` sin la sobrecarga
