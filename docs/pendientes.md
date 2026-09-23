@@ -22,12 +22,13 @@
 	filtro explicito por rol activo) existe en otro modulo -- solo se
 	corrigio el reportado.
 
-- **Codigo listo (2026-09-22), FALTA EJECUTAR SQL EN PRODUCCION** --
-	pedido por el usuario tras revisar la app: `Aprobaciones.jsx` era el
-	mismo modulo para distrital, nacional y super_admin, y los tres
-	podian aprobar/suspender/anular cualquier congregacion. No era el
-	diseno pretendido: esa decision es exclusiva del distrital dueño del
-	proceso (y de super_admin como operador de la plataforma). Corregido:
+- **Resuelto (2026-09-22, SQL confirmado ejecutado en produccion por el
+	usuario 2026-09-23)** -- pedido por el usuario tras revisar la app:
+	`Aprobaciones.jsx` era el mismo modulo para distrital, nacional y
+	super_admin, y los tres podian aprobar/suspender/anular cualquier
+	congregacion. No era el diseno pretendido: esa decision es exclusiva
+	del distrital dueño del proceso (y de super_admin como operador de
+	la plataforma). Corregido:
 	- Frontend: `nacional` ya no esta en `ALLOWED_LEVELS` de
 	  `Aprobaciones.jsx` ni en el `show` del item del Sidebar; se quito
 	  su entrada del Manual de uso. Nacional sigue viendo congregaciones
@@ -35,17 +36,18 @@
 	- Se agrego trazabilidad real: `actualizarEstado()` ahora guarda
 	  `aprobada_por: user.id` (la columna ya existia en el esquema pero
 	  nunca se llenaba).
-	- Base de datos: **falta correr
-	  `supabase/distrital/fix_aprobaciones_solo_distrital.sql` en el SQL
-	  Editor de Supabase (produccion real)** -- quita `es_nacional()` de
-	  la politica `congregaciones_update_distrital` y de
-	  `anular_congregacion()`. `schema.sql` y `anular_congregacion.sql`
+	- Base de datos: `supabase/distrital/fix_aprobaciones_solo_distrital.sql`
+	  ya se ejecuto en el SQL Editor de Supabase (produccion real) --
+	  quita `es_nacional()` de la politica `congregaciones_update_distrital`
+	  y de `anular_congregacion()`. `schema.sql` y `anular_congregacion.sql`
 	  ya quedaron actualizados como fuente de verdad para instalaciones
-	  nuevas. Sin ejecutar este SQL, un usuario nacional real todavia
-	  podria aprobar/suspender/anular por RLS aunque ya no vea el boton
-	  en la interfaz. Ver
-	  `docs/fixes/aprobaciones-solo-distrital-2026-09-22.md`.
+	  nuevas. Ver `docs/fixes/aprobaciones-solo-distrital-2026-09-22.md`.
 	  `npm run build` verificado sin errores.
+	**Pendiente no bloqueante**: el lado de base de datos esta confirmado
+	por el usuario (no se pudo verificar el comportamiento en vivo con
+	clics reales de un usuario nacional -- no hay cuenta de prueba con
+	ese rol ni acceso de servicio para introspeccionar la politica desde
+	aqui).
 
 - **Resuelto (2026-09-18), reportado en produccion real por el usuario
 	(rol distrital)**: "No se pudo cargar el consolidado del distrito"
