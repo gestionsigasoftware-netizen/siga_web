@@ -11,12 +11,12 @@ import Toast from '../components/Toast'
 
 const configuracionCache = new Map()
 
-function ListaCatalogo({ titulo, items, onAdd, onRemove, onAddBulk, placeholder, busy }) {
+function ListaCatalogo({ titulo, items, onAdd, onRemove, onAddBulk, placeholder, busy, info }) {
   const [valor, setValor] = useState('')
   const [bulkValor, setBulkValor] = useState('')
   return (
     <div className="card p-5">
-      <h3 className="font-medium mb-3">{titulo}</h3>
+      <h3 className="font-medium mb-3 flex items-center gap-1.5">{titulo}{info && <InfoTip texto={info} />}</h3>
       <div className="flex flex-col gap-1.5 mb-3">
         {items.map((item) => (
           <div key={item.id} className="flex justify-between items-center text-sm py-1.5 px-2.5 bg-surface-1 rounded">
@@ -268,7 +268,7 @@ export default function Configuracion() {
       <div className="grid md:grid-cols-3 gap-4">
         <ListaCatalogo titulo="Categorías demográficas" items={categorias} onAdd={agregarCategoria} onAddBulk={agregarCategoriasEnBloque} onRemove={quitarCategoria} placeholder="Ej. Matrimonios" busy={saving} />
         <div className="card p-5"><h3 className="font-medium mb-3">Módulos (Ujieres, Evangelismo...)</h3><p className="text-sm text-secondary leading-6">Crear, renombrar y activar o desactivar módulos y sus tipos de actividad se hace ahora desde <Link to="/modulos" className="text-accent">Módulos y actividades</Link>, donde también se administran sus tipos de actividad.</p></div>
-        <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" busy={saving} />
+        <ListaCatalogo titulo="Etapas de seguimiento de Amigos" items={etapas} onAdd={agregarEtapa} onRemove={quitarEtapa} placeholder="Ej. Bautizado" busy={saving} info="Es un dato opcional y secundario. El seguimiento real del día a día ahora se hace por 'estación' en la Ruta Evangelística (Uno Más, BIS, REFAM, ESFOB, Discipulado), que se gestiona desde Amigos en ruta, no aquí." />
         <div className="card p-5"><h3 className="font-medium mb-3">Zonas de Evangelismo</h3><p className="text-sm text-secondary leading-6">Crear y editar zonas con su responsable se hace ahora desde <Link to="/evangelismo" className="text-accent">Evangelismo</Link>, donde quedan vinculadas al módulo correcto.</p></div>
         <ListaCatalogo titulo="Tipos de comité" items={tiposComite} onAdd={agregarTipoComite} onRemove={quitarTipoComite} placeholder="Ej. Servicio" busy={saving} />
         <ListaCargosComite items={cargosComite} onAdd={agregarCargoComite} onRemove={quitarCargoComite} busy={saving} />

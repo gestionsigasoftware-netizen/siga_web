@@ -506,9 +506,12 @@ export default function ObraCarcelaria() {
                             </div>
                           </div>
                         ) : (
-                          <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item, congregacionId) : setVinculandoId(item.id))}>
-                            Vincular a la Ruta
-                          </button>
+                          <span className="inline-flex items-center gap-1">
+                            <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item, congregacionId) : setVinculandoId(item.id))}>
+                              Vincular a la Ruta
+                            </button>
+                            <InfoTip texto="Crea una ficha en la Ruta Evangelística para darle seguimiento después de salir del centro. Si ya está bautizado, queda listo para pasar a Feligresía; si no, entra a la estación BIS con un responsable asignado." />
+                          </span>
                         )
                       )}
                     </div>

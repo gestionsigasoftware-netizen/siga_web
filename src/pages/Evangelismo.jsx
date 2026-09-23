@@ -527,13 +527,14 @@ export default function Evangelismo() {
       <Toast>{notice}</Toast>
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric label="Lugares en cobertura" value={zonas.length} />
-        <Metric label="Capturas móviles" value={visibles.length} />
+        <Metric label="Capturas móviles" value={visibles.length} info="Cada vez que alguien registra una actividad evangelística en campo (normalmente desde la app móvil) cuenta como una captura. No es el número de personas distintas contactadas." />
         <Metric label="Asistencia promedio" value={promedio} />
         <Metric label="Amigos en ruta" value={amigosEnRuta} info="Personas que ya tuvieron un primer contacto pero todavía no se han bautizado." />
         <Metric
           label="Conversiones"
           value={totalConversiones}
           tone={totalConversiones ? "text-success" : ""}
+          info="Se cuenta como conversión cuando el amigo se bautiza y queda marcado como convertido -- no basta con asistir a una actividad o mostrar interés."
         />
         <Metric label="Conversión / asistente" value={`${conversionRate}%`} detail="Indicador de referencia" info="Compara el total de conversiones con el total de asistentes a capturas en este periodo. Es una referencia general, no mide el seguimiento de cada persona en particular." />
       </section>

@@ -2,6 +2,16 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: auditoria completa (3 agentes en
+	paralelo, 48 pantallas) de botones de ayuda (InfoTip) faltantes,
+	pedida por el usuario. La app ya tenia buena cobertura en general;
+	se agregaron 10 InfoTips puntuales donde un usuario final se
+	quedaria con dudas, sobre todo en piezas construidas hoy mismo
+	(boton "Confirmar contacto hoy" en Feligresia, badge "dias sin
+	contacto" y boton "Marcar contacto hoy" en Amigos, campo "Correo de
+	acceso" en GestionPastoralNacional, entre otros). Ver
+	`docs/fixes/auditoria-infotips-2026-09-23.md`.
+
 - **Codigo listo (2026-09-23), FALTA EJECUTAR SQL EN PRODUCCION** --
 	pedido de un directivo nacional de la IPUC (via el usuario): poder
 	detectar a tiempo cuando un feligres o un amigo (no convertido) deja

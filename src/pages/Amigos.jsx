@@ -979,8 +979,12 @@ export default function Amigos() {
         <div
           role="group"
           aria-label="Filtrar por etapa"
-          className="flex gap-2 flex-wrap"
+          className="flex items-center gap-2 flex-wrap"
         >
+          <span className="text-xs text-secondary flex items-center gap-1">
+            Etapa
+            <InfoTip texto="Filtra por la etapa configurada (opcional), no por la estación de la Ruta Evangelística que ves en cada tarjeta -- son dos datos distintos." />
+          </span>
           <button
             type="button"
             aria-pressed={filtro === "todos"}
@@ -1479,14 +1483,16 @@ export default function Amigos() {
                 {!selected.convertido && (
                   <div className="flex items-center gap-2">
                     {ultimoContactoPorAmigo[selected.id] != null && (
-                      <span className="text-xs text-muted">
+                      <span className="text-xs text-muted flex items-center gap-1">
                         {diasDesde(ultimoContactoPorAmigo[selected.id])} días sin contacto
+                        <InfoTip texto="Se calcula solo -- no lo escribe nadie a mano. Toma la fecha más reciente entre notas, visitas BIS, lecciones ESFOB y cambios de estación que ya registras como parte del trabajo normal." />
                       </span>
                     )}
                     <button type="button" disabled={saving || !canEdit} onClick={marcarContactoHoy} className="btn-secondary text-xs">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Marcar contacto hoy
                     </button>
+                    <InfoTip texto="Registra un contacto de hoy con una nota rápida. Úsalo cuando sí hablaste con esta persona pero eso no quedó registrado por otro medio (nota, visita, lección)." />
                   </div>
                 )}
               </div>
