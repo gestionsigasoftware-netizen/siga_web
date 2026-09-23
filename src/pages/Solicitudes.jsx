@@ -58,7 +58,15 @@ export default function Solicitudes() {
     } else {
       setLoading(true)
     }
-    const { data, error: loadError } = await supabase.from('solicitudes_jerarquicas').select('*').order('actualizado_en', { ascending: false }).limit(200)
+    // Igual que en los demas fixes de hoy: filtro explicito por el rol
+    // activo, no solo RLS -- una cuenta multi-rol viendo "como" distrital
+    // seguiria viendo solicitudes de todo el pais si esto confiara solo
+    // en mis_distritos()/es_nacional(). Se espeja la misma logica OR de
+    // la politica RLS (solicitudes_select) pero fijada al rol activo.
+    let query = supabase.from('solicitudes_jerarquicas').select('*').order('actualizado_en', { ascending: false }).limit(200)
+    if (nivel === 'local') query = query.or(`creado_por.eq.${user.id},congregacion_id.eq.${rolPrincipal.congregacion_id}`)
+    else if (nivel === 'distrital') query = query.or(`creado_por.eq.${user.id},distrito_id.eq.${rolPrincipal.distrito_id}`)
+    const { data, error: loadError } = await query
     if (loadError) setError('No se pudieron cargar las solicitudes.')
     const solicitudesFrescas = data ?? []
     setSolicitudes(solicitudesFrescas)

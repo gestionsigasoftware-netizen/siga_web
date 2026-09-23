@@ -63,16 +63,28 @@ export default function ImpactoMisionero() {
     }
     setError(null);
     const desde12m = fechaBogota(new Date(Date.now() - 365 * 86400000));
-    const scoped = (query) => (esLocal ? query.eq("congregacion_id", congregacionId) : query);
+    // Igual que en los demas fixes de hoy: `scoped` solo distinguia local,
+    // dejando distrital sin filtro -- una cuenta multi-rol viendo "como"
+    // distrital veia el pais entero etiquetado como "tu distrito". Ahora
+    // distrital tambien filtra, via el embed a congregaciones.
+    const esDistrital = nivel === "distrital";
+    const distritoEmbed = esDistrital ? ", congregaciones!inner(distrito_id)" : "";
+    const scoped = (query) => {
+      if (esLocal) return query.eq("congregacion_id", congregacionId);
+      if (esDistrital) return query.eq("congregaciones.distrito_id", rolPrincipal.distrito_id);
+      return query;
+    };
     const [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult] = await Promise.all([
-      scoped(supabase.from("obra_carcelaria_internos").select("estado, bautizado, sellado")),
-      scoped(supabase.from("obra_carcelaria_cultos").select("asistentes_total").gte("fecha", desde12m)),
-      scoped(supabase.from("mision_estudiantes").select("estado")),
-      scoped(supabase.from("mision_instituciones").select("id", { count: "exact", head: true }).eq("activo", true)),
-      scoped(supabase.from("obra_social_casos").select("estado")),
+      scoped(supabase.from("obra_carcelaria_internos").select(`estado, bautizado, sellado${distritoEmbed}`)),
+      scoped(supabase.from("obra_carcelaria_cultos").select(`asistentes_total${distritoEmbed}`).gte("fecha", desde12m)),
+      scoped(supabase.from("mision_estudiantes").select(`estado${distritoEmbed}`)),
+      scoped(supabase.from("mision_instituciones").select(`id${distritoEmbed}`, { count: "exact", head: true }).eq("activo", true)),
+      scoped(supabase.from("obra_social_casos").select(`estado${distritoEmbed}`)),
       esLocal
         ? supabase.from("obra_social_ayudas").select("id, obra_social_casos!inner(congregacion_id)", { count: "exact", head: true }).eq("obra_social_casos.congregacion_id", congregacionId).gte("fecha", desde12m)
-        : supabase.from("obra_social_ayudas").select("id", { count: "exact", head: true }).gte("fecha", desde12m),
+        : esDistrital
+          ? supabase.from("obra_social_ayudas").select("id, obra_social_casos!inner(congregaciones!inner(distrito_id))", { count: "exact", head: true }).eq("obra_social_casos.congregaciones.distrito_id", rolPrincipal.distrito_id).gte("fecha", desde12m)
+          : supabase.from("obra_social_ayudas").select("id", { count: "exact", head: true }).gte("fecha", desde12m),
     ]);
     const failed = [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult].find((item) => item.error);
     if (failed) setError("No se pudo cargar el impacto misionero. Intenta nuevamente.");

@@ -450,11 +450,13 @@ export default function PastoralDistrital() {
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
       supabase
         .from('historial_licencias_pastorales')
-        .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones, tipo')
+        .select('id, pastor_id, licencia_anterior, licencia_nueva, fecha, observaciones, tipo, pastores!inner(distrito_id)')
+        .eq('pastores.distrito_id', distritoId)
         .order('fecha', { ascending: false }),
       supabase
         .from('formacion_pastoral')
-        .select('id, pastor_id, tipo, tipo_otro, nombre, institucion, fecha, observaciones')
+        .select('id, pastor_id, tipo, tipo_otro, nombre, institucion, fecha, observaciones, pastores!inner(distrito_id)')
+        .eq('pastores.distrito_id', distritoId)
         .order('fecha', { ascending: false }),
       supabase.rpc('resumen_escuela_dominical_distrital', { p_distrito_id: distritoId }),
       supabase.rpc('resumen_damas_distrital', { p_distrito_id: distritoId }),

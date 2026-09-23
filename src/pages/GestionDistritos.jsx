@@ -78,7 +78,11 @@ export default function GestionDistritos() {
     })
   }
 
-  useEffect(() => { load() }, [])
+  // Igual que en los demas fixes de hoy: la carga no debe dispararse antes
+  // de confirmar el rol -- de lo contrario una cuenta multi-rol viendo
+  // "como" local/distrital igual traeria el catalogo nacional completo a
+  // memoria/red, aunque la pantalla lo bloquee despues al renderizar.
+  useEffect(() => { if (rolPrincipal && ALLOWED_LEVELS.includes(rolPrincipal.nivel)) load() }, [rolPrincipal])
   useEffect(() => { setCongPage(0) }, [busqueda])
 
   async function moverCongregacion(congregacionId) {

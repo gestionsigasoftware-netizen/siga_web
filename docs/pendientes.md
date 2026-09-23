@@ -2,6 +2,17 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: ultimo lote de la auditoria sistematica --
+	13 consultas corregidas en 11 archivos (`FeligresiaAdmin.jsx` x3
+	incluido `vw_alertas_pastorales` visible en pantalla,
+	`Solicitudes.jsx`, `ImpactoMisionero.jsx`, `PastoralDistrital.jsx`
+	x2, `GestionDistritos.jsx`). Confirmados sin problema:
+	`Dashboard.jsx`, `GestionPastoralNacional.jsx`, `SaludDatos.jsx`,
+	`ComitesNacional.jsx`, `Personas.jsx`, `RegistrarAsistencia.jsx`. Ver
+	`docs/fixes/auditoria-sistematica-lote-distrital-nacional-2026-09-23.md`.
+	**Con este lote se completo la revision de las 46 pantallas que usan
+	useMiRol() -- auditoria sistematica del 2026-09-23 cerrada.**
+
 - **Resuelto (2026-09-23)**: auditoria sistematica (pedida por el
 	usuario) encontro 2 instancias mas del mismo patron:
 	- `GlobalSearch.jsx` (buscador del encabezado, alta severidad): para
