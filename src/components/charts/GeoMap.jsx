@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-le
 import 'leaflet/dist/leaflet.css'
 
 const COLOMBIA_CENTER = [4.5709, -74.2973]
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
 // El prop `bounds` de MapContainer no siempre gana contra `center`/`zoom`
 // en el montaje inicial -- se ajusta la vista explicitamente con
@@ -33,15 +34,17 @@ const PREMIUM_STYLE = `
 // congregaciones por ciudad, etc.). Solo se muestran los puntos que ya
 // tienen coordenadas -- nunca se adivina una ubicacion.
 //
-// `premium`: halo de brillo en cada punto + controles/tooltips
-// rediseñados (vidrio oscuro), sobre el mismo mosaico de OpenStreetMap
-// de siempre. Se probo un mosaico oscuro (CartoDB) para un look mas
-// "antigravity", pero su CDN gratuito ahora exige API key -- no se uso
-// una cuenta/clave de terceros sin que el usuario lo decida, asi que el
-// mapa base se queda igual; el tratamiento premium es real (no un
-// mockup) y se ve por encima del mapa estandar. Opt-in para no
-// cambiarle la apariencia a los mapas que ya existian (Distritos,
-// Evangelismo) sin que nadie lo pidiera.
+// `premium`: mosaico oscuro real (Mapbox dark-v11, cuenta propia del
+// usuario -- VITE_MAPBOX_TOKEN, capa gratuita hasta 50,000 cargas/mes)
+// + halo de brillo en cada punto + controles/tooltips rediseñados
+// (vidrio oscuro). Se probaron antes CartoDB (su CDN gratuito ahora
+// exige API key) y Esri World Imagery/Dark Gray (tecnicamente responde
+// sin clave, pero sus terminos prohiben usarlo gratis en una app que
+// genera ingresos como SIGAP) -- ninguno de los dos era legal ni
+// estable para produccion. Si VITE_MAPBOX_TOKEN no esta configurado,
+// se degrada solo a OpenStreetMap estandar (el mismo de siempre) en
+// vez de romperse. Opt-in para no cambiarle la apariencia a los mapas
+// que ya existian (Distritos, Evangelismo) sin que nadie lo pidiera.
 export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, premium = false }) {
   const validPoints = points.filter((point) => Number.isFinite(point.latitud) && Number.isFinite(point.longitud))
   if (validPoints.length === 0) {
@@ -67,7 +70,16 @@ export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, pre
       {premium && <style>{PREMIUM_STYLE}</style>}
       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} className={premium ? 'geomap-premium' : ''}>
         {bounds && <AjustarVista bounds={bounds} />}
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {premium && MAPBOX_TOKEN ? (
+          <TileLayer
+            attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
+            tileSize={512}
+            zoomOffset={-1}
+          />
+        ) : (
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        )}
         {validPoints.map((point) => {
           const radius = 6 + (14 * (point.valor || 1)) / maxValor
           return (

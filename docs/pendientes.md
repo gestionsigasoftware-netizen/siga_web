@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: mosaico oscuro real (Mapbox `dark-v11`)
+	para el mapa premium de presencia, reemplazando el OpenStreetMap
+	estandar que quedo como solucion temporal en el punto anterior (ver
+	abajo) tras confirmar que CartoDB ya no es gratis y que Esri no es
+	legal para una app de pago como SIGAP. El usuario proveyo su propio
+	token publico de Mapbox (capa gratuita, 50,000 cargas/mes). Tambien
+	se actualizo el CSP (`public/_headers`, `img-src`) para permitir
+	`https://api.mapbox.com` -- sin ese cambio los tiles se hubieran
+	bloqueado en silencio en produccion aunque funcionaran en local. Ver
+	`docs/fixes/mapa-mapbox-dark-2026-09-23.md`. Verificado visualmente
+	con Playwright (tiles oscuros reales, atribucion correcta) y con
+	`wrangler pages dev` para confirmar el header CSP nuevo. Sin cambios
+	de SQL. Si `VITE_MAPBOX_TOKEN` no esta configurado, el mapa premium
+	se degrada solo a OpenStreetMap estandar.
+
 - **Resuelto (2026-09-23)**: mejora visual "premium" del mapa de
 	presencia pedida por el usuario (pines con halo, tarjetas flotantes
 	de vidrio, controles rediseñados). El mosaico oscuro (CartoDB) que
