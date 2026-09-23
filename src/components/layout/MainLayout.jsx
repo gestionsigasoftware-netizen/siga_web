@@ -128,6 +128,12 @@ export default function MainLayout() {
   const estadoSuscripcion = calcularEstadoSuscripcion(suscripcion)
   const rutaPermitidaBloqueado = RUTAS_PERMITIDAS_BLOQUEADO.includes(location.pathname)
   const bloqueado = estadoSuscripcion === 'bloqueada' && !rutaPermitidaBloqueado
+  // Una congregacion pendiente de aprobacion o suspendida no debe poder
+  // operar -- ver fix_bloqueo_congregacion_pendiente.sql. rolPrincipal
+  // solo trae el embed de `congregaciones` para el rol activo local (los
+  // demas niveles no tienen congregacion_id propia).
+  const estadoCongregacion = rolPrincipal?.nivel === 'local' ? rolPrincipal?.congregaciones?.estado : 'activa'
+  const bloqueadoPorEstado = Boolean(estadoCongregacion) && estadoCongregacion !== 'activa' && !rutaPermitidaBloqueado
 
   return (
     <div className="min-h-screen bg-surface">
@@ -180,6 +186,22 @@ export default function MainLayout() {
                 La suscripción de esta congregación venció el {formatFecha(suscripcion.fecha_proximo_pago)} y el periodo de gracia terminó. Realiza el pago y pide a soporte que lo confirme — solo super_admin puede reactivar el acceso.
               </p>
               <MetodoPagoInfo metodoPago={metodoPago} />
+              <div className="flex gap-2 mt-2">
+                <Link to="/soporte" className="btn-primary">Ir a Soporte</Link>
+                <Link to="/perfil" className="btn-secondary">Mi perfil</Link>
+              </div>
+            </div>
+          ) : bloqueadoPorEstado ? (
+            <div className="flex flex-col items-center justify-center text-center gap-3 py-20">
+              <Lock className="w-10 h-10 text-warning" />
+              <h1 className="text-lg font-semibold">
+                {estadoCongregacion === 'suspendida' ? 'Congregación suspendida' : 'Congregación pendiente de aprobación'}
+              </h1>
+              <p className="text-sm text-secondary max-w-md">
+                {estadoCongregacion === 'suspendida'
+                  ? 'Tu congregación fue suspendida. Contacta a tu líder distrital o a soporte para más información.'
+                  : 'Tu congregación todavía no ha sido aprobada por tu líder distrital. En cuanto la activen, podrás usar SIGAP con normalidad.'}
+              </p>
               <div className="flex gap-2 mt-2">
                 <Link to="/soporte" className="btn-primary">Ir a Soporte</Link>
                 <Link to="/perfil" className="btn-secondary">Mi perfil</Link>

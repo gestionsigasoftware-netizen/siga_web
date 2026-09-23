@@ -2,6 +2,30 @@
 
 ## Prioridad critica antes de produccion
 
+- **Codigo listo (2026-09-23), FALTA EJECUTAR 2 SQL EN PRODUCCION** --
+	pedido del usuario tras revisar el flujo de alta de congregaciones:
+	confirmo que `congregaciones.estado` no bloqueaba nada tecnicamente
+	(una congregacion pendiente/suspendida podia usar SIGAP completo) y
+	que el cobro era 100% opt-in manual sin ningun aviso a super_admin
+	cuando se creaba una congregacion nueva -- riesgo real de clientes
+	usando SIGAP gratis para siempre sin que el negocio se entere. Dos
+	piezas:
+	- El estado de la congregacion ahora si bloquea (RLS +
+	  `mis_congregaciones()` + banner en MainLayout.jsx). Ver
+	  `docs/fixes/bloqueo-congregacion-pendiente-2026-09-23.md`. **Falta
+	  ejecutar `supabase/schema/fix_bloqueo_congregacion_pendiente.sql`**.
+	- Al activarse una congregacion, ahora se le crea automaticamente
+	  una suscripcion de prueba de 15 dias y se avisa a todos los
+	  super_admin (nuevo helper `notificar_super_admin()`). Ver
+	  `docs/fixes/aviso-super-admin-congregacion-activa-2026-09-23.md`.
+	  **Falta ejecutar `supabase/modulos/fix_aviso_super_admin_congregacion_activa.sql`**
+	  (despues del anterior).
+	`npm run build` verificado sin errores en ambas piezas. Verificado
+	en vivo que no se rompe nada para congregaciones ya activas (caso
+	mas comun). No se pudo probar el bloqueo/aviso en si (no hay cuenta
+	de prueba con rol distrital ni super_admin) -- pendiente de
+	confirmacion del usuario tras ejecutar el SQL.
+
 - **Resuelto (2026-09-23)**: auditoria completa (3 agentes en
 	paralelo, 48 pantallas) de botones de ayuda (InfoTip) faltantes,
 	pedida por el usuario. La app ya tenia buena cobertura en general;

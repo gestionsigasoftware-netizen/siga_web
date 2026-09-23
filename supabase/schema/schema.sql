@@ -247,8 +247,17 @@ create or replace function mis_distritos() returns setof uuid language sql stabl
   select distrito_id from roles_sistema where persona_id = mi_persona_id() and nivel = 'distrital' and fecha_fin is null;
 $$;
 
+-- La rama local exige estado = 'activa': una congregacion pendiente de
+-- aprobacion o suspendida no debe poder operar (ver
+-- fix_bloqueo_congregacion_pendiente.sql para el detalle completo). La
+-- politica congregaciones_select_propia_pendiente (mas abajo) es la que
+-- le sigue dando al pastor visibilidad de su propia congregacion sin
+-- importar el estado, para que el frontend pueda mostrarle un mensaje
+-- claro en vez de una pantalla en blanco.
 create or replace function mis_congregaciones() returns setof uuid language sql stable security definer as $$
-  select congregacion_id from roles_sistema where persona_id = mi_persona_id() and nivel = 'local' and fecha_fin is null
+  select r.congregacion_id from roles_sistema r
+    join congregaciones c on c.id = r.congregacion_id
+   where r.persona_id = mi_persona_id() and r.nivel = 'local' and r.fecha_fin is null and c.estado = 'activa'
   union
   select c.id from congregaciones c where c.distrito_id in (select mis_distritos())
   union
@@ -260,6 +269,9 @@ $$;
 -- esa decisión es exclusiva del distrital dueño del proceso y de super_admin
 -- (operador de la plataforma); super_admin ve y aprueba todo.
 create policy "congregaciones_select" on congregaciones for select using (id in (select mis_congregaciones()));
+create policy "congregaciones_select_propia_pendiente" on congregaciones for select to authenticated using (id in (
+  select congregacion_id from roles_sistema where persona_id = mi_persona_id() and nivel = 'local' and fecha_fin is null
+));
 create policy "congregaciones_update_distrital" on congregaciones for update using (
   distrito_id in (select mis_distritos()) or es_super_admin()
 );

@@ -38,6 +38,35 @@ $$;
 
 revoke execute on function crear_notificacion_usuario(uuid, text, text, text, text) from public, authenticated;
 
+-- Avisa a TODOS los super_admin activos (no a una persona puntual) --
+-- se usa cuando una congregacion queda activa, para que el negocio se
+-- entere y pueda configurarle la suscripcion real.
+create or replace function notificar_super_admin(
+  p_titulo text,
+  p_mensaje text,
+  p_tipo text default 'info',
+  p_enlace text default null
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  admin record;
+begin
+  for admin in
+    select p.auth_user_id
+    from roles_sistema r
+    join personas p on p.id = r.persona_id
+    where r.nivel = 'super_admin' and r.fecha_fin is null and p.auth_user_id is not null
+  loop
+    perform crear_notificacion_usuario(admin.auth_user_id, p_titulo, p_mensaje, p_tipo, p_enlace);
+  end loop;
+end;
+$$;
+
+revoke execute on function notificar_super_admin(text, text, text, text) from public, authenticated;
+
 create or replace function notificar_cambio_congregacion()
 returns trigger
 language plpgsql
@@ -73,6 +102,26 @@ begin
       '/app'
     );
   end loop;
+
+  -- Al quedar activa: arranca un periodo de prueba real de cobro (si
+  -- todavia no tiene suscripcion configurada) y avisa a super_admin,
+  -- para que ninguna congregacion nueva pase desapercibida y use SIGAP
+  -- gratis indefinidamente sin que el negocio se entere.
+  if new.estado = 'activa' then
+    insert into suscripciones (congregacion_id, plan, fecha_proximo_pago)
+    values (new.id, 'mensual', current_date + interval '15 days')
+    on conflict (congregacion_id) do nothing;
+
+    perform notificar_super_admin(
+      'Nueva congregación activa',
+      format('%s (distrito %s) ya está activa y en periodo de prueba de 15 días -- configúrale la suscripción real.',
+        new.nombre,
+        (select numero::text from distritos where id = new.distrito_id)),
+      'info',
+      '/suscripciones'
+    );
+  end if;
+
   return new;
 end;
 $$;
