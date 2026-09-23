@@ -267,12 +267,35 @@ export default function ImpactoMisionero() {
             <Metric label="Personas alcanzadas" value={personasAlcanzadasMapa} tip="Suma de feligreses activos de todas las congregaciones en el mapa. No incluye amigos en ruta ni los frentes de Obra Carcelaria/Misión Juvenil/Obra Social." />
           </section>
 
-          <section className="card p-2 sm:p-3" style={{ boxShadow: "0 20px 45px -22px rgba(42,120,214,0.35)", border: "1px solid rgba(42,120,214,0.18)" }}>
-            <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3 flex-wrap">
-              <p className="text-sm font-medium">Congregaciones ubicadas</p>
-              <p className="text-xs text-muted">El tamaño de cada punto refleja cuántos feligreses activos tiene esa congregación.</p>
-            </div>
-            <GeoMap points={puntosMapa} height={420} />
+          <section className="relative rounded-card overflow-hidden" style={{ boxShadow: "0 24px 60px -20px rgba(10,20,40,0.45)" }}>
+            <GeoMap points={puntosMapa} height={460} premium colorHex="#5B9BE0" />
+            {puntosMapa.length > 0 && (
+              <>
+                {/* z-index 1200 + transform:translateZ(0) es intencional, no
+                    decorativo: Leaflet usa z-index internos hasta 1000+ para
+                    sus propios controles/paneles, y en cuanto un elemento
+                    externo recibe su propia capa compuesta (transform),
+                    empieza a compararse numericamente contra esos paneles en
+                    vez de heredar el orden normal del DOM -- con menos de
+                    ~1000 esta tarjeta queda invisible por debajo del mapa,
+                    sin ningun error en consola. Verificado visualmente antes
+                    de este fix: con z-index 10 no se veia nada. */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)" }}>
+                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.16)" }}>
+                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "rgba(234,241,250,0.65)" }}>Congregaciones</p>
+                    <p className="text-xl font-semibold text-white mt-0.5">{congregacionesActivas}</p>
+                  </div>
+                  <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(62,224,200,0.12)", backdropFilter: "blur(16px)", border: "1px solid rgba(62,224,200,0.3)" }}>
+                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#8FEFDF" }}>Ciudades</p>
+                    <p className="text-xl font-semibold mt-0.5" style={{ color: "#3EE0C8" }}>{ciudadesMapa.length}</p>
+                  </div>
+                </div>
+                <div className="absolute bottom-4 left-4 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)" }}>
+                  <p className="text-xs font-medium text-white" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>Congregaciones ubicadas</p>
+                  <p className="text-[11px]" style={{ color: "rgba(234,241,250,0.75)", textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>El tamaño de cada punto refleja feligreses activos</p>
+                </div>
+              </>
+            )}
           </section>
 
           <section className="grid lg:grid-cols-2 gap-4">

@@ -2,6 +2,22 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: mejora visual "premium" del mapa de
+	presencia pedida por el usuario (pines con halo, tarjetas flotantes
+	de vidrio, controles rediseñados). El mosaico oscuro (CartoDB) que
+	se iba a usar dejo de estar disponible sin API key -- se confirmo
+	probando la URL en vivo, no se registro ninguna cuenta de terceros
+	sin decision del usuario, asi que el mapa base se quedo en el mismo
+	OpenStreetMap de siempre. Se encontro y corrigio un bug real
+	(verificado visualmente con Playwright, no solo revisado por
+	codigo): las tarjetas flotantes quedaban invisibles porque el
+	z-index (10) no superaba los paneles internos de Leaflet (hasta
+	1000+) una vez que la tarjeta recibe su propia capa compuesta --
+	corregido con z-index 1200 + transform. Ver
+	`docs/fixes/mapa-premium-overlay-2026-09-23.md`. Sin cambios de SQL.
+	`GestionDistritos.jsx`/`Evangelismo.jsx` (otros usos del mismo mapa)
+	confirmados sin cambios.
+
 - **Resuelto (2026-09-23), reportado en produccion real por el
 	usuario**: llenar ciudad y direccion en Configuracion no ubicaba la
 	congregacion en el mapa de presencia nuevo. Causa: `geocodeAddress()`

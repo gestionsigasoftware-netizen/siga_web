@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -16,14 +16,37 @@ function AjustarVista({ bounds }) {
   return null
 }
 
+// Estilos propios del modo `premium`, aislados bajo .geomap-premium para
+// no afectar los otros mapas (Distritos, Evangelismo) que usan este mismo
+// componente en su modo normal. Se define una sola vez, no por instancia.
+const PREMIUM_STYLE = `
+.geomap-premium .leaflet-control-zoom { border: none; box-shadow: 0 8px 24px -8px rgba(0,0,0,0.45); }
+.geomap-premium .leaflet-control-zoom a { background: rgba(15,23,42,0.82); backdrop-filter: blur(6px); color: #EAF1FA; border-color: rgba(255,255,255,0.12) !important; }
+.geomap-premium .leaflet-control-zoom a:hover { background: rgba(42,120,214,0.9); }
+.geomap-premium .leaflet-control-attribution { background: rgba(10,18,36,0.55); color: rgba(234,241,250,0.65); border-radius: 6px 0 0 0; }
+.geomap-premium .leaflet-control-attribution a { color: rgba(234,241,250,0.85); }
+.geomap-premium .leaflet-tooltip { background: rgba(10,18,36,0.88); backdrop-filter: blur(8px); color: #EAF1FA; border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; box-shadow: 0 12px 28px -10px rgba(0,0,0,0.5); }
+.geomap-premium .leaflet-tooltip-top:before { border-top-color: rgba(10,18,36,0.88); }
+`
+
 // Mapa con puntos de tamano/color segun un valor (personas por zona,
 // congregaciones por ciudad, etc.). Solo se muestran los puntos que ya
 // tienen coordenadas -- nunca se adivina una ubicacion.
-export default function GeoMap({ points, colorHex = '#2a78d6', height = 320 }) {
+//
+// `premium`: halo de brillo en cada punto + controles/tooltips
+// rediseñados (vidrio oscuro), sobre el mismo mosaico de OpenStreetMap
+// de siempre. Se probo un mosaico oscuro (CartoDB) para un look mas
+// "antigravity", pero su CDN gratuito ahora exige API key -- no se uso
+// una cuenta/clave de terceros sin que el usuario lo decida, asi que el
+// mapa base se queda igual; el tratamiento premium es real (no un
+// mockup) y se ve por encima del mapa estandar. Opt-in para no
+// cambiarle la apariencia a los mapas que ya existian (Distritos,
+// Evangelismo) sin que nadie lo pidiera.
+export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, premium = false }) {
   const validPoints = points.filter((point) => Number.isFinite(point.latitud) && Number.isFinite(point.longitud))
   if (validPoints.length === 0) {
     return (
-      <div className="flex items-center justify-center text-sm text-muted bg-surface-1 rounded-card" style={{ height }}>
+      <div className={`flex items-center justify-center text-sm rounded-card ${premium ? 'bg-[#0A1428] text-white/50' : 'bg-surface-1 text-muted'}`} style={{ height }}>
         Aún no hay direcciones registradas para mostrar en el mapa.
       </div>
     )
@@ -40,19 +63,25 @@ export default function GeoMap({ points, colorHex = '#2a78d6', height = 320 }) {
   const zoom = validPoints.length === 1 ? 14 : 6
 
   return (
-    <div style={{ height }} className="rounded-card overflow-hidden border border-border">
-      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+    <div style={{ height }} className={`rounded-card overflow-hidden border ${premium ? 'border-transparent' : 'border-border'}`}>
+      {premium && <style>{PREMIUM_STYLE}</style>}
+      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} className={premium ? 'geomap-premium' : ''}>
         {bounds && <AjustarVista bounds={bounds} />}
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {validPoints.map((point) => {
           const radius = 6 + (14 * (point.valor || 1)) / maxValor
           return (
-            <CircleMarker key={point.id} center={[point.latitud, point.longitud]} radius={radius} pathOptions={{ color: colorHex, fillColor: colorHex, fillOpacity: 0.45, weight: 2 }}>
-              <Tooltip direction="top" offset={[0, -radius]}>
-                <strong>{point.label}</strong>
-                {point.detalle && <><br />{point.detalle}</>}
-              </Tooltip>
-            </CircleMarker>
+            <Fragment key={point.id}>
+              {premium && (
+                <CircleMarker center={[point.latitud, point.longitud]} radius={radius + 7} pathOptions={{ color: 'transparent', fillColor: colorHex, fillOpacity: 0.16, weight: 0, interactive: false }} />
+              )}
+              <CircleMarker center={[point.latitud, point.longitud]} radius={radius} pathOptions={{ color: premium ? '#0A1428' : colorHex, fillColor: colorHex, fillOpacity: premium ? 0.9 : 0.45, weight: premium ? 1.5 : 2 }}>
+                <Tooltip direction="top" offset={[0, -radius]}>
+                  <strong>{point.label}</strong>
+                  {point.detalle && <><br />{point.detalle}</>}
+                </Tooltip>
+              </CircleMarker>
+            </Fragment>
           )
         })}
       </MapContainer>
