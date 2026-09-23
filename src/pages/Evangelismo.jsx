@@ -703,7 +703,7 @@ export default function Evangelismo() {
           <h2 className="font-medium mt-1">Zonas en el mapa</h2>
           <p className="text-xs text-secondary mt-1">Solo aparecen las zonas con dirección registrada. El tamaño del punto es proporcional a los amigos alcanzados.</p>
           <div className="mt-4">
-            <GeoMap points={zonaRows.map((row) => ({ id: row.id, label: row.nombre, valor: row.amigos, latitud: row.latitud, longitud: row.longitud, detalle: `${row.enRuta} amigos en ruta · ${row.conversiones} conversiones` }))} />
+            <GeoMap points={zonaRows.map((row) => ({ id: row.id, label: row.nombre, valor: row.amigos, latitud: row.latitud, longitud: row.longitud, detalle: `${row.enRuta} amigos en ruta · ${row.conversiones} conversiones` }))} height={420} premium colorHex="#5B9BE0" />
           </div>
         </div>
       </section>

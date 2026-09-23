@@ -57,20 +57,26 @@ const PREMIUM_STYLE = `
 //
 // `premium`: mosaico real de Mapbox (cuenta propia del usuario --
 // VITE_MAPBOX_TOKEN, capa gratuita hasta 50,000 cargas/mes), estilo
-// `navigation-day-v1` -- el mismo tipo de estilo que usan apps como
-// Uber/Waze: jerarquia vial marcada con color y buen detalle sin la
-// sobrecarga de iconos/POIs de un mapa tipo Google Maps (`streets-v12`),
-// que competiria visualmente con los puntos de congregaciones y las
-// tarjetas flotantes. Se probaron antes CartoDB (su CDN gratuito ahora
-// exige API key) y Esri World Imagery/Dark Gray (tecnicamente responde
-// sin clave, pero sus terminos prohiben usarlo gratis en una app que
-// genera ingresos como SIGAP) -- ninguno de los dos era legal ni
-// estable para produccion. Si VITE_MAPBOX_TOKEN no esta configurado,
-// se degrada solo a OpenStreetMap estandar (el mismo de siempre) en
-// vez de romperse. Opt-in para no cambiarle la apariencia a los mapas
-// que ya existian (Distritos, Evangelismo) sin que nadie lo pidiera.
-// Cada punto lleva un anillo que pulsa en bucle (ver PREMIUM_STYLE) --
-// la señal "en vivo" pedida desde el diseño original.
+// `streets-v12` -- se probo primero `navigation-day-v1` (mas limpio,
+// tipo Uber/Waze) pero el usuario senalo que asi no se ven suficientes
+// sitios reales (iglesias, colegios, entidades publicas) -- comparado
+// en vivo contra streets-v12 en Puerto Tejada: navigation-day-v1 solo
+// mostraba un puñado de colegios/salud, streets-v12 mostraba ademas
+// comercios, canchas, un colegio evangelico, contorno de edificios y
+// mucho mas detalle por categoria. A nivel nacional/distrital (zoom
+// alejado) esta densidad de POIs no compite con los puntos de
+// congregaciones porque Mapbox no dibuja iconos de POI hasta acercarse
+// a nivel de calle -- que es justo donde mas importa verlos. Se
+// probaron antes CartoDB (su CDN gratuito ahora exige API key) y Esri
+// World Imagery/Dark Gray (tecnicamente responde sin clave, pero sus
+// terminos prohiben usarlo gratis en una app que genera ingresos como
+// SIGAP) -- ninguno de los dos era legal ni estable para produccion.
+// Si VITE_MAPBOX_TOKEN no esta configurado, se degrada solo a
+// OpenStreetMap estandar (el mismo de siempre) en vez de romperse.
+// Opt-in para no cambiarle la apariencia a los mapas que ya existian
+// sin que nadie lo pidiera. Cada punto lleva un anillo que pulsa en
+// bucle (ver PREMIUM_STYLE) -- la señal "en vivo" pedida desde el
+// diseño original.
 export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, premium = false }) {
   const validPoints = points.filter((point) => Number.isFinite(point.latitud) && Number.isFinite(point.longitud))
   if (validPoints.length === 0) {
@@ -99,7 +105,7 @@ export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, pre
         {premium && MAPBOX_TOKEN ? (
           <TileLayer
             attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url={`https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
+            url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
             tileSize={512}
             zoomOffset={-1}
           />

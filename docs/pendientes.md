@@ -2,6 +2,24 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: misma identidad visual en todos los mapas
+	de SIGAP. El mapa premium (Mapbox, pulso en vivo) que se construyo
+	primero solo para Impacto Misionero ahora se aplica tambien en
+	Evangelismo (zonas) y Gestion de Distritos (mapa nacional de
+	congregaciones) -- antes seguian con OpenStreetMap basico. El mapa
+	editable de Configuracion tambien usa el mismo mosaico (sin el
+	pulso: representa una ubicacion confirmada, no actividad en vivo).
+	Estilo final **`streets-v12`** (no `navigation-day-v1`): el usuario
+	probo el resultado y noto que se veian pocos sitios reales
+	(iglesias, colegios, entidades publicas) -- comparado en vivo,
+	`streets-v12` muestra bastante mas detalle por categoria sin
+	agregar ruido a zoom nacional/distrital (los iconos de POI de
+	Mapbox solo aparecen a nivel de calle). Ver
+	`docs/fixes/identidad-visual-unificada-mapas-2026-09-23.md`.
+	Verificado visualmente con Playwright y con la API estatica de
+	Mapbox (comparacion directa entre estilos). Sin cambios de SQL ni
+	CSP.
+
 - **Resuelto (2026-09-23)**: ubicacion de congregaciones ya no depende
 	100% del geocodificador automatico. El usuario noto que las
 	ubicaciones no eran veraces (aproximadas por ciudad cuando Nominatim

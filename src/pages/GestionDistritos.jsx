@@ -331,9 +331,9 @@ export default function GestionDistritos() {
         </div>
         <div className="card p-5">
           <h2 className="font-medium">Mapa nacional de congregaciones</h2>
-          <p className="text-sm text-secondary mt-0.5">Ubicación aproximada, según la dirección que cada congregación registró en Configuración local.</p>
+          <p className="text-sm text-secondary mt-0.5">Ubicación registrada por cada congregación en Configuración local -- exacta si ya ajustaron el pin, aproximada por ciudad si aún no.</p>
           <div className="mt-4">
-            <GeoMap points={puntosMapa} height={420} />
+            <GeoMap points={puntosMapa} height={420} premium colorHex="#5B9BE0" />
           </div>
         </div>
       </section>
