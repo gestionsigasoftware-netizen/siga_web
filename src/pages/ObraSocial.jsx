@@ -379,7 +379,7 @@ export default function ObraSocial() {
             <option value="">Responsable</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
-          <textarea className="input-field min-h-14" placeholder="Notas" value={casoForm.notas} onChange={(event) => setCasoForm({ ...casoForm, notas: event.target.value })} />
+          <textarea className="input-field min-h-14" placeholder="Ej: Necesita ayuda con arriendo de este mes, tiene 3 hijos menores" value={casoForm.notas} onChange={(event) => setCasoForm({ ...casoForm, notas: event.target.value })} />
           <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar caso</button>
         </form>
       </section>

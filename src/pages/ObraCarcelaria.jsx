@@ -541,8 +541,8 @@ export default function ObraCarcelaria() {
             <form onSubmit={saveInterno} className="card p-5 flex flex-col gap-2 h-fit">
               <div className="flex items-center justify-between"><h2 className="font-medium">{editingInternoId ? "Editar interno" : "Nuevo interno"}</h2>{editingInternoId && <button type="button" className="text-xs text-secondary" onClick={resetInternoForm}>Cancelar</button>}</div>
               <div className="grid grid-cols-2 gap-2">
-                <input required className="input-field" placeholder="Nombres" value={internoForm.nombres} onChange={(event) => setInternoForm({ ...internoForm, nombres: event.target.value })} />
-                <input required className="input-field" placeholder="Apellidos" value={internoForm.apellidos} onChange={(event) => setInternoForm({ ...internoForm, apellidos: event.target.value })} />
+                <input required className="input-field" placeholder="Ej: Pedro" value={internoForm.nombres} onChange={(event) => setInternoForm({ ...internoForm, nombres: event.target.value })} />
+                <input required className="input-field" placeholder="Ej: Martínez Silva" value={internoForm.apellidos} onChange={(event) => setInternoForm({ ...internoForm, apellidos: event.target.value })} />
               </div>
               <select className="input-field" value={internoForm.centro_id} onChange={(event) => setInternoForm({ ...internoForm, centro_id: event.target.value })}>
                 <option value="">Centro de reclusión</option>
@@ -552,7 +552,7 @@ export default function ObraCarcelaria() {
                 <input className="input-field" placeholder="Patio / pabellón" value={internoForm.patio} onChange={(event) => setInternoForm({ ...internoForm, patio: event.target.value })} />
                 <input required type="date" className="input-field" value={internoForm.fecha_ingreso_ministerio} onChange={(event) => setInternoForm({ ...internoForm, fecha_ingreso_ministerio: event.target.value })} />
               </div>
-              <textarea className="input-field min-h-14" placeholder="Observaciones" value={internoForm.observaciones} onChange={(event) => setInternoForm({ ...internoForm, observaciones: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder="Ej: Participa activamente en el estudio bíblico del patio 3" value={internoForm.observaciones} onChange={(event) => setInternoForm({ ...internoForm, observaciones: event.target.value })} />
               <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingInternoId ? "Guardar cambios" : "Registrar interno"}</button>
             </form>
           )}
@@ -593,7 +593,7 @@ export default function ObraCarcelaria() {
                 <option value="">Responsable</option>
                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
               </select>
-              <textarea className="input-field min-h-14" placeholder="Notas" value={cultoForm.notas} onChange={(event) => setCultoForm({ ...cultoForm, notas: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder="Ej: Se predicó sobre el perdón, buena participación" value={cultoForm.notas} onChange={(event) => setCultoForm({ ...cultoForm, notas: event.target.value })} />
               {activos.length > 0 && <div>
                 <p className="text-xs text-secondary mb-1">Asistencia individual (internos con ficha)</p>
                 <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
@@ -645,7 +645,7 @@ export default function ObraCarcelaria() {
               </select>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.permiso_inpec_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vigente: event.target.checked })} />Permiso INPEC vigente<InfoTip texto="El INPEC es la entidad que autoriza el ingreso de voluntarios a las cárceles. Marca esta opción solo si el delegado tiene ese permiso vigente en este momento." /></label>
               <label className="text-xs text-secondary">Vencimiento del permiso<input type="date" className="input-field mt-1" value={delegadoForm.permiso_inpec_vencimiento} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vencimiento: event.target.value })} /></label>
-              <textarea className="input-field min-h-14" placeholder="Observaciones" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder="Ej: Disponible los sábados en la mañana" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
               <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingDelegadoId ? "Guardar cambios" : "Habilitar delegado"}</button>
             </form>
           )}
@@ -675,11 +675,11 @@ export default function ObraCarcelaria() {
                 {internos.map((interno) => <option key={interno.id} value={interno.id}>{interno.nombres} {interno.apellidos}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <input required className="input-field" placeholder="Nombre del contacto" value={familiarForm.contacto_nombre} onChange={(event) => setFamiliarForm({ ...familiarForm, contacto_nombre: event.target.value })} />
-                <input className="input-field" placeholder="Parentesco" value={familiarForm.parentesco} onChange={(event) => setFamiliarForm({ ...familiarForm, parentesco: event.target.value })} />
+                <input required className="input-field" placeholder="Ej: Rosa Martínez" value={familiarForm.contacto_nombre} onChange={(event) => setFamiliarForm({ ...familiarForm, contacto_nombre: event.target.value })} />
+                <input className="input-field" placeholder="Ej: Esposa, mamá, hijo" value={familiarForm.parentesco} onChange={(event) => setFamiliarForm({ ...familiarForm, parentesco: event.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input className="input-field" placeholder="Teléfono" value={familiarForm.telefono} onChange={(event) => setFamiliarForm({ ...familiarForm, telefono: event.target.value })} />
+                <input className="input-field" placeholder="Ej: 3001234567" value={familiarForm.telefono} onChange={(event) => setFamiliarForm({ ...familiarForm, telefono: event.target.value })} />
                 <input required type="date" className="input-field" value={familiarForm.fecha_visita} onChange={(event) => setFamiliarForm({ ...familiarForm, fecha_visita: event.target.value })} />
               </div>
               <select className="input-field" value={familiarForm.tipo_apoyo} onChange={(event) => setFamiliarForm({ ...familiarForm, tipo_apoyo: event.target.value })}>
@@ -693,7 +693,7 @@ export default function ObraCarcelaria() {
                 <option value="">Responsable</option>
                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
               </select>
-              <textarea className="input-field min-h-14" placeholder="Notas" value={familiarForm.notas} onChange={(event) => setFamiliarForm({ ...familiarForm, notas: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder="Ej: Se le llevó mercado, familia necesita apoyo con arriendo" value={familiarForm.notas} onChange={(event) => setFamiliarForm({ ...familiarForm, notas: event.target.value })} />
               <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar seguimiento</button>
             </form>
           )}

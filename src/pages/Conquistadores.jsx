@@ -429,7 +429,7 @@ export default function Conquistadores() {
                 {Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
-            <textarea className="input-field min-h-14" placeholder="Descripción" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
+            <textarea className="input-field min-h-14" placeholder="Ej: Salida de integración con juegos y devocional" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
             <select className="input-field" value={actividadForm.responsable_persona_id} onChange={(event) => setActividadForm({ ...actividadForm, responsable_persona_id: event.target.value })}>
               <option value="">Responsable</option>
               {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
@@ -448,8 +448,8 @@ export default function Conquistadores() {
       <form onSubmit={createMiembro} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
         <h2 className="font-medium flex items-center gap-1.5">Nuevo miembro<InfoTip texto="No hace falta que ya esté en el censo de Feligresía -- Conquistadores administra jóvenes adultos convertidos y no convertidos. Si aún no está bautizado, usa 'Vincular' en la lista para conectarlo con la Ruta Evangelística." /></h2>
         <div className="grid sm:grid-cols-3 gap-2">
-          <input required className="input-field" placeholder="Nombres" value={miembroForm.nombres} onChange={(event) => setMiembroForm({ ...miembroForm, nombres: event.target.value })} />
-          <input required className="input-field" placeholder="Apellidos" value={miembroForm.apellidos} onChange={(event) => setMiembroForm({ ...miembroForm, apellidos: event.target.value })} />
+          <input required className="input-field" placeholder="Ej: Carlos" value={miembroForm.nombres} onChange={(event) => setMiembroForm({ ...miembroForm, nombres: event.target.value })} />
+          <input required className="input-field" placeholder="Ej: Ramírez Soto" value={miembroForm.apellidos} onChange={(event) => setMiembroForm({ ...miembroForm, apellidos: event.target.value })} />
           <input className="input-field" placeholder="Teléfono (opcional)" value={miembroForm.telefono} onChange={(event) => setMiembroForm({ ...miembroForm, telefono: event.target.value })} />
         </div>
         <select className="input-field" value={miembroForm.rol} onChange={(event) => setMiembroForm({ ...miembroForm, rol: event.target.value })}>

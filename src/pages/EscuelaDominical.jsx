@@ -484,8 +484,8 @@ export default function EscuelaDominical() {
         <form onSubmit={createNino} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
           <h2 className="font-medium">Nuevo niño</h2>
           <div className="grid grid-cols-2 gap-2">
-            <input required className="input-field" placeholder="Nombres" value={ninoForm.nombres} onChange={(event) => setNinoForm({ ...ninoForm, nombres: event.target.value })} />
-            <input required className="input-field" placeholder="Apellidos" value={ninoForm.apellidos} onChange={(event) => setNinoForm({ ...ninoForm, apellidos: event.target.value })} />
+            <input required className="input-field" placeholder="Ej: Sofía" value={ninoForm.nombres} onChange={(event) => setNinoForm({ ...ninoForm, nombres: event.target.value })} />
+            <input required className="input-field" placeholder="Ej: Torres Vega" value={ninoForm.apellidos} onChange={(event) => setNinoForm({ ...ninoForm, apellidos: event.target.value })} />
           </div>
           <select className="input-field" value={ninoForm.clase_id} onChange={(event) => setNinoForm({ ...ninoForm, clase_id: event.target.value })}>
             <option value="">Clase</option>

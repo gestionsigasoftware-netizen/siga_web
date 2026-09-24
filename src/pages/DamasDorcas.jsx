@@ -368,7 +368,7 @@ export default function DamasDorcas() {
                 {Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
-            <textarea className="input-field min-h-14" placeholder="Descripción" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
+            <textarea className="input-field min-h-14" placeholder="Ej: Visita al hogar geriátrico San José, se llevaron alimentos y ropa" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
             <select className="input-field" value={actividadForm.responsable_persona_id} onChange={(event) => setActividadForm({ ...actividadForm, responsable_persona_id: event.target.value })}>
               <option value="">Responsable</option>
               {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
@@ -387,12 +387,12 @@ export default function DamasDorcas() {
       <form onSubmit={createBeneficiaria} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
         <h2 className="font-medium">Nueva beneficiaria</h2>
         <div className="grid grid-cols-2 gap-2">
-          <input required className="input-field" placeholder="Nombres" value={beneficiariaForm.nombres} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, nombres: event.target.value })} />
-          <input required className="input-field" placeholder="Apellidos" value={beneficiariaForm.apellidos} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, apellidos: event.target.value })} />
+          <input required className="input-field" placeholder="Ej: María" value={beneficiariaForm.nombres} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, nombres: event.target.value })} />
+          <input required className="input-field" placeholder="Ej: Gómez Ruiz" value={beneficiariaForm.apellidos} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, apellidos: event.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <input className="input-field" placeholder="Teléfono" value={beneficiariaForm.telefono} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, telefono: event.target.value })} />
-          <input className="input-field" placeholder="Dirección" value={beneficiariaForm.direccion} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, direccion: event.target.value })} />
+          <input className="input-field" placeholder="Ej: 3001234567 (opcional)" value={beneficiariaForm.telefono} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, telefono: event.target.value })} />
+          <input className="input-field" placeholder="Ej: Calle 10 #5-20 (opcional)" value={beneficiariaForm.direccion} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, direccion: event.target.value })} />
         </div>
         <label className="text-xs text-secondary flex items-center gap-1">
           Responsable de seguimiento

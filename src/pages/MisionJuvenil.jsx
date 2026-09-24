@@ -933,7 +933,7 @@ export default function MisionJuvenil() {
             <input
               required
               className="input-field"
-              placeholder="Nombres"
+              placeholder="Ej: Andrés"
               value={studentForm.nombres}
               onChange={(event) =>
                 setStudentForm({ ...studentForm, nombres: event.target.value })
@@ -942,7 +942,7 @@ export default function MisionJuvenil() {
             <input
               required
               className="input-field"
-              placeholder="Apellidos"
+              placeholder="Ej: López Castro"
               value={studentForm.apellidos}
               onChange={(event) =>
                 setStudentForm({

@@ -2,6 +2,21 @@
 
 ## Prioridad critica antes de produccion
 
+- **En curso (2026-09-24)**: tooltips/placeholders "masivo" en toda
+	la web (parte 2 del pedido -- la parte 1 fue el barrido de bugs).
+	Cerradas del todo las 8 pestanas de Feligresia (Poblacion, Familias,
+	Comites, Seguimiento pastoral, Traslados, Evolucion, Informe
+	trimestral, Salud y emergencias). Ademas se corrigio el mismo
+	patron de placeholder-que-repite-la-etiqueta en 11 archivos mas
+	(DamasDorcas, Conquistadores, EscuelaDominical, Amigos, MisionJuvenil,
+	ObraCarcelaria, ObraSocial, PastoralDistrital, Perfil, Sepri,
+	Configuracion). Ver
+	`docs/fixes/ux-placeholders-toda-la-app-2026-09-24.md`. **Falta**:
+	el resto de la app (Red de Familias, Evangelismo, Musica, Educacion
+	Artistica/Teologica, Reportes, resto de Configuracion, Auditoria,
+	Equipo de trabajo, Suscripciones) todavia no se ha revisado con
+	este mismo nivel de detalle.
+
 - **Resuelto (2026-09-24)**: barrido "masivo" de bugs en toda la web
 	(pedido explicito del usuario, no solo un submodulo). Se
 	reutilizo `.eslintrc-audit.cjs` (creado el 2026-08-31) sobre las

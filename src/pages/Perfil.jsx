@@ -92,8 +92,8 @@ export default function Perfil() {
         <h2 className="font-medium mb-1">Nombre</h2>
         <p className="text-xs text-secondary mb-4">{personaVinculada ? 'Corrige tu nombre si quedó mal escrito o vacío al registrarte. Es el mismo nombre que aparece en el censo de tu congregación — no se guardan nombres distintos en cada lado.' : 'El nombre con el que te vas a identificar dentro de SIGAP.'}</p>
         <form onSubmit={saveFullName} className="grid sm:grid-cols-2 gap-3">
-          <input required value={nombres} onChange={(event) => setNombres(event.target.value)} placeholder="Nombres" className="input-field" />
-          <input required value={apellidos} onChange={(event) => setApellidos(event.target.value)} placeholder="Apellidos" className="input-field" />
+          <input required value={nombres} onChange={(event) => setNombres(event.target.value)} placeholder="Ej: Ana" className="input-field" />
+          <input required value={apellidos} onChange={(event) => setApellidos(event.target.value)} placeholder="Ej: Gómez López" className="input-field" />
           <button disabled={savingName} className="btn-primary justify-center sm:col-span-2 sm:w-fit">{savingName ? 'Guardando...' : 'Guardar nombre'}</button>
         </form>
         {nameError && <p role="alert" className="text-sm text-danger mt-3">{nameError}</p>}

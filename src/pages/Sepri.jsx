@@ -321,7 +321,7 @@ export default function Sepri() {
               </select>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.certificacion_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, certificacion_vigente: event.target.checked })} />Certificación vigente</label>
               <label className="text-xs text-secondary">Vencimiento de la certificación<input type="date" className="input-field mt-1" value={delegadoForm.fecha_vencimiento_certificacion} onChange={(event) => setDelegadoForm({ ...delegadoForm, fecha_vencimiento_certificacion: event.target.value })} /></label>
-              <textarea className="input-field min-h-14" placeholder="Observaciones" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder="Ej: Certificado por la entidad municipal, curso renovado cada año" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
               <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingDelegadoId ? "Guardar cambios" : "Registrar delegado"}</button>
             </form>
           )}

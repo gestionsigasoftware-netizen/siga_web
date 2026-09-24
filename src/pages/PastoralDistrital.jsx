@@ -1276,8 +1276,8 @@ export default function PastoralDistrital() {
             <select className="input-field" value={centroForm.tipo} onChange={(event) => setCentroForm({ ...centroForm, tipo: event.target.value })}>
               {Object.entries(TIPO_CENTRO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-            <input className="input-field" placeholder="Ciudad" value={centroForm.ciudad} onChange={(event) => setCentroForm({ ...centroForm, ciudad: event.target.value })} />
-            <input className="input-field" placeholder="Dirección" value={centroForm.direccion} onChange={(event) => setCentroForm({ ...centroForm, direccion: event.target.value })} />
+            <input className="input-field" placeholder="Ej: Cali (opcional)" value={centroForm.ciudad} onChange={(event) => setCentroForm({ ...centroForm, ciudad: event.target.value })} />
+            <input className="input-field" placeholder="Ej: Km 5 vía Cali-Jamundí (opcional)" value={centroForm.direccion} onChange={(event) => setCentroForm({ ...centroForm, direccion: event.target.value })} />
             <button disabled={savingCentro} className="btn-primary justify-center sm:col-span-2"><Plus className="w-4 h-4" /> {editingCentroId ? 'Guardar cambios' : 'Crear centro'}</button>
           </form>
         </section>
