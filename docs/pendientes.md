@@ -2,6 +2,22 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: submodulo de Traslados (Feligresia) -- 2
+	bugs reales encontrados. (1) El deep-link `?tab=traslados` no
+	funcionaba (la pestana no estaba en la lista blanca de tabs
+	validos por URL) -- corregido y confirmado con Playwright que ya
+	carga bien. (2) Mas importante: 4 de los 7 tipos de "Movimientos de
+	membresia" (baja_traslado, alta_recibimiento, baja_fallecimiento,
+	reactivacion) ya se registran solos desde otros flujos (Trasladar,
+	Recibir, marcar fallecido, Reconciliar) -- si un pastor los agrega
+	tambien a mano ahi, duplica el registro en la auditoria de
+	estadisticas, sin ningun aviso. Verificado leyendo el SQL real
+	(`traslados_feligresia.sql`), no supuesto. Corregido con InfoTip
+	explicando cuales tipos ya son automaticos y para cuales si sirve
+	el formulario manual. Ver
+	`docs/fixes/traslados-ux-2026-09-24.md`. Verificado con login real
+	(rol local) via Playwright.
+
 - **Resuelto (2026-09-24)**: franja "Hoy" en Seguimiento pastoral --
 	un solo punto de partida (alertas de alta prioridad + seguimientos
 	vencidos/de hoy) antes de leer las dos secciones. Se calcula con
