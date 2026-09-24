@@ -275,7 +275,13 @@ create policy "congregaciones_select_propia_pendiente" on congregaciones for sel
 create policy "congregaciones_update_distrital" on congregaciones for update using (
   distrito_id in (select mis_distritos()) or es_super_admin()
 );
-create policy "congregaciones_insert_self_register" on congregaciones for insert to authenticated with check (true);
+-- congregaciones_insert_self_register (with check (true), cualquier
+-- autenticado podia crear una congregacion ya 'activa' sin aprobacion)
+-- se elimino por seguridad y se reemplazo por esta, restringida al
+-- propio distrito -- ver supabase/distrital/gestion_distrital_congregaciones.sql.
+create policy "congregaciones_insert_distrital" on congregaciones for insert to authenticated with check (
+  distrito_id in (select mis_distritos())
+);
 
 -- Todo lo operativo se filtra por congregación dentro del alcance del usuario.
 create policy "modulos_scope" on modulos for all using (congregacion_id in (select mis_congregaciones()));

@@ -2,6 +2,31 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: auditoria de seguridad pedida directamente
+	por el usuario (huecos reales, DDoS/DoS, refuerzos necesarios dado
+	que SIGAP custodia informacion religiosa/familiar/de menores). Se
+	corrigieron 2 cosas reales: (1) `Legal.jsx` afirmaba en presente que
+	ya existen copias de seguridad periodicas -- el usuario confirmo que
+	los backups siguen pospuestos a Supabase Pro (decision de negocio
+	del 2026-09-10, sin cambios), asi que el texto publico era falso;
+	corregido a lenguaje de proceso en curso. (2) `schema.sql` (fuente
+	de verdad) seguia mostrando la politica vieja y peligrosa de alta de
+	congregaciones (`congregaciones_insert_self_register`, cualquier
+	autenticado podia crear una congregacion ya 'activa' sin aprobacion)
+	-- el usuario confirmo que ya fue reemplazada en produccion por
+	`congregaciones_insert_distrital` (correctamente restringida al
+	propio distrito); solo hacia falta actualizar el archivo para que no
+	quedara enganoso. El resto de la auditoria (cobertura RLS 100% a
+	nivel de codigo, funcion Edge con service_role bien resguardada, sin
+	secretos filtrados en git) no encontro problemas. Ver
+	`docs/fixes/auditoria-seguridad-2026-09-24.md` para el detalle
+	completo, incluida la respuesta sobre DDoS/DoS (Cloudflare ya
+	protege automaticamente a nivel de red; recomendaciones puntuales de
+	configuracion -- Bot Fight Mode, rate-limit en /login -- pendientes,
+	no requieren cambios de codigo) y 2 vulnerabilidades moderadas de
+	dependencias (react-router, uuid via exceljs) sin explotacion
+	posible en el uso actual del codigo.
+
 - **Resuelto (2026-09-23)**: el pulso "en vivo" del mapa premium nunca
 	funciono, en ningun entorno -- bug real de react-leaflet:
 	`className` dentro de `pathOptions` de un `CircleMarker` nunca se
