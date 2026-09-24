@@ -2,6 +2,18 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: boton "Recargar datos" en Resumen, los 4
+	roles (local/distrital/nacional/super_admin). El usuario reporto que
+	tras capturar informacion desde la PWA o en otro modulo, los
+	graficos del Resumen no se actualizaban hasta recargar toda la
+	pagina. Ahora un clic vuelve a pedir los datos a Supabase sin
+	reemplazar el contenido por el esqueleto de carga (solo el boton
+	cambia a "Actualizando..."). Ver
+	`docs/fixes/boton-recargar-datos-resumen-2026-09-24.md`. Verificado
+	con login real (cuenta de prueba, rol local) via Playwright: 11
+	peticiones reales disparadas por el clic, contenido nunca desaparece.
+	Sin cambios de SQL.
+
 - **Resuelto (2026-09-24)**: auditoria de seguridad pedida directamente
 	por el usuario (huecos reales, DDoS/DoS, refuerzos necesarios dado
 	que SIGAP custodia informacion religiosa/familiar/de menores). Se

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Line, Bar } from 'react-chartjs-2'
-import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Download, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Download, RefreshCw, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
@@ -234,6 +234,26 @@ function QuickAction({ to, icon: Icon, title, description }) {
   )
 }
 
+// Recarga los datos del panel sin recargar la página completa -- útil
+// justo después de capturar información desde la PWA u otro módulo,
+// cuando el resumen sigue mostrando lo que había en caché o en el
+// primer render. A diferencia de la carga inicial, esto NO reemplaza
+// el contenido por un esqueleto: los números/gráficos actuales se
+// quedan visibles mientras llega la información fresca.
+function BotonRecargar({ onClick, refreshing }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={refreshing}
+      className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 disabled:opacity-60 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5"
+    >
+      <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+      {refreshing ? 'Actualizando...' : 'Recargar datos'}
+    </button>
+  )
+}
+
 function DistritalStatTile({ label, value, tone = 'default' }) {
   const text = { default: 'text-ink', danger: 'text-danger', success: 'text-success' }[tone]
   return (
@@ -275,6 +295,8 @@ function SemaforoRow({ label, ok, detalle }) {
 function DashboardDistrital({ rolPrincipal }) {
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
   const [error, setError] = useState(null)
   const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
   const [tablaPage, setTablaPage] = useState(0)
@@ -288,6 +310,10 @@ function DashboardDistrital({ rolPrincipal }) {
   useEffect(() => {
     if (!distritoId) return
     let active = true
+    // reloadToken > 0 es un clic en "Recargar datos" (BotonRecargar), no
+    // el primer montaje -- ahi se usa `refreshing`, no `loading`, para no
+    // reemplazar el contenido ya visible por el esqueleto de carga.
+    if (reloadToken > 0) setRefreshing(true)
     const desde60 = fechaBogota(new Date(Date.now() - 60 * 86400000))
     Promise.all([
       supabase.rpc('resumen_distrital', { p_distrito_id: distritoId }),
@@ -298,15 +324,17 @@ function DashboardDistrital({ rolPrincipal }) {
     ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: cargosData, error: cargosError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
       if (rpcError || personasError || membresiasError || cargosError || actividadError) setError('No se pudo cargar el consolidado del distrito.')
+      else setError(null)
       setCongregaciones(data ?? [])
       setPersonasPiramide(personasData ?? [])
       setPersonaIdsConCargo(new Set((membresiasData ?? []).map((item) => item.persona_id)))
       setCargosDistritalesHistorial(cargosData ?? [])
       setCongregacionesActivas60d(new Set((actividadData ?? []).map((item) => item.congregacion_id)))
       setLoading(false)
+      setRefreshing(false)
     })
     return () => { active = false }
-  }, [distritoId])
+  }, [distritoId, reloadToken])
 
   useEffect(() => { setTablaPage(0) }, [ordenarPor])
 
@@ -454,9 +482,14 @@ function DashboardDistrital({ rolPrincipal }) {
             <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
             <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
           </div>
-          <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Pastoral Distrital <ArrowRight className="w-3.5 h-3.5" /></Link>
+          <div className="flex items-center gap-2">
+            <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
+            <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Pastoral Distrital <ArrowRight className="w-3.5 h-3.5" /></Link>
+          </div>
         </div>
       </section>
+
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       {congregaciones.length > 0 && (
         <section className="relative overflow-hidden card p-7 sm:p-9">
@@ -669,6 +702,8 @@ function DashboardDistrital({ rolPrincipal }) {
 function DashboardNacional() {
   const [distritos, setDistritos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
   const [error, setError] = useState(null)
   const [ordenarPor, setOrdenarPor] = useState('personas_nuevas_3m')
   const [personasPiramide, setPersonasPiramide] = useState([])
@@ -678,6 +713,7 @@ function DashboardNacional() {
 
   useEffect(() => {
     let active = true
+    if (reloadToken > 0) setRefreshing(true)
     const desde60 = fechaBogota(new Date(Date.now() - 60 * 86400000))
     Promise.all([
       supabase.rpc('resumen_nacional'),
@@ -688,15 +724,17 @@ function DashboardNacional() {
     ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: pastoralData, error: pastoralError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
       if (rpcError || personasError || membresiasError || pastoralError || actividadError) setError('No se pudo cargar el consolidado nacional.')
+      else setError(null)
       setDistritos(data ?? [])
       setPersonasPiramide(personasData ?? [])
       setPersonaIdsConCargo(new Set((membresiasData ?? []).map((item) => item.persona_id)))
       setPastoralNacional(pastoralData ?? [])
       setCongregacionesActivas60d(new Set((actividadData ?? []).map((item) => item.congregacion_id)))
       setLoading(false)
+      setRefreshing(false)
     })
     return () => { active = false }
-  }, [])
+  }, [reloadToken])
 
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado nacional...</div>
 
@@ -803,9 +841,14 @@ function DashboardNacional() {
             <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
             <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
           </div>
-          <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Gestión Pastoral Nacional <ArrowRight className="w-3.5 h-3.5" /></Link>
+          <div className="flex items-center gap-2">
+            <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
+            <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Gestión Pastoral Nacional <ArrowRight className="w-3.5 h-3.5" /></Link>
+          </div>
         </div>
       </section>
+
+      {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       {distritos.length > 0 && (
         <section className="relative overflow-hidden card p-7 sm:p-9">
@@ -1014,11 +1057,14 @@ function DashboardSuperAdmin() {
   const [suscripciones, setSuscripciones] = useState({})
   const [snapshots, setSnapshots] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
   const [error, setError] = useState(null)
   const [metaNuevasPorMes, setMetaNuevasPorMes] = useState(null)
 
   useEffect(() => {
     let active = true
+    if (reloadToken > 0) setRefreshing(true)
     Promise.all([
       supabase.from('congregaciones').select('id, nombre, estado, madurez, created_at, distritos(numero)').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('congregacion_id, plan, monto, fecha_proximo_pago, dias_gracia'),
@@ -1026,13 +1072,15 @@ function DashboardSuperAdmin() {
     ]).then(([{ data: congData, error: congError }, { data: suscData, error: suscError }, { data: snapData }]) => {
       if (!active) return
       if (congError || suscError) setError('No se pudo cargar el panel de negocio.')
+      else setError(null)
       setCongregaciones(congData ?? [])
       setSuscripciones(Object.fromEntries((suscData ?? []).map((item) => [item.congregacion_id, item])))
       setSnapshots(snapData ?? [])
       setLoading(false)
+      setRefreshing(false)
     })
     return () => { active = false }
-  }, [])
+  }, [reloadToken])
 
   if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el panel de negocio...</div>
 
@@ -1155,7 +1203,10 @@ function DashboardSuperAdmin() {
             <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel de negocio</h1>
             <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Cuánto estamos creciendo, cuánto estamos cobrando, y qué necesita tu atención hoy para seguir sumando congregaciones.</p>
           </div>
-          <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Suscripciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+          <div className="flex items-center gap-2">
+            <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
+            <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Suscripciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+          </div>
         </div>
       </section>
 
@@ -1365,6 +1416,8 @@ export default function Dashboard() {
   const [rangosEdadComite, setRangosEdadComite] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [loadingData, setLoadingData] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [loadedCacheKey, setLoadedCacheKey] = useState(null)
   const [reloadToken, setReloadToken] = useState(0)
   const [canHandleAlerts, setCanHandleAlerts] = useState(null) // null = todavia no se confirma el permiso
   const [handledAlerts, setHandledAlerts] = useState([])
@@ -1407,7 +1460,16 @@ export default function Dashboard() {
         setComitesLocal(cached.comitesLocal ?? [])
         setRangosEdadComite(cached.rangosEdadComite ?? [])
         setLoadingData(false)
+      } else if (reloadToken > 0 && loadedCacheKey === cacheKey) {
+        // Clic en "Recargar datos" (BotonRecargar) sobre la misma vista
+        // (mismo rol/congregación) -- se deja el contenido actual visible
+        // en vez de reemplazarlo por el esqueleto de carga; `refreshing`
+        // solo controla el spinner del botón.
+        setRefreshing(true)
       } else {
+        // Primer montaje, o cambio de rol/congregación sin caché todavía
+        // (ej. alguien cambió de rol activo) -- ahí sí conviene el
+        // esqueleto completo, para no mostrar datos del rol anterior.
         setLoadingData(true)
       }
       setLoadError(null)
@@ -1472,6 +1534,8 @@ export default function Dashboard() {
       setCategorias(nuevasCategorias)
       setAmigos(nuevosAmigos)
       setLoadingData(false)
+      setRefreshing(false)
+      setLoadedCacheKey(cacheKey)
       dashboardCache.set(cacheKey, {
         alertas: alertasData ?? [],
         alertasTotal: alertasCount ?? 0,
@@ -1763,10 +1827,13 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
-        <div className="relative max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGAP · IPUC'}</p>
-          <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO_LOCAL}</h1>
-          <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
+        <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGAP · IPUC'}</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO_LOCAL}</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
+          </div>
+          <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
         </div>
       </section>
 
