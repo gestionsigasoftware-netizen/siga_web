@@ -2,6 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: submodulo de Comites (Feligresia) mas
+	facil de entender. El usuario reporto que nadie entendia "codigo
+	interno" ni "tipo", y faltaban placeholders en varios formularios.
+	Se encontro que ademas la tarjeta de cada comite no mostraba
+	codigo/tipo/responsable/fechas despues de creado -- se llenaban 8
+	campos y casi nada se veia reflejado. Se agregaron placeholders con
+	ejemplos en todos los campos de texto, InfoTip explicando codigo
+	interno/tipo/vigencia/descripcion vs proposito/cargo, se mostro la
+	metadata guardada en la tarjeta del comite (con nombres resueltos,
+	no ids), y se le dio soporte de placeholder/tip al dialogo generico
+	de edicion (retrocompatible con sus otros usos). Ver
+	`docs/fixes/comites-tooltips-placeholders-2026-09-24.md`. Verificado
+	con login real (rol local) via Playwright. Sin cambios de SQL.
+
 - **Resuelto (2026-09-24)**: Salud de Datos "premium" -- el usuario
 	pidio mas informacion e insights por rol. Se agrego: boton de
 	exportar (CSV/Excel/PDF), metricas de bautizados/sellados sin fecha
