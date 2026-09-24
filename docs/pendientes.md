@@ -2,6 +2,22 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: submodulo de Seguimiento pastoral
+	(Feligresia) mas facil de entender. Se encontro un bug real (no solo
+	de redaccion): los filtros de "tipo" y "prioridad" se veian pegados
+	a "Agenda de acompañamiento" pero en realidad solo filtraban
+	"Alertas pendientes" (seccion separada) -- un pastor que los usara
+	en la agenda no veia ningun cambio. Corregido moviendolos a donde si
+	aplican, verificado por DOM que ahora son hijos de la seccion
+	correcta. Ademas se aclaro con InfoTip la diferencia real entre las
+	dos secciones (Agenda = lo que el pastor agenda a mano, Alertas = lo
+	que SIGAP detecta solo) y que atender una alerta tambien la registra
+	en la Agenda; placeholders reales en los formularios de seguimiento
+	(antes repetian el nombre del campo, no ayudaban). Ver
+	`docs/fixes/seguimiento-pastoral-ux-2026-09-24.md`. Verificado con
+	login real (rol local, datos reales) via Playwright. Sin cambios de
+	SQL.
+
 - **Resuelto (2026-09-24)**: submodulo de Comites (Feligresia) mas
 	facil de entender. El usuario reporto que nadie entendia "codigo
 	interno" ni "tipo", y faltaban placeholders en varios formularios.
