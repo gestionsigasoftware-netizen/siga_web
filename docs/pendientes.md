@@ -2,6 +2,15 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
+	local tenia 27 items en una sola lista plana; ahora se organizan en
+	5 grupos con encabezado (Feligresia, Evangelismo y mision, Comites
+	y ministerios, Administracion, Informacion y soporte) + Resumen
+	arriba sin encabezado. Cada grupo solo aparece si tiene al menos un
+	item visible para el rol activo -- distrital/nacional/super_admin no
+	ven secciones vacias. Sin cambios de permisos, solo organizacion
+	visual. Ver `docs/fixes/sidebar-agrupado-por-secciones-2026-09-24.md`.
+
 - **Resuelto (2026-09-24)**: tooltips/placeholders "masivo" en TODA
 	la web, ya cerrado por completo (parte 2 del pedido -- la parte 1
 	fue el barrido de bugs). Cerradas las 8 pestanas de Feligresia

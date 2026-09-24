@@ -49,6 +49,17 @@ const NIVEL_LABEL = {
   local: "Congregación",
 };
 
+// Orden fijo de las secciones del sidebar; "inicio" (Resumen) se renderiza
+// sin encabezado, como punto de entrada, no como una seccion mas.
+const GROUP_ORDER = ["inicio", "feligresia", "evangelismo", "comites", "administracion", "soporte"];
+const GROUP_LABELS = {
+  feligresia: "Feligresía",
+  evangelismo: "Evangelismo y misión",
+  comites: "Comités y ministerios",
+  administracion: "Administración",
+  soporte: "Información y soporte",
+};
+
 function FamilyNetworkIcon({ className }) {
   return (
     <span className={`relative inline-flex items-center justify-center ${className || ""}`} aria-hidden="true">
@@ -119,181 +130,220 @@ export default function Sidebar() {
   }, []);
 
   const items = [
-    { to: "/app", label: "Resumen", icon: LayoutDashboard, show: true },
+    { to: "/app", label: "Resumen", icon: LayoutDashboard, show: true, group: "inicio" },
     {
       to: "/feligresia",
       label: "Feligresía",
       icon: FamilyNetworkIcon,
       show: nivel === "local",
+      group: "feligresia",
     },
     {
       to: "/red-familias",
       label: "Red de Familias",
       icon: HeartHandshake,
       show: nivel === "local",
+      group: "feligresia",
     },
     {
       to: "/misiones-evangelismo",
       label: "Misiones y Evangelismo",
       icon: Compass,
       show: nivel === "local",
+      group: "evangelismo",
     },
     {
       to: "/amigos",
       label: "Amigos en ruta",
       icon: UsersRound,
       show: nivel === "local",
-    },
-    {
-      to: "/mision-juvenil",
-      label: "Misión Juvenil",
-      icon: BookOpen,
-      show: nivel === "local",
-    },
-    {
-      to: "/escuela-dominical",
-      label: "Escuela Dominical",
-      icon: Baby,
-      show: nivel === "local",
-    },
-    {
-      to: "/damas-dorcas",
-      label: "Damas Dorcas",
-      icon: UserRound,
-      show: nivel === "local",
-    },
-    {
-      to: "/obra-carcelaria",
-      label: "Obra Carcelaria",
-      icon: LockKeyhole,
-      show: nivel === "local",
-    },
-    {
-      to: "/sepri",
-      label: "SEPRI",
-      icon: ShieldAlert,
-      show: nivel === "local",
-    },
-    {
-      to: "/musica",
-      label: "Música",
-      icon: Music,
-      show: nivel === "local",
-    },
-    {
-      to: "/educacion-artistica",
-      label: "Educación Artística",
-      icon: Palette,
-      show: nivel === "local",
-    },
-    {
-      to: "/educacion-teologica",
-      label: "Educación Teológica",
-      icon: BookOpenCheck,
-      show: nivel === "local",
-    },
-    {
-      to: "/conquistadores",
-      label: "Conquistadores Pentecostales",
-      icon: Flag,
-      show: nivel === "local",
-    },
-    {
-      to: "/obra-social",
-      label: "Obra Social",
-      icon: HandHeart,
-      show: nivel === "local",
+      group: "evangelismo",
     },
     {
       to: "/impacto-misionero",
       label: "Impacto Misionero",
       icon: Globe2,
       show: nivel === "local" || nivel === "distrital" || esAdminNacional,
+      group: "evangelismo",
+    },
+    {
+      to: "/mision-juvenil",
+      label: "Misión Juvenil",
+      icon: BookOpen,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/escuela-dominical",
+      label: "Escuela Dominical",
+      icon: Baby,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/damas-dorcas",
+      label: "Damas Dorcas",
+      icon: UserRound,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/obra-carcelaria",
+      label: "Obra Carcelaria",
+      icon: LockKeyhole,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/sepri",
+      label: "SEPRI",
+      icon: ShieldAlert,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/musica",
+      label: "Música",
+      icon: Music,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/educacion-artistica",
+      label: "Educación Artística",
+      icon: Palette,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/educacion-teologica",
+      label: "Educación Teológica",
+      icon: BookOpenCheck,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/conquistadores",
+      label: "Conquistadores Pentecostales",
+      icon: Flag,
+      show: nivel === "local",
+      group: "comites",
+    },
+    {
+      to: "/obra-social",
+      label: "Obra Social",
+      icon: HandHeart,
+      show: nivel === "local",
+      group: "comites",
     },
     {
       to: "/registrar",
       label: "Corrección / contingencia",
       icon: ClipboardPlus,
       show: nivel === "local",
+      group: "administracion",
     },
     {
       to: "/equipo-congregacion",
       label: "Equipo de trabajo",
       icon: UserPlus,
       show: puedeConfigurar,
+      group: "administracion",
     },
     {
       to: "/auditoria-feligresia",
       label: "Auditoría de Feligresía",
       icon: ClipboardList,
       show: nivel === "local" ? rolLocal === "pastor" : nivel === "distrital" || esAdminNacional,
+      group: "administracion",
     },
     {
       to: "/pastoral-distrital",
       label: "Gestión pastoral",
       icon: ArrowRightLeft,
       show: nivel === "distrital",
+      group: "administracion",
     },
     {
       to: "/distritos",
       label: "Catálogo de distritos",
       icon: MapPin,
       show: esAdminNacional,
+      group: "administracion",
     },
     {
       to: "/gestion-pastoral-nacional",
       label: "Gestión Pastoral Nacional",
       icon: ArrowRightLeft,
       show: esAdminNacional,
+      group: "administracion",
     },
     {
       to: "/comites-nacional",
       label: "Comités Nacional",
       icon: LayoutGrid,
       show: esAdminNacional,
+      group: "administracion",
     },
     {
       to: "/suscripciones",
       label: "Suscripciones",
       icon: CreditCard,
       show: nivel === "super_admin",
+      group: "administracion",
     },
     {
       to: "/errores-sistema",
       label: "Errores del sistema",
       icon: Bug,
       show: nivel === "super_admin",
+      group: "administracion",
     },
     {
       to: "/modulos",
       label: "Módulos y actividades",
       icon: Layers3,
       show: puedeConfigurar,
+      group: "administracion",
     },
-    { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true },
-    { to: "/manual", label: "Manual de uso", icon: BookOpen, show: true },
-    { to: "/salud-datos", label: "Salud de datos", icon: Database, show: true },
-    { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true },
-    { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true },
     {
       to: "/aprobaciones",
       label: "Aprobaciones",
       icon: CheckSquare,
       show: nivel === "distrital" || nivel === "super_admin",
+      group: "administracion",
     },
     {
       to: "/configuracion",
       label: "Configuración local",
       icon: Settings,
       show: puedeConfigurar,
+      group: "administracion",
     },
+    { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true, group: "soporte" },
+    { to: "/manual", label: "Manual de uso", icon: BookOpen, show: true, group: "soporte" },
+    { to: "/salud-datos", label: "Salud de datos", icon: Database, show: true, group: "soporte" },
+    { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true, group: "soporte" },
+    { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true, group: "soporte" },
     {
       to: "/configuracion-sistema",
       label: "Preferencias personales",
       icon: Settings,
       show: true,
+      group: "soporte",
     },
   ].filter((i) => i.show);
+
+  // Agrupa la navegacion por secciones (en vez de una lista plana de hasta 27
+  // items para el rol local) -- cada grupo solo aparece con encabezado si
+  // tiene al menos un item visible para el rol/permiso actual, asi que
+  // distrital/nacional/super_admin (con muchos menos items) no ven grupos
+  // vacios ni encabezados de mas.
+  const groupedItems = GROUP_ORDER.map((group) => ({
+    group,
+    label: GROUP_LABELS[group],
+    items: items.filter((item) => item.group === group),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <aside className={`sidebar-shell w-full flex-shrink-0 fixed left-0 right-0 top-0 z-50 flex flex-col p-3 md:w-[248px] md:right-auto md:h-dvh md:p-4 ${mobileOpen ? "h-dvh" : "h-16"}`}>
@@ -381,24 +431,35 @@ export default function Sidebar() {
           </div>
         )}
 
-        <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
         <nav className="flex flex-col gap-1.5 w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto md:pr-1">
           {rolLoading ? (
-            <SidebarNavSkeleton />
+            <>
+              <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
+              <SidebarNavSkeleton />
+            </>
           ) : (
-            items.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `navbtn ${isActive ? "navbtn-active" : ""}`
-                }
-              >
-                <Icon className="w-[17px] h-[17px]" />
-                <span>{label}</span>
-              </NavLink>
+            groupedItems.map((section, sectionIndex) => (
+              <div key={section.group} className={sectionIndex > 0 ? "mt-3" : undefined}>
+                {section.label && (
+                  <p className="sidebar-nav-label px-3 mb-2">{section.label}</p>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  {section.items.map(({ to, label, icon: Icon }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        `navbtn ${isActive ? "navbtn-active" : ""}`
+                      }
+                    >
+                      <Icon className="w-[17px] h-[17px]" />
+                      <span>{label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
             ))
           )}
         </nav>
