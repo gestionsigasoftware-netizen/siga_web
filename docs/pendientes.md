@@ -2,24 +2,20 @@
 
 ## Prioridad critica antes de produccion
 
-- **Codigo listo, FALTA ejecutar SQL en produccion (2026-09-24)**:
-	Salud de Datos "premium" -- el usuario pidio mas informacion e
-	insights por rol. Se agrego: boton de exportar (CSV/Excel/PDF),
-	metricas de bautizados/sellados sin fecha (inconsistencia real, no
-	"% con bautizado" -- ese campo es boolean not null default false,
-	un false puede ser correcto), listas "Ver quien" con nombres reales
-	(solo local), aviso de "congregaciones sin ubicacion en el mapa"
-	(conecta con el trabajo de mapas de hoy), grafico de ranking
-	(peor a mejor completitud) y drill-down nacional por congregacion
-	dentro de un distrito (reutiliza resumen_salud_datos_distrital, sin
-	RPC nueva). Ver `docs/fixes/salud-datos-premium-2026-09-24.md`.
-	**Accion requerida del usuario**: ejecutar
-	`supabase/reportes/fix_salud_datos_consistencia_bautismo_sellado.sql`
-	en el SQL Editor -- sin esto, las vistas distrital/nacional no
-	tendran las columnas nuevas (bautizados_sin_fecha/sellados_sin_fecha
-	quedaran en 0/undefined). Verificado con login real (rol local, sin
-	RPC de por medio) sin errores; distrital/nacional verificado solo
-	por codigo, sin cuenta de prueba con esos roles.
+- **Resuelto (2026-09-24)**: Salud de Datos "premium" -- el usuario
+	pidio mas informacion e insights por rol. Se agrego: boton de
+	exportar (CSV/Excel/PDF), metricas de bautizados/sellados sin fecha
+	(inconsistencia real, no "% con bautizado" -- ese campo es boolean
+	not null default false, un false puede ser correcto), listas "Ver
+	quien" con nombres reales (solo local), aviso de "congregaciones sin
+	ubicacion en el mapa" (conecta con el trabajo de mapas de hoy),
+	grafico de ranking (peor a mejor completitud) y drill-down nacional
+	por congregacion dentro de un distrito (reutiliza
+	resumen_salud_datos_distrital, sin RPC nueva). Ver
+	`docs/fixes/salud-datos-premium-2026-09-24.md`. SQL ya ejecutado por
+	el usuario y confirmado contra produccion real: la cuenta de prueba
+	(rol local) recibe correctamente `bautizados_sin_fecha`/`sellados_sin_fecha`
+	desde `resumen_salud_datos_distrital`.
 
 - **Resuelto (2026-09-24)**: "Territorio alcanzado por distrito" en
 	Impacto Misionero (solo nacional/super_admin), complementando (no
