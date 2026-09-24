@@ -2,6 +2,23 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: "Territorio alcanzado por distrito" en
+	Impacto Misionero (solo nacional/super_admin), complementando (no
+	reemplazando) el mapa de puntos que ya existia. El usuario pidio
+	saber que territorio de Colombia cubre cada distrito de la IPUC y
+	cual todavia no, para decidir donde enviar mision -- los distritos
+	no tienen poligono propio guardado (division interna, no oficial),
+	asi que se aproxima con un radio de alcance ajustable (10/15/20 km)
+	alrededor de cada congregacion, fusionado por distrito (nueva
+	libreria turf.js, modular). Se evaluaron y descartaron centroide
+	unico y diagrama de Voronoi (este ultimo no puede mostrar territorio
+	sin alcanzar, reparte el 100% del pais). Ver
+	`docs/fixes/territorio-alcanzado-distrito-2026-09-24.md`. Verificado
+	visualmente con Playwright (datos de ejemplo en 3 distritos):
+	manchas de color distintas, huecos reales entre grupos alejados,
+	selector de radio funcionando. Sin cambios de SQL. Limitacion
+	comunicada en la propia pantalla: aproximacion, no limite oficial.
+
 - **Resuelto (2026-09-24)**: boton "Recargar datos" en Resumen, los 4
 	roles (local/distrital/nacional/super_admin). El usuario reporto que
 	tras capturar informacion desde la PWA o en otro modulo, los

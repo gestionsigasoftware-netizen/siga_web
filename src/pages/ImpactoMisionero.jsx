@@ -9,6 +9,7 @@ import ChartEmpty from "../components/ChartEmpty";
 import InfoTip from "../components/InfoTip";
 import ExportButtons from "../components/ExportButtons";
 import GeoMap from "../components/charts/GeoMap";
+import MapaTerritorios from "../components/charts/MapaTerritorios";
 import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport";
 import { hoyBogota } from "../lib/fechaBogota";
 
@@ -33,9 +34,11 @@ export default function ImpactoMisionero() {
   const nivel = rolPrincipal?.nivel;
   const congregacionId = rolPrincipal?.congregacion_id;
   const esLocal = nivel === "local";
+  const esNacionalOSuperAdmin = nivel === "nacional" || nivel === "super_admin";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [radioKm, setRadioKm] = useState(15);
 
   useEffect(() => {
     if (!rolPrincipal) return;
@@ -79,7 +82,7 @@ export default function ImpactoMisionero() {
     // propia congregación en todas partes). `congregaciones` trae
     // distrito_id directo, a diferencia de las tablas de arriba -- no
     // hace falta el truco de embed para acotarla por distrito.
-    let congregacionesQuery = supabase.from("congregaciones").select("id, nombre, ciudad, latitud, longitud, created_at");
+    let congregacionesQuery = supabase.from("congregaciones").select("id, nombre, ciudad, latitud, longitud, created_at, distrito_id, distritos(numero)");
     if (esDistrital) congregacionesQuery = congregacionesQuery.eq("distrito_id", rolPrincipal.distrito_id);
     const congregacionesPromise = esLocal ? Promise.resolve({ data: [] }) : congregacionesQuery;
 
@@ -183,6 +186,18 @@ export default function ImpactoMisionero() {
     const conteos = meses.map(({ limite }) => data.congregaciones.filter((item) => item.created_at && new Date(item.created_at) < limite).length);
     return trendDataset(meses.map((m) => m.label), conteos, { label: "Congregaciones" });
   })();
+
+  // Territorio alcanzado por distrito: solo nacional/super_admin ve
+  // varios distritos a la vez (distrital ya filtra a uno solo, una
+  // mancha de un solo color no aporta nada ahi). `distritos` viene
+  // embebido del select de congregaciones.
+  const congregacionesConDistrito = data.congregaciones.map((item) => ({
+    id: item.id,
+    latitud: item.latitud,
+    longitud: item.longitud,
+    distrito_id: item.distrito_id,
+    distrito_numero: item.distritos?.numero ?? null,
+  }));
 
   function exportResumen() {
     return {
@@ -320,6 +335,33 @@ export default function ImpactoMisionero() {
               </div>
             </div>
           </section>
+
+          {esNacionalOSuperAdmin && (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div>
+                  <p className="eyebrow">Territorio</p>
+                  <h2 className="section-title" style={{ fontSize: "1.15rem" }}>Territorio alcanzado por distrito</h2>
+                  <p className="text-sm text-secondary mt-1 max-w-2xl">Aproximación por radio de alcance alrededor de cada congregación, agrupada por distrito -- no es un límite territorial oficial. Las zonas sin color no tienen ninguna congregación de la IPUC cerca; es información real para decidir dónde enviar misión.</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {[10, 15, 20].map((valor) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setRadioKm(valor)}
+                      className={radioKm === valor ? "btn-primary text-xs px-3 py-1.5" : "btn-secondary text-xs px-3 py-1.5"}
+                    >
+                      {valor} km
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <section className="rounded-card overflow-hidden" style={{ boxShadow: "0 24px 60px -20px rgba(10,20,40,0.45)" }}>
+                <MapaTerritorios congregaciones={congregacionesConDistrito} radioKm={radioKm} height={480} />
+              </section>
+            </>
+          )}
         </>
       )}
     </div>
