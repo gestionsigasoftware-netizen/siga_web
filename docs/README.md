@@ -19,6 +19,11 @@ sueltos en un solo nivel).
   especifico ya existente (visual, RLS, datos, nombres, SEO, etc.).
 - **`funcionalidades/`**: implementacion de una funcionalidad o modulo
   nuevo (o una fase de uno), de principio a fin.
+- **`transacciones/`**: todo lo relacionado con el cobro de
+  suscripciones a las congregaciones -- pasarelas de pago,
+  automatizacion del recaudo, conciliacion. Separado de
+  `modelo-negocio/` (que trata precios) porque este tema es tecnico/
+  operativo: como se mueve el dinero, no cuanto ni por que.
 
 Documentos clave dentro de `arquitectura/`:
 
