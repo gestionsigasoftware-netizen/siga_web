@@ -2,20 +2,27 @@
 
 ## Prioridad critica antes de produccion
 
-- **En curso (2026-09-24)**: tooltips/placeholders "masivo" en toda
-	la web (parte 2 del pedido -- la parte 1 fue el barrido de bugs).
-	Cerradas del todo las 8 pestanas de Feligresia (Poblacion, Familias,
-	Comites, Seguimiento pastoral, Traslados, Evolucion, Informe
-	trimestral, Salud y emergencias). Ademas se corrigio el mismo
-	patron de placeholder-que-repite-la-etiqueta en 11 archivos mas
+- **Resuelto (2026-09-24)**: tooltips/placeholders "masivo" en TODA
+	la web, ya cerrado por completo (parte 2 del pedido -- la parte 1
+	fue el barrido de bugs). Cerradas las 8 pestanas de Feligresia
+	(Poblacion, Familias, Comites, Seguimiento pastoral, Traslados,
+	Evolucion, Informe trimestral, Salud y emergencias), el patron de
+	placeholder-que-repite-la-etiqueta corregido en 11 archivos mas
 	(DamasDorcas, Conquistadores, EscuelaDominical, Amigos, MisionJuvenil,
 	ObraCarcelaria, ObraSocial, PastoralDistrital, Perfil, Sepri,
-	Configuracion). Ver
-	`docs/fixes/ux-placeholders-toda-la-app-2026-09-24.md`. **Falta**:
-	el resto de la app (Red de Familias, Evangelismo, Musica, Educacion
-	Artistica/Teologica, Reportes, resto de Configuracion, Auditoria,
-	Equipo de trabajo, Suscripciones) todavia no se ha revisado con
-	este mismo nivel de detalle.
+	Configuracion), y revision final del resto de la app (Red de
+	Familias, Evangelismo, Suscripciones, Musica, Educacion
+	Artistica/Teologica, Equipo de trabajo, Auditoria de Feligresia,
+	Configuracion/Preferencias, Comites Nacional, Catalogo de distritos,
+	Gestion Pastoral Nacional, Aprobaciones, Solicitudes, Soporte,
+	Reportes, Modulos, Correccion/contingencia) -- ya estaban bien de
+	sesiones anteriores, sin huecos reales. De paso se encontro y
+	elimino `src/pages/Personas.jsx` + su ruta `/personas`: pantalla
+	duplicada de Poblacion, huerfana (no enlazada desde ningun lado),
+	sin gate de permiso ni las validaciones del formulario real -- mismo
+	patron que el `Reportes.jsx` eliminado el 2026-08-31. Ver
+	`docs/fixes/ux-placeholders-toda-la-app-2026-09-24.md` y
+	`docs/fixes/barrido-ux-resto-app-2026-09-24.md`.
 
 - **Resuelto (2026-09-24)**: barrido "masivo" de bugs en toda la web
 	(pedido explicito del usuario, no solo un submodulo). Se

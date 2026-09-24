@@ -20,7 +20,6 @@ const EstacionBis = lazy(() => import("./pages/EstacionBis"));
 const EstacionRefam = lazy(() => import("./pages/EstacionRefam"));
 const Aprobaciones = lazy(() => import("./pages/Aprobaciones"));
 const Configuracion = lazy(() => import("./pages/Configuracion"));
-const Personas = lazy(() => import("./pages/Personas"));
 const Modulos = lazy(() => import("./pages/Modulos"));
 const Reportes = lazy(() => import("./pages/ReportesOptimizado"));
 const Soporte = lazy(() => import("./pages/Soporte"));
@@ -89,7 +88,6 @@ export default function App() {
         >
           <Route path="/app" element={<Dashboard />} />
           <Route path="/registrar" element={<RegistrarAsistencia />} />
-          <Route path="/personas" element={<Personas />} />
           <Route path="/feligresia" element={<Feligresia />} />
           <Route path="/red-familias" element={<RedFamilias />} />
           <Route
