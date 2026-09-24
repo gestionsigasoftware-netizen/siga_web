@@ -402,8 +402,30 @@
   }
 
   .sidebar-status {
-    @apply w-1.5 h-1.5 rounded-full bg-success;
+    @apply w-1.5 h-1.5 rounded-full bg-success relative;
     box-shadow: 0 0 0 3px rgba(0, 131, 0, 0.15);
+  }
+
+  /* Anillo "en vivo" que crece y se desvanece en bucle -- misma curva de
+     animacion que el pulso de los puntos del mapa en Impacto Misionero
+     (siga-map-pulse en GeoMap.jsx), para que el lenguaje visual de "esto
+     esta en vivo" sea consistente en toda la app. */
+  .sidebar-status::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: rgba(0, 131, 0, 0.6);
+    animation: sidebar-status-pulse 2s cubic-bezier(0.15, 0.6, 0.35, 1) infinite;
+  }
+
+  @keyframes sidebar-status-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.6); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar-status::after { animation: none; opacity: 0; }
   }
 
   .sidebar-nav-label {
