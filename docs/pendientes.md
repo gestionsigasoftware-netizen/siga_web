@@ -2,6 +2,13 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: franja "Hoy" en Seguimiento pastoral --
+	un solo punto de partida (alertas de alta prioridad + seguimientos
+	vencidos/de hoy) antes de leer las dos secciones. Se calcula con
+	datos ya cargados, sin consulta nueva. Ver
+	`docs/fixes/seguimiento-pastoral-franja-hoy-2026-09-24.md`.
+	Verificado con login real (rol local, datos reales) via Playwright.
+
 - **Resuelto (2026-09-24)**: submodulo de Seguimiento pastoral
 	(Feligresia) mas facil de entender. Se encontro un bug real (no solo
 	de redaccion): los filtros de "tipo" y "prioridad" se veian pegados
