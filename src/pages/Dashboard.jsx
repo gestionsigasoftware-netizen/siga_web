@@ -431,7 +431,6 @@ function DashboardDistrital({ rolPrincipal }) {
     })
     .sort((a, b) => (b.variacionPct ?? -999) - (a.variacionPct ?? -999))
     .slice(0, 5)
-  const maxAsistenciaRankingDistrital = Math.max(1, ...rankingCrecimientoDistrital.map((c) => c.asistenciaActualMes))
   const liderDistrital = rankingCrecimientoDistrital[0]
 
   // Insight por tarjeta -- mismo criterio que el rol local: una frase de

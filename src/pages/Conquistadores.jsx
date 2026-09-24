@@ -227,11 +227,6 @@ export default function Conquistadores() {
     fecha,
     total: actividades.filter((item) => item.fecha === fecha).length,
   }));
-  const mitad = Math.floor(trend.length / 2) || 1;
-  const primeraMitad = trend.slice(0, mitad).reduce((sum, item) => sum + item.total, 0);
-  const segundaMitad = trend.slice(mitad).reduce((sum, item) => sum + item.total, 0);
-  const tendenciaVariacion = primeraMitad ? Math.round(((segundaMitad - primeraMitad) / primeraMitad) * 100) : null;
-
   const hace30 = fechaBogota(new Date(Date.now() - 30 * 86400000));
   const hace60 = fechaBogota(new Date(Date.now() - 60 * 86400000));
   const actividadesPenultimoMes = actividades.filter((item) => item.fecha >= hace60 && item.fecha < hace30).length;

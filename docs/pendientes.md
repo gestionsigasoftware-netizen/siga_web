@@ -2,6 +2,26 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-24)**: barrido "masivo" de bugs en toda la web
+	(pedido explicito del usuario, no solo un submodulo). Se
+	reutilizo `.eslintrc-audit.cjs` (creado el 2026-08-31) sobre las
+	33+ pantallas. Hallazgo real: en Obra Carcelaria, la asistencia
+	individual por interno SI se capturaba al registrar un culto
+	(`obra_carcelaria_asistencia`) y se volvia a cargar en memoria,
+	pero nunca se mostraba de vuelta -- ni por interno (quien ha
+	dejado de venir) ni por culto. Corregido con un badge por interno
+	activo: "Asistio a N cultos en este periodo" o "Sin asistencia
+	registrada en este periodo" (alerta), sin ninguna consulta nueva
+	a Supabase. Ademas se limpiaron 4 variables calculadas y nunca
+	usadas (codigo muerto real) en `Dashboard.jsx`,
+	`Conquistadores.jsx`, `DamasDorcas.jsx` y `ObraCarcelaria.jsx`. El
+	resto de avisos del barrido (react-hooks/exhaustive-deps sobre
+	`load`) siguen siendo el mismo patron intencional ya descartado
+	antes, no bugs. Ver
+	`docs/fixes/obra-carcelaria-asistencia-invisible-2026-09-24.md`.
+	Verificado con `npm run build` + login real (rol local) via
+	Playwright.
+
 - **Resuelto (2026-09-24)**: submodulo de Traslados (Feligresia) -- 2
 	bugs reales encontrados. (1) El deep-link `?tab=traslados` no
 	funcionaba (la pestana no estaba en la lista blanca de tabs

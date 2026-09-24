@@ -330,7 +330,6 @@ export default function ObraCarcelaria() {
   const sellados = internos.filter((item) => item.sellado);
   const liberados = internos.filter((item) => item.estado === "liberado");
   const delegadosHabilitados = delegados.filter((item) => item.activo && item.permiso_inpec_vigente);
-  const hoy = new Date();
   const en30dias = fechaBogota(new Date(Date.now() + DIAS_ALERTA_INPEC * 86400000));
   const delegadosAlerta = delegados.filter((item) => item.activo && (!item.permiso_inpec_vigente || !item.permiso_inpec_vencimiento || item.permiso_inpec_vencimiento <= en30dias));
 
@@ -351,6 +350,16 @@ export default function ObraCarcelaria() {
   seguimientos.forEach((item) => {
     const actual = ultimaVisitaPorInterno.get(item.interno_id);
     if (!actual || item.fecha_visita > actual) ultimaVisitaPorInterno.set(item.interno_id, item.fecha_visita);
+  });
+
+  // asistencias trae historial completo (sin filtro de fecha); se acota a
+  // los cultos ya cargados en el periodo seleccionado para que el conteo
+  // coincida con lo que el pastor ve en "Cultos y REFAM".
+  const cultoIdsEnPeriodo = new Set(cultos.map((item) => item.id));
+  const asistenciaPorInterno = new Map();
+  asistencias.forEach((item) => {
+    if (!cultoIdsEnPeriodo.has(item.culto_id)) return;
+    asistenciaPorInterno.set(item.interno_id, (asistenciaPorInterno.get(item.interno_id) || 0) + 1);
   });
 
   const insightGeneral = activos.length
@@ -473,6 +482,7 @@ export default function ObraCarcelaria() {
             <div className="overflow-x-auto mt-4 max-h-96 overflow-y-auto">
               {internos.length ? internos.map((item) => {
                 const yaVinculado = internosVinculados.has(item.id);
+                const asistenciasInterno = asistenciaPorInterno.get(item.id) || 0;
                 return (
                 <div key={item.id} className="border-b border-border py-3">
                   <div className="flex items-start justify-between gap-3">
@@ -484,6 +494,11 @@ export default function ObraCarcelaria() {
                         {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
                         {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
                         {yaVinculado && <span className="text-[11px] px-2 py-0.5 rounded bg-success-bg text-success">Vinculado a la Ruta</span>}
+                        {item.estado === "activo" && cultos.length > 0 && (
+                          asistenciasInterno > 0
+                            ? <span className="text-[11px] px-2 py-0.5 rounded bg-surface-1">Asistió a {asistenciasInterno} culto{asistenciasInterno === 1 ? "" : "s"} en este periodo</span>
+                            : <span className="text-[11px] px-2 py-0.5 rounded bg-warning-bg text-warning-dark">Sin asistencia registrada en este periodo</span>
+                        )}
                       </div>
                     </div>
                     {canEdit && <button type="button" className="text-xs text-accent flex-shrink-0" onClick={() => editInterno(item)}>Editar</button>}
