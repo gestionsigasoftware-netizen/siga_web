@@ -401,31 +401,24 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 24px rgba(5, 12, 20, 0.14);
   }
 
+  /* Punto "en vivo" blanco brillante que respira: se apaga y se enciende
+     en bucle (opacity baja y sube), en vez de un anillo que crece hacia
+     afuera -- el brillo (box-shadow) se apaga junto con el punto porque
+     ambos viven en el mismo elemento y la animacion es sobre `opacity`. */
   .sidebar-status {
-    @apply w-1.5 h-1.5 rounded-full bg-success relative;
-    box-shadow: 0 0 0 3px rgba(0, 131, 0, 0.15);
-  }
-
-  /* Anillo "en vivo" que crece y se desvanece en bucle -- misma curva de
-     animacion que el pulso de los puntos del mapa en Impacto Misionero
-     (siga-map-pulse en GeoMap.jsx), para que el lenguaje visual de "esto
-     esta en vivo" sea consistente en toda la app. */
-  .sidebar-status::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 9999px;
-    background: rgba(0, 131, 0, 0.6);
-    animation: sidebar-status-pulse 2s cubic-bezier(0.15, 0.6, 0.35, 1) infinite;
+    @apply w-1.5 h-1.5 rounded-full;
+    background: #ffffff;
+    box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.85), 0 0 0 3px rgba(255, 255, 255, 0.14);
+    animation: sidebar-status-pulse 1.8s ease-in-out infinite;
   }
 
   @keyframes sidebar-status-pulse {
-    0% { transform: scale(1); opacity: 0.8; }
-    100% { transform: scale(2.6); opacity: 0; }
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sidebar-status::after { animation: none; opacity: 0; }
+    .sidebar-status { animation: none; opacity: 1; }
   }
 
   .sidebar-nav-label {
