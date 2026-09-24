@@ -117,17 +117,20 @@ export default function GeoMap({ points, colorHex = '#2a78d6', height = 320, pre
           return (
             <Fragment key={point.id}>
               {premium && (
+                // className (y aca tambien interactive) van como props
+                // directas del componente, NO dentro de pathOptions: react-
+                // leaflet aplica pathOptions vía layer.setStyle() DESPUES de
+                // que Leaflet ya creo el elemento SVG, pero Leaflet solo lee
+                // options.className (y options.interactive, para la clase
+                // leaflet-interactive) al crearlo por primera vez -- un
+                // cambio posterior via setStyle nunca vuelve a tocar la
+                // clase. Puesta asi, sin pathOptions, llega a tiempo.
                 <CircleMarker
                   center={[point.latitud, point.longitud]}
                   radius={radius + 7}
-                  pathOptions={{
-                    color: 'transparent',
-                    fillColor: colorHex,
-                    fillOpacity: 0.5,
-                    weight: 0,
-                    interactive: false,
-                    className: `siga-pulse-ring siga-pulse-delay-${index % 4}`,
-                  }}
+                  interactive={false}
+                  className={`siga-pulse-ring siga-pulse-delay-${index % 4}`}
+                  pathOptions={{ color: 'transparent', fillColor: colorHex, fillOpacity: 0.5, weight: 0 }}
                 />
               )}
               <CircleMarker center={[point.latitud, point.longitud]} radius={radius} pathOptions={{ color: premium ? '#0A1428' : colorHex, fillColor: colorHex, fillOpacity: premium ? 0.9 : 0.45, weight: premium ? 1.5 : 2 }}>

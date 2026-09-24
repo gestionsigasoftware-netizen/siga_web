@@ -2,6 +2,35 @@
 
 ## Prioridad critica antes de produccion
 
+- **Resuelto (2026-09-23)**: el pulso "en vivo" del mapa premium nunca
+	funciono, en ningun entorno -- bug real de react-leaflet:
+	`className` dentro de `pathOptions` de un `CircleMarker` nunca se
+	aplica (Leaflet solo lee `options.className` al crear el elemento
+	por primera vez, react-leaflet aplica `pathOptions` despues via
+	`setStyle()`, que no vuelve a tocar la clase). La verificacion
+	anterior (comparar 2 capturas) fue un falso positivo. Corregido
+	pasando `className`/`interactive` como props directas del
+	componente. Esta vez verificado con `getComputedStyle` real (no
+	solo capturas): `animationName`/`playState` correctos y
+	`transform`/`opacity` cambiando de verdad entre 2 mediciones. Ver
+	`docs/fixes/pulso-mapa-classname-react-leaflet-2026-09-23.md`.
+
+- **Resuelto (2026-09-23)**: el mapa premium se veia "basico" en
+	produccion real (`sigap.com.co`) aunque local funcionaba bien --
+	causa: `VITE_MAPBOX_TOKEN` solo estaba en `.env` local, nunca se
+	agrego en el panel de Cloudflare Pages (que usa sus propias
+	variables de entorno para el build real, separadas del `.env`
+	local). Vite reemplazaba la variable por `undefined` en el build de
+	Cloudflare y el minificador eliminaba toda la rama de Mapbox sin
+	ningun error. Corregido por el usuario agregando la variable en
+	Cloudflare Pages + redeploy; verificado comparando el bundle JS
+	real servido por `sigap.com.co` antes/despues. Ver
+	`docs/fixes/mapbox-token-variable-entorno-cloudflare-2026-09-23.md`.
+	**Leccion para cualquier `VITE_*` nueva en el futuro**: siempre hay
+	que agregarla tambien en el panel de Cloudflare Pages, no solo en
+	`.env` local -- `wrangler pages dev` local no detecta este problema
+	porque tambien lee el `.env` local.
+
 - **Resuelto (2026-09-23)**: misma identidad visual en todos los mapas
 	de SIGAP. El mapa premium (Mapbox, pulso en vivo) que se construyo
 	primero solo para Impacto Misionero ahora se aplica tambien en
