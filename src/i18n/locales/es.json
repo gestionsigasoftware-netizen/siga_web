@@ -397,6 +397,166 @@
         "bajoPromedio": "▼ bajo el promedio",
         "congregaciones": "congregaciones"
       }
+    },
+    "nacional": {
+      "heroTag": "SIGAP · IPUC",
+      "heroTitle": "Panel nacional",
+      "heroSubtitle": "Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.",
+      "goPastoral": "Ir a Gestión Pastoral Nacional",
+      "loading": "Cargando el consolidado nacional...",
+      "loadError": "No se pudo cargar el consolidado nacional.",
+      "distritoLabel": "Distrito {{numero}}",
+      "comoEstuvimos": {
+        "eyebrow": "Cómo estuvimos este mes",
+        "noDistritos": "Aún no hay distritos para comparar.",
+        "todosCrecieron": "Todos los distritos crecieron este mes.",
+        "ningunoCrecio": "Ningún distrito creció este mes frente al anterior.",
+        "algunos": "{{crecieron}} de {{total}} distritos crecieron este mes.",
+        "resumen": "{{asistencias}} asistencias a nivel nacional este mes{{variacion}}.",
+        "variacionSuffix": " ({{valor}}% frente al mes anterior)",
+        "liderTitulo": "Distrito {{numero}} · {{nombre}} lidera el crecimiento este mes",
+        "liderDetalle": "+{{valor}}% en asistencia frente al mes anterior.",
+        "asistenciaNacional": "Asistencia nacional",
+        "vsMesAnterior": "{{valor}}% vs. mes anterior",
+        "distritosCrecimiento": "Distritos en crecimiento",
+        "crecieronFrenteAnterior": "crecieron este mes frente al anterior",
+        "altasBajas3m": "Altas / Bajas (3 meses)",
+        "balanceNeto": "balance neto {{valor}}",
+        "bautismos3m": "Bautismos (3 meses)",
+        "aNivelNacional": "a nivel nacional"
+      },
+      "insightAsistencia": {
+        "noDistritos": "Aún no hay distritos para promediar.",
+        "base": "Promedio de {{promedio}} asistencias por distrito este mes.",
+        "aporteSingular": " {{nombres}} aporta {{suma}} de las {{total}}.",
+        "aportePlural": " {{nombres}} aportan {{suma}} de las {{total}}."
+      },
+      "insightCrecimiento": {
+        "noDistritos": "Aún no hay distritos para comparar.",
+        "ningunoAtras": "Ningún distrito se quedó atrás este mes.",
+        "lista_one": "Distrito {{numeros}}{{yMas}} no creció este mes.",
+        "lista_other": "Distritos {{numeros}}{{yMas}} no crecieron este mes.",
+        "yMas": " y {{cantidad}} más"
+      },
+      "insightAltasBajas": {
+        "noDistritos": "Aún no hay distritos para medir.",
+        "aporteSingular": "{{nombres}} aporta {{suma}} de las {{total}} altas en 3 meses.",
+        "aportePlural": "{{nombres}} aportan {{suma}} de las {{total}} altas en 3 meses.",
+        "balanceNegativoSuffix_one": " {{count}} distrito con más bajas que altas.",
+        "balanceNegativoSuffix_other": " {{count}} distritos con más bajas que altas.",
+        "soloBalanceNegativo_one": "{{count}} distrito con más bajas que altas en 3 meses.",
+        "soloBalanceNegativo_other": "{{count}} distritos con más bajas que altas en 3 meses.",
+        "sinMovimiento": "Sin altas ni bajas a nivel nacional en 3 meses."
+      },
+      "insightBautismos": {
+        "noDistritos": "Aún no hay distritos para medir.",
+        "aporteSingular": "{{nombres}} aporta {{suma}} de los {{total}}{{resto}}",
+        "aportePlural": "{{nombres}} aportan {{suma}} de los {{total}}{{resto}}",
+        "resto": ", el resto repartido en el país.",
+        "sinResto": ".",
+        "sinBautismos": "Sin bautismos a nivel nacional en 3 meses."
+      },
+      "semaforo": {
+        "titulo": "Semáforo nacional",
+        "subtitulo": "Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.",
+        "vacantesPastor": "Vacantes de pastor",
+        "vacantesPastorOk": "Todas las congregaciones tienen pastor.",
+        "vacantesPastorBad": "{{cantidad}} congregación(es) sin pastor asignado en el país.",
+        "brechaLlenura": "Brecha de llenura",
+        "brechaLlenuraSinDatos": "Aún no hay bautizados para medir.",
+        "brechaLlenuraDetalle": "{{pct}}% de bautizados aún no están sellados.",
+        "movimientoMembresia": "Movimiento de membresía",
+        "movimientoMembresiaDetalle": "{{altas}} altas y {{bajas}} bajas en los últimos 3 meses.",
+        "actividadCongregacional": "Actividad congregacional",
+        "actividadOk": "Todas las congregaciones registraron actividad en 60 días.",
+        "actividadBad": "{{cantidad}} congregación(es) sin ninguna actividad registrada en 60 días.",
+        "directivaDistrital": "Directiva distrital",
+        "directivaOk": "Los 6 cargos están cubiertos en todos los distritos.",
+        "directivaBad": "{{cantidad}} distrito(s) con al menos un cargo de junta vacante."
+      },
+      "stats": {
+        "distritos": "Distritos",
+        "congregaciones": "Congregaciones",
+        "feligresesActivos": "Feligreses activos",
+        "vacantesPastor": "Vacantes de pastor"
+      },
+      "insightsBI": {
+        "eyebrow": "Insights BI",
+        "titulo": "Señales para decidir a nivel nacional",
+        "brechaLlenura": {
+          "titulo": "Brecha de llenura",
+          "atencion": "Atención",
+          "sinBautizados": "Aún no hay bautizados registrados a nivel nacional.",
+          "detalle": "{{pendientes}} de {{total}} bautizados aún no están sellados con el Espíritu Santo{{sugerencia}}",
+          "sugerencia": " — considera una campaña nacional de llenura.",
+          "sinSugerencia": ".",
+          "tip": "Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
+        },
+        "eficaciaRefam": {
+          "titulo": "Eficacia de REFAM",
+          "sinBautismos": "{{estudios}} estudios entregados en 3 meses, aún sin bautismos que comparar.",
+          "detalle": "En promedio se necesitaron {{eficacia}} estudios por cada bautismo en los últimos 3 meses ({{estudios}} estudios, {{bautismos}} bautismos).",
+          "tip": "Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
+        },
+        "embudo": {
+          "titulo": "Embudo Uno Más → REFAM",
+          "sinDatos": "Aún no hay personas activas en Uno Más.",
+          "detalle": "De {{unoMas}} personas en Uno Más, {{refam}} avanzaron a REFAM y {{bautizados}} amigos ya se bautizaron a nivel nacional.",
+          "tip": "Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
+        },
+        "movimiento": {
+          "titulo": "Movimiento de membresía (3 meses)",
+          "detalle": "{{altas}} altas y {{bajas}} bajas a nivel nacional{{alerta}}",
+          "alerta": " — las bajas superan las altas, conviene revisar traslados y disciplina.",
+          "sinAlerta": "."
+        },
+        "madurez": {
+          "titulo": "Madurez de la obra",
+          "sinCongregaciones": "Aún no hay congregaciones para clasificar.",
+          "detalle": "{{constituidas}} Iglesia Local constituida, {{lugarPrediccion}} Lugar de Predicación, {{misionNacional}} Misión Nacional."
+        },
+        "proyeccion": {
+          "titulo": "Proyección a 12 meses",
+          "sinDatos": "Aún no hay suficientes datos para proyectar.",
+          "detalle": "Si se mantiene el ritmo de los últimos 3 meses ({{ritmo}} personas/mes neto), la IPUC en Colombia tendría {{proyeccion}} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos."
+        },
+        "ciclo": {
+          "titulo": "Ciclo de vida espiritual",
+          "sinDatos": "Aún no hay personas activas para medir el ciclo.",
+          "detalle": "Activos → Bautizados ({{pctBautizados}}%) → Sellados ({{pctSellados}}%) → Con cargo o comité ({{pctConCargo}}%)."
+        },
+        "consolidacion": {
+          "titulo": "Tiempo de consolidación",
+          "sinDatos": "Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.",
+          "detalle": "En promedio, {{dias}} días desde el ingreso hasta el bautismo (muestra de {{muestra}}){{selladoExtra}}",
+          "selladoExtra": ", y {{dias2}} días más hasta el sellado (muestra de {{muestra2}}).",
+          "sinSelladoExtra": "."
+        }
+      },
+      "piramide": {
+        "titulo": "Pirámide poblacional nacional",
+        "subtitulo": "Distribución por edad y género de las personas activas de la IPUC en Colombia.",
+        "subtituloExtra": " Basada en {{conGenero}} de {{total}} activas con género registrado.",
+        "sinDatos": "Aún no hay personas activas con género registrado."
+      },
+      "tabla": {
+        "titulo": "Comparativa por distrito",
+        "subtitulo": "Ordena para identificar qué distrito está creciendo o en descenso.",
+        "ordenarNuevas": "Ordenar por: nuevas (3 meses)",
+        "ordenarActivas": "Ordenar por: personas activas",
+        "ordenarAsistencia": "Ordenar por: asistencia último mes",
+        "ordenarBajas": "Ordenar por: bajas (3 meses)",
+        "ordenarVacantes": "Ordenar por: vacantes de pastor",
+        "sinDistritos": "Aún no hay distritos registrados.",
+        "colDistrito": "Distrito",
+        "colCongregaciones": "Congregaciones",
+        "colVacantes": "Vacantes",
+        "colActivas": "Personas activas",
+        "colNuevas": "Nuevas (3 meses)",
+        "colSellados": "Sellados",
+        "colAsistencia": "Asistencia último mes",
+        "sinSellar": "({{cantidad}} sin sellar)"
+      }
     }
   }
 }

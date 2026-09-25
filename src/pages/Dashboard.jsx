@@ -678,6 +678,7 @@ function DashboardDistrital({ rolPrincipal }) {
 }
 
 function DashboardNacional() {
+  const { t } = useTranslation()
   const [distritos, setDistritos] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -701,7 +702,7 @@ function DashboardNacional() {
       supabase.from('registros_actividad').select('congregacion_id').gte('fecha', desde60),
     ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: pastoralData, error: pastoralError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
-      if (rpcError || personasError || membresiasError || pastoralError || actividadError) setError('No se pudo cargar el consolidado nacional.')
+      if (rpcError || personasError || membresiasError || pastoralError || actividadError) setError(t('dashboard.nacional.loadError'))
       else setError(null)
       setDistritos(data ?? [])
       setPersonasPiramide(personasData ?? [])
@@ -714,7 +715,7 @@ function DashboardNacional() {
     return () => { active = false }
   }, [reloadToken])
 
-  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado nacional...</div>
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('dashboard.nacional.loading')}</div>
 
   const totalCongregaciones = distritos.reduce((total, d) => total + Number(d.congregaciones || 0), 0)
   const totalFeligreses = distritos.reduce((total, d) => total + Number(d.personas_activas || 0), 0)
@@ -755,12 +756,12 @@ function DashboardNacional() {
   const variacionMes = asistenciaMesAnteriorTotal ? Math.round(((asistenciaMesActual - asistenciaMesAnteriorTotal) / asistenciaMesAnteriorTotal) * 100) : null
   const distritosConCrecimiento = distritos.filter((d) => Number(d.asistencia_ultimo_mes || 0) > Number(d.asistencia_mes_anterior || 0))
   const verdictoNacional = distritos.length === 0
-    ? 'Aún no hay distritos para comparar.'
+    ? t('dashboard.nacional.comoEstuvimos.noDistritos')
     : distritosConCrecimiento.length === distritos.length
-      ? 'Todos los distritos crecieron este mes.'
+      ? t('dashboard.nacional.comoEstuvimos.todosCrecieron')
       : distritosConCrecimiento.length === 0
-        ? 'Ningún distrito creció este mes frente al anterior.'
-        : `${distritosConCrecimiento.length} de ${distritos.length} distritos crecieron este mes.`
+        ? t('dashboard.nacional.comoEstuvimos.ningunoCrecio')
+        : t('dashboard.nacional.comoEstuvimos.algunos', { crecieron: distritosConCrecimiento.length, total: distritos.length })
   const rankingCrecimientoNacional = [...distritos]
     .map((d) => {
       const actual = Number(d.asistencia_ultimo_mes || 0)
@@ -777,36 +778,36 @@ function DashboardNacional() {
   const etiquetaDistrito = (d) => `Distrito ${d.numero}`
   const topAsistenciaNacional = topContribuyentes(distritos, 'asistencia_ultimo_mes', etiquetaDistrito)
   const insightAsistenciaNacional = distritos.length === 0
-    ? 'Aún no hay distritos para promediar.'
-    : `Promedio de ${promedioPorDistritoMes} asistencias por distrito este mes.${topAsistenciaNacional && distritos.length > 1 ? ` ${topAsistenciaNacional.nombres.join(' y ')} aporta${topAsistenciaNacional.nombres.length === 1 ? '' : 'n'} ${topAsistenciaNacional.suma} de las ${asistenciaMesActual}.` : ''}`
+    ? t('dashboard.nacional.insightAsistencia.noDistritos')
+    : t('dashboard.nacional.insightAsistencia.base', { promedio: promedioPorDistritoMes }) + (topAsistenciaNacional && distritos.length > 1 ? t(`dashboard.nacional.insightAsistencia.aporte${topAsistenciaNacional.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topAsistenciaNacional.nombres.join(' y '), suma: topAsistenciaNacional.suma, total: asistenciaMesActual }) : '')
   const distritosEstancados = distritos.filter((d) => !distritosConCrecimiento.includes(d))
   const insightCrecimientoNacional = distritos.length === 0
-    ? 'Aún no hay distritos para comparar.'
+    ? t('dashboard.nacional.insightCrecimiento.noDistritos')
     : distritosEstancados.length === 0
-      ? 'Ningún distrito se quedó atrás este mes.'
-      : `Distrito${distritosEstancados.length === 1 ? '' : 's'} ${distritosEstancados.slice(0, 3).map((d) => d.numero).join(', ')}${distritosEstancados.length > 3 ? ` y ${distritosEstancados.length - 3} más` : ''} no crecieron este mes.`
+      ? t('dashboard.nacional.insightCrecimiento.ningunoAtras')
+      : t('dashboard.nacional.insightCrecimiento.lista', { count: distritosEstancados.length, numeros: distritosEstancados.slice(0, 3).map((d) => d.numero).join(', '), yMas: distritosEstancados.length > 3 ? t('dashboard.nacional.insightCrecimiento.yMas', { cantidad: distritosEstancados.length - 3 }) : '' })
   const distritosBalanceNegativo = distritos.filter((d) => Number(d.altas_3m || 0) - Number(d.bajas_3m || 0) < 0).length
   const topAltasNacional = topContribuyentes(distritos, 'altas_3m', etiquetaDistrito)
   const insightAltasBajasNacional = distritos.length === 0
-    ? 'Aún no hay distritos para medir.'
+    ? t('dashboard.nacional.insightAltasBajas.noDistritos')
     : topAltasNacional
-      ? `${topAltasNacional.nombres.join(' y ')} aporta${topAltasNacional.nombres.length === 1 ? '' : 'n'} ${topAltasNacional.suma} de las ${totalAltas3m} altas en 3 meses.${distritosBalanceNegativo > 0 ? ` ${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas.` : ''}`
+      ? t(`dashboard.nacional.insightAltasBajas.aporte${topAltasNacional.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topAltasNacional.nombres.join(' y '), suma: topAltasNacional.suma, total: totalAltas3m }) + (distritosBalanceNegativo > 0 ? t('dashboard.nacional.insightAltasBajas.balanceNegativoSuffix', { count: distritosBalanceNegativo }) : '')
       : distritosBalanceNegativo > 0
-        ? `${distritosBalanceNegativo} distrito${distritosBalanceNegativo === 1 ? '' : 's'} con más bajas que altas en 3 meses.`
-        : 'Sin altas ni bajas a nivel nacional en 3 meses.'
+        ? t('dashboard.nacional.insightAltasBajas.soloBalanceNegativo', { count: distritosBalanceNegativo })
+        : t('dashboard.nacional.insightAltasBajas.sinMovimiento')
   const topBautismosNacional = topContribuyentes(distritos, 'bautismos_3m', etiquetaDistrito)
   const insightBautismosNacional = distritos.length === 0
-    ? 'Aún no hay distritos para medir.'
+    ? t('dashboard.nacional.insightBautismos.noDistritos')
     : topBautismosNacional
-      ? `${topBautismosNacional.nombres.join(' y ')} aporta${topBautismosNacional.nombres.length === 1 ? '' : 'n'} ${topBautismosNacional.suma} de los ${totalBautismos3m}${distritos.length > topBautismosNacional.nombres.length ? ', el resto repartido en el país.' : '.'}`
-      : 'Sin bautismos a nivel nacional en 3 meses.'
+      ? t(`dashboard.nacional.insightBautismos.aporte${topBautismosNacional.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topBautismosNacional.nombres.join(' y '), suma: topBautismosNacional.suma, total: totalBautismos3m, resto: distritos.length > topBautismosNacional.nombres.length ? t('dashboard.nacional.insightBautismos.resto') : t('dashboard.nacional.insightBautismos.sinResto') })
+      : t('dashboard.nacional.insightBautismos.sinBautismos')
 
   const semaforo = [
-    { label: 'Vacantes de pastor', ok: totalVacantes === 0, detalle: totalVacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${totalVacantes} congregación(es) sin pastor asignado en el país.` },
-    { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
-    { label: 'Movimiento de membresía', ok: balanceMembresia >= 0, detalle: `${totalAltas3m} altas y ${totalBajas3m} bajas en los últimos 3 meses.` },
-    { label: 'Actividad congregacional', ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? 'Todas las congregaciones registraron actividad en 60 días.' : `${congregacionesInactivas} congregación(es) sin ninguna actividad registrada en 60 días.` },
-    { label: 'Directiva distrital', ok: totalCargosVacantes === 0, detalle: totalCargosVacantes === 0 ? 'Los 6 cargos están cubiertos en todos los distritos.' : `${distritosSinDirectivaCompleta} distrito(s) con al menos un cargo de junta vacante.` },
+    { label: t('dashboard.nacional.semaforo.vacantesPastor'), ok: totalVacantes === 0, detalle: totalVacantes === 0 ? t('dashboard.nacional.semaforo.vacantesPastorOk') : t('dashboard.nacional.semaforo.vacantesPastorBad', { cantidad: totalVacantes }) },
+    { label: t('dashboard.nacional.semaforo.brechaLlenura'), ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? t('dashboard.nacional.semaforo.brechaLlenuraSinDatos') : t('dashboard.nacional.semaforo.brechaLlenuraDetalle', { pct: sinSellarPct }) },
+    { label: t('dashboard.nacional.semaforo.movimientoMembresia'), ok: balanceMembresia >= 0, detalle: t('dashboard.nacional.semaforo.movimientoMembresiaDetalle', { altas: totalAltas3m, bajas: totalBajas3m }) },
+    { label: t('dashboard.nacional.semaforo.actividadCongregacional'), ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? t('dashboard.nacional.semaforo.actividadOk') : t('dashboard.nacional.semaforo.actividadBad', { cantidad: congregacionesInactivas }) },
+    { label: t('dashboard.nacional.semaforo.directivaDistrital'), ok: totalCargosVacantes === 0, detalle: totalCargosVacantes === 0 ? t('dashboard.nacional.semaforo.directivaOk') : t('dashboard.nacional.semaforo.directivaBad', { cantidad: distritosSinDirectivaCompleta }) },
   ]
 
   return (
@@ -815,13 +816,13 @@ function DashboardNacional() {
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
-            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel nacional</h1>
-            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de los distritos de la IPUC en Colombia, para comparar crecimiento y tomar decisiones a nivel nacional.</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{t('dashboard.nacional.heroTag')}</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{t('dashboard.nacional.heroTitle')}</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">{t('dashboard.nacional.heroSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
-            <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Gestión Pastoral Nacional <ArrowRight className="w-3.5 h-3.5" /></Link>
+            <Link to="/gestion-pastoral-nacional" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">{t('dashboard.nacional.goPastoral')} <ArrowRight className="w-3.5 h-3.5" /></Link>
           </div>
         </div>
       </section>
@@ -832,41 +833,41 @@ function DashboardNacional() {
         <section className="relative overflow-hidden card p-7 sm:p-9">
           <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos este mes</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">{t('dashboard.nacional.comoEstuvimos.eyebrow')}</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoNacional}</h2>
-            <p className="text-sm text-secondary mt-2 max-w-xl">{asistenciaMesActual} asistencias a nivel nacional este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{t('dashboard.nacional.comoEstuvimos.resumen', { asistencias: asistenciaMesActual, variacion: variacionMes !== null ? t('dashboard.nacional.comoEstuvimos.variacionSuffix', { valor: variacionMes > 0 ? `+${variacionMes}` : variacionMes }) : '' })}</p>
             {liderNacional && liderNacional.variacionPct !== null && liderNacional.variacionPct > 0 && (
               <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-warning-dark">Distrito {liderNacional.numero} · {liderNacional.nombre} lidera el crecimiento este mes</p>
-                  <p className="text-xs text-secondary">+{liderNacional.variacionPct}% en asistencia frente al mes anterior.</p>
+                  <p className="text-sm font-semibold text-warning-dark">{t('dashboard.nacional.comoEstuvimos.liderTitulo', { numero: liderNacional.numero, nombre: liderNacional.nombre })}</p>
+                  <p className="text-xs text-secondary">{t('dashboard.nacional.comoEstuvimos.liderDetalle', { valor: liderNacional.variacionPct })}</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia nacional</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.nacional.comoEstuvimos.asistenciaNacional')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
-                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.nacional.comoEstuvimos.vsMesAnterior', { valor: variacionMes > 0 ? `+${variacionMes}` : variacionMes })}</p>}
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistenciaNacional}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Distritos en crecimiento</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.nacional.comoEstuvimos.distritosCrecimiento')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{distritosConCrecimiento.length}/{distritos.length}</p>
-                <p className="text-xs text-muted mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-muted mt-1">{t('dashboard.nacional.comoEstuvimos.crecieronFrenteAnterior')}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightCrecimientoNacional}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas (3 meses)</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.nacional.comoEstuvimos.altasBajas3m')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
-                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.nacional.comoEstuvimos.balanceNeto', { valor: balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia })}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajasNacional}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautismos (3 meses)</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.nacional.comoEstuvimos.bautismos3m')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
-                <p className="text-xs text-muted mt-1">a nivel nacional</p>
+                <p className="text-xs text-muted mt-1">{t('dashboard.nacional.comoEstuvimos.aNivelNacional')}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautismosNacional}</p>
               </div>
             </div>
@@ -877,112 +878,112 @@ function DashboardNacional() {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <section className="card p-5">
-        <h2 className="font-medium">Semáforo nacional</h2>
-        <p className="text-sm text-secondary mt-1">Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.</p>
+        <h2 className="font-medium">{t('dashboard.nacional.semaforo.titulo')}</h2>
+        <p className="text-sm text-secondary mt-1">{t('dashboard.nacional.semaforo.subtitulo')}</p>
         <div className="divide-y divide-border mt-2">
           {semaforo.map((item) => <SemaforoRow key={item.label} {...item} />)}
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <DistritalStatTile label="Distritos" value={distritos.length} />
-        <DistritalStatTile label="Congregaciones" value={totalCongregaciones} />
-        <DistritalStatTile label="Feligreses activos" value={totalFeligreses} />
-        <DistritalStatTile label="Vacantes de pastor" value={totalVacantes} tone={totalVacantes > 0 ? 'danger' : 'default'} />
+        <DistritalStatTile label={t('dashboard.nacional.stats.distritos')} value={distritos.length} />
+        <DistritalStatTile label={t('dashboard.nacional.stats.congregaciones')} value={totalCongregaciones} />
+        <DistritalStatTile label={t('dashboard.nacional.stats.feligresesActivos')} value={totalFeligreses} />
+        <DistritalStatTile label={t('dashboard.nacional.stats.vacantesPastor')} value={totalVacantes} tone={totalVacantes > 0 ? 'danger' : 'default'} />
       </section>
 
       <section>
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="eyebrow">Insights BI</p>
-            <h2 className="font-medium mt-1">Señales para decidir a nivel nacional</h2>
+            <p className="eyebrow">{t('dashboard.nacional.insightsBI.eyebrow')}</p>
+            <h2 className="font-medium mt-1">{t('dashboard.nacional.insightsBI.titulo')}</h2>
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <InsightCard
-            title="Brecha de llenura"
+            title={t('dashboard.nacional.insightsBI.brechaLlenura.titulo')}
             value={sinSellarPct === null ? '—' : `${sinSellarPct}%`}
-            detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
+            detail={sinSellarPct !== null && sinSellarPct > 30 ? t('dashboard.nacional.insightsBI.brechaLlenura.atencion') : undefined}
             tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
-            insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados a nivel nacional.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una campaña nacional de llenura.' : '.'}`}
-            tip="Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
+            insight={totalBautizados === 0 ? t('dashboard.nacional.insightsBI.brechaLlenura.sinBautizados') : t('dashboard.nacional.insightsBI.brechaLlenura.detalle', { pendientes: totalBautizados - totalSellados, total: totalBautizados, sugerencia: sinSellarPct > 30 ? t('dashboard.nacional.insightsBI.brechaLlenura.sugerencia') : t('dashboard.nacional.insightsBI.brechaLlenura.sinSugerencia') })}
+            tip={t('dashboard.nacional.insightsBI.brechaLlenura.tip')}
           />
           <InsightCard
-            title="Eficacia de REFAM"
+            title={t('dashboard.nacional.insightsBI.eficaciaRefam.titulo')}
             value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
-            insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
-            tip="Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
+            insight={totalBautismos3m === 0 ? t('dashboard.nacional.insightsBI.eficaciaRefam.sinBautismos', { estudios: totalEstudiosRefam }) : t('dashboard.nacional.insightsBI.eficaciaRefam.detalle', { eficacia: eficaciaRefam, estudios: totalEstudiosRefam, bautismos: totalBautismos3m })}
+            tip={t('dashboard.nacional.insightsBI.eficaciaRefam.tip')}
           />
           <InsightCard
-            title="Embudo Uno Más → REFAM"
+            title={t('dashboard.nacional.insightsBI.embudo.titulo')}
             value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
-            insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron a nivel nacional.`}
-            tip="Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
+            insight={totalUnoMas === 0 ? t('dashboard.nacional.insightsBI.embudo.sinDatos') : t('dashboard.nacional.insightsBI.embudo.detalle', { unoMas: totalUnoMas, refam: totalRefamActivos, bautizados: totalBautizadosRuta })}
+            tip={t('dashboard.nacional.insightsBI.embudo.tip')}
           />
           <InsightCard
-            title="Movimiento de membresía (3 meses)"
+            title={t('dashboard.nacional.insightsBI.movimiento.titulo')}
             value={balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia}
             tone={balanceMembresia < 0 ? 'danger' : 'success'}
-            insight={`${totalAltas3m} altas y ${totalBajas3m} bajas a nivel nacional${balanceMembresia < 0 ? ' — las bajas superan las altas, conviene revisar traslados y disciplina.' : '.'}`}
+            insight={t('dashboard.nacional.insightsBI.movimiento.detalle', { altas: totalAltas3m, bajas: totalBajas3m, alerta: balanceMembresia < 0 ? t('dashboard.nacional.insightsBI.movimiento.alerta') : t('dashboard.nacional.insightsBI.movimiento.sinAlerta') })}
           />
           <InsightCard
-            title="Madurez de la obra"
+            title={t('dashboard.nacional.insightsBI.madurez.titulo')}
             value={totalCongregaciones ? `${Math.round((congregacionesConstituidas / totalCongregaciones) * 100)}%` : '—'}
-            insight={totalCongregaciones === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesLugarPrediccion} Lugar de Predicación, ${congregacionesMisionNacional} Misión Nacional.`}
+            insight={totalCongregaciones === 0 ? t('dashboard.nacional.insightsBI.madurez.sinCongregaciones') : t('dashboard.nacional.insightsBI.madurez.detalle', { constituidas: congregacionesConstituidas, lugarPrediccion: congregacionesLugarPrediccion, misionNacional: congregacionesMisionNacional })}
           />
           <InsightCard
-            title="Proyección a 12 meses"
+            title={t('dashboard.nacional.insightsBI.proyeccion.titulo')}
             value={totalFeligreses ? proyeccion12m : '—'}
             tone={netoMensual3m < 0 ? 'danger' : 'default'}
-            insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), la IPUC en Colombia tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
+            insight={totalFeligreses === 0 ? t('dashboard.nacional.insightsBI.proyeccion.sinDatos') : t('dashboard.nacional.insightsBI.proyeccion.detalle', { ritmo: netoMensual3m >= 0 ? `+${netoMensual3m.toFixed(1)}` : netoMensual3m.toFixed(1), proyeccion: proyeccion12m })}
           />
           <InsightCard
-            title="Ciclo de vida espiritual"
+            title={t('dashboard.nacional.insightsBI.ciclo.titulo')}
             value={ciclo.activos ? `${ciclo.activos} → ${ciclo.bautizados} → ${ciclo.sellados} → ${ciclo.conCargo}` : '—'}
-            insight={ciclo.activos === 0 ? 'Aún no hay personas activas para medir el ciclo.' : `Activos → Bautizados (${ciclo.pctBautizados ?? 0}%) → Sellados (${ciclo.pctSellados ?? 0}%) → Con cargo o comité (${ciclo.pctConCargo ?? 0}%).`}
+            insight={ciclo.activos === 0 ? t('dashboard.nacional.insightsBI.ciclo.sinDatos') : t('dashboard.nacional.insightsBI.ciclo.detalle', { pctBautizados: ciclo.pctBautizados ?? 0, pctSellados: ciclo.pctSellados ?? 0, pctConCargo: ciclo.pctConCargo ?? 0 })}
           />
           <InsightCard
-            title="Tiempo de consolidación"
+            title={t('dashboard.nacional.insightsBI.consolidacion.titulo')}
             value={ciclo.diasPromedioIngresoBautismo !== null ? `${ciclo.diasPromedioIngresoBautismo}d` : '—'}
-            insight={ciclo.diasPromedioIngresoBautismo === null ? 'Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.' : `En promedio, ${ciclo.diasPromedioIngresoBautismo} días desde el ingreso hasta el bautismo (muestra de ${ciclo.muestraIngresoBautismo})${ciclo.diasPromedioBautismoSellado !== null ? `, y ${ciclo.diasPromedioBautismoSellado} días más hasta el sellado (muestra de ${ciclo.muestraBautismoSellado}).` : '.'}`}
+            insight={ciclo.diasPromedioIngresoBautismo === null ? t('dashboard.nacional.insightsBI.consolidacion.sinDatos') : t('dashboard.nacional.insightsBI.consolidacion.detalle', { dias: ciclo.diasPromedioIngresoBautismo, muestra: ciclo.muestraIngresoBautismo, selladoExtra: ciclo.diasPromedioBautismoSellado !== null ? t('dashboard.nacional.insightsBI.consolidacion.selladoExtra', { dias2: ciclo.diasPromedioBautismoSellado, muestra2: ciclo.muestraBautismoSellado }) : t('dashboard.nacional.insightsBI.consolidacion.sinSelladoExtra') })}
           />
         </div>
       </section>
 
       <section className="card p-5">
-        <h3 className="font-medium">Pirámide poblacional nacional</h3>
-        <p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas de la IPUC en Colombia.{piramide.conGenero < piramide.total && ` Basada en ${piramide.conGenero} de ${piramide.total} activas con género registrado.`}</p>
-        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado." /></div>}
+        <h3 className="font-medium">{t('dashboard.nacional.piramide.titulo')}</h3>
+        <p className="text-xs text-secondary mt-1">{t('dashboard.nacional.piramide.subtitulo')}{piramide.conGenero < piramide.total && t('dashboard.nacional.piramide.subtituloExtra', { conGenero: piramide.conGenero, total: piramide.total })}</p>
+        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message={t('dashboard.nacional.piramide.sinDatos')} /></div>}
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="font-medium">Comparativa por distrito</h2>
-            <p className="text-sm text-secondary mt-1">Ordena para identificar qué distrito está creciendo o en descenso.</p>
+            <h2 className="font-medium">{t('dashboard.nacional.tabla.titulo')}</h2>
+            <p className="text-sm text-secondary mt-1">{t('dashboard.nacional.tabla.subtitulo')}</p>
           </div>
           <select className="input-field min-w-[220px]" value={ordenarPor} onChange={(event) => setOrdenarPor(event.target.value)}>
-            <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
-            <option value="personas_activas">Ordenar por: personas activas</option>
-            <option value="asistencia_ultimo_mes">Ordenar por: asistencia último mes</option>
-            <option value="bajas_3m">Ordenar por: bajas (3 meses)</option>
-            <option value="vacantes">Ordenar por: vacantes de pastor</option>
+            <option value="personas_nuevas_3m">{t('dashboard.nacional.tabla.ordenarNuevas')}</option>
+            <option value="personas_activas">{t('dashboard.nacional.tabla.ordenarActivas')}</option>
+            <option value="asistencia_ultimo_mes">{t('dashboard.nacional.tabla.ordenarAsistencia')}</option>
+            <option value="bajas_3m">{t('dashboard.nacional.tabla.ordenarBajas')}</option>
+            <option value="vacantes">{t('dashboard.nacional.tabla.ordenarVacantes')}</option>
           </select>
         </div>
         {filas.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay distritos registrados.</p>
+          <p className="p-5 text-sm text-muted">{t('dashboard.nacional.tabla.sinDistritos')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="px-4 py-3">Distrito</th>
-                  <th className="px-4 py-3">Congregaciones</th>
-                  <th className="px-4 py-3">Vacantes</th>
-                  <th className="px-4 py-3">Personas activas</th>
-                  <th className="px-4 py-3">Nuevas (3 meses)</th>
-                  <th className="px-4 py-3">Sellados</th>
-                  <th className="px-4 py-3">Asistencia último mes</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colDistrito')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colCongregaciones')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colVacantes')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colActivas')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colNuevas')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colSellados')}</th>
+                  <th className="px-4 py-3">{t('dashboard.nacional.tabla.colAsistencia')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -990,12 +991,12 @@ function DashboardNacional() {
                   const variacionAsistencia = d.asistencia_mes_anterior ? Math.round(((d.asistencia_ultimo_mes - d.asistencia_mes_anterior) / d.asistencia_mes_anterior) * 100) : null
                   return (
                     <tr key={d.distrito_id} className="border-t border-border">
-                      <td className="px-4 py-3 font-medium">{d.numero ? `Distrito ${d.numero}` : '—'}</td>
+                      <td className="px-4 py-3 font-medium">{d.numero ? t('dashboard.nacional.distritoLabel', { numero: d.numero }) : '—'}</td>
                       <td className="px-4 py-3 text-secondary">{d.congregaciones}</td>
                       <td className={`px-4 py-3 ${Number(d.vacantes) > 0 ? 'text-danger' : 'text-secondary'}`}>{d.vacantes}</td>
                       <td className="px-4 py-3">{d.personas_activas}</td>
                       <td className={`px-4 py-3 ${Number(d.personas_nuevas_3m) > 0 ? 'text-success' : ''}`}>{d.personas_nuevas_3m}</td>
-                      <td className="px-4 py-3">{d.sellados}{d.bautizados > 0 && d.sellados < d.bautizados && <span className="ml-1.5 text-xs text-warning">({d.bautizados - d.sellados} sin sellar)</span>}</td>
+                      <td className="px-4 py-3">{d.sellados}{d.bautizados > 0 && d.sellados < d.bautizados && <span className="ml-1.5 text-xs text-warning">{t('dashboard.nacional.tabla.sinSellar', { cantidad: d.bautizados - d.sellados })}</span>}</td>
                       <td className="px-4 py-3">
                         {d.asistencia_ultimo_mes}
                         {variacionAsistencia !== null && (

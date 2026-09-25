@@ -397,6 +397,166 @@
         "bajoPromedio": "▼ below average",
         "congregaciones": "congregations"
       }
+    },
+    "nacional": {
+      "heroTag": "SIGAP · IPUC",
+      "heroTitle": "National panel",
+      "heroSubtitle": "Consolidated view of the IPUC's districts across Colombia, to compare growth and make national-level decisions.",
+      "goPastoral": "Go to National Pastoral Care",
+      "loading": "Loading the national consolidation...",
+      "loadError": "Could not load the national consolidation.",
+      "distritoLabel": "District {{numero}}",
+      "comoEstuvimos": {
+        "eyebrow": "How we did this month",
+        "noDistritos": "Not enough districts to compare yet.",
+        "todosCrecieron": "All districts grew this month.",
+        "ningunoCrecio": "No district grew this month compared to the previous one.",
+        "algunos": "{{crecieron}} of {{total}} districts grew this month.",
+        "resumen": "{{asistencias}} attendances nationwide this month{{variacion}}.",
+        "variacionSuffix": " ({{valor}}% vs. the previous month)",
+        "liderTitulo": "District {{numero}} · {{nombre}} leads growth this month",
+        "liderDetalle": "+{{valor}}% in attendance vs. the previous month.",
+        "asistenciaNacional": "National attendance",
+        "vsMesAnterior": "{{valor}}% vs. previous month",
+        "distritosCrecimiento": "Districts growing",
+        "crecieronFrenteAnterior": "grew this month vs. the previous one",
+        "altasBajas3m": "Joins / Leaves (3 months)",
+        "balanceNeto": "net balance {{valor}}",
+        "bautismos3m": "Baptisms (3 months)",
+        "aNivelNacional": "nationwide"
+      },
+      "insightAsistencia": {
+        "noDistritos": "Not enough districts to average yet.",
+        "base": "Average of {{promedio}} attendances per district this month.",
+        "aporteSingular": " {{nombres}} contributes {{suma}} of the {{total}}.",
+        "aportePlural": " {{nombres}} contribute {{suma}} of the {{total}}."
+      },
+      "insightCrecimiento": {
+        "noDistritos": "Not enough districts to compare yet.",
+        "ningunoAtras": "No district fell behind this month.",
+        "lista_one": "District {{numeros}}{{yMas}} did not grow this month.",
+        "lista_other": "Districts {{numeros}}{{yMas}} did not grow this month.",
+        "yMas": " and {{cantidad}} more"
+      },
+      "insightAltasBajas": {
+        "noDistritos": "Not enough districts to measure yet.",
+        "aporteSingular": "{{nombres}} contributes {{suma}} of the {{total}} joins in 3 months.",
+        "aportePlural": "{{nombres}} contribute {{suma}} of the {{total}} joins in 3 months.",
+        "balanceNegativoSuffix_one": " {{count}} district with more leaves than joins.",
+        "balanceNegativoSuffix_other": " {{count}} districts with more leaves than joins.",
+        "soloBalanceNegativo_one": "{{count}} district with more leaves than joins in 3 months.",
+        "soloBalanceNegativo_other": "{{count}} districts with more leaves than joins in 3 months.",
+        "sinMovimiento": "No joins or leaves nationwide in 3 months."
+      },
+      "insightBautismos": {
+        "noDistritos": "Not enough districts to measure yet.",
+        "aporteSingular": "{{nombres}} contributes {{suma}} of the {{total}}{{resto}}",
+        "aportePlural": "{{nombres}} contribute {{suma}} of the {{total}}{{resto}}",
+        "resto": ", the rest spread across the country.",
+        "sinResto": ".",
+        "sinBautismos": "No baptisms nationwide in 3 months."
+      },
+      "semaforo": {
+        "titulo": "National status",
+        "subtitulo": "Signals SIGAP already measures, together in one glance to know what to check first.",
+        "vacantesPastor": "Pastor vacancies",
+        "vacantesPastorOk": "All congregations have a pastor.",
+        "vacantesPastorBad": "{{cantidad}} congregation(s) without an assigned pastor nationwide.",
+        "brechaLlenura": "Infilling gap",
+        "brechaLlenuraSinDatos": "No baptized members to measure yet.",
+        "brechaLlenuraDetalle": "{{pct}}% of baptized members are not yet infilled.",
+        "movimientoMembresia": "Membership movement",
+        "movimientoMembresiaDetalle": "{{altas}} joins and {{bajas}} leaves in the last 3 months.",
+        "actividadCongregacional": "Congregational activity",
+        "actividadOk": "All congregations logged activity in the last 60 days.",
+        "actividadBad": "{{cantidad}} congregation(s) with no activity logged in 60 days.",
+        "directivaDistrital": "District leadership",
+        "directivaOk": "All 6 positions are filled in every district.",
+        "directivaBad": "{{cantidad}} district(s) with at least one vacant board position."
+      },
+      "stats": {
+        "distritos": "Districts",
+        "congregaciones": "Congregations",
+        "feligresesActivos": "Active members",
+        "vacantesPastor": "Pastor vacancies"
+      },
+      "insightsBI": {
+        "eyebrow": "BI insights",
+        "titulo": "Signals to decide on nationwide",
+        "brechaLlenura": {
+          "titulo": "Infilling gap",
+          "atencion": "Attention",
+          "sinBautizados": "No baptized members registered nationwide yet.",
+          "detalle": "{{pendientes}} of {{total}} baptized members are not yet infilled with the Holy Spirit{{sugerencia}}",
+          "sugerencia": " — consider a national infilling campaign.",
+          "sinSugerencia": ".",
+          "tip": "Difference between people already baptized and those who have not yet received the infilling of the Holy Spirit."
+        },
+        "eficaciaRefam": {
+          "titulo": "REFAM effectiveness",
+          "sinBautismos": "{{estudios}} studies delivered in 3 months, still no baptisms to compare.",
+          "detalle": "On average, {{eficacia}} studies were needed per baptism in the last 3 months ({{estudios}} studies, {{bautismos}} baptisms).",
+          "tip": "How many REFAM Bible studies were needed on average to achieve one baptism."
+        },
+        "embudo": {
+          "titulo": "One More → REFAM funnel",
+          "sinDatos": "No active people in One More yet.",
+          "detalle": "Of {{unoMas}} people in One More, {{refam}} advanced to REFAM and {{bautizados}} friends have already been baptized nationwide.",
+          "tip": "Follows a person from the first contact (One More) through Bible studies (REFAM) to baptism."
+        },
+        "movimiento": {
+          "titulo": "Membership movement (3 months)",
+          "detalle": "{{altas}} joins and {{bajas}} leaves nationwide{{alerta}}",
+          "alerta": " — leaves outnumber joins, worth reviewing transfers and discipline.",
+          "sinAlerta": "."
+        },
+        "madurez": {
+          "titulo": "Maturity of the work",
+          "sinCongregaciones": "No congregations to classify yet.",
+          "detalle": "{{constituidas}} constituted Local Church, {{lugarPrediccion}} Preaching Point, {{misionNacional}} National Mission."
+        },
+        "proyeccion": {
+          "titulo": "12-month projection",
+          "sinDatos": "Not enough data to project yet.",
+          "detalle": "If the pace of the last 3 months holds ({{ritmo}} people/month net), the IPUC in Colombia would have {{proyeccion}} active members in 12 months. Estimate based on only 3 months of history — will improve with more data."
+        },
+        "ciclo": {
+          "titulo": "Spiritual life cycle",
+          "sinDatos": "No active people to measure the cycle yet.",
+          "detalle": "Active → Baptized ({{pctBautizados}}%) → Infilled ({{pctSellados}}%) → With a role or committee ({{pctConCargo}}%)."
+        },
+        "consolidacion": {
+          "titulo": "Time to consolidation",
+          "sinDatos": "Not enough baptisms with a join date to measure this yet.",
+          "detalle": "On average, {{dias}} days from joining to baptism (sample of {{muestra}}){{selladoExtra}}",
+          "selladoExtra": ", and {{dias2}} more days to infilling (sample of {{muestra2}}).",
+          "sinSelladoExtra": "."
+        }
+      },
+      "piramide": {
+        "titulo": "National population pyramid",
+        "subtitulo": "Age and gender distribution of active people across the IPUC in Colombia.",
+        "subtituloExtra": " Based on {{conGenero}} of {{total}} active members with gender on file.",
+        "sinDatos": "No active people with gender on file yet."
+      },
+      "tabla": {
+        "titulo": "District comparison",
+        "subtitulo": "Sort to identify which district is growing or declining.",
+        "ordenarNuevas": "Sort by: new (3 months)",
+        "ordenarActivas": "Sort by: active members",
+        "ordenarAsistencia": "Sort by: last month attendance",
+        "ordenarBajas": "Sort by: leaves (3 months)",
+        "ordenarVacantes": "Sort by: pastor vacancies",
+        "sinDistritos": "No districts registered yet.",
+        "colDistrito": "District",
+        "colCongregaciones": "Congregations",
+        "colVacantes": "Vacancies",
+        "colActivas": "Active members",
+        "colNuevas": "New (3 months)",
+        "colSellados": "Infilled",
+        "colAsistencia": "Last month attendance",
+        "sinSellar": "({{cantidad}} not infilled)"
+      }
     }
   }
 }
