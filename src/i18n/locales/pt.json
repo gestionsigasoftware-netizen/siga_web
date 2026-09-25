@@ -13,8 +13,8 @@
   },
   "inicio": {
     "hero": {
-      "eyebrow": "Inteligência pastoral",
-      "eyebrowLive": "Inteligência pastoral em tempo real",
+      "eyebrow": "Analítica pastoral",
+      "eyebrowLive": "Analítica pastoral em tempo real",
       "titlePre": "Cada nível, ",
       "titleAccent": "a leitura",
       "titlePost": " que precisa para decidir.",
@@ -33,15 +33,14 @@
       "byPerson": "por pessoa"
     },
     "levels": {
-      "eyebrow": "Um único sistema, quatro leituras",
+      "eyebrow": "Um único sistema, três leituras",
       "congregacion": "Congregação",
       "congregacionDesc": "Censo e pastoral do dia a dia",
       "distrital": "Nível Distrital",
       "distritalDesc": "Consolidado do seu distrito",
       "nacional": "Nível Nacional",
-      "nacionalDesc": "Leitura dos 36 distritos",
-      "superAdmin": "Super Admin",
-      "superAdminDesc": "Operação e integridade da plataforma"
+      "nacionalDesc": "Leitura consolidada de todo o país",
+      "availability": "Disponível 24/7, 365 dias por ano."
     },
     "rollup": {
       "caption": "Um único dado, consolidado até o topo",

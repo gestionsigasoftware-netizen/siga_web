@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen, CalendarClock, CalendarRange, Check, HeartHandshake, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, BarChart3, BookOpen, CalendarClock, CalendarRange, Check, Clock, HeartHandshake, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
@@ -204,20 +204,25 @@ export default function InicioPublico() {
             </svg>
           </section>
         ) : (
-          <section className="relative z-[1] w-full max-w-6xl mx-auto px-5 sm:px-8 pb-16">
-            <p className="text-xs uppercase tracking-[0.14em] text-accent font-semibold mb-4">{t('inicio.levels.eyebrow')}</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                [t('inicio.levels.congregacion'), t('inicio.levels.congregacionDesc')],
-                [t('inicio.levels.distrital'), t('inicio.levels.distritalDesc')],
-                [t('inicio.levels.nacional'), t('inicio.levels.nacionalDesc')],
-                [t('inicio.levels.superAdmin'), t('inicio.levels.superAdminDesc')],
-              ].map(([nombre, descripcion]) => (
-                <div key={nombre} className="border border-border bg-white rounded-card p-5 transition-shadow hover:shadow-[0_10px_24px_rgba(11,11,11,0.06)] hover:border-accent/50">
-                  <p className="font-semibold text-sm">{nombre}</p>
-                  <p className="text-xs text-secondary mt-2">{descripcion}</p>
-                </div>
-              ))}
+          <section className="relative z-[1] w-full bg-ink text-white">
+            <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
+              <p className="text-xs uppercase tracking-[0.14em] text-[#8FC8FF] font-semibold mb-4">{t('inicio.levels.eyebrow')}</p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[
+                  [t('inicio.levels.congregacion'), t('inicio.levels.congregacionDesc')],
+                  [t('inicio.levels.distrital'), t('inicio.levels.distritalDesc')],
+                  [t('inicio.levels.nacional'), t('inicio.levels.nacionalDesc')],
+                ].map(([nombre, descripcion]) => (
+                  <div key={nombre} className="border border-white/10 bg-white/5 rounded-card p-5 transition-colors hover:border-[#8FC8FF]/50">
+                    <p className="font-semibold text-sm text-white">{nombre}</p>
+                    <p className="text-xs text-white/65 mt-2">{descripcion}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="flex items-center gap-2 text-xs text-white/55 mt-6">
+                <Clock className="w-4 h-4 text-[#8FC8FF]" />
+                {t('inicio.levels.availability')}
+              </p>
             </div>
           </section>
         )}

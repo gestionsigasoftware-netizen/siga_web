@@ -101,6 +101,44 @@ DOM/localStorage.
      idioma elegidos (probado con `light` + `pt` tras recarga).
    - Sin errores de consola en ningún punto.
 
+## Ajustes pedidos tras revisar la primera versión (misma sesión)
+
+El usuario revisó la franja "Un mismo sistema, cuatro lecturas" (modo
+día) y pidió corregirla antes de seguir con la Fase 2:
+
+1. **No mencionar los 36 distritos en público** -- la descripción del
+   nivel nacional decía "Lectura de los 36 distritos"; se cambió a
+   "Lectura consolidada de todo el país" (sin el número, en los 3
+   idiomas).
+2. **Quitar "Super Admin" de cara al público** -- es un rol interno
+   de la plataforma, no algo que le interese a una congregación
+   evaluando SIGAP. Se eliminó la 4ª tarjeta por completo (queda
+   Congregación / Distrital / Nacional) y el encabezado pasó de
+   "cuatro lecturas" a "tres lecturas".
+3. **"Inteligencia pastoral" → "Analítica pastoral"** en el eyebrow
+   del hero (y su variante "en vivo" del modo noche), en los 3
+   idiomas -- coincide además con el nombre completo de SIGAP
+   ("Gestión y Analítica Pastoral").
+4. **Color de la franja**: pasó de tarjetas claras (blanco sobre
+   crema, con un tinte azul de fondo) a una banda oscura real
+   (`bg-ink`, texto blanco, tarjetas en vidrio oscuro con acento
+   azul claro `#8FC8FF`) -- mismo lenguaje visual que la sección de
+   módulos justo debajo.
+5. **Copywriting nuevo**: se agregó "Disponible 24/7, los 365 días
+   del año." debajo de las 3 tarjetas, con ícono de reloj, en los 3
+   idiomas.
+
+Verificado con Playwright: primero un falso positivo por texto en
+mayúsculas (CSS `text-transform: uppercase` hace que
+`innerText` devuelva "ANALÍTICA PASTORAL", un chequeo case-sensitive
+sin eso en cuenta reporta "no encontrado" aunque sí esté) y un
+servidor de desarrollo obsoleto (puerto 5173 ocupado por un proceso
+Vite anterior que `pkill -f vite` no mató en Windows -- hubo que
+identificarlo con `netstat -ano` y matarlo por PID con `taskkill`).
+La verificación final fue un volcado completo del texto renderizado
+(`body.innerText()`), no un `includes()` puntual, y una captura de
+pantalla real de la franja oscura.
+
 ## Pendiente (fases siguientes, no en esta sesión)
 
 - **Fase 2**: extender modo oscuro + los 3 idiomas al resto de la

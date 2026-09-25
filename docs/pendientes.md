@@ -5,13 +5,17 @@
 - **En curso (2026-09-25) -- Fase 1 de 3 completa**: modo dia/noche +
 	3 idiomas (es/en/pt) en toda la app (web y PWA), pedido explicito
 	del usuario. Fase 1 (esta sesion): Inicio publico con tema real
-	(dia = Opcion A refinada con la franja de 4 niveles; noche =
+	(dia = Opcion A refinada con la franja "tres lecturas"; noche =
 	Opcion B con diagrama de consolidado Congregacion-Distrito-Nacional)
 	+ los 3 idiomas reales, mas la base reutilizable (`ThemeProvider`/
 	`useTheme`, i18next con namespace `common.*` listo). Bug real
 	encontrado y corregido: useTheme con estado local (no Context)
 	hacia que el boton cambiara pero la pagina no se enterara --
-	convertido a Context. Ver
+	convertido a Context. Ajustes pedidos tras revisar: se quito la
+	mencion publica a "36 distritos" y a "Super Admin" (rol interno),
+	"Inteligencia pastoral" paso a "Analitica pastoral", la franja de
+	niveles paso a banda oscura (antes clara con tinte azul), y se
+	agrego copy nuevo "Disponible 24/7, los 365 dias del ano." Ver
 	`docs/fixes/inicio-modo-oscuro-e-idiomas-2026-09-25.md`. **Falta**:
 	Fase 2 (extender tema+idiomas al resto de las ~45 pantallas de la
 	app web) y Fase 3 (mismo tema+idiomas en la PWA,

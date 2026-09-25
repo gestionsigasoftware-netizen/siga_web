@@ -13,8 +13,8 @@
   },
   "inicio": {
     "hero": {
-      "eyebrow": "Pastoral intelligence",
-      "eyebrowLive": "Pastoral intelligence, live",
+      "eyebrow": "Pastoral analytics",
+      "eyebrowLive": "Pastoral analytics, live",
       "titlePre": "Every level, ",
       "titleAccent": "the clarity",
       "titlePost": " it needs to decide.",
@@ -33,15 +33,14 @@
       "byPerson": "by person"
     },
     "levels": {
-      "eyebrow": "One system, four views",
+      "eyebrow": "One system, three views",
       "congregacion": "Congregation",
       "congregacionDesc": "Day-to-day census and pastoral care",
       "distrital": "District Level",
       "distritalDesc": "Consolidated view of their district",
       "nacional": "National Level",
-      "nacionalDesc": "A view across all 36 districts",
-      "superAdmin": "Super Admin",
-      "superAdminDesc": "Platform operation and health"
+      "nacionalDesc": "A consolidated view of the whole country",
+      "availability": "Available 24/7, 365 days a year."
     },
     "rollup": {
       "caption": "One data point, rolled all the way up",
