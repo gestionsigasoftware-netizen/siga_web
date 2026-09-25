@@ -1,4 +1,5 @@
 import { CheckCircle2 } from 'lucide-react'
+import i18n from '../../i18n'
 
 export const NIVEL_LABEL = {
   super_admin: 'Super Admin',
@@ -8,12 +9,12 @@ export const NIVEL_LABEL = {
 }
 
 export function describirAlcance(role) {
-  if (role.nivel === 'local') return role.congregaciones?.nombre || 'Sin congregación asignada'
+  if (role.nivel === 'local') return role.congregaciones?.nombre || i18n.t('sidebar.noCongregacion')
   if (role.nivel === 'distrital') {
     const numero = role.distritos?.numero
-    return numero ? `Distrito ${numero}` : 'Sin distrito asignado'
+    return numero ? i18n.t('sidebar.district', { numero }) : i18n.t('sidebar.noDistrito')
   }
-  return 'Acceso general'
+  return i18n.t('sidebar.generalAccess')
 }
 
 export default function RoleChooser({ roles, onElegir }) {

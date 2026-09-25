@@ -20,10 +20,19 @@
 	  modales -- NO deben invertirse); se separo en un token nuevo
 	  fijo `night`, migrado en ~22 lugares reales. Ver
 	  `docs/fixes/fase2-modo-oscuro-toda-la-app-2026-09-25.md`.
-	- **Falta**: traducir el resto de la app a ingles/portugues
-	  (contenido, la infraestructura de i18next ya existe), y Fase 3
-	  (mismo tema+idiomas en la PWA, `SIGA\siga movil\siga-pwa-nacional`,
-	  proyecto aparte, todavia sin tocar).
+	- Traduccion de contenido (en curso): el "chrome" compartido de
+	  toda la app ya quedo en los 3 idiomas -- Sidebar completo (34
+	  items de navegacion + 5 grupos + niveles de rol), header de
+	  `MainLayout.jsx`, dialogo de inactividad, y el pie de pagina
+	  compartido (`Footer.jsx`). Ver
+	  `docs/fixes/i18n-sidebar-header-footer-2026-09-25.md`.
+	- **Falta**: el contenido propio de cada pantalla (Dashboard,
+	  Feligresia, Reportes, y las ~40 restantes) sigue en espanol fijo
+	  -- pendiente por grupos de modulos en proximas sesiones. Tambien
+	  falta el resto de `RoleChooser.jsx` (pantalla de seleccion de rol
+	  al iniciar sesion). Y la Fase 3 (mismo tema+idiomas en la PWA,
+	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
+	  tocar).
 
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en

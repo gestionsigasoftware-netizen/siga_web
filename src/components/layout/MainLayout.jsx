@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import RoleChooser from './RoleChooser'
@@ -20,6 +21,7 @@ import Toast from '../Toast'
 const RUTAS_PERMITIDAS_BLOQUEADO = ['/perfil', '/soporte', '/manual', '/legal', '/ayuda']
 
 export default function MainLayout() {
+  const { t } = useTranslation()
   const { roles, rolPrincipal, loading: roleLoading, elegirRol } = useMiRol()
   const { user } = useAuth()
   const { formato_fecha } = usePreferencias()
@@ -143,8 +145,8 @@ export default function MainLayout() {
         <header className="main-header sticky top-16 md:top-0 z-20 mb-6 border-b border-border">
           <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-3 py-3.5">
             <div>
-              <p className="eyebrow">Panel de control</p>
-              <p className="text-sm text-secondary">Panel de gestión pastoral</p>
+              <p className="eyebrow">{t('layout.panelControl')}</p>
+              <p className="text-sm text-secondary">{t('layout.panelGestion')}</p>
             </div>
 
             <GlobalSearch />
@@ -152,16 +154,16 @@ export default function MainLayout() {
             <div className="toolbar">
               <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary">
                 <Bell className="w-4 h-4" />
-                <span>Notificaciones</span>
+                <span>{t('layout.notificaciones')}</span>
               </div>
               <NotificationCenter />
               <ThemeToggle />
               {nombrePersona && (
                 <span className="hidden sm:inline text-sm text-secondary">{nombrePersona}</span>
               )}
-              <Link to="/perfil" aria-label="Abrir mi perfil" title="Mi perfil" className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary hover:bg-surface-1 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/20">
+              <Link to="/perfil" aria-label={t('layout.perfil')} title={t('layout.perfil')} className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-secondary hover:bg-surface-1 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/20">
                 <UserRound className="w-[18px] h-[18px]" />
-                <span>Perfil</span>
+                <span>{t('layout.perfil')}</span>
               </Link>
             </div>
           </div>
@@ -210,8 +212,8 @@ export default function MainLayout() {
               </div>
             </div>
           ) : (
-            <Suspense fallback={<div className="module-loading" role="status"><span className="loading-dot" />Cargando módulo...</div>}>
-              {roleLoading ? <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div> : <Outlet />}
+            <Suspense fallback={<div className="module-loading" role="status"><span className="loading-dot" />{t('layout.cargandoModulo')}</div>}>
+              {roleLoading ? <div className="module-loading" role="status"><span className="loading-dot" />{t('layout.preparandoEspacio')}</div> : <Outlet />}
             </Suspense>
           )}
         </div>
@@ -221,9 +223,9 @@ export default function MainLayout() {
       {segundosParaCierre !== null && (
         <div className="fixed inset-0 z-[300] bg-night/40 flex items-center justify-center p-4" role="alertdialog" aria-labelledby="idle-title">
           <div className="w-full max-w-sm bg-surface-2 rounded-card shadow-xl p-6">
-            <h2 id="idle-title" className="font-medium">¿Sigues ahí?</h2>
-            <p className="text-sm text-secondary mt-2">Por seguridad, tu sesión se cerrará en <span className="font-semibold text-ink">{segundosParaCierre}s</span> por inactividad.</p>
-            <button type="button" onClick={seguirConectado} className="btn-primary w-full justify-center mt-5">Seguir conectado</button>
+            <h2 id="idle-title" className="font-medium">{t('layout.sigues')}</h2>
+            <p className="text-sm text-secondary mt-2">{t('layout.cierreSesionPre')}<span className="font-semibold text-ink">{segundosParaCierre}s</span>{t('layout.cierreSesionPost')}</p>
+            <button type="button" onClick={seguirConectado} className="btn-primary w-full justify-center mt-5">{t('layout.seguirConectado')}</button>
           </div>
         </div>
       )}

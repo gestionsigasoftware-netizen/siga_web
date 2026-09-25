@@ -37,28 +37,15 @@ import {
   CreditCard,
   Bug,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
 import { useMiRol } from "../../hooks/useMiRol";
 import { describirAlcance } from "./RoleChooser";
 import sigapLogoWhite from "../../assets/sigap-logo-white.svg";
 
-const NIVEL_LABEL = {
-  super_admin: "Super Admin",
-  nacional: "Nivel Nacional",
-  distrital: "Nivel Distrital",
-  local: "Congregación",
-};
-
 // Orden fijo de las secciones del sidebar; "inicio" (Resumen) se renderiza
 // sin encabezado, como punto de entrada, no como una seccion mas.
 const GROUP_ORDER = ["inicio", "feligresia", "evangelismo", "comites", "administracion", "soporte"];
-const GROUP_LABELS = {
-  feligresia: "Feligresía",
-  evangelismo: "Evangelismo y misión",
-  comites: "Comités y ministerios",
-  administracion: "Administración",
-  soporte: "Información y soporte",
-};
 
 function FamilyNetworkIcon({ className }) {
   return (
@@ -88,15 +75,16 @@ function SidebarNavSkeleton() {
   );
 }
 
-function formatDistrictLabel(nombre, numero) {
+function formatDistrictLabel(t, nombre, numero) {
   // Los distritos se identifican solo por numero -- `nombre` es un campo
   // legado de la tabla `distritos` (de antes de que existiera `numero`)
   // que en la práctica quedó con el nombre de una congregación del
   // distrito, no un nombre propio del distrito. No se muestra.
-  return numero ? `Distrito ${numero}` : null;
+  return numero ? t("sidebar.district", { numero }) : null;
 }
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
   const [organization, setOrganization] = useState(null);
@@ -108,14 +96,29 @@ export default function Sidebar() {
   const puedeConfigurar = nivel === "local" && rolLocal === "pastor";
   const esAdminNacional = nivel === "nacional" || nivel === "super_admin";
 
+  const NIVEL_LABEL = {
+    super_admin: t("sidebar.levels.super_admin"),
+    nacional: t("sidebar.levels.nacional"),
+    distrital: t("sidebar.levels.distrital"),
+    local: t("sidebar.levels.local"),
+  };
+
+  const GROUP_LABELS = {
+    feligresia: t("sidebar.groups.feligresia"),
+    evangelismo: t("sidebar.groups.evangelismo"),
+    comites: t("sidebar.groups.comites"),
+    administracion: t("sidebar.groups.administracion"),
+    soporte: t("sidebar.groups.soporte"),
+  };
+
   useEffect(() => {
     const distrito = rolPrincipal?.congregaciones?.distritos || rolPrincipal?.distritos;
     setOrganization({
       congregation: rolPrincipal?.congregaciones?.nombre,
-      district: formatDistrictLabel(distrito?.nombre, distrito?.numero),
+      district: formatDistrictLabel(t, distrito?.nombre, distrito?.numero),
       pastor: rolPrincipal?.congregaciones?.pastor_nombre,
     });
-  }, [rolPrincipal]);
+  }, [rolPrincipal, t]);
 
   useEffect(() => {
     function updateOrganization(event) {
@@ -130,204 +133,204 @@ export default function Sidebar() {
   }, []);
 
   const items = [
-    { to: "/app", label: "Resumen", icon: LayoutDashboard, show: true, group: "inicio" },
+    { to: "/app", label: t("sidebar.nav.resumen"), icon: LayoutDashboard, show: true, group: "inicio" },
     {
       to: "/feligresia",
-      label: "Feligresía",
+      label: t("sidebar.nav.feligresia"),
       icon: FamilyNetworkIcon,
       show: nivel === "local",
       group: "feligresia",
     },
     {
       to: "/red-familias",
-      label: "Red de Familias",
+      label: t("sidebar.nav.redFamilias"),
       icon: HeartHandshake,
       show: nivel === "local",
       group: "feligresia",
     },
     {
       to: "/misiones-evangelismo",
-      label: "Misiones y Evangelismo",
+      label: t("sidebar.nav.misionesEvangelismo"),
       icon: Compass,
       show: nivel === "local",
       group: "evangelismo",
     },
     {
       to: "/amigos",
-      label: "Amigos en ruta",
+      label: t("sidebar.nav.amigosEnRuta"),
       icon: UsersRound,
       show: nivel === "local",
       group: "evangelismo",
     },
     {
       to: "/impacto-misionero",
-      label: "Impacto Misionero",
+      label: t("sidebar.nav.impactoMisionero"),
       icon: Globe2,
       show: nivel === "local" || nivel === "distrital" || esAdminNacional,
       group: "evangelismo",
     },
     {
       to: "/mision-juvenil",
-      label: "Misión Juvenil",
+      label: t("sidebar.nav.misionJuvenil"),
       icon: BookOpen,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/escuela-dominical",
-      label: "Escuela Dominical",
+      label: t("sidebar.nav.escuelaDominical"),
       icon: Baby,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/damas-dorcas",
-      label: "Damas Dorcas",
+      label: t("sidebar.nav.damasDorcas"),
       icon: UserRound,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/obra-carcelaria",
-      label: "Obra Carcelaria",
+      label: t("sidebar.nav.obraCarcelaria"),
       icon: LockKeyhole,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/sepri",
-      label: "SEPRI",
+      label: t("sidebar.nav.sepri"),
       icon: ShieldAlert,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/musica",
-      label: "Música",
+      label: t("sidebar.nav.musica"),
       icon: Music,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/educacion-artistica",
-      label: "Educación Artística",
+      label: t("sidebar.nav.educacionArtistica"),
       icon: Palette,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/educacion-teologica",
-      label: "Educación Teológica",
+      label: t("sidebar.nav.educacionTeologica"),
       icon: BookOpenCheck,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/conquistadores",
-      label: "Conquistadores Pentecostales",
+      label: t("sidebar.nav.conquistadores"),
       icon: Flag,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/obra-social",
-      label: "Obra Social",
+      label: t("sidebar.nav.obraSocial"),
       icon: HandHeart,
       show: nivel === "local",
       group: "comites",
     },
     {
       to: "/registrar",
-      label: "Corrección / contingencia",
+      label: t("sidebar.nav.correccionContingencia"),
       icon: ClipboardPlus,
       show: nivel === "local",
       group: "administracion",
     },
     {
       to: "/equipo-congregacion",
-      label: "Equipo de trabajo",
+      label: t("sidebar.nav.equipoTrabajo"),
       icon: UserPlus,
       show: puedeConfigurar,
       group: "administracion",
     },
     {
       to: "/auditoria-feligresia",
-      label: "Auditoría de Feligresía",
+      label: t("sidebar.nav.auditoriaFeligresia"),
       icon: ClipboardList,
       show: nivel === "local" ? rolLocal === "pastor" : nivel === "distrital" || esAdminNacional,
       group: "administracion",
     },
     {
       to: "/pastoral-distrital",
-      label: "Gestión pastoral",
+      label: t("sidebar.nav.gestionPastoral"),
       icon: ArrowRightLeft,
       show: nivel === "distrital",
       group: "administracion",
     },
     {
       to: "/distritos",
-      label: "Catálogo de distritos",
+      label: t("sidebar.nav.catalogoDistritos"),
       icon: MapPin,
       show: esAdminNacional,
       group: "administracion",
     },
     {
       to: "/gestion-pastoral-nacional",
-      label: "Gestión Pastoral Nacional",
+      label: t("sidebar.nav.gestionPastoralNacional"),
       icon: ArrowRightLeft,
       show: esAdminNacional,
       group: "administracion",
     },
     {
       to: "/comites-nacional",
-      label: "Comités Nacional",
+      label: t("sidebar.nav.comitesNacional"),
       icon: LayoutGrid,
       show: esAdminNacional,
       group: "administracion",
     },
     {
       to: "/suscripciones",
-      label: "Suscripciones",
+      label: t("sidebar.nav.suscripciones"),
       icon: CreditCard,
       show: nivel === "super_admin",
       group: "administracion",
     },
     {
       to: "/errores-sistema",
-      label: "Errores del sistema",
+      label: t("sidebar.nav.erroresSistema"),
       icon: Bug,
       show: nivel === "super_admin",
       group: "administracion",
     },
     {
       to: "/modulos",
-      label: "Módulos y actividades",
+      label: t("sidebar.nav.modulosActividades"),
       icon: Layers3,
       show: puedeConfigurar,
       group: "administracion",
     },
     {
       to: "/aprobaciones",
-      label: "Aprobaciones",
+      label: t("sidebar.nav.aprobaciones"),
       icon: CheckSquare,
       show: nivel === "distrital" || nivel === "super_admin",
       group: "administracion",
     },
     {
       to: "/configuracion",
-      label: "Configuración local",
+      label: t("sidebar.nav.configuracionLocal"),
       icon: Settings,
       show: puedeConfigurar,
       group: "administracion",
     },
-    { to: "/reportes", label: "Reportes", icon: FileBarChart2, show: true, group: "soporte" },
-    { to: "/manual", label: "Manual de uso", icon: BookOpen, show: true, group: "soporte" },
-    { to: "/salud-datos", label: "Salud de datos", icon: Database, show: true, group: "soporte" },
-    { to: "/soporte", label: "Soporte", icon: LifeBuoy, show: true, group: "soporte" },
-    { to: "/solicitudes", label: "Solicitudes internas", icon: Send, show: true, group: "soporte" },
+    { to: "/reportes", label: t("sidebar.nav.reportes"), icon: FileBarChart2, show: true, group: "soporte" },
+    { to: "/manual", label: t("sidebar.nav.manual"), icon: BookOpen, show: true, group: "soporte" },
+    { to: "/salud-datos", label: t("sidebar.nav.saludDatos"), icon: Database, show: true, group: "soporte" },
+    { to: "/soporte", label: t("sidebar.nav.soporte"), icon: LifeBuoy, show: true, group: "soporte" },
+    { to: "/solicitudes", label: t("sidebar.nav.solicitudesInternas"), icon: Send, show: true, group: "soporte" },
     {
       to: "/configuracion-sistema",
-      label: "Preferencias personales",
+      label: t("sidebar.nav.preferenciasPersonales"),
       icon: Settings,
       show: true,
       group: "soporte",
@@ -352,7 +355,7 @@ export default function Sidebar() {
           <div>
             <img src={sigapLogoWhite} alt="SIGAP" className="h-6 w-auto" />
             <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mt-1">
-              Gestión y Analítica Pastoral
+              {t("sidebar.tagline")}
             </div>
           </div>
         </div>
@@ -360,7 +363,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setMobileOpen((current) => !current)}
           className="md:hidden p-2 text-white/75 hover:text-white"
-          aria-label={mobileOpen ? "Cerrar navegación" : "Abrir navegación"}
+          aria-label={mobileOpen ? t("sidebar.closeNav") : t("sidebar.openNav")}
           aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
@@ -376,7 +379,7 @@ export default function Sidebar() {
           <div className="sidebar-profile mb-5 rounded-xl px-3 py-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
-                Tu acceso
+                {t("sidebar.yourAccess")}
               </p>
               <span className="sidebar-status" aria-hidden="true" />
             </div>
@@ -384,11 +387,11 @@ export default function Sidebar() {
               {NIVEL_LABEL[nivel]}
             </p>
             <p className="text-xs text-white/75 truncate">
-              {organization?.congregation || "Acceso general"}
+              {organization?.congregation || t("sidebar.generalAccess")}
             </p>
             {organization?.pastor && (
               <p className="text-[11px] text-white/60 truncate">
-                Pastor: {organization.pastor}
+                {t("sidebar.pastor")}: {organization.pastor}
               </p>
             )}
             {organization?.district && (
@@ -404,7 +407,7 @@ export default function Sidebar() {
                   className="flex items-center gap-1.5 text-[11px] text-white/60 hover:text-white"
                 >
                   <Repeat className="w-3 h-3" />
-                  Cambiar de rol
+                  {t("sidebar.changeRole")}
                 </button>
                 {roleSwitcherOpen && (
                   <div className="mt-2 flex flex-col gap-1">
@@ -434,7 +437,7 @@ export default function Sidebar() {
         <nav className="flex flex-col gap-1.5 w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto md:pr-1">
           {rolLoading ? (
             <>
-              <p className="sidebar-nav-label px-3 mb-2">Navegación</p>
+              <p className="sidebar-nav-label px-3 mb-2">{t("sidebar.loadingNav")}</p>
               <SidebarNavSkeleton />
             </>
           ) : (
@@ -469,7 +472,7 @@ export default function Sidebar() {
           className="navbtn sidebar-signout md:mt-auto mt-4"
         >
           <LogOut className="w-[17px] h-[17px]" />
-          <span>Cerrar sesión</span>
+          <span>{t("sidebar.signOut")}</span>
         </button>
       </div>
     </aside>
