@@ -17,6 +17,13 @@
       "by": "By Jormelia Soft",
       "privacy": "Privacy & terms",
       "help": "Help"
+    },
+    "notFound": {
+      "eyebrow": "Error 404",
+      "titulo": "Page not found",
+      "subtitulo": "The address you tried to visit does not exist or has moved. Check the link or go back home.",
+      "irInicio": "Go home",
+      "iniciarSesion": "Sign in"
     }
   },
   "inicio": {
