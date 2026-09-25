@@ -1017,8 +1017,6 @@ function DashboardNacional() {
   )
 }
 
-const PLAN_LABELS_DASH = { mensual: 'Mensual', anual: 'Anual' }
-const ESTADO_SUSC_LABEL_DASH = { activa: 'Al día', en_gracia: 'En gracia', bloqueada: 'Bloqueada', sin_configurar: 'Sin configurar' }
 const ESTADO_SUSC_TONO_DASH = { activa: 'bg-success-bg text-success', en_gracia: 'bg-warning-bg text-warning', bloqueada: 'bg-danger-bg text-danger', sin_configurar: 'bg-surface-1 text-muted' }
 const ESTADO_SUSC_PRIORIDAD_DASH = { bloqueada: 0, en_gracia: 1, activa: 2, sin_configurar: 3 }
 const CHART_OPTIONS_NEGOCIO = chartOptions()
@@ -1031,6 +1029,7 @@ const formatoMoneda = (valor) => `$${MONEDA_FMT.format(Math.round(valor || 0))}`
 // eso lo ve el rol nacional). Ver feedback_super_admin_vs_nacional en
 // memoria del proyecto.
 function DashboardSuperAdmin() {
+  const { t } = useTranslation()
   const { formato_fecha } = usePreferencias()
   const [congregaciones, setCongregaciones] = useState([])
   const [suscripciones, setSuscripciones] = useState({})
@@ -1050,7 +1049,7 @@ function DashboardSuperAdmin() {
       supabase.from('negocio_snapshots_diarios').select('fecha, activas, mrr_estimado').order('fecha', { ascending: true }).limit(180),
     ]).then(([{ data: congData, error: congError }, { data: suscData, error: suscError }, { data: snapData }]) => {
       if (!active) return
-      if (congError || suscError) setError('No se pudo cargar el panel de negocio.')
+      if (congError || suscError) setError(t('dashboard.superAdmin.loadError'))
       else setError(null)
       setCongregaciones(congData ?? [])
       setSuscripciones(Object.fromEntries((suscData ?? []).map((item) => [item.congregacion_id, item])))
@@ -1061,7 +1060,7 @@ function DashboardSuperAdmin() {
     return () => { active = false }
   }, [reloadToken])
 
-  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el panel de negocio...</div>
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('dashboard.superAdmin.loading')}</div>
 
   const hace30dias = fechaBogota(new Date(Date.now() - 30 * 86400000))
   const en7dias = fechaBogota(new Date(Date.now() + 7 * 86400000))
@@ -1121,11 +1120,11 @@ function DashboardSuperAdmin() {
   const nuevasParaDuplicar = activas > 0 ? Math.ceil(activas / 12) : null
 
   const porPlanItems = [
-    { label: 'Mensual', total: filas.filter((f) => f.suscripcion?.plan === 'mensual').length },
-    { label: 'Anual', total: filas.filter((f) => f.suscripcion?.plan === 'anual').length },
+    { label: t('dashboard.shared.plan.mensual'), total: filas.filter((f) => f.suscripcion?.plan === 'mensual').length },
+    { label: t('dashboard.shared.plan.anual'), total: filas.filter((f) => f.suscripcion?.plan === 'anual').length },
   ].filter((item) => item.total > 0)
-  const porEtapaItems = Object.entries(MADUREZ_LABELS_DASH)
-    .map(([key, label]) => ({ label, total: congregaciones.filter((c) => c.madurez === key).length }))
+  const porEtapaItems = ['mision_nacional', 'lugar_prediccion', 'iglesia_local']
+    .map((key) => ({ label: t(`dashboard.shared.madurez.${key}`), total: congregaciones.filter((c) => c.madurez === key).length }))
     .filter((item) => item.total > 0)
   const porPlan = distributionDataset(porPlanItems)
   const porEtapa = distributionDataset(porEtapaItems)
@@ -1141,36 +1140,36 @@ function DashboardSuperAdmin() {
   // Informe para el CEO (super_admin) -- marca SIGAP, no IPUC: esto es
   // un documento sobre el negocio, no sobre la iglesia.
   const informeKpis = [
-    { label: 'Congregaciones totales', value: totalCongregaciones },
-    { label: 'Activas', value: activas },
-    { label: 'Pendientes de aprobación', value: pendientes },
-    { label: 'Nuevas (30 días)', value: nuevas30d },
-    { label: 'Ingreso mensual estimado', value: Math.round(ingresoMensualEstimado) },
-    { label: 'Ingreso promedio por congregación', value: Math.round(arpa) },
+    { label: t('dashboard.superAdmin.informeExport.kpiTotales'), value: totalCongregaciones },
+    { label: t('dashboard.superAdmin.informeExport.kpiActivas'), value: activas },
+    { label: t('dashboard.superAdmin.informeExport.kpiPendientes'), value: pendientes },
+    { label: t('dashboard.superAdmin.informeExport.kpiNuevas'), value: nuevas30d },
+    { label: t('dashboard.superAdmin.informeExport.kpiIngresoMensual'), value: Math.round(ingresoMensualEstimado) },
+    { label: t('dashboard.superAdmin.informeExport.kpiIngresoPromedio'), value: Math.round(arpa) },
   ]
   const informeDesgloses = [
-    { titulo: 'Estado de suscripciones', items: [
-      { label: 'Al día', valor: alDia },
-      { label: 'En gracia', valor: enGracia },
-      { label: 'Bloqueadas', valor: bloqueadas },
-      { label: 'Sin configurar', valor: sinConfigurar },
+    { titulo: t('dashboard.superAdmin.informeExport.desgloseEstado'), items: [
+      { label: t('dashboard.superAdmin.estadoSuscripcion.activa'), valor: alDia },
+      { label: t('dashboard.superAdmin.estadoSuscripcion.en_gracia'), valor: enGracia },
+      { label: t('dashboard.superAdmin.estadoSuscripcion.bloqueada'), valor: bloqueadas },
+      { label: t('dashboard.superAdmin.estadoSuscripcion.sin_configurar'), valor: sinConfigurar },
     ] },
-    ...(porPlanItems.length ? [{ titulo: 'Congregaciones por plan', items: porPlanItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
-    ...(porEtapaItems.length ? [{ titulo: 'Congregaciones por etapa', items: porEtapaItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
+    ...(porPlanItems.length ? [{ titulo: t('dashboard.superAdmin.informeExport.desglosePlan'), items: porPlanItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
+    ...(porEtapaItems.length ? [{ titulo: t('dashboard.superAdmin.informeExport.desgloseEtapa'), items: porEtapaItems.map((item) => ({ label: item.label, valor: item.total })) }] : []),
   ]
-  const informeHeaders = ['Congregación', 'Distrito', 'Plan', 'Próximo pago', 'Estado']
+  const informeHeaders = [t('dashboard.superAdmin.atencion.colCongregacion'), t('dashboard.superAdmin.pendientes.colDistrito'), t('dashboard.superAdmin.atencion.colPlan'), t('dashboard.superAdmin.atencion.colProximoPago'), t('dashboard.superAdmin.atencion.colEstado')]
   const informeRows = requierenAtencion.map(({ congregacion, suscripcion, estadoSusc }) => [
     congregacion.nombre,
-    congregacion.distritos?.numero ? `Distrito ${congregacion.distritos.numero}` : '—',
-    suscripcion ? PLAN_LABELS_DASH[suscripcion.plan] || suscripcion.plan : '—',
+    congregacion.distritos?.numero ? t('dashboard.superAdmin.distritoLabel', { numero: congregacion.distritos.numero }) : '—',
+    suscripcion ? t(`dashboard.shared.plan.${suscripcion.plan}`, suscripcion.plan) : '—',
     suscripcion ? formatFecha(suscripcion.fecha_proximo_pago, { formato: formato_fecha }) : '—',
-    ESTADO_SUSC_LABEL_DASH[estadoSusc],
+    t(`dashboard.superAdmin.estadoSuscripcion.${estadoSusc}`),
   ])
-  const informeMeta = [`Congregaciones que requieren atención: ${informeRows.length}`, 'Tabla: bloqueadas, en gracia, o vencen dentro de 7 días.']
+  const informeMeta = [t('dashboard.superAdmin.informeExport.metaCantidad', { cantidad: informeRows.length }), t('dashboard.superAdmin.informeExport.metaTabla')]
   const informeFilename = (ext) => `sigap-informe-negocio-${fechaBogota(new Date())}.${ext}`
-  const exportarCsv = () => descargarCsv({ filename: informeFilename('csv'), titulo: 'Informe de negocio', meta: informeMeta, headers: informeHeaders, rows: informeRows, brand: SIGAP_BRAND })
-  const exportarExcel = () => descargarExcel({ filename: informeFilename('xlsx'), hoja: 'Requieren atención', titulo: 'Informe de negocio', meta: informeMeta, headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
-  const exportarPdf = () => descargarPdf({ filename: informeFilename('pdf'), titulo: 'Informe de negocio', meta: informeMeta, orientacion: 'landscape', headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
+  const exportarCsv = () => descargarCsv({ filename: informeFilename('csv'), titulo: t('dashboard.superAdmin.informeExport.titulo'), meta: informeMeta, headers: informeHeaders, rows: informeRows, brand: SIGAP_BRAND })
+  const exportarExcel = () => descargarExcel({ filename: informeFilename('xlsx'), hoja: t('dashboard.superAdmin.informeExport.hojaAtencion'), titulo: t('dashboard.superAdmin.informeExport.titulo'), meta: informeMeta, headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
+  const exportarPdf = () => descargarPdf({ filename: informeFilename('pdf'), titulo: t('dashboard.superAdmin.informeExport.titulo'), meta: informeMeta, orientacion: 'landscape', headers: informeHeaders, rows: informeRows, resumen: { kpis: informeKpis, desgloses: informeDesgloses }, brand: SIGAP_BRAND })
 
   return (
     <div className="flex flex-col gap-6">
@@ -1178,13 +1177,13 @@ function DashboardSuperAdmin() {
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#f0c876_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · Negocio</p>
-            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">Panel de negocio</h1>
-            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Cuánto estamos creciendo, cuánto estamos cobrando, y qué necesita tu atención hoy para seguir sumando congregaciones.</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{t('dashboard.superAdmin.heroTag')}</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{t('dashboard.superAdmin.heroTitle')}</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">{t('dashboard.superAdmin.heroSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
-            <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Suscripciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+            <Link to="/suscripciones" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">{t('dashboard.superAdmin.goSuscripciones')} <ArrowRight className="w-3.5 h-3.5" /></Link>
           </div>
         </div>
       </section>
@@ -1193,46 +1192,46 @@ function DashboardSuperAdmin() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">Informe de negocio</p>
-          <p className="text-xs text-secondary mt-0.5">KPIs, cobros y congregaciones que requieren atención, listos para compartir.</p>
+          <p className="text-sm font-medium">{t('dashboard.superAdmin.informe.titulo')}</p>
+          <p className="text-xs text-secondary mt-0.5">{t('dashboard.superAdmin.informe.subtitulo')}</p>
         </div>
         <ExportButtons onCsv={exportarCsv} onExcel={exportarExcel} onPdf={exportarPdf} marca="SIGAP" />
       </div>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <DistritalStatTile label="Congregaciones totales" value={totalCongregaciones} />
-        <DistritalStatTile label="Activas" value={activas} tone="success" />
-        <DistritalStatTile label="Pendientes de aprobación" value={pendientes} tone={pendientes > 0 ? 'danger' : 'default'} />
-        <DistritalStatTile label="Nuevas (30 días)" value={nuevas30d} />
+        <DistritalStatTile label={t('dashboard.superAdmin.stats.totales')} value={totalCongregaciones} />
+        <DistritalStatTile label={t('dashboard.superAdmin.stats.activas')} value={activas} tone="success" />
+        <DistritalStatTile label={t('dashboard.superAdmin.stats.pendientes')} value={pendientes} tone={pendientes > 0 ? 'danger' : 'default'} />
+        <DistritalStatTile label={t('dashboard.superAdmin.stats.nuevas30d')} value={nuevas30d} />
       </section>
 
       <section>
         <div className="flex items-end justify-between mb-3">
-          <div><p className="eyebrow">Crecimiento</p><h2 className="font-medium mt-1">Qué tan rápido está creciendo SIGAP</h2></div>
+          <div><p className="eyebrow">{t('dashboard.superAdmin.crecimiento.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.superAdmin.crecimiento.titulo')}</h2></div>
         </div>
         <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
           <div className="card chart-card p-5">
-            <p className="eyebrow">Últimos 12 meses</p>
-            <h3 className="font-medium mt-1">Congregaciones nuevas por mes</h3>
-            <div className="h-56 mt-4">{mesesConDatos.length ? <Line data={crecimientoTrend} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay suficientes congregaciones para ver una tendencia." />}</div>
+            <p className="eyebrow">{t('dashboard.superAdmin.crecimiento.eyebrowMeses')}</p>
+            <h3 className="font-medium mt-1">{t('dashboard.superAdmin.crecimiento.tituloMeses')}</h3>
+            <div className="h-56 mt-4">{mesesConDatos.length ? <Line data={crecimientoTrend} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message={t('dashboard.superAdmin.crecimiento.sinTendencia')} />}</div>
           </div>
           <div className="grid gap-3">
             <InsightCard
-              title="Crecimiento mensual"
+              title={t('dashboard.superAdmin.crecimiento.crecimientoMensual.titulo')}
               value={tasaCrecimientoMensual === null ? '—' : `${tasaCrecimientoMensual > 0 ? '+' : ''}${tasaCrecimientoMensual}%`}
               tone={tasaCrecimientoMensual === null ? 'default' : tasaCrecimientoMensual >= 0 ? 'success' : 'danger'}
-              insight={tasaCrecimientoMensual === null ? 'Aún no hay suficiente historial para medir el crecimiento mensual.' : `Congregaciones activas hoy vs. hace 30 días (${activasHace30d} → ${activas}). Estimado a partir de la fecha de registro -- no es un historial de estados guardado.`}
-              tip="Compara las congregaciones activas hoy contra las que ya existían hace 30 días. Es una aproximación, no un historial exacto de cambios de estado."
+              insight={tasaCrecimientoMensual === null ? t('dashboard.superAdmin.crecimiento.crecimientoMensual.sinDatos') : t('dashboard.superAdmin.crecimiento.crecimientoMensual.detalle', { antes: activasHace30d, ahora: activas })}
+              tip={t('dashboard.superAdmin.crecimiento.crecimientoMensual.tip')}
             />
             <InsightCard
-              title="Ingreso promedio por congregación"
+              title={t('dashboard.superAdmin.crecimiento.ingresoPromedio.titulo')}
               value={formatoMoneda(arpa)}
-              insight={alDia === 0 ? 'Aún no hay congregaciones con el pago al día para calcular un promedio.' : `Ingreso mensual estimado dividido entre las ${alDia} congregaciones al día con su pago.`}
+              insight={alDia === 0 ? t('dashboard.superAdmin.crecimiento.ingresoPromedio.sinDatos') : t('dashboard.superAdmin.crecimiento.ingresoPromedio.detalle', { cantidad: alDia })}
             />
             <InsightCard
-              title="Para duplicar en 12 meses"
+              title={t('dashboard.superAdmin.crecimiento.duplicar.titulo')}
               value={nuevasParaDuplicar === null ? '—' : `${nuevasParaDuplicar}/mes`}
-              insight={nuevasParaDuplicar === null ? 'Aún no hay congregaciones activas para proyectar una meta.' : `Necesitas aprobar y mantener activas ${nuevasParaDuplicar} congregaciones nuevas por mes para llegar a ${activas * 2} congregaciones activas en 12 meses.`}
+              insight={nuevasParaDuplicar === null ? t('dashboard.superAdmin.crecimiento.duplicar.sinDatos') : t('dashboard.superAdmin.crecimiento.duplicar.detalle', { necesarias: nuevasParaDuplicar, meta: activas * 2 })}
             />
           </div>
         </div>
@@ -1241,28 +1240,28 @@ function DashboardSuperAdmin() {
       <section>
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="eyebrow">Histórico real</p>
-            <h2 className="font-medium mt-1 flex items-center gap-1.5">Congregaciones activas y MRR día a día<InfoTip texto="Este historial se captura solo, una vez al día. A diferencia de los gráficos de arriba (calculados a partir de la fecha de registro), esto es una foto real guardada cada día -- pero solo existe desde que se activó esta captura." /></h2>
+            <p className="eyebrow">{t('dashboard.superAdmin.historico.eyebrow')}</p>
+            <h2 className="font-medium mt-1 flex items-center gap-1.5">{t('dashboard.superAdmin.historico.titulo')}<InfoTip texto={t('dashboard.superAdmin.historico.tip')} /></h2>
           </div>
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="card chart-card p-5">
-            <h3 className="font-medium">Congregaciones activas</h3>
+            <h3 className="font-medium">{t('dashboard.superAdmin.historico.congregacionesActivas')}</h3>
             <div className="h-56 mt-4">
               {snapshots.length >= 2 ? (
-                <Line data={trendDataset(snapshots.map((s) => formatFecha(s.fecha, { formato: formato_fecha })), snapshots.map((s) => s.activas), { label: 'Activas', colorIndex: 2 })} options={CHART_OPTIONS_NEGOCIO} />
+                <Line data={trendDataset(snapshots.map((s) => formatFecha(s.fecha, { formato: formato_fecha })), snapshots.map((s) => s.activas), { label: t('dashboard.superAdmin.stats.activas'), colorIndex: 2 })} options={CHART_OPTIONS_NEGOCIO} />
               ) : (
-                <ChartEmpty message="Este historial se está armando desde hoy. Vuelve en unos días para ver la tendencia real." />
+                <ChartEmpty message={t('dashboard.superAdmin.historico.armando')} />
               )}
             </div>
           </div>
           <div className="card chart-card p-5">
-            <h3 className="font-medium">MRR estimado</h3>
+            <h3 className="font-medium">{t('dashboard.superAdmin.historico.mrrEstimado')}</h3>
             <div className="h-56 mt-4">
               {snapshots.length >= 2 ? (
                 <Line data={trendDataset(snapshots.map((s) => formatFecha(s.fecha, { formato: formato_fecha })), snapshots.map((s) => Math.round(s.mrr_estimado)), { label: 'MRR', colorIndex: 0 })} options={CHART_OPTIONS_NEGOCIO} />
               ) : (
-                <ChartEmpty message="Este historial se está armando desde hoy. Vuelve en unos días para ver la tendencia real." />
+                <ChartEmpty message={t('dashboard.superAdmin.historico.armando')} />
               )}
             </div>
           </div>
@@ -1270,82 +1269,82 @@ function DashboardSuperAdmin() {
       </section>
 
       <section className="card p-5">
-        <p className="eyebrow">Simulador</p>
-        <h2 className="font-medium mt-1">¿Cuántas congregaciones nuevas necesitas por mes?</h2>
-        <p className="text-sm text-secondary mt-1">Ajusta el número y mira la proyección. Empieza con el promedio real de los últimos 3 meses.</p>
+        <p className="eyebrow">{t('dashboard.superAdmin.simulador.eyebrow')}</p>
+        <h2 className="font-medium mt-1">{t('dashboard.superAdmin.simulador.titulo')}</h2>
+        <p className="text-sm text-secondary mt-1">{t('dashboard.superAdmin.simulador.subtitulo')}</p>
         <label className="text-sm mt-4 block max-w-xs">
-          Nuevas congregaciones activas esperadas por mes
+          {t('dashboard.superAdmin.simulador.inputLabel')}
           <input type="number" min="0" step="1" className="input-field mt-1.5" value={nuevasPorMes} onChange={(event) => setMetaNuevasPorMes(Math.max(0, Number(event.target.value) || 0))} />
         </label>
         <div className="grid gap-3 sm:grid-cols-3 mt-4">
           {proyecciones.map((p) => (
             <div key={p.meses} className="stat-tile">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">En {p.meses} meses</p>
-              <p className="text-2xl font-semibold mt-3">{Math.round(p.congregaciones)} congregaciones</p>
-              <p className="text-sm text-secondary mt-1">{formatoMoneda(p.mrr)}/mes estimado</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">{t('dashboard.superAdmin.simulador.enMeses', { meses: p.meses })}</p>
+              <p className="text-2xl font-semibold mt-3">{t('dashboard.superAdmin.simulador.congregaciones', { cantidad: Math.round(p.congregaciones) })}</p>
+              <p className="text-sm text-secondary mt-1">{t('dashboard.superAdmin.simulador.estimadoMes', { monto: formatoMoneda(p.mrr) })}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted mt-3">Proyección simple: congregaciones activas hoy + (nuevas por mes × meses), multiplicado por el ingreso promedio actual por congregación. No asume abandono (churn) ni cambios de precio.</p>
+        <p className="text-xs text-muted mt-3">{t('dashboard.superAdmin.simulador.nota')}</p>
       </section>
 
       <section>
         <div className="flex items-end justify-between mb-3">
-          <div><p className="eyebrow">Cobros</p><h2 className="font-medium mt-1">Estado de las suscripciones</h2></div>
+          <div><p className="eyebrow">{t('dashboard.superAdmin.cobros.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.superAdmin.cobros.titulo')}</h2></div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <InsightCard title="Al día" value={alDia} tone="success" insight={`${alDia} de ${totalCongregaciones} congregaciones con el pago al día.`} />
-          <InsightCard title="En periodo de gracia" value={enGracia} tone={enGracia > 0 ? 'warning' : 'default'} insight={enGracia > 0 ? `${enGracia} vencieron pero todavía pueden usar SIGAP mientras pasan los días de gracia.` : 'Ninguna congregación está en periodo de gracia.'} />
-          <InsightCard title="Bloqueadas (en mora)" value={bloqueadas} tone={bloqueadas > 0 ? 'danger' : 'default'} insight={bloqueadas > 0 ? `${bloqueadas} pasaron los días de gracia sin pagar y ya no pueden usar SIGAP.` : 'Ninguna congregación está bloqueada.'} />
-          <InsightCard title="Sin configurar" value={sinConfigurar} insight={`${sinConfigurar} congregaciones aún no tienen una suscripción configurada.`} />
+          <InsightCard title={t('dashboard.superAdmin.cobros.alDia.titulo')} value={alDia} tone="success" insight={t('dashboard.superAdmin.cobros.alDia.detalle', { cantidad: alDia, total: totalCongregaciones })} />
+          <InsightCard title={t('dashboard.superAdmin.cobros.enGracia.titulo')} value={enGracia} tone={enGracia > 0 ? 'warning' : 'default'} insight={enGracia > 0 ? t('dashboard.superAdmin.cobros.enGracia.detalleConDatos', { cantidad: enGracia }) : t('dashboard.superAdmin.cobros.enGracia.sinDatos')} />
+          <InsightCard title={t('dashboard.superAdmin.cobros.bloqueadas.titulo')} value={bloqueadas} tone={bloqueadas > 0 ? 'danger' : 'default'} insight={bloqueadas > 0 ? t('dashboard.superAdmin.cobros.bloqueadas.detalleConDatos', { cantidad: bloqueadas }) : t('dashboard.superAdmin.cobros.bloqueadas.sinDatos')} />
+          <InsightCard title={t('dashboard.superAdmin.cobros.sinConfigurar.titulo')} value={sinConfigurar} insight={t('dashboard.superAdmin.cobros.sinConfigurar.detalle', { cantidad: sinConfigurar })} />
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2">
         <div className="card p-5">
-          <p className="text-xs uppercase tracking-[0.14em] text-secondary">Ingreso mensual estimado</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-secondary">{t('dashboard.superAdmin.ingresoMensual.titulo')}</p>
           <p className="text-3xl font-semibold tracking-tight mt-2">{ingresoMensualEstimado ? formatoMoneda(ingresoMensualEstimado) : '—'}</p>
-          <p className="summary-insight mt-3">Suma de las suscripciones al día (los planes anuales se dividen entre 12). No incluye congregaciones en gracia, bloqueadas o sin configurar.</p>
+          <p className="summary-insight mt-3">{t('dashboard.superAdmin.ingresoMensual.detalle')}</p>
         </div>
         <div className="card p-5">
-          <h3 className="font-medium">Distribución de suscripciones</h3>
+          <h3 className="font-medium">{t('dashboard.superAdmin.distribucionSuscripciones')}</h3>
           <div className="h-40 mt-3">
-            <Bar data={distributionDataset([{ label: 'Al día', total: alDia }, { label: 'En gracia', total: enGracia }, { label: 'Bloqueadas', total: bloqueadas }, { label: 'Sin configurar', total: sinConfigurar }])} options={CHART_OPTIONS_NEGOCIO} />
+            <Bar data={distributionDataset([{ label: t('dashboard.superAdmin.estadoSuscripcion.activa'), total: alDia }, { label: t('dashboard.superAdmin.estadoSuscripcion.en_gracia'), total: enGracia }, { label: t('dashboard.superAdmin.estadoSuscripcion.bloqueada'), total: bloqueadas }, { label: t('dashboard.superAdmin.estadoSuscripcion.sin_configurar'), total: sinConfigurar }])} options={CHART_OPTIONS_NEGOCIO} />
           </div>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2">
         <div className="card p-5">
-          <h3 className="font-medium">Congregaciones por plan</h3>
-          <p className="text-xs text-secondary mt-1">Anual es mejor para el flujo de caja y suele indicar mayor compromiso.</p>
-          <div className="h-40 mt-3">{porPlan.labels.length ? <Bar data={porPlan} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay suscripciones configuradas." />}</div>
+          <h3 className="font-medium">{t('dashboard.superAdmin.porPlan.titulo')}</h3>
+          <p className="text-xs text-secondary mt-1">{t('dashboard.superAdmin.porPlan.subtitulo')}</p>
+          <div className="h-40 mt-3">{porPlan.labels.length ? <Bar data={porPlan} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message={t('dashboard.superAdmin.porPlan.sinDatos')} />}</div>
         </div>
         <div className="card p-5">
-          <h3 className="font-medium">Congregaciones por etapa</h3>
-          <p className="text-xs text-secondary mt-1 flex items-center gap-1.5">Segmento de madurez de cada sede -- útil para priorizar acompañamiento comercial.{suspendidas > 0 && <InfoTip texto={`Hay ${suspendidas} congregación(es) suspendida(s), fuera de este conteo.`} />}</p>
-          <div className="h-40 mt-3">{porEtapa.labels.length ? <Bar data={porEtapa} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message="Aún no hay congregaciones para clasificar." />}</div>
+          <h3 className="font-medium">{t('dashboard.superAdmin.porEtapa.titulo')}</h3>
+          <p className="text-xs text-secondary mt-1 flex items-center gap-1.5">{t('dashboard.superAdmin.porEtapa.subtitulo')}{suspendidas > 0 && <InfoTip texto={t('dashboard.superAdmin.porEtapa.suspendidasTip', { cantidad: suspendidas })} />}</p>
+          <div className="h-40 mt-3">{porEtapa.labels.length ? <Bar data={porEtapa} options={CHART_OPTIONS_NEGOCIO} /> : <ChartEmpty message={t('dashboard.superAdmin.porEtapa.sinDatos')} />}</div>
         </div>
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Requieren atención pronto</h2>
-          <p className="text-sm text-secondary mt-1">Bloqueadas, en periodo de gracia, o vencen dentro de 7 días.</p>
+          <h2 className="font-medium">{t('dashboard.superAdmin.atencion.titulo')}</h2>
+          <p className="text-sm text-secondary mt-1">{t('dashboard.superAdmin.atencion.subtitulo')}</p>
         </div>
         {requierenAtencion.length === 0 ? (
-          <p className="p-6 text-sm text-muted">Ninguna congregación necesita atención de cobro en este momento.</p>
+          <p className="p-6 text-sm text-muted">{t('dashboard.superAdmin.atencion.sinDatos')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Plan</th><th className="font-normal px-5 py-3">Próximo pago</th><th className="font-normal px-5 py-3">Estado</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.atencion.colCongregacion')}</th><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.atencion.colPlan')}</th><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.atencion.colProximoPago')}</th><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.atencion.colEstado')}</th></tr></thead>
               <tbody>
                 {requierenAtencion.map(({ congregacion, suscripcion, estadoSusc }) => (
                   <tr key={congregacion.id} className="border-t border-border">
-                    <td className="px-5 py-3 font-medium">{congregacion.nombre}{congregacion.distritos?.numero ? <span className="text-xs text-secondary"> · Distrito {congregacion.distritos.numero}</span> : ''}</td>
-                    <td className="px-5 py-3 text-secondary">{suscripcion ? PLAN_LABELS_DASH[suscripcion.plan] || suscripcion.plan : '—'}</td>
+                    <td className="px-5 py-3 font-medium">{congregacion.nombre}{congregacion.distritos?.numero ? <span className="text-xs text-secondary">{t('dashboard.superAdmin.atencion.distritoSuffix', { numero: congregacion.distritos.numero })}</span> : ''}</td>
+                    <td className="px-5 py-3 text-secondary">{suscripcion ? t(`dashboard.shared.plan.${suscripcion.plan}`, suscripcion.plan) : '—'}</td>
                     <td className="px-5 py-3 text-secondary">{suscripcion ? formatFecha(suscripcion.fecha_proximo_pago, { formato: formato_fecha }) : '—'}</td>
-                    <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded ${ESTADO_SUSC_TONO_DASH[estadoSusc]}`}>{ESTADO_SUSC_LABEL_DASH[estadoSusc]}</span></td>
+                    <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded ${ESTADO_SUSC_TONO_DASH[estadoSusc]}`}>{t(`dashboard.superAdmin.estadoSuscripcion.${estadoSusc}`)}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -1357,17 +1356,17 @@ function DashboardSuperAdmin() {
       {nuevasPendientes.length > 0 && (
         <section className="card overflow-hidden">
           <div className="p-5 border-b border-border flex items-center justify-between">
-            <div><h2 className="font-medium">Nuevas, pendientes de aprobación</h2><p className="text-sm text-secondary mt-1">Todavía no pueden usar SIGAP hasta ser aprobadas.</p></div>
-            <Link to="/aprobaciones" className="text-xs text-accent hover:underline flex items-center gap-1 whitespace-nowrap">Ir a Aprobaciones <ArrowRight className="w-3.5 h-3.5" /></Link>
+            <div><h2 className="font-medium">{t('dashboard.superAdmin.pendientes.titulo')}</h2><p className="text-sm text-secondary mt-1">{t('dashboard.superAdmin.pendientes.subtitulo')}</p></div>
+            <Link to="/aprobaciones" className="text-xs text-accent hover:underline flex items-center gap-1 whitespace-nowrap">{t('dashboard.superAdmin.pendientes.irAprobaciones')} <ArrowRight className="w-3.5 h-3.5" /></Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">Congregación</th><th className="font-normal px-5 py-3">Distrito</th><th className="font-normal px-5 py-3">Registrada</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.pendientes.colCongregacion')}</th><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.pendientes.colDistrito')}</th><th className="font-normal px-5 py-3">{t('dashboard.superAdmin.pendientes.colRegistrada')}</th></tr></thead>
               <tbody>
                 {nuevasPendientes.map((c) => (
                   <tr key={c.id} className="border-t border-border">
                     <td className="px-5 py-3 font-medium">{c.nombre}</td>
-                    <td className="px-5 py-3 text-secondary">{c.distritos?.numero ? `Distrito ${c.distritos.numero}` : '—'}</td>
+                    <td className="px-5 py-3 text-secondary">{c.distritos?.numero ? t('dashboard.superAdmin.distritoLabel', { numero: c.distritos.numero }) : '—'}</td>
                     <td className="px-5 py-3 text-secondary">{formatFecha(c.created_at, { formato: formato_fecha })}</td>
                   </tr>
                 ))}

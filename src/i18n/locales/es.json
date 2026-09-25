@@ -226,7 +226,11 @@
         "comite": "Asigna integrantes para activar este comité.",
         "default": "Revisa el detalle y registra el siguiente paso."
       },
-      "titleFallback": "Resumen de la congregación"
+      "titleFallback": "Resumen de la congregación",
+      "plan": {
+        "mensual": "Mensual",
+        "anual": "Anual"
+      }
     },
     "distrital": {
       "heroTag": "SIGAP · IPUC",
@@ -556,6 +560,143 @@
         "colSellados": "Sellados",
         "colAsistencia": "Asistencia último mes",
         "sinSellar": "({{cantidad}} sin sellar)"
+      }
+    },
+    "superAdmin": {
+      "loading": "Cargando el panel de negocio...",
+      "loadError": "No se pudo cargar el panel de negocio.",
+      "heroTag": "SIGAP · Negocio",
+      "heroTitle": "Panel de negocio",
+      "heroSubtitle": "Cuánto estamos creciendo, cuánto estamos cobrando, y qué necesita tu atención hoy para seguir sumando congregaciones.",
+      "goSuscripciones": "Ir a Suscripciones",
+      "informe": {
+        "titulo": "Informe de negocio",
+        "subtitulo": "KPIs, cobros y congregaciones que requieren atención, listos para compartir."
+      },
+      "stats": {
+        "totales": "Congregaciones totales",
+        "activas": "Activas",
+        "pendientes": "Pendientes de aprobación",
+        "nuevas30d": "Nuevas (30 días)"
+      },
+      "crecimiento": {
+        "eyebrow": "Crecimiento",
+        "titulo": "Qué tan rápido está creciendo SIGAP",
+        "eyebrowMeses": "Últimos 12 meses",
+        "tituloMeses": "Congregaciones nuevas por mes",
+        "sinTendencia": "Aún no hay suficientes congregaciones para ver una tendencia.",
+        "crecimientoMensual": {
+          "titulo": "Crecimiento mensual",
+          "sinDatos": "Aún no hay suficiente historial para medir el crecimiento mensual.",
+          "detalle": "Congregaciones activas hoy vs. hace 30 días ({{antes}} → {{ahora}}). Estimado a partir de la fecha de registro -- no es un historial de estados guardado.",
+          "tip": "Compara las congregaciones activas hoy contra las que ya existían hace 30 días. Es una aproximación, no un historial exacto de cambios de estado."
+        },
+        "ingresoPromedio": {
+          "titulo": "Ingreso promedio por congregación",
+          "sinDatos": "Aún no hay congregaciones con el pago al día para calcular un promedio.",
+          "detalle": "Ingreso mensual estimado dividido entre las {{cantidad}} congregaciones al día con su pago."
+        },
+        "duplicar": {
+          "titulo": "Para duplicar en 12 meses",
+          "sinDatos": "Aún no hay congregaciones activas para proyectar una meta.",
+          "detalle": "Necesitas aprobar y mantener activas {{necesarias}} congregaciones nuevas por mes para llegar a {{meta}} congregaciones activas en 12 meses."
+        }
+      },
+      "historico": {
+        "eyebrow": "Histórico real",
+        "titulo": "Congregaciones activas y MRR día a día",
+        "tip": "Este historial se captura solo, una vez al día. A diferencia de los gráficos de arriba (calculados a partir de la fecha de registro), esto es una foto real guardada cada día -- pero solo existe desde que se activó esta captura.",
+        "congregacionesActivas": "Congregaciones activas",
+        "mrrEstimado": "MRR estimado",
+        "armando": "Este historial se está armando desde hoy. Vuelve en unos días para ver la tendencia real."
+      },
+      "simulador": {
+        "eyebrow": "Simulador",
+        "titulo": "¿Cuántas congregaciones nuevas necesitas por mes?",
+        "subtitulo": "Ajusta el número y mira la proyección. Empieza con el promedio real de los últimos 3 meses.",
+        "inputLabel": "Nuevas congregaciones activas esperadas por mes",
+        "enMeses": "En {{meses}} meses",
+        "congregaciones": "{{cantidad}} congregaciones",
+        "estimadoMes": "{{monto}}/mes estimado",
+        "nota": "Proyección simple: congregaciones activas hoy + (nuevas por mes × meses), multiplicado por el ingreso promedio actual por congregación. No asume abandono (churn) ni cambios de precio."
+      },
+      "cobros": {
+        "eyebrow": "Cobros",
+        "titulo": "Estado de las suscripciones",
+        "alDia": {
+          "titulo": "Al día",
+          "detalle": "{{cantidad}} de {{total}} congregaciones con el pago al día."
+        },
+        "enGracia": {
+          "titulo": "En periodo de gracia",
+          "detalleConDatos": "{{cantidad}} vencieron pero todavía pueden usar SIGAP mientras pasan los días de gracia.",
+          "sinDatos": "Ninguna congregación está en periodo de gracia."
+        },
+        "bloqueadas": {
+          "titulo": "Bloqueadas (en mora)",
+          "detalleConDatos": "{{cantidad}} pasaron los días de gracia sin pagar y ya no pueden usar SIGAP.",
+          "sinDatos": "Ninguna congregación está bloqueada."
+        },
+        "sinConfigurar": {
+          "titulo": "Sin configurar",
+          "detalle": "{{cantidad}} congregaciones aún no tienen una suscripción configurada."
+        }
+      },
+      "ingresoMensual": {
+        "titulo": "Ingreso mensual estimado",
+        "detalle": "Suma de las suscripciones al día (los planes anuales se dividen entre 12). No incluye congregaciones en gracia, bloqueadas o sin configurar."
+      },
+      "distribucionSuscripciones": "Distribución de suscripciones",
+      "porPlan": {
+        "titulo": "Congregaciones por plan",
+        "subtitulo": "Anual es mejor para el flujo de caja y suele indicar mayor compromiso.",
+        "sinDatos": "Aún no hay suscripciones configuradas."
+      },
+      "porEtapa": {
+        "titulo": "Congregaciones por etapa",
+        "subtitulo": "Segmento de madurez de cada sede -- útil para priorizar acompañamiento comercial.",
+        "suspendidasTip": "Hay {{cantidad}} congregación(es) suspendida(s), fuera de este conteo.",
+        "sinDatos": "Aún no hay congregaciones para clasificar."
+      },
+      "atencion": {
+        "titulo": "Requieren atención pronto",
+        "subtitulo": "Bloqueadas, en periodo de gracia, o vencen dentro de 7 días.",
+        "sinDatos": "Ninguna congregación necesita atención de cobro en este momento.",
+        "colCongregacion": "Congregación",
+        "colPlan": "Plan",
+        "colProximoPago": "Próximo pago",
+        "colEstado": "Estado",
+        "distritoSuffix": " · Distrito {{numero}}"
+      },
+      "pendientes": {
+        "titulo": "Nuevas, pendientes de aprobación",
+        "subtitulo": "Todavía no pueden usar SIGAP hasta ser aprobadas.",
+        "irAprobaciones": "Ir a Aprobaciones",
+        "colCongregacion": "Congregación",
+        "colDistrito": "Distrito",
+        "colRegistrada": "Registrada"
+      },
+      "estadoSuscripcion": {
+        "activa": "Al día",
+        "en_gracia": "En gracia",
+        "bloqueada": "Bloqueada",
+        "sin_configurar": "Sin configurar"
+      },
+      "distritoLabel": "Distrito {{numero}}",
+      "informeExport": {
+        "titulo": "Informe de negocio",
+        "kpiTotales": "Congregaciones totales",
+        "kpiActivas": "Activas",
+        "kpiPendientes": "Pendientes de aprobación",
+        "kpiNuevas": "Nuevas (30 días)",
+        "kpiIngresoMensual": "Ingreso mensual estimado",
+        "kpiIngresoPromedio": "Ingreso promedio por congregación",
+        "desgloseEstado": "Estado de suscripciones",
+        "desglosePlan": "Congregaciones por plan",
+        "desgloseEtapa": "Congregaciones por etapa",
+        "metaCantidad": "Congregaciones que requieren atención: {{cantidad}}",
+        "metaTabla": "Tabla: bloqueadas, en gracia, o vencen dentro de 7 días.",
+        "hojaAtencion": "Requieren atención"
       }
     }
   }

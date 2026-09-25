@@ -226,7 +226,11 @@
         "comite": "Assign members to activate this committee.",
         "default": "Check the details and log the next step."
       },
-      "titleFallback": "Congregation overview"
+      "titleFallback": "Congregation overview",
+      "plan": {
+        "mensual": "Monthly",
+        "anual": "Annual"
+      }
     },
     "distrital": {
       "heroTag": "SIGAP · IPUC",
@@ -556,6 +560,143 @@
         "colSellados": "Infilled",
         "colAsistencia": "Last month attendance",
         "sinSellar": "({{cantidad}} not infilled)"
+      }
+    },
+    "superAdmin": {
+      "loading": "Loading the business panel...",
+      "loadError": "Could not load the business panel.",
+      "heroTag": "SIGAP · Business",
+      "heroTitle": "Business panel",
+      "heroSubtitle": "How much we're growing, how much we're billing, and what needs your attention today to keep adding congregations.",
+      "goSuscripciones": "Go to Subscriptions",
+      "informe": {
+        "titulo": "Business report",
+        "subtitulo": "KPIs, billing, and congregations needing attention, ready to share."
+      },
+      "stats": {
+        "totales": "Total congregations",
+        "activas": "Active",
+        "pendientes": "Pending approval",
+        "nuevas30d": "New (30 days)"
+      },
+      "crecimiento": {
+        "eyebrow": "Growth",
+        "titulo": "How fast SIGAP is growing",
+        "eyebrowMeses": "Last 12 months",
+        "tituloMeses": "New congregations per month",
+        "sinTendencia": "Not enough congregations to show a trend yet.",
+        "crecimientoMensual": {
+          "titulo": "Monthly growth",
+          "sinDatos": "Not enough history to measure monthly growth yet.",
+          "detalle": "Active congregations today vs. 30 days ago ({{antes}} → {{ahora}}). Estimated from the registration date -- not a saved status history.",
+          "tip": "Compares congregations active today against those that already existed 30 days ago. It is an approximation, not an exact history of status changes."
+        },
+        "ingresoPromedio": {
+          "titulo": "Average revenue per congregation",
+          "sinDatos": "No congregations with payment up to date yet to calculate an average.",
+          "detalle": "Estimated monthly revenue divided among the {{cantidad}} congregations with payment up to date."
+        },
+        "duplicar": {
+          "titulo": "To double in 12 months",
+          "sinDatos": "No active congregations yet to project a target.",
+          "detalle": "You need to approve and keep active {{necesarias}} new congregations per month to reach {{meta}} active congregations in 12 months."
+        }
+      },
+      "historico": {
+        "eyebrow": "Real history",
+        "titulo": "Active congregations and MRR day by day",
+        "tip": "This history is captured automatically, once a day. Unlike the charts above (calculated from the registration date), this is a real snapshot saved every day -- but it only exists since this capture was activated.",
+        "congregacionesActivas": "Active congregations",
+        "mrrEstimado": "Estimated MRR",
+        "armando": "This history is being built starting today. Come back in a few days to see the real trend."
+      },
+      "simulador": {
+        "eyebrow": "Simulator",
+        "titulo": "How many new congregations do you need per month?",
+        "subtitulo": "Adjust the number and watch the projection. Starts with the real average of the last 3 months.",
+        "inputLabel": "New active congregations expected per month",
+        "enMeses": "In {{meses}} months",
+        "congregaciones": "{{cantidad}} congregations",
+        "estimadoMes": "{{monto}}/month estimated",
+        "nota": "Simple projection: congregations active today + (new per month × months), multiplied by the current average revenue per congregation. Does not assume churn or price changes."
+      },
+      "cobros": {
+        "eyebrow": "Billing",
+        "titulo": "Subscription status",
+        "alDia": {
+          "titulo": "Up to date",
+          "detalle": "{{cantidad}} of {{total}} congregations with payment up to date."
+        },
+        "enGracia": {
+          "titulo": "In grace period",
+          "detalleConDatos": "{{cantidad}} are past due but can still use SIGAP during the grace period.",
+          "sinDatos": "No congregation is in a grace period."
+        },
+        "bloqueadas": {
+          "titulo": "Blocked (past due)",
+          "detalleConDatos": "{{cantidad}} went past the grace period without paying and can no longer use SIGAP.",
+          "sinDatos": "No congregation is blocked."
+        },
+        "sinConfigurar": {
+          "titulo": "Not configured",
+          "detalle": "{{cantidad}} congregations do not have a subscription configured yet."
+        }
+      },
+      "ingresoMensual": {
+        "titulo": "Estimated monthly revenue",
+        "detalle": "Sum of up-to-date subscriptions (annual plans are divided by 12). Does not include congregations in grace, blocked, or not configured."
+      },
+      "distribucionSuscripciones": "Subscription distribution",
+      "porPlan": {
+        "titulo": "Congregations by plan",
+        "subtitulo": "Annual is better for cash flow and usually indicates stronger commitment.",
+        "sinDatos": "No subscriptions configured yet."
+      },
+      "porEtapa": {
+        "titulo": "Congregations by stage",
+        "subtitulo": "Maturity segment of each site -- useful for prioritizing commercial follow-up.",
+        "suspendidasTip": "There are {{cantidad}} suspended congregation(s), outside this count.",
+        "sinDatos": "No congregations to classify yet."
+      },
+      "atencion": {
+        "titulo": "Need attention soon",
+        "subtitulo": "Blocked, in a grace period, or due within 7 days.",
+        "sinDatos": "No congregation needs billing attention right now.",
+        "colCongregacion": "Congregation",
+        "colPlan": "Plan",
+        "colProximoPago": "Next payment",
+        "colEstado": "Status",
+        "distritoSuffix": " · District {{numero}}"
+      },
+      "pendientes": {
+        "titulo": "New, pending approval",
+        "subtitulo": "They cannot use SIGAP yet until approved.",
+        "irAprobaciones": "Go to Approvals",
+        "colCongregacion": "Congregation",
+        "colDistrito": "District",
+        "colRegistrada": "Registered"
+      },
+      "estadoSuscripcion": {
+        "activa": "Up to date",
+        "en_gracia": "In grace period",
+        "bloqueada": "Blocked",
+        "sin_configurar": "Not configured"
+      },
+      "distritoLabel": "District {{numero}}",
+      "informeExport": {
+        "titulo": "Business report",
+        "kpiTotales": "Total congregations",
+        "kpiActivas": "Active",
+        "kpiPendientes": "Pending approval",
+        "kpiNuevas": "New (30 days)",
+        "kpiIngresoMensual": "Estimated monthly revenue",
+        "kpiIngresoPromedio": "Average revenue per congregation",
+        "desgloseEstado": "Subscription status",
+        "desglosePlan": "Congregations by plan",
+        "desgloseEtapa": "Congregations by stage",
+        "metaCantidad": "Congregations needing attention: {{cantidad}}",
+        "metaTabla": "Table: blocked, in grace period, or due within 7 days.",
+        "hojaAtencion": "Need attention"
       }
     }
   }
