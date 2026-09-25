@@ -1,8 +1,16 @@
 {
   "common": {
-    "nav": { "ayuda": "Help", "ingresar": "Sign in" },
-    "theme": { "toLight": "Switch to light mode", "toDark": "Switch to dark mode" },
-    "language": { "switchLabel": "Change language" },
+    "nav": {
+      "ayuda": "Help",
+      "ingresar": "Sign in"
+    },
+    "theme": {
+      "toLight": "Switch to light mode",
+      "toDark": "Switch to dark mode"
+    },
+    "language": {
+      "switchLabel": "Change language"
+    },
     "footer": {
       "line": "Integrated Pastoral Management and Analytics System",
       "rights": "All rights reserved.",
@@ -153,5 +161,242 @@
     "seguirConectado": "Stay signed in",
     "cargandoModulo": "Loading module...",
     "preparandoEspacio": "Preparing your workspace..."
+  },
+  "dashboard": {
+    "shared": {
+      "alertTypes": {
+        "familia": "Family",
+        "bautismo": "Baptism",
+        "asistencia_persona": "Attendance",
+        "asistencia": "Trend",
+        "comite": "Committee",
+        "default": "Follow-up"
+      },
+      "frecuencias": {
+        "diaria": "Daily",
+        "semanal": "Weekly",
+        "quincenal": "Biweekly",
+        "mensual": "Monthly",
+        "semestral": "Semiannual",
+        "anual": "Annual"
+      },
+      "periodos": {
+        "diaria": "day",
+        "semanal": "week",
+        "quincenal": "fortnight",
+        "mensual": "month",
+        "semestral": "semester",
+        "anual": "year"
+      },
+      "estaPeriodo": {
+        "diaria": "today",
+        "semanal": "this week",
+        "quincenal": "this fortnight",
+        "mensual": "this month",
+        "semestral": "this semester",
+        "anual": "this year"
+      },
+      "periodoPasado": {
+        "diaria": "the previous day",
+        "semanal": "last week",
+        "quincenal": "the last fortnight",
+        "mensual": "last month",
+        "semestral": "last semester",
+        "anual": "last year"
+      },
+      "madurez": {
+        "mision_nacional": "National Mission",
+        "lugar_prediccion": "Preaching Point",
+        "iglesia_local": "Local Church"
+      },
+      "estadoCongregacion": {
+        "activa": "Active",
+        "suspendida": "Suspended",
+        "pendiente": "Pending"
+      },
+      "reload": {
+        "updating": "Updating...",
+        "reload": "Reload data"
+      },
+      "alertRecommendation": {
+        "familia": "Check the record and complete the family link.",
+        "bautismo": "Schedule a follow-up conversation.",
+        "asistencia_persona": "Contact the person and log the follow-up.",
+        "asistencia": "Compare recent activities and agree on an action.",
+        "comite": "Assign members to activate this committee.",
+        "default": "Check the details and log the next step."
+      },
+      "titleFallback": "Congregation overview"
+    },
+    "distrital": {
+      "heroTag": "SIGAP · IPUC",
+      "heroFallbackTitle": "District panel",
+      "heroTitle": "District {{numero}}",
+      "heroSubtitle": "Consolidated view of your district's congregations, to compare growth and make district-level pastoral decisions.",
+      "goPastoral": "Go to District Pastoral Care",
+      "loading": "Loading the district consolidation...",
+      "loadError": "Could not load the district consolidation.",
+      "comoEstuvimos": {
+        "eyebrow": "How we did this month",
+        "noCongregaciones": "Not enough congregations to compare yet.",
+        "todasCrecieron": "All congregations grew this month.",
+        "ningunaCrecio": "No congregation grew this month compared to the previous one.",
+        "algunas": "{{crecieron}} of {{total}} congregations grew this month.",
+        "resumen": "{{asistencias}} attendances in the district this month{{variacion}}.",
+        "variacionSuffix": " ({{valor}}% vs. the previous month)",
+        "liderTitulo": "{{nombre}} leads growth this month",
+        "liderDetalle": "+{{valor}}% in attendance vs. the previous month.",
+        "asistenciaDistrito": "District attendance",
+        "vsMesAnterior": "{{valor}}% vs. previous month",
+        "congregacionesCrecimiento": "Congregations growing",
+        "crecieronFrenteAnterior": "grew this month vs. the previous one",
+        "altasBajas3m": "Joins / Leaves (3 months)",
+        "balanceNeto": "net balance {{valor}}",
+        "bautismos3m": "Baptisms (3 months)",
+        "enElDistrito": "in the district"
+      },
+      "insightAsistencia": {
+        "noCongregaciones": "Not enough congregations to average yet.",
+        "base": "Average of {{promedio}} attendances per congregation this month.",
+        "aporteSingular": " {{nombres}} contributes {{suma}} of the {{total}}.",
+        "aportePlural": " {{nombres}} contribute {{suma}} of the {{total}}."
+      },
+      "insightCrecimiento": {
+        "noCongregaciones": "Not enough congregations to compare yet.",
+        "ningunaAtras": "None fell behind this month.",
+        "lista": "{{nombres}}{{yMas}} did not grow this month.",
+        "yMas": " and {{cantidad}} more"
+      },
+      "insightAltasBajas": {
+        "noCongregaciones": "Not enough congregations to measure yet.",
+        "aporteSingular": "{{nombres}} contributes {{suma}} of the {{total}} joins in 3 months.",
+        "aportePlural": "{{nombres}} contribute {{suma}} of the {{total}} joins in 3 months.",
+        "balanceNegativoSuffix_one": " {{count}} congregation has more leaves than joins.",
+        "balanceNegativoSuffix_other": " {{count}} congregations have more leaves than joins.",
+        "soloBalanceNegativo_one": "{{count}} congregation with more leaves than joins in 3 months.",
+        "soloBalanceNegativo_other": "{{count}} congregations with more leaves than joins in 3 months.",
+        "sinMovimiento": "No joins or leaves in the district in 3 months."
+      },
+      "insightBautismos": {
+        "noCongregaciones": "Not enough congregations to measure yet.",
+        "aporteSingular": "{{nombres}} contributes {{suma}} of the {{total}}{{resto}}",
+        "aportePlural": "{{nombres}} contribute {{suma}} of the {{total}}{{resto}}",
+        "resto": ", the rest spread across the district.",
+        "sinResto": ".",
+        "sinBautismos": "No baptisms in the district in 3 months."
+      },
+      "semaforo": {
+        "titulo": "District status",
+        "subtitulo": "Signals SIGAP already measures, together in one glance to know what to check first.",
+        "vacantesPastor": "Pastor vacancies",
+        "vacantesPastorOk": "All congregations have a pastor.",
+        "vacantesPastorBad": "{{cantidad}} congregation(s) without an assigned pastor.",
+        "brechaLlenura": "Infilling gap",
+        "brechaLlenuraSinDatos": "No baptized members to measure yet.",
+        "brechaLlenuraDetalle": "{{pct}}% of baptized members are not yet infilled.",
+        "movimientoMembresia": "Membership movement",
+        "movimientoMembresiaDetalle": "{{altas}} joins and {{bajas}} leaves in the last 3 months.",
+        "actividadCongregacional": "Congregational activity",
+        "actividadOk": "All congregations logged activity in the last 60 days.",
+        "actividadBad": "{{cantidad}} congregation(s) with no activity logged in 60 days.",
+        "directivaDistrital": "District leadership",
+        "directivaOk": "All 6 district board positions are filled.",
+        "directivaFaltaUno": "Still needs {{cargo}}{{tiempo}}.",
+        "directivaTiempo_one": " for {{count}} day",
+        "directivaTiempo_other": " for {{count}} days",
+        "directivaNunca": " (never had an assigned officer)",
+        "directivaFaltaVarios": "Still needs {{cargos}}."
+      },
+      "stats": {
+        "congregaciones": "Congregations",
+        "feligresesActivos": "Active members",
+        "enCrecimiento3m": "Growing (3 months)",
+        "vacantesPastor": "Pastor vacancies"
+      },
+      "insightsBI": {
+        "eyebrow": "BI insights",
+        "titulo": "Signals to decide on",
+        "brechaLlenura": {
+          "titulo": "Infilling gap",
+          "atencion": "Attention",
+          "sinBautizados": "No baptized members registered in the district yet.",
+          "detalle": "{{pendientes}} of {{total}} baptized members are not yet infilled with the Holy Spirit{{sugerencia}}",
+          "sugerencia": " — consider a district vigil or camp.",
+          "sinSugerencia": ".",
+          "tip": "Difference between people already baptized and those who have not yet received the infilling of the Holy Spirit."
+        },
+        "eficaciaRefam": {
+          "titulo": "REFAM effectiveness",
+          "sinBautismos": "{{estudios}} studies delivered in 3 months, still no baptisms to compare.",
+          "detalle": "On average, {{eficacia}} studies were needed per baptism in the last 3 months ({{estudios}} studies, {{bautismos}} baptisms).",
+          "tip": "How many REFAM Bible studies were needed on average to achieve one baptism."
+        },
+        "embudo": {
+          "titulo": "One More → REFAM funnel",
+          "sinDatos": "No active people in One More yet.",
+          "detalle": "Of {{unoMas}} people in One More, {{refam}} advanced to REFAM and {{bautizados}} friends have already been baptized in the district.",
+          "tip": "Follows a person from the first contact (One More) through Bible studies (REFAM) to baptism."
+        },
+        "movimiento": {
+          "titulo": "Membership movement (3 months)",
+          "detalle": "{{altas}} joins and {{bajas}} leaves in the district{{alerta}}",
+          "alerta": " — leaves outnumber joins, worth reviewing transfers and discipline.",
+          "sinAlerta": "."
+        },
+        "madurez": {
+          "titulo": "Maturity of the work",
+          "sinCongregaciones": "No congregations to classify yet.",
+          "detalle": "{{constituidas}} constituted Local Church, {{lugarPrediccion}} Preaching Point, {{misionNacional}} National Mission."
+        },
+        "proyeccion": {
+          "titulo": "12-month projection",
+          "sinDatos": "Not enough data to project yet.",
+          "detalle": "If the pace of the last 3 months holds ({{ritmo}} people/month net), the district would have {{proyeccion}} active members in 12 months. Estimate based on only 3 months of history — will improve with more data."
+        },
+        "ciclo": {
+          "titulo": "Spiritual life cycle",
+          "sinDatos": "No active people to measure the cycle yet.",
+          "detalle": "Active → Baptized ({{pctBautizados}}%) → Infilled ({{pctSellados}}%) → With a role or committee ({{pctConCargo}}%)."
+        },
+        "consolidacion": {
+          "titulo": "Time to consolidation",
+          "sinDatos": "Not enough baptisms with a join date to measure this yet.",
+          "detalle": "On average, {{dias}} days from joining to baptism (sample of {{muestra}}){{selladoExtra}}",
+          "selladoExtra": ", and {{dias2}} more days to infilling (sample of {{muestra2}}).",
+          "sinSelladoExtra": "."
+        }
+      },
+      "piramide": {
+        "titulo": "District population pyramid",
+        "subtitulo": "Age and gender distribution of active people across all congregations in the district.",
+        "subtituloExtra": " Based on {{conGenero}} of {{total}} active members with gender on file.",
+        "sinDatos": "No active people with gender on file in the district yet."
+      },
+      "tabla": {
+        "titulo": "Congregation comparison",
+        "subtitulo": "Sort to identify who is growing or declining.",
+        "tasaPromedio": " District average growth rate: {{valor}}%.",
+        "ordenarNuevas": "Sort by: new (3 months)",
+        "ordenarActivas": "Sort by: active members",
+        "ordenarAsistencia": "Sort by: last month attendance",
+        "ordenarBajas": "Sort by: leaves (3 months)",
+        "sinCongregaciones": "No congregations registered in your district yet.",
+        "colCongregacion": "Congregation",
+        "colCiudad": "City",
+        "colPastor": "Pastor in charge",
+        "colActivas": "Active members",
+        "colNuevas": "New (3 months)",
+        "colSellados": "Infilled",
+        "colMadurez": "Maturity",
+        "colAsistencia": "Last month attendance",
+        "colCrecimiento": "Growth vs. district",
+        "colEstado": "Status",
+        "vacantePastor": "Vacant",
+        "sinSellar": "({{cantidad}} not infilled)",
+        "sobrePromedio": "▲ above average",
+        "bajoPromedio": "▼ below average",
+        "congregaciones": "congregations"
+      }
+    }
   }
 }

@@ -1,8 +1,16 @@
 {
   "common": {
-    "nav": { "ayuda": "Ayuda", "ingresar": "Ingresar" },
-    "theme": { "toLight": "Cambiar a modo claro", "toDark": "Cambiar a modo oscuro" },
-    "language": { "switchLabel": "Cambiar idioma" },
+    "nav": {
+      "ayuda": "Ayuda",
+      "ingresar": "Ingresar"
+    },
+    "theme": {
+      "toLight": "Cambiar a modo claro",
+      "toDark": "Cambiar a modo oscuro"
+    },
+    "language": {
+      "switchLabel": "Cambiar idioma"
+    },
     "footer": {
       "line": "Sistema Integrado de Gestión y Analítica Pastoral",
       "rights": "Todos los derechos reservados.",
@@ -153,5 +161,242 @@
     "seguirConectado": "Seguir conectado",
     "cargandoModulo": "Cargando módulo...",
     "preparandoEspacio": "Preparando tu espacio..."
+  },
+  "dashboard": {
+    "shared": {
+      "alertTypes": {
+        "familia": "Familia",
+        "bautismo": "Bautismo",
+        "asistencia_persona": "Asistencia",
+        "asistencia": "Tendencia",
+        "comite": "Comité",
+        "default": "Seguimiento"
+      },
+      "frecuencias": {
+        "diaria": "Diaria",
+        "semanal": "Semanal",
+        "quincenal": "Quincenal",
+        "mensual": "Mensual",
+        "semestral": "Semestral",
+        "anual": "Anual"
+      },
+      "periodos": {
+        "diaria": "día",
+        "semanal": "semana",
+        "quincenal": "quincena",
+        "mensual": "mes",
+        "semestral": "semestre",
+        "anual": "año"
+      },
+      "estaPeriodo": {
+        "diaria": "este día",
+        "semanal": "esta semana",
+        "quincenal": "esta quincena",
+        "mensual": "este mes",
+        "semestral": "este semestre",
+        "anual": "este año"
+      },
+      "periodoPasado": {
+        "diaria": "el día anterior",
+        "semanal": "la semana pasada",
+        "quincenal": "la quincena pasada",
+        "mensual": "el mes pasado",
+        "semestral": "el semestre pasado",
+        "anual": "el año pasado"
+      },
+      "madurez": {
+        "mision_nacional": "Misión Nacional",
+        "lugar_prediccion": "Lugar de Predicación",
+        "iglesia_local": "Iglesia Local"
+      },
+      "estadoCongregacion": {
+        "activa": "Activa",
+        "suspendida": "Suspendida",
+        "pendiente": "Pendiente"
+      },
+      "reload": {
+        "updating": "Actualizando...",
+        "reload": "Recargar datos"
+      },
+      "alertRecommendation": {
+        "familia": "Revisa la ficha y completa la asociación familiar.",
+        "bautismo": "Programa una conversación de acompañamiento.",
+        "asistencia_persona": "Contacta a la persona y registra el seguimiento.",
+        "asistencia": "Compara las actividades recientes y acuerda una acción.",
+        "comite": "Asigna integrantes para activar este comité.",
+        "default": "Revisa el detalle y registra el siguiente paso."
+      },
+      "titleFallback": "Resumen de la congregación"
+    },
+    "distrital": {
+      "heroTag": "SIGAP · IPUC",
+      "heroFallbackTitle": "Panel distrital",
+      "heroTitle": "Distrito {{numero}}",
+      "heroSubtitle": "Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.",
+      "goPastoral": "Ir a Pastoral Distrital",
+      "loading": "Cargando el consolidado del distrito...",
+      "loadError": "No se pudo cargar el consolidado del distrito.",
+      "comoEstuvimos": {
+        "eyebrow": "Cómo estuvimos este mes",
+        "noCongregaciones": "Aún no hay congregaciones para comparar.",
+        "todasCrecieron": "Todas las congregaciones crecieron este mes.",
+        "ningunaCrecio": "Ninguna congregación creció este mes frente al anterior.",
+        "algunas": "{{crecieron}} de {{total}} congregaciones crecieron este mes.",
+        "resumen": "{{asistencias}} asistencias en el distrito este mes{{variacion}}.",
+        "variacionSuffix": " ({{valor}}% frente al mes anterior)",
+        "liderTitulo": "{{nombre}} lidera el crecimiento este mes",
+        "liderDetalle": "+{{valor}}% en asistencia frente al mes anterior.",
+        "asistenciaDistrito": "Asistencia del distrito",
+        "vsMesAnterior": "{{valor}}% vs. mes anterior",
+        "congregacionesCrecimiento": "Congregaciones en crecimiento",
+        "crecieronFrenteAnterior": "crecieron este mes frente al anterior",
+        "altasBajas3m": "Altas / Bajas (3 meses)",
+        "balanceNeto": "balance neto {{valor}}",
+        "bautismos3m": "Bautismos (3 meses)",
+        "enElDistrito": "en el distrito"
+      },
+      "insightAsistencia": {
+        "noCongregaciones": "Aún no hay congregaciones para promediar.",
+        "base": "Promedio de {{promedio}} asistencias por congregación este mes.",
+        "aporteSingular": " {{nombres}} aporta {{suma}} de las {{total}}.",
+        "aportePlural": " {{nombres}} aportan {{suma}} de las {{total}}."
+      },
+      "insightCrecimiento": {
+        "noCongregaciones": "Aún no hay congregaciones para comparar.",
+        "ningunaAtras": "Ninguna se quedó atrás este mes.",
+        "lista": "{{nombres}}{{yMas}} no crecieron este mes.",
+        "yMas": " y {{cantidad}} más"
+      },
+      "insightAltasBajas": {
+        "noCongregaciones": "Aún no hay congregaciones para medir.",
+        "aporteSingular": "{{nombres}} aporta {{suma}} de las {{total}} altas en 3 meses.",
+        "aportePlural": "{{nombres}} aportan {{suma}} de las {{total}} altas en 3 meses.",
+        "balanceNegativoSuffix_one": " {{count}} congregación tiene más bajas que altas.",
+        "balanceNegativoSuffix_other": " {{count}} congregaciones tienen más bajas que altas.",
+        "soloBalanceNegativo_one": "{{count}} congregación con más bajas que altas en 3 meses.",
+        "soloBalanceNegativo_other": "{{count}} congregaciones con más bajas que altas en 3 meses.",
+        "sinMovimiento": "Sin altas ni bajas en el distrito en 3 meses."
+      },
+      "insightBautismos": {
+        "noCongregaciones": "Aún no hay congregaciones para medir.",
+        "aporteSingular": "{{nombres}} aporta {{suma}} de los {{total}}{{resto}}",
+        "aportePlural": "{{nombres}} aportan {{suma}} de los {{total}}{{resto}}",
+        "resto": ", el resto repartido en el distrito.",
+        "sinResto": ".",
+        "sinBautismos": "Sin bautismos en el distrito en 3 meses."
+      },
+      "semaforo": {
+        "titulo": "Semáforo del distrito",
+        "subtitulo": "Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.",
+        "vacantesPastor": "Vacantes de pastor",
+        "vacantesPastorOk": "Todas las congregaciones tienen pastor.",
+        "vacantesPastorBad": "{{cantidad}} congregación(es) sin pastor asignado.",
+        "brechaLlenura": "Brecha de llenura",
+        "brechaLlenuraSinDatos": "Aún no hay bautizados para medir.",
+        "brechaLlenuraDetalle": "{{pct}}% de bautizados aún no están sellados.",
+        "movimientoMembresia": "Movimiento de membresía",
+        "movimientoMembresiaDetalle": "{{altas}} altas y {{bajas}} bajas en los últimos 3 meses.",
+        "actividadCongregacional": "Actividad congregacional",
+        "actividadOk": "Todas las congregaciones registraron actividad en 60 días.",
+        "actividadBad": "{{cantidad}} congregación(es) sin ninguna actividad registrada en 60 días.",
+        "directivaDistrital": "Directiva distrital",
+        "directivaOk": "Los 6 cargos de la junta distrital están cubiertos.",
+        "directivaFaltaUno": "Falta cubrir {{cargo}}{{tiempo}}.",
+        "directivaTiempo_one": " desde hace {{count}} día",
+        "directivaTiempo_other": " desde hace {{count}} días",
+        "directivaNunca": " (nunca ha tenido responsable asignado)",
+        "directivaFaltaVarios": "Falta cubrir {{cargos}}."
+      },
+      "stats": {
+        "congregaciones": "Congregaciones",
+        "feligresesActivos": "Feligreses activos",
+        "enCrecimiento3m": "En crecimiento (3 meses)",
+        "vacantesPastor": "Vacantes de pastor"
+      },
+      "insightsBI": {
+        "eyebrow": "Insights BI",
+        "titulo": "Señales para decidir",
+        "brechaLlenura": {
+          "titulo": "Brecha de llenura",
+          "atencion": "Atención",
+          "sinBautizados": "Aún no hay bautizados registrados en el distrito.",
+          "detalle": "{{pendientes}} de {{total}} bautizados aún no están sellados con el Espíritu Santo{{sugerencia}}",
+          "sugerencia": " — considera una vigilia o campamento distrital.",
+          "sinSugerencia": ".",
+          "tip": "Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
+        },
+        "eficaciaRefam": {
+          "titulo": "Eficacia de REFAM",
+          "sinBautismos": "{{estudios}} estudios entregados en 3 meses, aún sin bautismos que comparar.",
+          "detalle": "En promedio se necesitaron {{eficacia}} estudios por cada bautismo en los últimos 3 meses ({{estudios}} estudios, {{bautismos}} bautismos).",
+          "tip": "Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
+        },
+        "embudo": {
+          "titulo": "Embudo Uno Más → REFAM",
+          "sinDatos": "Aún no hay personas activas en Uno Más.",
+          "detalle": "De {{unoMas}} personas en Uno Más, {{refam}} avanzaron a REFAM y {{bautizados}} amigos ya se bautizaron en el distrito.",
+          "tip": "Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
+        },
+        "movimiento": {
+          "titulo": "Movimiento de membresía (3 meses)",
+          "detalle": "{{altas}} altas y {{bajas}} bajas en el distrito{{alerta}}",
+          "alerta": " — las bajas superan las altas, conviene revisar traslados y disciplina.",
+          "sinAlerta": "."
+        },
+        "madurez": {
+          "titulo": "Madurez de la obra",
+          "sinCongregaciones": "Aún no hay congregaciones para clasificar.",
+          "detalle": "{{constituidas}} Iglesia Local constituida, {{lugarPrediccion}} Lugar de Predicación, {{misionNacional}} Misión Nacional."
+        },
+        "proyeccion": {
+          "titulo": "Proyección a 12 meses",
+          "sinDatos": "Aún no hay suficientes datos para proyectar.",
+          "detalle": "Si se mantiene el ritmo de los últimos 3 meses ({{ritmo}} personas/mes neto), el distrito tendría {{proyeccion}} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos."
+        },
+        "ciclo": {
+          "titulo": "Ciclo de vida espiritual",
+          "sinDatos": "Aún no hay personas activas para medir el ciclo.",
+          "detalle": "Activos → Bautizados ({{pctBautizados}}%) → Sellados ({{pctSellados}}%) → Con cargo o comité ({{pctConCargo}}%)."
+        },
+        "consolidacion": {
+          "titulo": "Tiempo de consolidación",
+          "sinDatos": "Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.",
+          "detalle": "En promedio, {{dias}} días desde el ingreso hasta el bautismo (muestra de {{muestra}}){{selladoExtra}}",
+          "selladoExtra": ", y {{dias2}} días más hasta el sellado (muestra de {{muestra2}}).",
+          "sinSelladoExtra": "."
+        }
+      },
+      "piramide": {
+        "titulo": "Pirámide poblacional del distrito",
+        "subtitulo": "Distribución por edad y género de las personas activas de todas las congregaciones del distrito.",
+        "subtituloExtra": " Basada en {{conGenero}} de {{total}} activas con género registrado.",
+        "sinDatos": "Aún no hay personas activas con género registrado en el distrito."
+      },
+      "tabla": {
+        "titulo": "Comparativa por congregación",
+        "subtitulo": "Ordena para identificar quién está creciendo o en descenso.",
+        "tasaPromedio": " Tasa de crecimiento promedio del distrito: {{valor}}%.",
+        "ordenarNuevas": "Ordenar por: nuevas (3 meses)",
+        "ordenarActivas": "Ordenar por: personas activas",
+        "ordenarAsistencia": "Ordenar por: asistencia último mes",
+        "ordenarBajas": "Ordenar por: bajas (3 meses)",
+        "sinCongregaciones": "Aún no hay congregaciones registradas en tu distrito.",
+        "colCongregacion": "Congregación",
+        "colCiudad": "Ciudad",
+        "colPastor": "Pastor a cargo",
+        "colActivas": "Personas activas",
+        "colNuevas": "Nuevas (3 meses)",
+        "colSellados": "Sellados",
+        "colMadurez": "Madurez",
+        "colAsistencia": "Asistencia último mes",
+        "colCrecimiento": "Crecimiento vs. distrito",
+        "colEstado": "Estado",
+        "vacantePastor": "Vacante",
+        "sinSellar": "({{cantidad}} sin sellar)",
+        "sobrePromedio": "▲ sobre el promedio",
+        "bajoPromedio": "▼ bajo el promedio",
+        "congregaciones": "congregaciones"
+      }
+    }
   }
 }

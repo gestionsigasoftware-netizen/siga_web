@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Line, Bar } from 'react-chartjs-2'
 import { ArrowRight, BarChart3, Cake, ClipboardPlus, Database, Download, RefreshCw, Settings2, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Chart as ChartJS, LineElement, PointElement, BarElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { useMiRol } from '../hooks/useMiRol'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -27,21 +28,10 @@ ChartJS.register(LineElement, PointElement, BarElement, LinearScale, CategorySca
 const dashboardCache = new Map()
 const CATEGORIA_COLORS = CATEGORIA_COLORS_OBJ.map((color) => [color.line, color.soft])
 
-// Solo se usa como respaldo mientras carga el nombre de la congregación
-// en el componente local -- distrital/nacional/super_admin renderizan
-// DashboardDistrital/DashboardNacional (con su propio título fijo) antes
-// de llegar a este punto, así que esas claves nunca se leen.
-const NIVEL_TITULO_LOCAL = 'Resumen de la congregación'
-
-const ALERT_TYPE_LABELS = { familia: 'Familia', bautismo: 'Bautismo', asistencia_persona: 'Asistencia', asistencia: 'Tendencia', comite: 'Comité' }
-const FRECUENCIAS = [
-  ['diaria', 'Diaria'],
-  ['semanal', 'Semanal'],
-  ['quincenal', 'Quincenal'],
-  ['mensual', 'Mensual'],
-  ['semestral', 'Semestral'],
-  ['anual', 'Anual'],
-]
+// Los codigos de frecuencia no cambian por idioma -- la etiqueta se
+// resuelve con t('dashboard.shared.frecuencias.<codigo>') donde se
+// necesite mostrarla.
+const FRECUENCIA_CODES = ['diaria', 'semanal', 'quincenal', 'mensual', 'semestral', 'anual']
 function inicioSemanaISO(fecha) {
   const dia = fecha.getDay() || 7
   const inicio = new Date(fecha)
@@ -107,16 +97,9 @@ function cantidadRegistros(registros) {
   return registros.reduce((total, registro) => total + Number(registro.registros || 1), 0)
 }
 
-const FRECUENCIA_LABELS = Object.fromEntries(FRECUENCIAS)
-const FRECUENCIA_PERIODOS = { diaria: 'día', semanal: 'semana', quincenal: 'quincena', mensual: 'mes', semestral: 'semestre', anual: 'año' }
-// "esta/este [periodo]" con el genero correcto -- FRECUENCIA_PERIODOS
-// por si solo no basta para armar una frase ("esta mensual" no es
-// espanol valido), y no vale la pena declinar genero en cada lugar
-// donde se arma un texto con el nombre del periodo.
-const FRECUENCIA_ESTA = { diaria: 'este día', semanal: 'esta semana', quincenal: 'esta quincena', mensual: 'este mes', semestral: 'este semestre', anual: 'este año' }
-// Mismo motivo que FRECUENCIA_ESTA, para frases que comparan contra el
-// periodo anterior ("3 más que la quincena pasada").
-const FRECUENCIA_PASADO = { diaria: 'el día anterior', semanal: 'la semana pasada', quincenal: 'la quincena pasada', mensual: 'el mes pasado', semestral: 'el semestre pasado', anual: 'el año pasado' }
+// Las etiquetas de periodo/frecuencia se resuelven con
+// t('dashboard.shared.periodos|estaPeriodo|periodoPasado.<codigo>')
+// donde se necesiten -- ver FRECUENCIA_CODES arriba.
 
 // Nombra a quién(es) más aportaron a un total (asistencia/altas/
 // bautismos por congregación o por distrito) -- hasta 2 nombres, solo
@@ -130,13 +113,8 @@ function topContribuyentes(lista, campo, etiqueta = (item) => item.nombre) {
   return { nombres: top.map(etiqueta), suma: top.reduce((total, item) => total + Number(item[campo]), 0) }
 }
 
-function alertRecommendation(alert) {
-  if (alert.tipo === 'familia') return 'Revisa la ficha y completa la asociación familiar.'
-  if (alert.tipo === 'bautismo') return 'Programa una conversación de acompañamiento.'
-  if (alert.tipo === 'asistencia_persona') return 'Contacta a la persona y registra el seguimiento.'
-  if (alert.tipo === 'asistencia') return 'Compara las actividades recientes y acuerda una acción.'
-  if (alert.tipo === 'comite') return 'Asigna integrantes para activar este comité.'
-  return 'Revisa el detalle y registra el siguiente paso.'
+function alertRecommendation(t, alert) {
+  return t(`dashboard.shared.alertRecommendation.${alert.tipo || 'default'}`, t('dashboard.shared.alertRecommendation.default'))
 }
 
 // Cumpleaños en los próximos 30 días, ignorando el año de nacimiento —
@@ -241,6 +219,7 @@ function QuickAction({ to, icon: Icon, title, description }) {
 // el contenido por un esqueleto: los números/gráficos actuales se
 // quedan visibles mientras llega la información fresca.
 function BotonRecargar({ onClick, refreshing }) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
@@ -249,7 +228,7 @@ function BotonRecargar({ onClick, refreshing }) {
       className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 disabled:opacity-60 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5"
     >
       <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-      {refreshing ? 'Actualizando...' : 'Recargar datos'}
+      {refreshing ? t('dashboard.shared.reload.updating') : t('dashboard.shared.reload.reload')}
     </button>
   )
 }
@@ -263,8 +242,6 @@ function DistritalStatTile({ label, value, tone = 'default' }) {
     </div>
   )
 }
-
-const MADUREZ_LABELS_DASH = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local' }
 
 function InsightCard({ title, value, detail, insight, tone = 'default', tip }) {
   const toneClass = { default: 'bg-accent-bg text-accent', danger: 'bg-danger-bg text-danger', success: 'bg-success-bg text-success', warning: 'bg-warning-bg text-warning' }[tone]
@@ -293,6 +270,7 @@ function SemaforoRow({ label, ok, detalle }) {
 }
 
 function DashboardDistrital({ rolPrincipal }) {
+  const { t } = useTranslation()
   const [congregaciones, setCongregaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -323,7 +301,7 @@ function DashboardDistrital({ rolPrincipal }) {
       supabase.from('registros_actividad').select('congregacion_id, congregaciones!inner(distrito_id)').eq('congregaciones.distrito_id', distritoId).gte('fecha', desde60),
     ]).then(([{ data, error: rpcError }, { data: personasData, error: personasError }, { data: membresiasData, error: membresiasError }, { data: cargosData, error: cargosError }, { data: actividadData, error: actividadError }]) => {
       if (!active) return
-      if (rpcError || personasError || membresiasError || cargosError || actividadError) setError('No se pudo cargar el consolidado del distrito.')
+      if (rpcError || personasError || membresiasError || cargosError || actividadError) setError(t('dashboard.distrital.loadError'))
       else setError(null)
       setCongregaciones(data ?? [])
       setPersonasPiramide(personasData ?? [])
@@ -338,7 +316,7 @@ function DashboardDistrital({ rolPrincipal }) {
 
   useEffect(() => { setTablaPage(0) }, [ordenarPor])
 
-  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando el consolidado del distrito...</div>
+  if (loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('dashboard.distrital.loading')}</div>
 
   const totalFeligreses = congregaciones.reduce((total, c) => total + Number(c.personas_activas || 0), 0)
   const enCrecimiento = congregaciones.filter((c) => Number(c.personas_nuevas_3m || 0) > 0).length
@@ -363,7 +341,7 @@ function DashboardDistrital({ rolPrincipal }) {
   const tablaPageCount = Math.max(1, Math.ceil(filasOrdenadas.length / TABLA_PAGE_SIZE))
   const tablaPageSafe = Math.min(tablaPage, tablaPageCount - 1)
   const filas = filasOrdenadas.slice(tablaPageSafe * TABLA_PAGE_SIZE, tablaPageSafe * TABLA_PAGE_SIZE + TABLA_PAGE_SIZE)
-  const nombreDistrito = distrito?.numero ? `Distrito ${distrito.numero}` : 'Panel distrital'
+  const nombreDistrito = distrito?.numero ? t('dashboard.distrital.heroTitle', { numero: distrito.numero }) : t('dashboard.distrital.heroFallbackTitle')
 
   const sumar = (campo) => congregaciones.reduce((total, c) => total + Number(c[campo] || 0), 0)
   const totalBautizados = sumar('bautizados')
@@ -395,14 +373,15 @@ function DashboardDistrital({ rolPrincipal }) {
   // vacantes a la vez no se calcula la duracion de cada uno para no
   // alargar demasiado la frase.
   const detalleDirectivaDistrital = cargosVacantes === 0
-    ? 'Los 6 cargos de la junta distrital están cubiertos.'
+    ? t('dashboard.distrital.semaforo.directivaOk')
     : cargosVacantes === 1
       ? (() => {
           const ultimoRegistro = cargosDistritalesHistorial.find((item) => item.cargo === cargosVacantesKeys[0] && item.fecha_fin)
           const dias = ultimoRegistro ? Math.floor((Date.now() - new Date(`${ultimoRegistro.fecha_fin}T00:00:00`).getTime()) / 86400000) : null
-          return `Falta cubrir ${CARGO_DISTRITAL_LABELS[cargosVacantesKeys[0]]}${dias !== null ? ` desde hace ${dias} día${dias === 1 ? '' : 's'}` : ' (nunca ha tenido responsable asignado)'}.`
+          const tiempo = dias !== null ? t('dashboard.distrital.semaforo.directivaTiempo', { count: dias }) : t('dashboard.distrital.semaforo.directivaNunca')
+          return t('dashboard.distrital.semaforo.directivaFaltaUno', { cargo: CARGO_DISTRITAL_LABELS[cargosVacantesKeys[0]], tiempo })
         })()
-      : `Falta cubrir ${cargosVacantesKeys.map((cargo) => CARGO_DISTRITAL_LABELS[cargo]).join(', ')}.`
+      : t('dashboard.distrital.semaforo.directivaFaltaVarios', { cargos: cargosVacantesKeys.map((cargo) => CARGO_DISTRITAL_LABELS[cargo]).join(', ') })
 
   // --- "Como estuvimos este mes" -- usa exactamente los mismos campos
   // que ya trae resumen_distrital() (asistencia_ultimo_mes/
@@ -416,12 +395,12 @@ function DashboardDistrital({ rolPrincipal }) {
   const variacionMes = asistenciaMesAnteriorTotal ? Math.round(((asistenciaMesActual - asistenciaMesAnteriorTotal) / asistenciaMesAnteriorTotal) * 100) : null
   const congregacionesConCrecimiento = congregaciones.filter((c) => Number(c.asistencia_ultimo_mes || 0) > Number(c.asistencia_mes_anterior || 0))
   const verdictoDistrital = congregaciones.length === 0
-    ? 'Aún no hay congregaciones para comparar.'
+    ? t('dashboard.distrital.comoEstuvimos.noCongregaciones')
     : congregacionesConCrecimiento.length === congregaciones.length
-      ? 'Todas las congregaciones crecieron este mes.'
+      ? t('dashboard.distrital.comoEstuvimos.todasCrecieron')
       : congregacionesConCrecimiento.length === 0
-        ? 'Ninguna congregación creció este mes frente al anterior.'
-        : `${congregacionesConCrecimiento.length} de ${congregaciones.length} congregaciones crecieron este mes.`
+        ? t('dashboard.distrital.comoEstuvimos.ningunaCrecio')
+        : t('dashboard.distrital.comoEstuvimos.algunas', { crecieron: congregacionesConCrecimiento.length, total: congregaciones.length })
   const rankingCrecimientoDistrital = [...congregaciones]
     .map((c) => {
       const actual = Number(c.asistencia_ultimo_mes || 0)
@@ -439,36 +418,36 @@ function DashboardDistrital({ rolPrincipal }) {
   const promedioPorCongregacionMes = congregaciones.length ? Math.round(asistenciaMesActual / congregaciones.length) : 0
   const topAsistenciaDistrital = topContribuyentes(congregaciones, 'asistencia_ultimo_mes')
   const insightAsistenciaDistrital = congregaciones.length === 0
-    ? 'Aún no hay congregaciones para promediar.'
-    : `Promedio de ${promedioPorCongregacionMes} asistencias por congregación este mes.${topAsistenciaDistrital && congregaciones.length > 1 ? ` ${topAsistenciaDistrital.nombres.join(' y ')} aporta${topAsistenciaDistrital.nombres.length === 1 ? '' : 'n'} ${topAsistenciaDistrital.suma} de las ${asistenciaMesActual}.` : ''}`
+    ? t('dashboard.distrital.insightAsistencia.noCongregaciones')
+    : t('dashboard.distrital.insightAsistencia.base', { promedio: promedioPorCongregacionMes }) + (topAsistenciaDistrital && congregaciones.length > 1 ? t(`dashboard.distrital.insightAsistencia.aporte${topAsistenciaDistrital.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topAsistenciaDistrital.nombres.join(' y '), suma: topAsistenciaDistrital.suma, total: asistenciaMesActual }) : '')
   const congregacionesEstancadas = congregaciones.filter((c) => !congregacionesConCrecimiento.includes(c))
   const insightCrecimientoDistrital = congregaciones.length === 0
-    ? 'Aún no hay congregaciones para comparar.'
+    ? t('dashboard.distrital.insightCrecimiento.noCongregaciones')
     : congregacionesEstancadas.length === 0
-      ? 'Ninguna se quedó atrás este mes.'
-      : `${congregacionesEstancadas.slice(0, 3).map((c) => c.nombre).join(', ')}${congregacionesEstancadas.length > 3 ? ` y ${congregacionesEstancadas.length - 3} más` : ''} no crecieron este mes.`
+      ? t('dashboard.distrital.insightCrecimiento.ningunaAtras')
+      : t('dashboard.distrital.insightCrecimiento.lista', { nombres: congregacionesEstancadas.slice(0, 3).map((c) => c.nombre).join(', '), yMas: congregacionesEstancadas.length > 3 ? t('dashboard.distrital.insightCrecimiento.yMas', { cantidad: congregacionesEstancadas.length - 3 }) : '' })
   const congregacionesBalanceNegativo = congregaciones.filter((c) => Number(c.altas_3m || 0) - Number(c.bajas_3m || 0) < 0).length
   const topAltasDistrital = topContribuyentes(congregaciones, 'altas_3m')
   const insightAltasBajasDistrital = congregaciones.length === 0
-    ? 'Aún no hay congregaciones para medir.'
+    ? t('dashboard.distrital.insightAltasBajas.noCongregaciones')
     : topAltasDistrital
-      ? `${topAltasDistrital.nombres.join(' y ')} aporta${topAltasDistrital.nombres.length === 1 ? '' : 'n'} ${topAltasDistrital.suma} de las ${totalAltas3m} altas en 3 meses.${congregacionesBalanceNegativo > 0 ? ` ${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} tiene${congregacionesBalanceNegativo === 1 ? '' : 'n'} más bajas que altas.` : ''}`
+      ? t(`dashboard.distrital.insightAltasBajas.aporte${topAltasDistrital.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topAltasDistrital.nombres.join(' y '), suma: topAltasDistrital.suma, total: totalAltas3m }) + (congregacionesBalanceNegativo > 0 ? t('dashboard.distrital.insightAltasBajas.balanceNegativoSuffix', { count: congregacionesBalanceNegativo }) : '')
       : congregacionesBalanceNegativo > 0
-        ? `${congregacionesBalanceNegativo} congregación${congregacionesBalanceNegativo === 1 ? '' : 'es'} con más bajas que altas en 3 meses.`
-        : 'Sin altas ni bajas en el distrito en 3 meses.'
+        ? t('dashboard.distrital.insightAltasBajas.soloBalanceNegativo', { count: congregacionesBalanceNegativo })
+        : t('dashboard.distrital.insightAltasBajas.sinMovimiento')
   const topBautismosDistrital = topContribuyentes(congregaciones, 'bautismos_3m')
   const insightBautismosDistrital = congregaciones.length === 0
-    ? 'Aún no hay congregaciones para medir.'
+    ? t('dashboard.distrital.insightBautismos.noCongregaciones')
     : topBautismosDistrital
-      ? `${topBautismosDistrital.nombres.join(' y ')} aporta${topBautismosDistrital.nombres.length === 1 ? '' : 'n'} ${topBautismosDistrital.suma} de los ${totalBautismos3m}${congregaciones.length > topBautismosDistrital.nombres.length ? ', el resto repartido en el distrito.' : '.'}`
-      : 'Sin bautismos en el distrito en 3 meses.'
+      ? t(`dashboard.distrital.insightBautismos.aporte${topBautismosDistrital.nombres.length === 1 ? 'Singular' : 'Plural'}`, { nombres: topBautismosDistrital.nombres.join(' y '), suma: topBautismosDistrital.suma, total: totalBautismos3m, resto: congregaciones.length > topBautismosDistrital.nombres.length ? t('dashboard.distrital.insightBautismos.resto') : t('dashboard.distrital.insightBautismos.sinResto') })
+      : t('dashboard.distrital.insightBautismos.sinBautismos')
 
   const semaforo = [
-    { label: 'Vacantes de pastor', ok: vacantes === 0, detalle: vacantes === 0 ? 'Todas las congregaciones tienen pastor.' : `${vacantes} congregación(es) sin pastor asignado.` },
-    { label: 'Brecha de llenura', ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? 'Aún no hay bautizados para medir.' : `${sinSellarPct}% de bautizados aún no están sellados.` },
-    { label: 'Movimiento de membresía', ok: balanceMembresia >= 0, detalle: `${totalAltas3m} altas y ${totalBajas3m} bajas en los últimos 3 meses.` },
-    { label: 'Actividad congregacional', ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? 'Todas las congregaciones registraron actividad en 60 días.' : `${congregacionesInactivas} congregación(es) sin ninguna actividad registrada en 60 días.` },
-    { label: 'Directiva distrital', ok: cargosVacantes === 0, detalle: detalleDirectivaDistrital },
+    { label: t('dashboard.distrital.semaforo.vacantesPastor'), ok: vacantes === 0, detalle: vacantes === 0 ? t('dashboard.distrital.semaforo.vacantesPastorOk') : t('dashboard.distrital.semaforo.vacantesPastorBad', { cantidad: vacantes }) },
+    { label: t('dashboard.distrital.semaforo.brechaLlenura'), ok: sinSellarPct === null || sinSellarPct <= 30, detalle: sinSellarPct === null ? t('dashboard.distrital.semaforo.brechaLlenuraSinDatos') : t('dashboard.distrital.semaforo.brechaLlenuraDetalle', { pct: sinSellarPct }) },
+    { label: t('dashboard.distrital.semaforo.movimientoMembresia'), ok: balanceMembresia >= 0, detalle: t('dashboard.distrital.semaforo.movimientoMembresiaDetalle', { altas: totalAltas3m, bajas: totalBajas3m }) },
+    { label: t('dashboard.distrital.semaforo.actividadCongregacional'), ok: congregacionesInactivas === 0, detalle: congregacionesInactivas === 0 ? t('dashboard.distrital.semaforo.actividadOk') : t('dashboard.distrital.semaforo.actividadBad', { cantidad: congregacionesInactivas }) },
+    { label: t('dashboard.distrital.semaforo.directivaDistrital'), ok: cargosVacantes === 0, detalle: detalleDirectivaDistrital },
   ]
 
   return (
@@ -477,13 +456,13 @@ function DashboardDistrital({ rolPrincipal }) {
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">SIGAP · IPUC</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{t('dashboard.distrital.heroTag')}</p>
             <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreDistrito}</h1>
-            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Consolidado de las congregaciones de tu distrito, para comparar crecimiento y tomar decisiones pastorales a nivel distrital.</p>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">{t('dashboard.distrital.heroSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
-            <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">Ir a Pastoral Distrital <ArrowRight className="w-3.5 h-3.5" /></Link>
+            <Link to="/pastoral-distrital" className="text-xs sm:text-sm text-white bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 whitespace-nowrap flex items-center gap-1.5">{t('dashboard.distrital.goPastoral')} <ArrowRight className="w-3.5 h-3.5" /></Link>
           </div>
         </div>
       </section>
@@ -494,41 +473,41 @@ function DashboardDistrital({ rolPrincipal }) {
         <section className="relative overflow-hidden card p-7 sm:p-9">
           <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos este mes</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">{t('dashboard.distrital.comoEstuvimos.eyebrow')}</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{verdictoDistrital}</h2>
-            <p className="text-sm text-secondary mt-2 max-w-xl">{asistenciaMesActual} asistencias en el distrito este mes{variacionMes !== null ? ` (${variacionMes > 0 ? '+' : ''}${variacionMes}% frente al mes anterior)` : ''}.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{t('dashboard.distrital.comoEstuvimos.resumen', { asistencias: asistenciaMesActual, variacion: variacionMes !== null ? t('dashboard.distrital.comoEstuvimos.variacionSuffix', { valor: variacionMes > 0 ? `+${variacionMes}` : variacionMes }) : '' })}</p>
             {liderDistrital && liderDistrital.variacionPct !== null && liderDistrital.variacionPct > 0 && (
               <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-warning-dark">{liderDistrital.nombre} lidera el crecimiento este mes</p>
-                  <p className="text-xs text-secondary">+{liderDistrital.variacionPct}% en asistencia frente al mes anterior.</p>
+                  <p className="text-sm font-semibold text-warning-dark">{t('dashboard.distrital.comoEstuvimos.liderTitulo', { nombre: liderDistrital.nombre })}</p>
+                  <p className="text-xs text-secondary">{t('dashboard.distrital.comoEstuvimos.liderDetalle', { valor: liderDistrital.variacionPct })}</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia del distrito</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.distrital.comoEstuvimos.asistenciaDistrito')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistenciaMesActual}</p>
-                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacionMes > 0 ? '+' : ''}{variacionMes}% vs. mes anterior</p>}
+                {variacionMes !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacionMes >= 0 ? 'text-success' : 'text-danger'}`}>{variacionMes >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.distrital.comoEstuvimos.vsMesAnterior', { valor: variacionMes > 0 ? `+${variacionMes}` : variacionMes })}</p>}
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistenciaDistrital}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Congregaciones en crecimiento</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.distrital.comoEstuvimos.congregacionesCrecimiento')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{congregacionesConCrecimiento.length}/{congregaciones.length}</p>
-                <p className="text-xs text-muted mt-1">crecieron este mes frente al anterior</p>
+                <p className="text-xs text-muted mt-1">{t('dashboard.distrital.comoEstuvimos.crecieronFrenteAnterior')}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightCrecimientoDistrital}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas (3 meses)</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.distrital.comoEstuvimos.altasBajas3m')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalAltas3m} / {totalBajas3m}</p>
-                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceMembresia > 0 ? '+' : ''}{balanceMembresia}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceMembresia >= 0 ? 'text-success' : 'text-danger'}`}>{balanceMembresia >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.distrital.comoEstuvimos.balanceNeto', { valor: balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia })}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajasDistrital}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautismos (3 meses)</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.distrital.comoEstuvimos.bautismos3m')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{totalBautismos3m}</p>
-                <p className="text-xs text-muted mt-1">en el distrito</p>
+                <p className="text-xs text-muted mt-1">{t('dashboard.distrital.comoEstuvimos.enElDistrito')}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautismosDistrital}</p>
               </div>
             </div>
@@ -539,114 +518,114 @@ function DashboardDistrital({ rolPrincipal }) {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <section className="card p-5">
-        <h2 className="font-medium">Semáforo del distrito</h2>
-        <p className="text-sm text-secondary mt-1">Señales que ya mide SIGAP, juntas en un solo vistazo para saber qué revisar primero.</p>
+        <h2 className="font-medium">{t('dashboard.distrital.semaforo.titulo')}</h2>
+        <p className="text-sm text-secondary mt-1">{t('dashboard.distrital.semaforo.subtitulo')}</p>
         <div className="divide-y divide-border mt-2">
           {semaforo.map((item) => <SemaforoRow key={item.label} {...item} />)}
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <DistritalStatTile label="Congregaciones" value={congregaciones.length} />
-        <DistritalStatTile label="Feligreses activos" value={totalFeligreses} />
-        <DistritalStatTile label="En crecimiento (3 meses)" value={enCrecimiento} tone="success" />
-        <DistritalStatTile label="Vacantes de pastor" value={vacantes} tone={vacantes > 0 ? 'danger' : 'default'} />
+        <DistritalStatTile label={t('dashboard.distrital.stats.congregaciones')} value={congregaciones.length} />
+        <DistritalStatTile label={t('dashboard.distrital.stats.feligresesActivos')} value={totalFeligreses} />
+        <DistritalStatTile label={t('dashboard.distrital.stats.enCrecimiento3m')} value={enCrecimiento} tone="success" />
+        <DistritalStatTile label={t('dashboard.distrital.stats.vacantesPastor')} value={vacantes} tone={vacantes > 0 ? 'danger' : 'default'} />
       </section>
 
       <section>
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="eyebrow">Insights BI</p>
-            <h2 className="font-medium mt-1">Señales para decidir</h2>
+            <p className="eyebrow">{t('dashboard.distrital.insightsBI.eyebrow')}</p>
+            <h2 className="font-medium mt-1">{t('dashboard.distrital.insightsBI.titulo')}</h2>
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <InsightCard
-            title="Brecha de llenura"
+            title={t('dashboard.distrital.insightsBI.brechaLlenura.titulo')}
             value={sinSellarPct === null ? '—' : `${sinSellarPct}%`}
-            detail={sinSellarPct !== null && sinSellarPct > 30 ? 'Atención' : undefined}
+            detail={sinSellarPct !== null && sinSellarPct > 30 ? t('dashboard.distrital.insightsBI.brechaLlenura.atencion') : undefined}
             tone={sinSellarPct !== null && sinSellarPct > 30 ? 'warning' : 'default'}
-            insight={totalBautizados === 0 ? 'Aún no hay bautizados registrados en el distrito.' : `${totalBautizados - totalSellados} de ${totalBautizados} bautizados aún no están sellados con el Espíritu Santo${sinSellarPct > 30 ? ' — considera una vigilia o campamento distrital.' : '.'}`}
-            tip="Diferencia entre las personas ya bautizadas y las que aún no han recibido el sellado del Espíritu Santo."
+            insight={totalBautizados === 0 ? t('dashboard.distrital.insightsBI.brechaLlenura.sinBautizados') : t('dashboard.distrital.insightsBI.brechaLlenura.detalle', { pendientes: totalBautizados - totalSellados, total: totalBautizados, sugerencia: sinSellarPct > 30 ? t('dashboard.distrital.insightsBI.brechaLlenura.sugerencia') : t('dashboard.distrital.insightsBI.brechaLlenura.sinSugerencia') })}
+            tip={t('dashboard.distrital.insightsBI.brechaLlenura.tip')}
           />
           <InsightCard
-            title="Eficacia de REFAM"
+            title={t('dashboard.distrital.insightsBI.eficaciaRefam.titulo')}
             value={eficaciaRefam === null ? '—' : `${eficaciaRefam}:1`}
-            insight={totalBautismos3m === 0 ? `${totalEstudiosRefam} estudios entregados en 3 meses, aún sin bautismos que comparar.` : `En promedio se necesitaron ${eficaciaRefam} estudios por cada bautismo en los últimos 3 meses (${totalEstudiosRefam} estudios, ${totalBautismos3m} bautismos).`}
-            tip="Cuántos estudios bíblicos de REFAM se necesitaron en promedio para lograr un bautismo."
+            insight={totalBautismos3m === 0 ? t('dashboard.distrital.insightsBI.eficaciaRefam.sinBautismos', { estudios: totalEstudiosRefam }) : t('dashboard.distrital.insightsBI.eficaciaRefam.detalle', { eficacia: eficaciaRefam, estudios: totalEstudiosRefam, bautismos: totalBautismos3m })}
+            tip={t('dashboard.distrital.insightsBI.eficaciaRefam.tip')}
           />
           <InsightCard
-            title="Embudo Uno Más → REFAM"
+            title={t('dashboard.distrital.insightsBI.embudo.titulo')}
             value={conversionRefamPct === null ? '—' : `${conversionRefamPct}%`}
-            insight={totalUnoMas === 0 ? 'Aún no hay personas activas en Uno Más.' : `De ${totalUnoMas} personas en Uno Más, ${totalRefamActivos} avanzaron a REFAM y ${totalBautizadosRuta} amigos ya se bautizaron en el distrito.`}
-            tip="Sigue a una persona desde el primer contacto (Uno Más) hasta que entra a los estudios bíblicos (REFAM) y se bautiza."
+            insight={totalUnoMas === 0 ? t('dashboard.distrital.insightsBI.embudo.sinDatos') : t('dashboard.distrital.insightsBI.embudo.detalle', { unoMas: totalUnoMas, refam: totalRefamActivos, bautizados: totalBautizadosRuta })}
+            tip={t('dashboard.distrital.insightsBI.embudo.tip')}
           />
           <InsightCard
-            title="Movimiento de membresía (3 meses)"
+            title={t('dashboard.distrital.insightsBI.movimiento.titulo')}
             value={balanceMembresia > 0 ? `+${balanceMembresia}` : balanceMembresia}
             tone={balanceMembresia < 0 ? 'danger' : 'success'}
-            insight={`${totalAltas3m} altas y ${totalBajas3m} bajas en el distrito${balanceMembresia < 0 ? ' — las bajas superan las altas, conviene revisar traslados y disciplina.' : '.'}`}
+            insight={t('dashboard.distrital.insightsBI.movimiento.detalle', { altas: totalAltas3m, bajas: totalBajas3m, alerta: balanceMembresia < 0 ? t('dashboard.distrital.insightsBI.movimiento.alerta') : t('dashboard.distrital.insightsBI.movimiento.sinAlerta') })}
           />
           <InsightCard
-            title="Madurez de la obra"
+            title={t('dashboard.distrital.insightsBI.madurez.titulo')}
             value={congregaciones.length ? `${Math.round((congregacionesConstituidas / congregaciones.length) * 100)}%` : '—'}
-            insight={congregaciones.length === 0 ? 'Aún no hay congregaciones para clasificar.' : `${congregacionesConstituidas} Iglesia Local constituida, ${congregacionesPorMadurez.lugar_prediccion || 0} Lugar de Predicación, ${congregacionesPorMadurez.mision_nacional || 0} Misión Nacional.`}
+            insight={congregaciones.length === 0 ? t('dashboard.distrital.insightsBI.madurez.sinCongregaciones') : t('dashboard.distrital.insightsBI.madurez.detalle', { constituidas: congregacionesConstituidas, lugarPrediccion: congregacionesPorMadurez.lugar_prediccion || 0, misionNacional: congregacionesPorMadurez.mision_nacional || 0 })}
           />
           <InsightCard
-            title="Proyección a 12 meses"
+            title={t('dashboard.distrital.insightsBI.proyeccion.titulo')}
             value={totalFeligreses ? proyeccion12m : '—'}
             tone={netoMensual3m < 0 ? 'danger' : 'default'}
-            insight={totalFeligreses === 0 ? 'Aún no hay suficientes datos para proyectar.' : `Si se mantiene el ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)} personas/mes neto), el distrito tendría ${proyeccion12m} feligreses activos en 12 meses. Estimación basada en solo 3 meses de historial — se afinará con más datos.`}
+            insight={totalFeligreses === 0 ? t('dashboard.distrital.insightsBI.proyeccion.sinDatos') : t('dashboard.distrital.insightsBI.proyeccion.detalle', { ritmo: netoMensual3m >= 0 ? `+${netoMensual3m.toFixed(1)}` : netoMensual3m.toFixed(1), proyeccion: proyeccion12m })}
           />
           <InsightCard
-            title="Ciclo de vida espiritual"
+            title={t('dashboard.distrital.insightsBI.ciclo.titulo')}
             value={ciclo.activos ? `${ciclo.activos} → ${ciclo.bautizados} → ${ciclo.sellados} → ${ciclo.conCargo}` : '—'}
-            insight={ciclo.activos === 0 ? 'Aún no hay personas activas para medir el ciclo.' : `Activos → Bautizados (${ciclo.pctBautizados ?? 0}%) → Sellados (${ciclo.pctSellados ?? 0}%) → Con cargo o comité (${ciclo.pctConCargo ?? 0}%).`}
+            insight={ciclo.activos === 0 ? t('dashboard.distrital.insightsBI.ciclo.sinDatos') : t('dashboard.distrital.insightsBI.ciclo.detalle', { pctBautizados: ciclo.pctBautizados ?? 0, pctSellados: ciclo.pctSellados ?? 0, pctConCargo: ciclo.pctConCargo ?? 0 })}
           />
           <InsightCard
-            title="Tiempo de consolidación"
+            title={t('dashboard.distrital.insightsBI.consolidacion.titulo')}
             value={ciclo.diasPromedioIngresoBautismo !== null ? `${ciclo.diasPromedioIngresoBautismo}d` : '—'}
-            insight={ciclo.diasPromedioIngresoBautismo === null ? 'Aún no hay suficientes bautismos con fecha de ingreso para medir el tiempo.' : `En promedio, ${ciclo.diasPromedioIngresoBautismo} días desde el ingreso hasta el bautismo (muestra de ${ciclo.muestraIngresoBautismo})${ciclo.diasPromedioBautismoSellado !== null ? `, y ${ciclo.diasPromedioBautismoSellado} días más hasta el sellado (muestra de ${ciclo.muestraBautismoSellado}).` : '.'}`}
+            insight={ciclo.diasPromedioIngresoBautismo === null ? t('dashboard.distrital.insightsBI.consolidacion.sinDatos') : t('dashboard.distrital.insightsBI.consolidacion.detalle', { dias: ciclo.diasPromedioIngresoBautismo, muestra: ciclo.muestraIngresoBautismo, selladoExtra: ciclo.diasPromedioBautismoSellado !== null ? t('dashboard.distrital.insightsBI.consolidacion.selladoExtra', { dias2: ciclo.diasPromedioBautismoSellado, muestra2: ciclo.muestraBautismoSellado }) : t('dashboard.distrital.insightsBI.consolidacion.sinSelladoExtra') })}
           />
         </div>
       </section>
 
       <section className="card p-5">
-        <h3 className="font-medium">Pirámide poblacional del distrito</h3>
-        <p className="text-xs text-secondary mt-1">Distribución por edad y género de las personas activas de todas las congregaciones del distrito.{piramide.conGenero < piramide.total && ` Basada en ${piramide.conGenero} de ${piramide.total} activas con género registrado.`}</p>
-        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message="Aún no hay personas activas con género registrado en el distrito." /></div>}
+        <h3 className="font-medium">{t('dashboard.distrital.piramide.titulo')}</h3>
+        <p className="text-xs text-secondary mt-1">{t('dashboard.distrital.piramide.subtitulo')}{piramide.conGenero < piramide.total && t('dashboard.distrital.piramide.subtituloExtra', { conGenero: piramide.conGenero, total: piramide.total })}</p>
+        {piramide.conGenero ? <div className="h-72 mt-4"><Bar data={piramideChartData(piramide.porBracket)} options={piramideChartOptions()} /></div> : <div className="h-72 mt-4"><ChartEmpty message={t('dashboard.distrital.piramide.sinDatos')} /></div>}
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="font-medium">Comparativa por congregación</h2>
-            <p className="text-sm text-secondary mt-1">Ordena para identificar quién está creciendo o en descenso. {tasaPromedioDistrito !== null && `Tasa de crecimiento promedio del distrito: ${tasaPromedioDistrito >= 0 ? '+' : ''}${tasaPromedioDistrito.toFixed(1)}%.`}</p>
+            <h2 className="font-medium">{t('dashboard.distrital.tabla.titulo')}</h2>
+            <p className="text-sm text-secondary mt-1">{t('dashboard.distrital.tabla.subtitulo')} {tasaPromedioDistrito !== null && t('dashboard.distrital.tabla.tasaPromedio', { valor: tasaPromedioDistrito >= 0 ? `+${tasaPromedioDistrito.toFixed(1)}` : tasaPromedioDistrito.toFixed(1) })}</p>
           </div>
           <select className="input-field min-w-[220px]" value={ordenarPor} onChange={(event) => setOrdenarPor(event.target.value)}>
-            <option value="personas_nuevas_3m">Ordenar por: nuevas (3 meses)</option>
-            <option value="personas_activas">Ordenar por: personas activas</option>
-            <option value="asistencia_ultimo_mes">Ordenar por: asistencia último mes</option>
-            <option value="bajas_3m">Ordenar por: bajas (3 meses)</option>
+            <option value="personas_nuevas_3m">{t('dashboard.distrital.tabla.ordenarNuevas')}</option>
+            <option value="personas_activas">{t('dashboard.distrital.tabla.ordenarActivas')}</option>
+            <option value="asistencia_ultimo_mes">{t('dashboard.distrital.tabla.ordenarAsistencia')}</option>
+            <option value="bajas_3m">{t('dashboard.distrital.tabla.ordenarBajas')}</option>
           </select>
         </div>
         {filas.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay congregaciones registradas en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('dashboard.distrital.tabla.sinCongregaciones')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="px-4 py-3">Congregación</th>
-                  <th className="px-4 py-3">Ciudad</th>
-                  <th className="px-4 py-3">Pastor a cargo</th>
-                  <th className="px-4 py-3">Personas activas</th>
-                  <th className="px-4 py-3">Nuevas (3 meses)</th>
-                  <th className="px-4 py-3">Sellados</th>
-                  <th className="px-4 py-3">Madurez</th>
-                  <th className="px-4 py-3">Asistencia último mes</th>
-                  <th className="px-4 py-3">Crecimiento vs. distrito</th>
-                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colCongregacion')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colCiudad')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colPastor')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colActivas')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colNuevas')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colSellados')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colMadurez')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colAsistencia')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colCrecimiento')}</th>
+                  <th className="px-4 py-3">{t('dashboard.distrital.tabla.colEstado')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -657,11 +636,11 @@ function DashboardDistrital({ rolPrincipal }) {
                     <tr key={c.congregacion_id} className="border-t border-border">
                       <td className="px-4 py-3 font-medium">{c.nombre}</td>
                       <td className="px-4 py-3 text-secondary">{c.ciudad || '—'}</td>
-                      <td className="px-4 py-3 text-secondary">{c.pastor_nombre || 'Vacante'}</td>
+                      <td className="px-4 py-3 text-secondary">{c.pastor_nombre || t('dashboard.distrital.tabla.vacantePastor')}</td>
                       <td className="px-4 py-3">{c.personas_activas}</td>
                       <td className={`px-4 py-3 ${Number(c.personas_nuevas_3m) > 0 ? 'text-success' : ''}`}>{c.personas_nuevas_3m}</td>
-                      <td className="px-4 py-3">{c.sellados}{c.bautizados > 0 && c.sellados < c.bautizados && <span className="ml-1.5 text-xs text-warning">({c.bautizados - c.sellados} sin sellar)</span>}</td>
-                      <td className="px-4 py-3 text-secondary">{MADUREZ_LABELS_DASH[c.madurez] || c.madurez}</td>
+                      <td className="px-4 py-3">{c.sellados}{c.bautizados > 0 && c.sellados < c.bautizados && <span className="ml-1.5 text-xs text-warning">{t('dashboard.distrital.tabla.sinSellar', { cantidad: c.bautizados - c.sellados })}</span>}</td>
+                      <td className="px-4 py-3 text-secondary">{t(`dashboard.shared.madurez.${c.madurez}`, c.madurez)}</td>
                       <td className="px-4 py-3">
                         {c.asistencia_ultimo_mes}
                         {variacionAsistencia !== null && (
@@ -674,13 +653,13 @@ function DashboardDistrital({ rolPrincipal }) {
                         {tasa === null ? <span className="text-muted">—</span> : (
                           <span className={tasaPromedioDistrito !== null && tasa >= tasaPromedioDistrito ? 'text-success' : 'text-danger'}>
                             {tasa >= 0 ? '+' : ''}{tasa.toFixed(1)}%
-                            {tasaPromedioDistrito !== null && <span className="text-muted ml-1">{tasa >= tasaPromedioDistrito ? '▲ sobre el promedio' : '▼ bajo el promedio'}</span>}
+                            {tasaPromedioDistrito !== null && <span className="text-muted ml-1">{tasa >= tasaPromedioDistrito ? t('dashboard.distrital.tabla.sobrePromedio') : t('dashboard.distrital.tabla.bajoPromedio')}</span>}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${c.estado === 'activa' ? 'bg-success-bg text-success' : c.estado === 'suspendida' ? 'bg-danger-bg text-danger' : 'bg-warning-bg text-warning'}`}>
-                          {c.estado === 'activa' ? 'Activa' : c.estado === 'suspendida' ? 'Suspendida' : 'Pendiente'}
+                          {t(`dashboard.shared.estadoCongregacion.${c.estado === 'activa' ? 'activa' : c.estado === 'suspendida' ? 'suspendida' : 'pendiente'}`)}
                         </span>
                       </td>
                     </tr>
@@ -691,7 +670,7 @@ function DashboardDistrital({ rolPrincipal }) {
           </div>
         )}
         <div className="p-3 border-t border-border">
-          <Pager page={tablaPageSafe} totalPages={tablaPageCount} total={filasOrdenadas.length} onPrev={() => setTablaPage((p) => p - 1)} onNext={() => setTablaPage((p) => p + 1)} label="congregaciones" />
+          <Pager page={tablaPageSafe} totalPages={tablaPageCount} total={filasOrdenadas.length} onPrev={() => setTablaPage((p) => p - 1)} onNext={() => setTablaPage((p) => p + 1)} label={t('dashboard.distrital.tabla.congregaciones')} />
         </div>
       </section>
     </div>
