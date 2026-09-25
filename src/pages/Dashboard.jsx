@@ -1380,6 +1380,7 @@ function DashboardSuperAdmin() {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const { rolPrincipal, loading: loadingRol } = useMiRol()
   const { formato_fecha } = usePreferencias()
   const [alertas, setAlertas] = useState([])
@@ -1504,7 +1505,7 @@ export default function Dashboard() {
         })(),
       ])
       if (!active) return
-      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || cumpleanosError || comitesError || rangosEdadError || registrosError || categoriasError || amigosError) setLoadError('No se pudieron cargar todos los indicadores. Revisa la conexión con Supabase.')
+      if (alertasError || alertasCountError || feligresiaError || permisoError || movimientosError || cumpleanosError || comitesError || rangosEdadError || registrosError || categoriasError || amigosError) setLoadError(t('dashboard.local.loadError'))
       const nuevosRegistros = registrosData ?? []
       const nuevasCategorias = categoriasData ?? []
       const nuevosAmigos = amigosData ?? []
@@ -1554,7 +1555,7 @@ export default function Dashboard() {
     }
   }
 
-  if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando tu espacio...</div>
+  if (loadingRol || !rolPrincipal) return <div className="module-loading" role="status"><span className="loading-dot" />{t('dashboard.local.preparando')}</div>
   if (rolPrincipal.nivel === 'distrital') return <DashboardDistrital rolPrincipal={rolPrincipal} />
   if (rolPrincipal.nivel === 'nacional') return <DashboardNacional />
   if (rolPrincipal.nivel === 'super_admin') return <DashboardSuperAdmin />
@@ -1565,7 +1566,7 @@ export default function Dashboard() {
         <div className="h-8 w-64 rounded bg-white/20 mt-4" />
         <div className="h-3.5 w-96 max-w-full rounded bg-white/10 mt-4" />
       </div>
-      {loadError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{loadError}<button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs ml-3">Reintentar</button></p>}
+      {loadError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{loadError}<button type="button" onClick={() => setReloadToken((current) => current + 1)} className="btn-secondary text-xs ml-3">{t('dashboard.local.reintentar')}</button></p>}
       <div className="grid sm:grid-cols-3 gap-3"><SkeletonStatTiles count={3} /></div>
       <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4"><SkeletonChart /><SkeletonChart /></div>
     </div>
@@ -1578,9 +1579,9 @@ export default function Dashboard() {
   const frecuenciaDetalleActiva = aplicarFrecuenciaTodos ? frecuencia : frecuenciaDetalle
   const periodos = crearPeriodos(hoy, frecuenciaGraficos)
   const periodosDetalle = crearPeriodos(hoy, frecuenciaDetalleActiva)
-  const nombreFrecuencia = FRECUENCIA_LABELS[frecuenciaGraficos].toLowerCase()
-  const nombreFrecuenciaDetalle = FRECUENCIA_LABELS[frecuenciaDetalleActiva].toLowerCase()
-  const nombrePeriodo = FRECUENCIA_PERIODOS[frecuenciaGraficos]
+  const nombreFrecuencia = t(`dashboard.shared.frecuencias.${frecuenciaGraficos}`).toLowerCase()
+  const nombreFrecuenciaDetalle = t(`dashboard.shared.frecuencias.${frecuenciaDetalleActiva}`).toLowerCase()
+  const nombrePeriodo = t(`dashboard.shared.periodos.${frecuenciaGraficos}`)
   const registrosPeriodo = registrosEnPeriodo(registros, periodos[periodos.length - 1])
   const registrosPeriodoDetalle = registrosEnPeriodo(registros, periodosDetalle[periodosDetalle.length - 1])
   const asistentesPeriodo = registrosPeriodo.reduce((total, registro) => total + (registro.total_asistentes || 0), 0)
@@ -1678,14 +1679,14 @@ export default function Dashboard() {
   const historicoAsistenciaPeriodos = periodos.map((p) => registrosEnPeriodo(registros, p).reduce((total, r) => total + (r.total_asistentes || 0), 0))
   const mejorAsistenciaHistorica = Math.max(...historicoAsistenciaPeriodos.slice(0, -1))
   const esMejorPeriodoReciente = asistentesPeriodo > 0 && asistentesPeriodo >= mejorAsistenciaHistorica && historicoAsistenciaPeriodos.some((valor, index) => index < historicoAsistenciaPeriodos.length - 1 && valor > 0)
-  const estaPeriodo = FRECUENCIA_ESTA[frecuenciaGraficos] ?? `esta ${nombreFrecuencia}`
-  const tendenciaVerbo = variacion === null ? null : variacion > 0 ? 'Creciste' : variacion < 0 ? 'Bajaste' : 'Te mantuviste igual'
+  const estaPeriodo = t(`dashboard.shared.estaPeriodo.${frecuenciaGraficos}`)
+  const tendenciaVerbo = variacion === null ? null : variacion > 0 ? t('dashboard.local.comoEstuvimos.creciste') : variacion < 0 ? t('dashboard.local.comoEstuvimos.bajaste') : t('dashboard.local.comoEstuvimos.igualVerbo')
   const veredictoComoEstuvimos = tendenciaVerbo === null
-    ? `Todavía no hay un periodo anterior completo para comparar.`
+    ? t('dashboard.local.comoEstuvimos.sinAnterior')
     : variacion === 0
-      ? `Tu asistencia se mantuvo igual ${estaPeriodo} frente al periodo anterior.`
-      : `${tendenciaVerbo} ${Math.abs(variacion)}% en asistencia ${estaPeriodo} frente al periodo anterior.`
-  const periodoPasado = FRECUENCIA_PASADO[frecuenciaGraficos] ?? 'el periodo anterior'
+      ? t('dashboard.local.comoEstuvimos.igual', { periodo: estaPeriodo })
+      : t('dashboard.local.comoEstuvimos.tendencia', { verbo: tendenciaVerbo, pct: Math.abs(variacion), periodo: estaPeriodo })
+  const periodoPasado = t(`dashboard.shared.periodoPasado.${frecuenciaGraficos}`)
 
   // --- Insight por tarjeta -- una frase de contexto debajo de cada
   // numero, igual que el resto de tarjetas de insight de esta pantalla
@@ -1694,30 +1695,34 @@ export default function Dashboard() {
   const actividadesPeriodo = cantidadRegistros(registrosPeriodo)
   const actividadesPeriodoAnterior = cantidadRegistros(registrosEnPeriodo(registros, periodoAnteriorRango))
   const diferenciaActividades = actividadesPeriodo - actividadesPeriodoAnterior
-  const insightAsistencia = actividadesPeriodoAnterior === 0
-    ? `${actividadesPeriodo} actividad${actividadesPeriodo === 1 ? '' : 'es'} registrada${actividadesPeriodo === 1 ? '' : 's'}, sin ${periodoPasado} para comparar.`
-    : `${actividadesPeriodo} actividad${actividadesPeriodo === 1 ? '' : 'es'} registrada${actividadesPeriodo === 1 ? '' : 's'} — ${diferenciaActividades === 0 ? `igual que ${periodoPasado}` : diferenciaActividades > 0 ? `${diferenciaActividades} más que ${periodoPasado}` : `${Math.abs(diferenciaActividades)} menos que ${periodoPasado}`}.`
+  const insightAsistencia = t('dashboard.local.insightAsistencia.base', { count: actividadesPeriodo }) + (actividadesPeriodoAnterior === 0
+    ? t('dashboard.local.insightAsistencia.sinAnteriorSuffix', { periodoPasado })
+    : diferenciaActividades === 0
+      ? t('dashboard.local.insightAsistencia.igualQue', { periodoPasado })
+      : diferenciaActividades > 0
+        ? t('dashboard.local.insightAsistencia.masQue', { cantidad: diferenciaActividades, periodoPasado })
+        : t('dashboard.local.insightAsistencia.menosQue', { cantidad: Math.abs(diferenciaActividades), periodoPasado }))
 
   const pendientesSelladoPeriodo = bautizadosPeriodoRegistros.filter((p) => !p.sellado_espiritu_santo).length
   const insightBautizadosSellados = bautizadosPeriodo === 0 && selladosPeriodoActual === 0
-    ? `Sin bautismos ni sellados nuevos ${estaPeriodo}.`
+    ? t('dashboard.local.insightBautizadosSellados.sinNuevos', { periodo: estaPeriodo })
     : pendientesSelladoPeriodo > 0
-      ? `${pendientesSelladoPeriodo} de los bautizados ${estaPeriodo} aún no ${pendientesSelladoPeriodo === 1 ? 'está sellado' : 'están sellados'}.`
+      ? t('dashboard.local.insightBautizadosSellados.pendientes', { count: pendientesSelladoPeriodo, periodo: estaPeriodo })
       : bautizadosPeriodo > 0
-        ? `Todos los bautizados ${estaPeriodo} ya están sellados.`
-        : `${selladosPeriodoActual} sellado${selladosPeriodoActual === 1 ? '' : 's'} nuevo${selladosPeriodoActual === 1 ? '' : 's'}, sin bautismos nuevos ${estaPeriodo}.`
+        ? t('dashboard.local.insightBautizadosSellados.todosSellados', { periodo: estaPeriodo })
+        : t('dashboard.local.insightBautizadosSellados.selladosNuevos', { count: selladosPeriodoActual, periodo: estaPeriodo })
 
   const contarPorTipoMovimiento = (regs) => regs.reduce((mapa, r) => ({ ...mapa, [r.tipo]: (mapa[r.tipo] || 0) + 1 }), {})
   const describirMotivosMovimiento = (porTipo) => Object.entries(porTipo).map(([tipo, cantidad]) => `${cantidad} por ${(MOVIMIENTO_LABELS[tipo] || tipo).replace(/^(Alta|Baja) por /, '').toLowerCase()}`).join(', ')
   const altasPorTipoPeriodo = contarPorTipoMovimiento(altasPeriodoRegistros)
   const bajasPorTipoPeriodo = contarPorTipoMovimiento(bajasPeriodoRegistros)
   const insightAltasBajas = altasPeriodo === 0 && bajasPeriodo === 0
-    ? `Sin movimientos de membresía ${estaPeriodo}.`
+    ? t('dashboard.local.insightAltasBajas.sinMovimientos', { periodo: estaPeriodo })
     : altasPeriodo > 0 && bajasPeriodo > 0
-      ? `Altas: ${describirMotivosMovimiento(altasPorTipoPeriodo)}. Bajas: ${describirMotivosMovimiento(bajasPorTipoPeriodo)}.`
+      ? t('dashboard.local.insightAltasBajas.ambos', { altas: describirMotivosMovimiento(altasPorTipoPeriodo), bajas: describirMotivosMovimiento(bajasPorTipoPeriodo) })
       : altasPeriodo > 0
-        ? `Altas ${estaPeriodo}: ${describirMotivosMovimiento(altasPorTipoPeriodo)}.`
-        : `Bajas ${estaPeriodo}: ${describirMotivosMovimiento(bajasPorTipoPeriodo)}.`
+        ? t('dashboard.local.insightAltasBajas.soloAltas', { periodo: estaPeriodo, detalle: describirMotivosMovimiento(altasPorTipoPeriodo) })
+        : t('dashboard.local.insightAltasBajas.soloBajas', { periodo: estaPeriodo, detalle: describirMotivosMovimiento(bajasPorTipoPeriodo) })
 
   // --- "Necesita tu atención" -- reutiliza exactamente las mismas
   // definiciones que "Análisis de comités" en Feligresía (comité activo
@@ -1732,9 +1737,9 @@ export default function Dashboard() {
   const personasEnComite = new Set(comitesActivosLocal.flatMap((c) => membresiasActivasDe(c).map((m) => m.persona_id)))
   const personasSugeridasComite = personasActivasDetalle.filter((p) => p.bautizado && !personasEnComite.has(p.id) && sugerirComites({ edad: calcularEdad(p.fecha_nacimiento), genero: p.genero, estadoCivil: p.estado_civil }, rangosEdadComite).length > 0)
   const atencionItems = []
-  if (familiasSinAsociarCount > 0) atencionItems.push({ tono: 'warning', titulo: `${familiasSinAsociarCount} persona${familiasSinAsociarCount === 1 ? '' : 's'} activa${familiasSinAsociarCount === 1 ? '' : 's'} sin familia asociada`, detalle: 'Detectado automáticamente en el censo.' })
-  if (comitesSinIntegrantes.length > 0) atencionItems.push({ tono: 'danger', titulo: `${comitesSinIntegrantes.length} comité${comitesSinIntegrantes.length === 1 ? '' : 's'} activo${comitesSinIntegrantes.length === 1 ? '' : 's'} sin integrantes`, detalle: comitesSinIntegrantes.map((c) => c.nombre).join(', ') })
-  if (personasSugeridasComite.length > 0) atencionItems.push({ tono: 'success', titulo: `Sugerido: ${personasSugeridasComite.length} persona${personasSugeridasComite.length === 1 ? '' : 's'} lista${personasSugeridasComite.length === 1 ? '' : 's'} para comité`, detalle: 'Ya bautizadas, encajan por edad/género con un comité configurado.' })
+  if (familiasSinAsociarCount > 0) atencionItems.push({ tono: 'warning', titulo: t('dashboard.local.necesitaAtencion.familiasSinAsociar', { count: familiasSinAsociarCount }), detalle: t('dashboard.local.necesitaAtencion.detectadoCenso') })
+  if (comitesSinIntegrantes.length > 0) atencionItems.push({ tono: 'danger', titulo: t('dashboard.local.necesitaAtencion.comitesSinIntegrantes', { count: comitesSinIntegrantes.length }), detalle: comitesSinIntegrantes.map((c) => c.nombre).join(', ') })
+  if (personasSugeridasComite.length > 0) atencionItems.push({ tono: 'success', titulo: t('dashboard.local.necesitaAtencion.sugeridoComite', { count: personasSugeridasComite.length }), detalle: t('dashboard.local.necesitaAtencion.sugeridoDetalle') })
 
   const pendingAlerts = alertas.filter((alerta) => !handledAlerts.includes(alerta.id))
   const visibleAlerts = showAllAlerts ? pendingAlerts : pendingAlerts.slice(0, 5)
@@ -1783,13 +1788,13 @@ export default function Dashboard() {
       filename: `resumen-${nombreFrecuencia}-${fechaBogota(hoy)}.pdf`,
       titulo: `Resumen · ${nombreCongregacion || 'Congregación'}`,
       orientacion: 'landscape',
-      meta: [`Frecuencia: ${FRECUENCIA_LABELS[frecuencia]}`, `Rango: ${etiquetaRango(periodos, formato_fecha)}`],
+      meta: [`Frecuencia: ${t(`dashboard.shared.frecuencias.${frecuencia}`)}`, `Rango: ${etiquetaRango(periodos, formato_fecha)}`],
       resumen: {
         kpis: [
-          { label: `Asistentes del ${nombrePeriodo}`, value: registros.length ? asistentesPeriodo : 0 },
-          { label: 'Alertas activas', value: activeAlertCount || pendingAlerts.length },
-          { label: 'Promedio por actividad', value: registros.length ? promedioPeriodo : 0 },
-          { label: resumenFeligresia ? 'Personas activas' : 'Actividades del periodo', value: resumenFeligresia ? resumenFeligresia.personas_activas : cantidadRegistros(registrosPeriodo) },
+          { label: t('dashboard.local.statTiles.asistentesDel', { periodo: nombrePeriodo }), value: registros.length ? asistentesPeriodo : 0 },
+          { label: t('dashboard.local.statTiles.alertasActivas'), value: activeAlertCount || pendingAlerts.length },
+          { label: t('dashboard.local.statTiles.promedioPorActividad'), value: registros.length ? promedioPeriodo : 0 },
+          { label: resumenFeligresia ? t('dashboard.local.feligresiaStats.personasActivas') : t('dashboard.local.categoriaSeleccionada.actividadesPeriodo'), value: resumenFeligresia ? resumenFeligresia.personas_activas : cantidadRegistros(registrosPeriodo) },
         ],
       },
       headers: ['Periodo', ...categoriasConTotal.map((categoria) => categoria.nombre), 'Total'],
@@ -1807,9 +1812,9 @@ export default function Dashboard() {
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || 'SIGAP · IPUC'}</p>
-            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? `Hola, ${nombreCongregacion}` : NIVEL_TITULO_LOCAL}</h1>
-            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">Una lectura sencilla de la vida operativa de tu congregación. Revisa el estado de tus datos o corrige un registro cuando sea necesario.</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60">{nombreCongregacion || t('dashboard.local.heroFallbackTag')}</p>
+            <h1 className="text-3xl sm:text-4xl font-semibold mt-3 tracking-tight">{nombreCongregacion ? t('dashboard.local.heroGreeting', { nombre: nombreCongregacion }) : t('dashboard.shared.titleFallback')}</h1>
+            <p className="text-sm sm:text-base text-white/70 mt-3 max-w-lg leading-6">{t('dashboard.local.heroSubtitle')}</p>
           </div>
           <BotonRecargar onClick={() => setReloadToken((current) => current + 1)} refreshing={refreshing} />
         </div>
@@ -1819,46 +1824,46 @@ export default function Dashboard() {
         <section className="relative overflow-hidden card p-7 sm:p-9">
           <div className="absolute right-0 top-0 h-full w-2/5 opacity-70 bg-[radial-gradient(circle_at_75%_15%,#E6F1FB_0,transparent_55%)]" />
           <div className="relative">
-            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">Cómo estuvimos {estaPeriodo}</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-accent font-medium">{t('dashboard.local.comoEstuvimos.eyebrow', { periodo: estaPeriodo })}</p>
             <h2 className="text-2xl sm:text-[28px] font-semibold mt-2 tracking-tight max-w-2xl">{veredictoComoEstuvimos}</h2>
-            <p className="text-sm text-secondary mt-2 max-w-xl">{etiquetaRango(periodos, formato_fecha)} · {asistentesPeriodo} asistencias en {cantidadRegistros(registrosPeriodo)} actividades.</p>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{t('dashboard.local.comoEstuvimos.rango', { rango: etiquetaRango(periodos, formato_fecha), asistentes: asistentesPeriodo, actividades: cantidadRegistros(registrosPeriodo) })}</p>
             {esMejorPeriodoReciente && (
               <div className="mt-4 inline-flex items-center gap-2.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5">
                 <span className="text-lg">🏆</span>
                 <div>
-                  <p className="text-sm font-semibold text-warning-dark">Tu mejor {nombrePeriodo} de los últimos {periodos.length} periodos</p>
-                  <p className="text-xs text-secondary">{asistentesPeriodo} asistencias, el nivel más alto que has tenido en este rango.</p>
+                  <p className="text-sm font-semibold text-warning-dark">{t('dashboard.local.comoEstuvimos.mejorPeriodo', { periodo: nombrePeriodo, cantidad: periodos.length })}</p>
+                  <p className="text-xs text-secondary">{t('dashboard.local.comoEstuvimos.mejorPeriodoDetalle', { asistentes: asistentesPeriodo })}</p>
                 </div>
               </div>
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Asistencia</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.local.comoEstuvimos.asistencia')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{asistentesPeriodo}</p>
-                {variacion !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacion >= 0 ? 'text-success' : 'text-danger'}`}>{variacion >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {variacion > 0 ? '+' : ''}{variacion}% vs. anterior</p>}
+                {variacion !== null && <p className={`text-xs mt-1 flex items-center gap-1 ${variacion >= 0 ? 'text-success' : 'text-danger'}`}>{variacion >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.local.comoEstuvimos.vsAnterior', { signo: variacion > 0 ? '+' : '', valor: variacion })}</p>}
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAsistencia}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Bautizados / Sellados</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.local.comoEstuvimos.bautizadosSellados')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{bautizadosPeriodo} / {selladosPeriodoActual}</p>
-                <p className="text-xs text-muted mt-1">nuevos {estaPeriodo}</p>
+                <p className="text-xs text-muted mt-1">{t('dashboard.local.comoEstuvimos.nuevosPeriodo', { periodo: estaPeriodo })}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightBautizadosSellados}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Altas / Bajas</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.local.comoEstuvimos.altasBajas')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{altasPeriodo} / {bajasPeriodo}</p>
-                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceNeto >= 0 ? 'text-success' : 'text-danger'}`}>{balanceNeto >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} balance neto {balanceNeto > 0 ? '+' : ''}{balanceNeto}{balanceNetoAnterior !== balanceNeto ? ` (antes ${balanceNetoAnterior > 0 ? '+' : ''}${balanceNetoAnterior})` : ''}</p>
+                <p className={`text-xs mt-1 flex items-center gap-1 ${balanceNeto >= 0 ? 'text-success' : 'text-danger'}`}>{balanceNeto >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />} {t('dashboard.local.comoEstuvimos.balanceNeto', { signo: balanceNeto > 0 ? '+' : '', valor: balanceNeto, antes: balanceNetoAnterior !== balanceNeto ? t('dashboard.local.comoEstuvimos.balanceAntes', { valor: `${balanceNetoAnterior > 0 ? '+' : ''}${balanceNetoAnterior}` }) : '' })}</p>
                 <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{insightAltasBajas}</p>
               </div>
               <div className="rounded-card bg-surface-1 border border-border p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Alertas pastorales</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{t('dashboard.local.comoEstuvimos.alertasPastorales')}</p>
                 <p className="text-2xl font-semibold mt-1.5">{activeAlertCount || pendingAlerts.length}</p>
-                <p className="text-xs text-muted mt-1">{pendingAlerts.length ? 'requieren tu atención ahora' : 'sin pendientes hoy'}</p>
-                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{atencionItems.length > 0 ? `${atencionItems.length} señal${atencionItems.length === 1 ? '' : 'es'} operativa${atencionItems.length === 1 ? '' : 's'} en "Necesita tu atención".` : 'Sin pendientes en familias o comités ahora mismo.'}</p>
+                <p className="text-xs text-muted mt-1">{pendingAlerts.length ? t('dashboard.local.comoEstuvimos.requierenAtencion') : t('dashboard.local.comoEstuvimos.sinPendientesHoy')}</p>
+                <p className="text-xs text-muted mt-1.5 border-t border-border pt-1.5">{atencionItems.length > 0 ? t('dashboard.local.comoEstuvimos.senalesOperativas', { count: atencionItems.length }) : t('dashboard.local.comoEstuvimos.sinSenales')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-5">
-              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-night text-white hover:bg-night/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
+              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-night text-white hover:bg-night/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> {t('dashboard.local.descargarInforme')}</button>
             </div>
           </div>
         </section>
@@ -1867,8 +1872,8 @@ export default function Dashboard() {
       {registros.length > 0 && (
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="card p-5">
-            <p className="eyebrow">Necesita tu atención</p>
-            <h2 className="font-medium mt-1">{atencionItems.length > 0 ? `${atencionItems.length} pendiente${atencionItems.length === 1 ? '' : 's'} ${estaPeriodo}` : `Sin pendientes ${estaPeriodo}`}</h2>
+            <p className="eyebrow">{t('dashboard.local.necesitaAtencion.eyebrow')}</p>
+            <h2 className="font-medium mt-1">{atencionItems.length > 0 ? t('dashboard.local.necesitaAtencion.pendientes', { count: atencionItems.length, periodo: estaPeriodo }) : t('dashboard.local.necesitaAtencion.sinPendientes', { periodo: estaPeriodo })}</h2>
             <div className="divide-y divide-border mt-3">
               {atencionItems.length > 0 ? atencionItems.map((item) => {
                 const toneClass = { default: 'bg-accent-bg text-accent', danger: 'bg-danger-bg text-danger', success: 'bg-success-bg text-success', warning: 'bg-warning-bg text-warning' }[item.tono]
@@ -1881,12 +1886,12 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )
-              }) : <p className="text-sm text-secondary py-3">Sin familias por asociar, comités sin integrantes ni sugerencias pendientes -- todo al día.</p>}
+              }) : <p className="text-sm text-secondary py-3">{t('dashboard.local.necesitaAtencion.sinNada')}</p>}
             </div>
           </div>
           <div className="card p-5">
-            <p className="eyebrow">Actividad por categoría</p>
-            <h2 className="font-medium mt-1">Cómo se movió cada frente {estaPeriodo}</h2>
+            <p className="eyebrow">{t('dashboard.local.actividadCategoria.eyebrow')}</p>
+            <h2 className="font-medium mt-1">{t('dashboard.local.actividadCategoria.titulo', { periodo: estaPeriodo })}</h2>
             {categoriasConTotal.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                 {categoriasConTotal.map((categoria) => (
@@ -1896,50 +1901,50 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : <p className="text-sm text-secondary mt-3">Aún no hay categorías configuradas para desglosar la asistencia.</p>}
+            ) : <p className="text-sm text-secondary mt-3">{t('dashboard.local.actividadCategoria.sinCategorias')}</p>}
           </div>
         </section>
       )}
 
       <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <p className="eyebrow">Resumen</p>
-          <h2 className="font-medium mt-1">Lectura de asistencia</h2>
+          <p className="eyebrow">{t('dashboard.local.resumen.eyebrow')}</p>
+          <h2 className="font-medium mt-1">{t('dashboard.local.resumen.titulo')}</h2>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Seleccionar frecuencia">
-            {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuencia(valor)} className={`text-xs px-3 py-2 rounded border ${frecuencia === valor ? 'bg-accent text-white border-accent' : 'border-border text-secondary hover:border-accent hover:text-accent'}`}>{etiqueta}</button>)}
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('dashboard.local.resumen.ariaFrecuencia')}>
+            {FRECUENCIA_CODES.map((valor) => <button key={valor} type="button" onClick={() => setFrecuencia(valor)} className={`text-xs px-3 py-2 rounded border ${frecuencia === valor ? 'bg-accent text-white border-accent' : 'border-border text-secondary hover:border-accent hover:text-accent'}`}>{t(`dashboard.shared.frecuencias.${valor}`)}</button>)}
           </div>
-          <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="btn-secondary text-xs px-3 py-2"><Download className="w-3.5 h-3.5" /> Descargar PDF</button>
+          <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="btn-secondary text-xs px-3 py-2"><Download className="w-3.5 h-3.5" /> {t('dashboard.local.descargarPdf')}</button>
         </div>
       </section>
 
       <section className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-          <div><p className="eyebrow">Categoría seleccionada</p><h2 className="font-medium mt-1">Conteo para toma de decisiones</h2><p className="text-sm text-secondary mt-1">Selecciona una categoría para consultar el total de la {nombreFrecuenciaDetalle} elegido.</p></div>
-          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> Aplicar frecuencia a todos<InfoTip texto="Si lo desmarcas, puedes ver esta categoría en un periodo distinto (por ejemplo semanal) al de las demás gráficas del panel." /></label>
+          <div><p className="eyebrow">{t('dashboard.local.categoriaSeleccionada.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.local.categoriaSeleccionada.titulo')}</h2><p className="text-sm text-secondary mt-1">{t('dashboard.local.categoriaSeleccionada.subtitulo', { frecuencia: nombreFrecuenciaDetalle })}</p></div>
+          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer"><input type="checkbox" checked={aplicarFrecuenciaTodos} onChange={(event) => setAplicarFrecuenciaTodos(event.target.checked)} /> {t('dashboard.local.categoriaSeleccionada.aplicarTodos')}<InfoTip texto={t('dashboard.local.categoriaSeleccionada.aplicarTodosTip')} /></label>
         </div>
         {!aplicarFrecuenciaTodos && (
-          <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label="Seleccionar frecuencia de la categoría">
-            {FRECUENCIAS.map(([valor, etiqueta]) => <button key={valor} type="button" onClick={() => setFrecuenciaDetalle(valor)} className={`text-xs px-2.5 py-1.5 rounded border ${frecuenciaDetalleActiva === valor ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{etiqueta}</button>)}
+          <div className="flex flex-wrap gap-1.5 mt-4" role="group" aria-label={t('dashboard.local.categoriaSeleccionada.ariaFrecuenciaCategoria')}>
+            {FRECUENCIA_CODES.map((valor) => <button key={valor} type="button" onClick={() => setFrecuenciaDetalle(valor)} className={`text-xs px-2.5 py-1.5 rounded border ${frecuenciaDetalleActiva === valor ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{t(`dashboard.shared.frecuencias.${valor}`)}</button>)}
           </div>
         )}
-        <div className="flex gap-2 flex-wrap mt-4" role="group" aria-label="Seleccionar categoría de asistencia">
-          <button type="button" onClick={() => setCategoriaSeleccionadaId('general')} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === 'general' ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>General</button>
+        <div className="flex gap-2 flex-wrap mt-4" role="group" aria-label={t('dashboard.local.categoriaSeleccionada.ariaCategoria')}>
+          <button type="button" onClick={() => setCategoriaSeleccionadaId('general')} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === 'general' ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{t('dashboard.local.categoriaSeleccionada.general')}</button>
           {categorias.map((categoria) => <button type="button" key={categoria.id} onClick={() => setCategoriaSeleccionadaId(categoria.id)} className={`text-xs px-3 py-1.5 rounded-full border ${categoriaSeleccionadaId === categoria.id ? 'bg-accent-bg text-accent border-accent/30' : 'border-border text-secondary hover:border-accent'}`}>{categoria.nombre}</button>)}
         </div>
         <div className="grid sm:grid-cols-3 gap-4 mt-5">
-          <div><p className="text-xs text-muted">Asistentes {categoriaSeleccionada ? `de ${categoriaSeleccionada.nombre}` : 'totales'}</p><p className="text-3xl font-semibold mt-1">{conteoCategoriaActual}</p></div>
-          <div><p className="text-xs text-muted">Actividades del periodo</p><p className="text-3xl font-semibold mt-1">{cantidadRegistros(registrosPeriodoDetalle)}</p></div>
-          <div><p className="text-xs text-muted">Variación anterior</p><p className={`text-3xl font-semibold mt-1 ${variacionCategoria !== null && variacionCategoria < 0 ? 'text-danger' : 'text-success'}`}>{variacionCategoria === null ? '—' : `${variacionCategoria > 0 ? '+' : ''}${variacionCategoria}%`}</p></div>
+          <div><p className="text-xs text-muted">{categoriaSeleccionada ? t('dashboard.local.categoriaSeleccionada.asistentesDe', { nombre: categoriaSeleccionada.nombre }) : t('dashboard.local.categoriaSeleccionada.asistentesTotales')}</p><p className="text-3xl font-semibold mt-1">{conteoCategoriaActual}</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.categoriaSeleccionada.actividadesPeriodo')}</p><p className="text-3xl font-semibold mt-1">{cantidadRegistros(registrosPeriodoDetalle)}</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.categoriaSeleccionada.variacionAnterior')}</p><p className={`text-3xl font-semibold mt-1 ${variacionCategoria !== null && variacionCategoria < 0 ? 'text-danger' : 'text-success'}`}>{variacionCategoria === null ? '—' : `${variacionCategoria > 0 ? '+' : ''}${variacionCategoria}%`}</p></div>
         </div>
-        <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || 'Asistencia total', data: conteoCategoriaSeleccionada, borderColor: seleccionColor, backgroundColor: gradientFill(seleccionColor), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
+        <div className="h-36 mt-5"><Line data={{ labels: periodosDetalle.map((periodo) => periodo.label), datasets: [{ label: categoriaSeleccionada?.nombre || t('dashboard.local.categoriaSeleccionada.asistenciaTotal'), data: conteoCategoriaSeleccionada, borderColor: seleccionColor, backgroundColor: gradientFill(seleccionColor), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div>
       </section>
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <StatTile label={`Asistentes del ${nombrePeriodo}`} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? `${cantidadRegistros(registrosPeriodo)} actividades alimentan este resultado.` : 'Esperando los primeros registros.'} />
-        <StatTile label="Alertas activas" value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? 'Hay señales que requieren atención.' : 'No hay asuntos pendientes hoy.'} tip="Situaciones que SIGAP detecta solas: familias sin asociar, bautismos pendientes, inasistencia individual o comités sin integrantes." />
-        <StatTile label="Promedio por actividad" value={registros.length ? promedioPeriodo : '—'} tone={variacionPromedio === null ? 'default' : variacionPromedio >= 0 ? 'success' : 'danger'} series={averageSeries} insight={variacionPromedio === null ? 'Aún no hay un periodo comparable.' : `${variacionPromedio >= 0 ? 'Crecimiento' : 'Descenso'} del ${Math.abs(variacionPromedio)}% frente al periodo anterior.`} />
+        <StatTile label={t('dashboard.local.statTiles.asistentesDel', { periodo: nombrePeriodo })} value={registros.length ? asistentesPeriodo : '—'} series={attendanceSeries} insight={registros.length ? t('dashboard.local.statTiles.insightConDatos', { cantidad: cantidadRegistros(registrosPeriodo) }) : t('dashboard.local.statTiles.insightSinDatos')} />
+        <StatTile label={t('dashboard.local.statTiles.alertasActivas')} value={activeAlertCount || pendingAlerts.length} tone={activeAlertCount > 0 || pendingAlerts.length > 0 ? 'danger' : 'default'} insight={pendingAlerts.length ? t('dashboard.local.statTiles.hayAlertas') : t('dashboard.local.statTiles.sinAlertas')} tip={t('dashboard.local.statTiles.alertasTip')} />
+        <StatTile label={t('dashboard.local.statTiles.promedioPorActividad')} value={registros.length ? promedioPeriodo : '—'} tone={variacionPromedio === null ? 'default' : variacionPromedio >= 0 ? 'success' : 'danger'} series={averageSeries} insight={variacionPromedio === null ? t('dashboard.local.statTiles.sinComparable') : t('dashboard.local.statTiles.crecimientoDescenso', { tendencia: variacionPromedio >= 0 ? t('dashboard.local.statTiles.crecimiento') : t('dashboard.local.statTiles.descenso'), valor: Math.abs(variacionPromedio) })} />
       </div>
 
       {loadError && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{loadError}</p>}
@@ -1947,49 +1952,49 @@ export default function Dashboard() {
       {hasData && (
         <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
           <div className="card chart-card p-5">
-            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">Ritmo de asistencia</p><h2 className="font-medium mt-1">Lectura del periodo</h2><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div><BarChart3 className="w-5 h-5 text-accent" /></div>
+            <div className="flex justify-between gap-4 mb-4"><div><p className="eyebrow">{t('dashboard.local.ritmo.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.local.ritmo.titulo')}</h2><p className="text-xs text-secondary mt-1">{t('dashboard.local.ritmo.subtitulo', { rango: etiquetaRango(periodos, formato_fecha) })}</p></div><BarChart3 className="w-5 h-5 text-accent" /></div>
             <div className="grid sm:grid-cols-3 gap-4">
-              <div><p className="text-xs text-muted">Actividades</p><p className="text-2xl font-semibold mt-1">{cantidadRegistros(registrosPeriodo)}</p></div>
-              <div><p className="text-xs text-muted">Asistencias registradas</p><p className="text-2xl font-semibold mt-1">{asistentesPeriodo}</p></div>
-              <div><p className="text-xs text-muted">Variación {nombreFrecuencia}</p><p className={`text-2xl font-semibold mt-1 ${variacion !== null && variacion < 0 ? 'text-danger' : 'text-success'}`}>{variacion === null ? '—' : `${variacion > 0 ? '+' : ''}${variacion}%`}</p></div>
+              <div><p className="text-xs text-muted">{t('dashboard.local.ritmo.actividades')}</p><p className="text-2xl font-semibold mt-1">{cantidadRegistros(registrosPeriodo)}</p></div>
+              <div><p className="text-xs text-muted">{t('dashboard.local.ritmo.asistenciasRegistradas')}</p><p className="text-2xl font-semibold mt-1">{asistentesPeriodo}</p></div>
+              <div><p className="text-xs text-muted">{t('dashboard.local.ritmo.variacionFrecuencia', { frecuencia: nombreFrecuencia })}</p><p className={`text-2xl font-semibold mt-1 ${variacion !== null && variacion < 0 ? 'text-danger' : 'text-success'}`}>{variacion === null ? '—' : `${variacion > 0 ? '+' : ''}${variacion}%`}</p></div>
             </div>
             <div className="h-28 mt-5"><Line data={periodChartData} options={periodChartOptions} /></div>
             <div className={`mt-5 flex items-start gap-3 rounded p-3 ${variacion !== null && variacion < 0 ? 'bg-danger-bg' : 'bg-success-bg'}`}>
               {variacion !== null && variacion < 0 ? <TrendingDown className="w-4 h-4 text-danger mt-0.5" /> : <TrendingUp className="w-4 h-4 text-success mt-0.5" />}
-              <p className="text-sm text-secondary">{variacion === null ? 'Aún no hay un periodo anterior comparable. Sigue capturando datos para construir una señal confiable.' : variacion < 0 ? `La asistencia bajó ${Math.abs(variacion)}% (${Math.abs(variacionAbsoluta)} registros) frente al periodo anterior. Conviene revisar las actividades con menor participación.` : `La asistencia creció ${variacion}% (${variacionAbsoluta} registros) frente al periodo anterior. Identifica qué actividad está impulsando este resultado.`}{ultimoRegistro && <span className="block text-xs text-muted mt-1">Último registro: {ultimoRegistro.fecha}</span>}</p>
+              <p className="text-sm text-secondary">{variacion === null ? t('dashboard.local.ritmo.sinComparable') : variacion < 0 ? t('dashboard.local.ritmo.bajo', { pct: Math.abs(variacion), registros: Math.abs(variacionAbsoluta) }) : t('dashboard.local.ritmo.crecio', { pct: variacion, registros: variacionAbsoluta })}{ultimoRegistro && <span className="block text-xs text-muted mt-1">{t('dashboard.local.ritmo.ultimoRegistro', { fecha: ultimoRegistro.fecha })}</span>}</p>
             </div>
           </div>
-          <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">Composición</p><h2 className="font-medium mt-1">Dónde está el volumen</h2></div>{categoriaPrincipal && <span className="chart-highlight">{leadingShare}% líder</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="flex flex-col gap-2 mt-2">{categoriasConTotal.slice(0, 5).map((categoria, index) => <div key={categoria.id} className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 text-secondary"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0] }} />{categoria.nombre}</span><span className="font-medium">{categoria.total}</span></div>)}</div><p className="summary-insight mt-4">{categoriaPrincipal.nombre} concentra {leadingShare}% de la asistencia registrada{leadingChange === null ? '.' : leadingChange >= 0 ? ` y creció ${leadingChange}% en las últimas seis ventanas.` : ` y bajó ${Math.abs(leadingChange)}% en las últimas seis ventanas.`} Ver el detalle completo en "Evolución {nombreFrecuencia}" más abajo.</p></> : <p className="text-sm text-muted py-10">Aún no hay desglose por categorías.</p>}</div>
+          <div className="card chart-card p-5"><div className="flex items-start justify-between gap-4 mb-3"><div><p className="eyebrow">{t('dashboard.local.composicion.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.local.composicion.titulo')}</h2></div>{categoriaPrincipal && <span className="chart-highlight">{t('dashboard.local.composicion.lider', { pct: leadingShare })}</span>}</div>{categoriaPrincipal && totalCategorias > 0 ? <><div className="flex flex-col gap-2 mt-2">{categoriasConTotal.slice(0, 5).map((categoria, index) => <div key={categoria.id} className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 text-secondary"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORIA_COLORS[index % CATEGORIA_COLORS.length][0] }} />{categoria.nombre}</span><span className="font-medium">{categoria.total}</span></div>)}</div><p className="summary-insight mt-4">{t('dashboard.local.composicion.concentra', { nombre: categoriaPrincipal.nombre, pct: leadingShare, frecuencia: nombreFrecuencia, cambio: leadingChange === null ? t('dashboard.local.composicion.sinCambio') : leadingChange >= 0 ? t('dashboard.local.composicion.crecioVentanas', { pct: leadingChange }) : t('dashboard.local.composicion.bajoVentanas', { pct: Math.abs(leadingChange) }) })}</p></> : <p className="text-sm text-muted py-10">{t('dashboard.local.composicion.sinDesglose')}</p>}</div>
         </section>
       )}
 
       <section className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-          <div><p className="eyebrow">Amigos e integración</p><h2 className="font-medium mt-1">De la asistencia al acompañamiento</h2><p className="text-sm text-secondary mt-1">Separa lo que registra Ujieres de lo que gestiona la ruta pastoral.</p></div>
-          <Link to="/amigos" className="text-xs text-accent">Abrir ruta de amigos <ArrowRight className="inline w-3 h-3" /></Link>
+          <div><p className="eyebrow">{t('dashboard.local.amigos.eyebrow')}</p><h2 className="font-medium mt-1">{t('dashboard.local.amigos.titulo')}</h2><p className="text-sm text-secondary mt-1">{t('dashboard.local.amigos.subtitulo')}</p></div>
+          <Link to="/amigos" className="text-xs text-accent">{t('dashboard.local.amigos.abrirRuta')} <ArrowRight className="inline w-3 h-3" /></Link>
         </div>
         <div className="grid sm:grid-cols-4 gap-4 mt-5">
-          <div><p className="text-xs text-muted">Asistencia “Amigos”</p><p className="text-2xl font-semibold mt-1">{categoriaAmigos ? totalAsistenciaAmigos : '—'}</p><p className="text-xs text-secondary mt-1">Suma del desglose de Ujieres</p></div>
-          <div><p className="text-xs text-muted">Amigos en ruta</p><p className="text-2xl font-semibold mt-1">{amigosEnRuta}</p><p className="text-xs text-secondary mt-1">Registros no convertidos</p></div>
-          <div><p className="text-xs text-muted">Convertidos</p><p className="text-2xl font-semibold mt-1 text-success">{amigosConvertidos}</p><p className="text-xs text-secondary mt-1">Marcados en la ruta</p></div>
-          <div><p className="text-xs text-muted">Con categoría asignada</p><p className="text-2xl font-semibold mt-1">{amigosConCategoria}</p><p className="text-xs text-secondary mt-1">Listos para integración</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.amigos.asistenciaAmigos')}</p><p className="text-2xl font-semibold mt-1">{categoriaAmigos ? totalAsistenciaAmigos : '—'}</p><p className="text-xs text-secondary mt-1">{t('dashboard.local.amigos.sumaDesglose')}</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.amigos.amigosEnRuta')}</p><p className="text-2xl font-semibold mt-1">{amigosEnRuta}</p><p className="text-xs text-secondary mt-1">{t('dashboard.local.amigos.registrosNoConvertidos')}</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.amigos.convertidos')}</p><p className="text-2xl font-semibold mt-1 text-success">{amigosConvertidos}</p><p className="text-xs text-secondary mt-1">{t('dashboard.local.amigos.marcadosRuta')}</p></div>
+          <div><p className="text-xs text-muted">{t('dashboard.local.amigos.conCategoria')}</p><p className="text-2xl font-semibold mt-1">{amigosConCategoria}</p><p className="text-xs text-secondary mt-1">{t('dashboard.local.amigos.listosIntegracion')}</p></div>
         </div>
-        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: 'Asistencia Amigos', data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: gradientFill('#e06b35'), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">Aún no hay información de asistencia de Amigos para mostrar.</p>}
-        <p className="text-xs text-muted mt-4">Importante: esta asistencia es un total por categoría; no identifica cuál amigo asistió. Para medir conversión individual habría que registrar el amigo como persona o añadir un vínculo de asistencia por amigo.</p>
+        {categoriaAmigos ? <div className="h-36 mt-5"><Line data={{ labels: asistenciaPorPeriodo.map((periodo) => periodo.label), datasets: [{ label: t('dashboard.local.amigos.seriesLabel'), data: asistenciaAmigos, borderColor: '#e06b35', backgroundColor: gradientFill('#e06b35'), fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2.5 }] }} options={periodChartOptions} /></div> : <p className="text-sm text-warning bg-warning-bg rounded p-3 mt-4">{t('dashboard.local.amigos.sinDatos')}</p>}
+        <p className="text-xs text-muted mt-4">{t('dashboard.local.amigos.nota')}</p>
       </section>
 
       {rolPrincipal?.nivel === 'local' && (
         <section>
           <div className="flex items-end justify-between mb-3">
             <div>
-              <h2 className="font-medium">Accesos rápidos</h2>
+              <h2 className="font-medium">{t('dashboard.local.accesosRapidos.titulo')}</h2>
             </div>
           </div>
           <div className="grid md:grid-cols-4 gap-3">
-            <QuickAction to="/registrar" icon={ClipboardPlus} title="Corrección / contingencia" description="Completa un registro excepcional" />
-            <QuickAction to="/amigos" icon={Users} title="Ruta de integración" description="Acompaña a tus amigos" />
-            <QuickAction to="/feligresia" icon={Users} title="Censo de feligresía" description="Consulta la población" />
-            <QuickAction to="/feligresia?tab=seguimiento" icon={TrendingDown} title="Seguimiento pastoral" description="Revisa la agenda pendiente" />
+            <QuickAction to="/registrar" icon={ClipboardPlus} title={t('dashboard.local.accesosRapidos.correccion.titulo')} description={t('dashboard.local.accesosRapidos.correccion.descripcion')} />
+            <QuickAction to="/amigos" icon={Users} title={t('dashboard.local.accesosRapidos.integracion.titulo')} description={t('dashboard.local.accesosRapidos.integracion.descripcion')} />
+            <QuickAction to="/feligresia" icon={Users} title={t('dashboard.local.accesosRapidos.censo.titulo')} description={t('dashboard.local.accesosRapidos.censo.descripcion')} />
+            <QuickAction to="/feligresia?tab=seguimiento" icon={TrendingDown} title={t('dashboard.local.accesosRapidos.seguimiento.titulo')} description={t('dashboard.local.accesosRapidos.seguimiento.descripcion')} />
           </div>
         </section>
       )}
@@ -1999,16 +2004,16 @@ export default function Dashboard() {
         const proyeccion12m = Math.max(0, Math.round(resumenFeligresia.personas_activas + netoMensual3m * 12))
         return (
           <section className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-            <StatTile label="Personas activas" value={resumenFeligresia.personas_activas} />
-            <StatTile label="Bautizados" value={resumenFeligresia.bautizados} tip="Total en vivo, ahora mismo. El Informe trimestral de Feligresía muestra en cambio una foto al cierre de un trimestre -- pueden no coincidir si no estás en el trimestre actual." />
-            <StatTile label="Familias" value={resumenFeligresia.familias_asociadas} />
-            <StatTile label="Apartados" value={resumenFeligresia.apartados} />
-            <StatTile label="Reconciliados (90 días)" value={movimientos3m.reconciliaciones} tip="Personas apartadas que volvieron a estado Activo en los últimos 90 días corridos. Es distinto del número que ves en Feligresía → Informe trimestral, que se acota al trimestre calendario exacto -- pueden no coincidir." />
+            <StatTile label={t('dashboard.local.feligresiaStats.personasActivas')} value={resumenFeligresia.personas_activas} />
+            <StatTile label={t('dashboard.local.feligresiaStats.bautizados')} value={resumenFeligresia.bautizados} tip={t('dashboard.local.feligresiaStats.bautizadosTip')} />
+            <StatTile label={t('dashboard.local.feligresiaStats.familias')} value={resumenFeligresia.familias_asociadas} />
+            <StatTile label={t('dashboard.local.feligresiaStats.apartados')} value={resumenFeligresia.apartados} />
+            <StatTile label={t('dashboard.local.feligresiaStats.reconciliados90')} value={movimientos3m.reconciliaciones} tip={t('dashboard.local.feligresiaStats.reconciliadosTip')} />
             <StatTile
-              label="Proyección a 12 meses"
+              label={t('dashboard.local.feligresiaStats.proyeccion12m')}
               value={resumenFeligresia.personas_activas ? proyeccion12m : '—'}
               tone={netoMensual3m < 0 ? 'danger' : 'default'}
-              insight={resumenFeligresia.personas_activas === 0 ? 'Aún no hay suficientes datos.' : `Al ritmo de los últimos 3 meses (${netoMensual3m >= 0 ? '+' : ''}${netoMensual3m.toFixed(1)}/mes), en 12 meses. Estimación con poco historial.`}
+              insight={resumenFeligresia.personas_activas === 0 ? t('dashboard.local.feligresiaStats.sinDatos') : t('dashboard.local.feligresiaStats.ritmo3m', { signo: netoMensual3m >= 0 ? '+' : '', valor: netoMensual3m.toFixed(1) })}
             />
           </section>
         )
@@ -2018,42 +2023,42 @@ export default function Dashboard() {
         <section className="border border-dashed border-border rounded-card p-7 bg-surface-2 flex flex-col sm:flex-row gap-5 items-start sm:items-center">
           <div className="w-11 h-11 rounded bg-success-bg text-success flex items-center justify-center flex-shrink-0"><Database className="w-5 h-5" /></div>
           <div>
-            <h2 className="font-medium">Tu panel está listo para recibir datos</h2>
-            <p className="text-sm text-secondary mt-1 leading-6">Cuando haya nuevas actividades registradas, aquí aparecerán las tendencias y alertas pastorales. Las métricas se mantienen vacías hasta tener información real.</p>
+            <h2 className="font-medium">{t('dashboard.local.vacio.titulo')}</h2>
+            <p className="text-sm text-secondary mt-1 leading-6">{t('dashboard.local.vacio.subtitulo')}</p>
           </div>
         </section>
       )}
 
       <div className="card chart-card p-5">
-        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">Evolución {nombreFrecuencia}</p><h3 className="font-medium mt-1">Participación por categoría</h3><p className="text-xs text-secondary mt-1">Asistencias registradas · {etiquetaRango(periodos, formato_fecha)}</p></div>{hasData && <span className="chart-live-dot" title="Datos de registros reales" />}</div>
+        <div className="flex items-start justify-between gap-4 mb-5"><div><p className="eyebrow">{t('dashboard.local.evolucion.eyebrow', { frecuencia: nombreFrecuencia })}</p><h3 className="font-medium mt-1">{t('dashboard.local.evolucion.titulo')}</h3><p className="text-xs text-secondary mt-1">{t('dashboard.local.evolucion.subtitulo', { rango: etiquetaRango(periodos, formato_fecha) })}</p></div>{hasData && <span className="chart-live-dot" title={t('dashboard.local.evolucion.datosReales')} />}</div>
         <div style={{ height: 260 }}>
-          {hasData ? <Line data={chartData} options={chartOptions} /> : <ChartEmpty message="Aún no hay registros de actividad para graficar aquí." />}
+          {hasData ? <Line data={chartData} options={chartOptions} /> : <ChartEmpty message={t('dashboard.local.evolucion.sinDatos')} />}
         </div>
       </div>
 
       <div className="card p-5">
-        <div className="flex justify-between items-center mb-4"><div><h3 className="font-medium">Alertas pastorales</h3></div>{ultimoRegistro && <span className="text-xs text-muted">Último registro: {ultimoRegistro.fecha}</span>}</div>
+        <div className="flex justify-between items-center mb-4"><div><h3 className="font-medium">{t('dashboard.local.alertasPastorales.titulo')}</h3></div>{ultimoRegistro && <span className="text-xs text-muted">{t('dashboard.local.alertasPastorales.ultimoRegistro', { fecha: ultimoRegistro.fecha })}</span>}</div>
         {pendingAlerts.length === 0 ? (
           <p className="text-sm text-muted">
-            Sin alertas por ahora. SIGAP revisa tendencias de asistencia y condiciones pastorales del censo, como familias pendientes, bautismo, asistencia individual y comités sin integrantes.
+            {t('dashboard.local.alertasPastorales.sinAlertas')}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
             {visibleAlerts.map((a) => (
               <div key={a.id} className={`alert-item ${a.prioridad === 'alta' ? 'alert-item-high' : ''}`}>
-                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 mb-1"><span className={`alert-priority ${a.prioridad === 'alta' ? 'alert-priority-high' : ''}`}>{a.prioridad || 'media'}</span><span className="text-[10px] uppercase tracking-[0.12em] text-muted">{ALERT_TYPE_LABELS[a.tipo] || 'Seguimiento'}</span></div><p className="text-sm font-medium text-ink">{a.titulo}</p></div><div className="flex items-center gap-3 text-xs flex-shrink-0">{a.persona_id && <Link to={`/feligresia?persona=${a.persona_id}`} className="text-accent">Ver ficha</Link>}{canHandleAlerts && <><button type="button" disabled={Boolean(handlingAlertId)} onClick={() => handleAlert(a)} className="text-accent disabled:opacity-50">{handlingAlertId === a.id ? 'Guardando...' : 'Atender'}</button><InfoTip texto="Cierra la alerta de una vez y guarda un seguimiento automático (sin nota propia). Para registrar la acción real que tomaste, hazlo desde Feligresía → Seguimiento pastoral." /></>}</div></div>
-                <p className="text-xs text-secondary mt-1">{a.detalle}</p><p className="text-xs text-muted mt-2">Siguiente paso: {alertRecommendation(a)}</p>
+                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 mb-1"><span className={`alert-priority ${a.prioridad === 'alta' ? 'alert-priority-high' : ''}`}>{a.prioridad || t('dashboard.local.alertasPastorales.prioridadMedia')}</span><span className="text-[10px] uppercase tracking-[0.12em] text-muted">{t(`dashboard.shared.alertTypes.${a.tipo}`, t('dashboard.shared.alertTypes.default'))}</span></div><p className="text-sm font-medium text-ink">{a.titulo}</p></div><div className="flex items-center gap-3 text-xs flex-shrink-0">{a.persona_id && <Link to={`/feligresia?persona=${a.persona_id}`} className="text-accent">{t('dashboard.local.alertasPastorales.verFicha')}</Link>}{canHandleAlerts && <><button type="button" disabled={Boolean(handlingAlertId)} onClick={() => handleAlert(a)} className="text-accent disabled:opacity-50">{handlingAlertId === a.id ? t('dashboard.local.alertasPastorales.guardando') : t('dashboard.local.alertasPastorales.atender')}</button><InfoTip texto={t('dashboard.local.alertasPastorales.atenderTip')} /></>}</div></div>
+                <p className="text-xs text-secondary mt-1">{a.detalle}</p><p className="text-xs text-muted mt-2">{t('dashboard.local.alertasPastorales.siguientePaso', { recomendacion: alertRecommendation(t, a) })}</p>
               </div>
             ))}
-            {pendingAlerts.length > 5 && <button type="button" onClick={() => setShowAllAlerts((current) => !current)} className="btn-secondary self-start text-xs">{showAllAlerts ? 'Mostrar menos' : `Ver todas (${pendingAlerts.length})`}</button>}
+            {pendingAlerts.length > 5 && <button type="button" onClick={() => setShowAllAlerts((current) => !current)} className="btn-secondary self-start text-xs">{showAllAlerts ? t('dashboard.local.alertasPastorales.mostrarMenos') : t('dashboard.local.alertasPastorales.verTodas', { cantidad: pendingAlerts.length })}</button>}
           </div>
         )}
       </div>
 
       {rolPrincipal?.nivel === 'local' && riesgoApartamiento.length > 0 && (
         <div className="card p-5">
-          <div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-warning" /><h3 className="font-medium">Riesgo de apartamiento</h3></div>
-          <p className="text-xs text-secondary mb-4">Personas con más de una señal de alejamiento, antes de que se cumplan los 90 días de la alerta pastoral — para actuar temprano, no solo reaccionar.</p>
+          <div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-warning" /><h3 className="font-medium">{t('dashboard.local.riesgoApartamiento.titulo')}</h3></div>
+          <p className="text-xs text-secondary mb-4">{t('dashboard.local.riesgoApartamiento.subtitulo')}</p>
           <div className="flex flex-col gap-3">
             {riesgoApartamiento.slice(0, 8).map((persona) => (
               <div key={persona.id} className="flex items-start justify-between gap-3 text-sm py-2 px-2.5 bg-warning-bg/40 rounded">
@@ -2063,25 +2068,25 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            {riesgoApartamiento.length > 8 && <p className="text-xs text-muted">Y {riesgoApartamiento.length - 8} persona(s) más con señales de riesgo.</p>}
+            {riesgoApartamiento.length > 8 && <p className="text-xs text-muted">{t('dashboard.local.riesgoApartamiento.masConSenales', { cantidad: riesgoApartamiento.length - 8 })}</p>}
           </div>
         </div>
       )}
 
       {rolPrincipal?.nivel === 'local' && (
         <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4"><Cake className="w-4 h-4 text-accent" /><h3 className="font-medium">Próximos cumpleaños</h3><span className="text-xs text-muted">· 30 días</span></div>
+          <div className="flex items-center gap-2 mb-4"><Cake className="w-4 h-4 text-accent" /><h3 className="font-medium">{t('dashboard.local.cumpleanos.titulo')}</h3><span className="text-xs text-muted">{t('dashboard.local.cumpleanos.dias30')}</span></div>
           {cumpleanos.length === 0 ? (
-            <p className="text-sm text-muted">Nadie de tu congregación cumple años en los próximos 30 días.</p>
+            <p className="text-sm text-muted">{t('dashboard.local.cumpleanos.sinCumpleanos')}</p>
           ) : (
             <div className="flex flex-col gap-2">
               {cumpleanos.slice(0, 8).map((persona) => (
                 <div key={persona.id} className="flex items-center justify-between gap-3 text-sm py-1.5 px-2.5 bg-surface-1 rounded">
                   <Link to={`/feligresia?persona=${persona.id}`} className="text-ink hover:text-accent">{persona.nombres} {persona.apellidos}</Link>
-                  <span className="text-xs text-muted flex-shrink-0">{persona.diasFaltantes === 0 ? 'Hoy' : persona.diasFaltantes === 1 ? 'Mañana' : `En ${persona.diasFaltantes} días`} · cumple {persona.edadCumple}</span>
+                  <span className="text-xs text-muted flex-shrink-0">{persona.diasFaltantes === 0 ? t('dashboard.local.cumpleanos.hoy') : persona.diasFaltantes === 1 ? t('dashboard.local.cumpleanos.manana') : t('dashboard.local.cumpleanos.enDias', { dias: persona.diasFaltantes })} · {t('dashboard.local.cumpleanos.cumple', { edad: persona.edadCumple })}</span>
                 </div>
               ))}
-              {cumpleanos.length > 8 && <p className="text-xs text-muted">Y {cumpleanos.length - 8} más en el mes.</p>}
+              {cumpleanos.length > 8 && <p className="text-xs text-muted">{t('dashboard.local.cumpleanos.masEnMes', { cantidad: cumpleanos.length - 8 })}</p>}
             </div>
           )}
         </div>

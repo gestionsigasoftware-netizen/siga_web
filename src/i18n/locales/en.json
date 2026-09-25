@@ -698,6 +698,226 @@
         "metaTabla": "Table: blocked, in grace period, or due within 7 days.",
         "hojaAtencion": "Need attention"
       }
+    },
+    "local": {
+      "loadError": "Could not load all indicators. Check the connection with Supabase.",
+      "preparando": "Preparing your space...",
+      "reintentar": "Retry",
+      "heroFallbackTag": "SIGAP · IPUC",
+      "heroGreeting": "Hi, {{nombre}}",
+      "heroSubtitle": "A simple read of your congregation's operational life. Check the state of your data or fix a record when needed.",
+      "descargarInforme": "Download report",
+      "descargarPdf": "Download PDF",
+      "comoEstuvimos": {
+        "eyebrow": "How we did {{periodo}}",
+        "sinAnterior": "Not enough of a previous period to compare yet.",
+        "igual": "Your attendance stayed the same {{periodo}} vs. the previous period.",
+        "tendencia": "{{verbo}} {{pct}}% in attendance {{periodo}} vs. the previous period.",
+        "creciste": "You grew",
+        "bajaste": "You dropped",
+        "igualVerbo": "You stayed the same",
+        "rango": "{{rango}} · {{asistentes}} attendances in {{actividades}} activities.",
+        "mejorPeriodo": "Your best {{periodo}} of the last {{cantidad}} periods",
+        "mejorPeriodoDetalle": "{{asistentes}} attendances, the highest level you've had in this range.",
+        "asistencia": "Attendance",
+        "vsAnterior": "{{signo}}{{valor}}% vs. previous",
+        "bautizadosSellados": "Baptized / Infilled",
+        "nuevosPeriodo": "new {{periodo}}",
+        "altasBajas": "Joins / Leaves",
+        "balanceNeto": "net balance {{signo}}{{valor}}{{antes}}",
+        "balanceAntes": " (before {{valor}})",
+        "alertasPastorales": "Pastoral alerts",
+        "requierenAtencion": "need your attention now",
+        "sinPendientesHoy": "nothing pending today",
+        "senalesOperativas_one": "{{count}} operational signal in \"Needs your attention\".",
+        "senalesOperativas_other": "{{count}} operational signals in \"Needs your attention\".",
+        "sinSenales": "No pending families or committees right now."
+      },
+      "insightAsistencia": {
+        "sinAnteriorSuffix": ", no {{periodoPasado}} to compare.",
+        "base_one": "{{count}} activity logged",
+        "base_other": "{{count}} activities logged",
+        "igualQue": " — same as {{periodoPasado}}.",
+        "masQue": " — {{cantidad}} more than {{periodoPasado}}.",
+        "menosQue": " — {{cantidad}} fewer than {{periodoPasado}}."
+      },
+      "insightBautizadosSellados": {
+        "sinNuevos": "No new baptisms or infillings {{periodo}}.",
+        "pendientes_one": "{{count}} of those baptized {{periodo}} is not infilled yet.",
+        "pendientes_other": "{{count}} of those baptized {{periodo}} are not infilled yet.",
+        "todosSellados": "Everyone baptized {{periodo}} is already infilled.",
+        "selladosNuevos_one": "{{count}} new infilling, no new baptisms {{periodo}}.",
+        "selladosNuevos_other": "{{count}} new infillings, no new baptisms {{periodo}}."
+      },
+      "insightAltasBajas": {
+        "sinMovimientos": "No membership movements {{periodo}}.",
+        "ambos": "Joins: {{altas}}. Leaves: {{bajas}}.",
+        "soloAltas": "Joins {{periodo}}: {{detalle}}.",
+        "soloBajas": "Leaves {{periodo}}: {{detalle}}."
+      },
+      "necesitaAtencion": {
+        "eyebrow": "Needs your attention",
+        "pendientes_one": "{{count}} pending {{periodo}}",
+        "pendientes_other": "{{count}} pending {{periodo}}",
+        "sinPendientes": "Nothing pending {{periodo}}",
+        "familiasSinAsociar_one": "{{count}} active person without a linked family",
+        "familiasSinAsociar_other": "{{count}} active people without a linked family",
+        "detectadoCenso": "Automatically detected in the census.",
+        "comitesSinIntegrantes_one": "{{count}} active committee with no members",
+        "comitesSinIntegrantes_other": "{{count}} active committees with no members",
+        "sugeridoComite_one": "Suggested: {{count}} person ready for a committee",
+        "sugeridoComite_other": "Suggested: {{count}} people ready for a committee",
+        "sugeridoDetalle": "Already baptized, they fit a configured committee by age/gender.",
+        "sinNada": "No families to link, no committees without members, and no pending suggestions -- all caught up."
+      },
+      "actividadCategoria": {
+        "eyebrow": "Activity by category",
+        "titulo": "How each front moved {{periodo}}",
+        "sinCategorias": "No categories configured yet to break down attendance."
+      },
+      "resumen": {
+        "eyebrow": "Summary",
+        "titulo": "Attendance reading",
+        "ariaFrecuencia": "Select frequency"
+      },
+      "categoriaSeleccionada": {
+        "eyebrow": "Selected category",
+        "titulo": "Count for decision-making",
+        "subtitulo": "Select a category to check the total for the chosen {{frecuencia}}.",
+        "aplicarTodos": "Apply frequency to all",
+        "aplicarTodosTip": "If you uncheck this, you can view this category in a different period (e.g. weekly) than the rest of the panel's charts.",
+        "ariaFrecuenciaCategoria": "Select the category's frequency",
+        "ariaCategoria": "Select attendance category",
+        "general": "General",
+        "asistentesDe": "Attendees of {{nombre}}",
+        "asistentesTotales": "Total attendees",
+        "actividadesPeriodo": "Activities in the period",
+        "variacionAnterior": "Change vs. previous",
+        "asistenciaTotal": "Total attendance"
+      },
+      "statTiles": {
+        "asistentesDel": "Attendees this {{periodo}}",
+        "insightConDatos": "{{cantidad}} activities feed this result.",
+        "insightSinDatos": "Waiting for the first records.",
+        "alertasActivas": "Active alerts",
+        "hayAlertas": "There are signals needing attention.",
+        "sinAlertas": "No pending matters today.",
+        "alertasTip": "Situations SIGAP detects on its own: unlinked families, pending baptisms, individual absence, or committees with no members.",
+        "promedioPorActividad": "Average per activity",
+        "sinComparable": "No comparable period yet.",
+        "crecimientoDescenso": "{{tendencia}} of {{valor}}% vs. the previous period.",
+        "crecimiento": "Growth",
+        "descenso": "Decline"
+      },
+      "ritmo": {
+        "eyebrow": "Attendance pace",
+        "titulo": "Reading of the period",
+        "subtitulo": "Attendances logged · {{rango}}",
+        "actividades": "Activities",
+        "asistenciasRegistradas": "Attendances logged",
+        "variacionFrecuencia": "Change {{frecuencia}}",
+        "sinComparable": "No comparable previous period yet. Keep logging data to build a reliable signal.",
+        "bajo": "Attendance dropped {{pct}}% ({{registros}} records) vs. the previous period. Worth reviewing the activities with lower participation.",
+        "crecio": "Attendance grew {{pct}}% ({{registros}} records) vs. the previous period. Identify what activity is driving this result.",
+        "ultimoRegistro": "Last record: {{fecha}}"
+      },
+      "composicion": {
+        "eyebrow": "Composition",
+        "titulo": "Where the volume is",
+        "lider": "{{pct}}% leading",
+        "concentra": "{{nombre}} accounts for {{pct}}% of logged attendance{{cambio}} See the full detail in \"Evolution {{frecuencia}}\" below.",
+        "crecioVentanas": " and grew {{pct}}% over the last six windows.",
+        "bajoVentanas": " and dropped {{pct}}% over the last six windows.",
+        "sinCambio": ".",
+        "sinDesglose": "No breakdown by category yet."
+      },
+      "amigos": {
+        "eyebrow": "Friends & integration",
+        "titulo": "From attendance to follow-up",
+        "subtitulo": "Separates what Ushers log from what the pastoral path manages.",
+        "abrirRuta": "Open friends path",
+        "asistenciaAmigos": "\"Friends\" attendance",
+        "sumaDesglose": "Sum of the Ushers breakdown",
+        "amigosEnRuta": "Friends on the path",
+        "registrosNoConvertidos": "Not-yet-converted records",
+        "convertidos": "Converted",
+        "marcadosRuta": "Marked on the path",
+        "conCategoria": "With a category assigned",
+        "listosIntegracion": "Ready for integration",
+        "seriesLabel": "Friends attendance",
+        "sinDatos": "No friends attendance data to show yet.",
+        "nota": "Important: this attendance is a total by category; it does not identify which friend attended. To measure individual conversion, the friend would need to be registered as a person or linked to attendance individually."
+      },
+      "accesosRapidos": {
+        "titulo": "Quick actions",
+        "correccion": {
+          "titulo": "Correction / contingency",
+          "descripcion": "Complete an exceptional record"
+        },
+        "integracion": {
+          "titulo": "Integration path",
+          "descripcion": "Follow up with your friends"
+        },
+        "censo": {
+          "titulo": "Membership census",
+          "descripcion": "Check the population"
+        },
+        "seguimiento": {
+          "titulo": "Pastoral follow-up",
+          "descripcion": "Check the pending agenda"
+        }
+      },
+      "feligresiaStats": {
+        "personasActivas": "Active members",
+        "bautizados": "Baptized",
+        "bautizadosTip": "Live total, right now. The quarterly Membership report instead shows a snapshot at quarter close -- they may not match if you're not in the current quarter.",
+        "familias": "Families",
+        "apartados": "Inactive",
+        "reconciliados90": "Reconciled (90 days)",
+        "reconciliadosTip": "Inactive people who returned to Active status in the last 90 running days. This differs from the number you see in Membership → Quarterly report, which is limited to the exact calendar quarter -- they may not match.",
+        "proyeccion12m": "12-month projection",
+        "sinDatos": "Not enough data yet.",
+        "ritmo3m": "At the pace of the last 3 months ({{signo}}{{valor}}/month), in 12 months. Estimate with limited history."
+      },
+      "vacio": {
+        "titulo": "Your panel is ready for data",
+        "subtitulo": "Once new activities are logged, trends and pastoral alerts will appear here. Metrics stay empty until there is real information."
+      },
+      "evolucion": {
+        "eyebrow": "Evolution {{frecuencia}}",
+        "titulo": "Participation by category",
+        "subtitulo": "Attendances logged · {{rango}}",
+        "datosReales": "Real record data",
+        "sinDatos": "No activity records to chart here yet."
+      },
+      "alertasPastorales": {
+        "titulo": "Pastoral alerts",
+        "ultimoRegistro": "Last record: {{fecha}}",
+        "sinAlertas": "No alerts for now. SIGAP reviews attendance trends and pastoral conditions from the census, such as pending families, baptism, individual absence, and committees with no members.",
+        "prioridadMedia": "medium",
+        "verFicha": "View record",
+        "guardando": "Saving...",
+        "atender": "Handle",
+        "atenderTip": "Closes the alert at once and saves an automatic follow-up (with no note of your own). To log the actual action you took, do it from Membership → Pastoral follow-up.",
+        "siguientePaso": "Next step: {{recomendacion}}",
+        "mostrarMenos": "Show less",
+        "verTodas": "View all ({{cantidad}})"
+      },
+      "riesgoApartamiento": {
+        "titulo": "Drop-off risk",
+        "subtitulo": "People with more than one sign of drifting away, before the 90 days of the pastoral alert are reached — to act early, not just react.",
+        "masConSenales": "And {{cantidad}} more person/people with risk signals."
+      },
+      "cumpleanos": {
+        "titulo": "Upcoming birthdays",
+        "dias30": "· 30 days",
+        "sinCumpleanos": "No one in your congregation has a birthday in the next 30 days.",
+        "hoy": "Today",
+        "manana": "Tomorrow",
+        "enDias": "In {{dias}} days",
+        "cumple": "turns {{edad}}",
+        "masEnMes": "And {{cantidad}} more this month."
+      }
     }
   }
 }

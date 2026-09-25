@@ -698,6 +698,226 @@
         "metaTabla": "Tabela: bloqueadas, em carência, ou vencem em até 7 dias.",
         "hojaAtencion": "Precisam de atenção"
       }
+    },
+    "local": {
+      "loadError": "Não foi possível carregar todos os indicadores. Verifique a conexão com o Supabase.",
+      "preparando": "Preparando seu espaço...",
+      "reintentar": "Tentar novamente",
+      "heroFallbackTag": "SIGAP · IPUC",
+      "heroGreeting": "Olá, {{nombre}}",
+      "heroSubtitle": "Uma leitura simples da vida operacional da sua congregação. Verifique o status dos seus dados ou corrija um registro quando necessário.",
+      "descargarInforme": "Baixar relatório",
+      "descargarPdf": "Baixar PDF",
+      "comoEstuvimos": {
+        "eyebrow": "Como estivemos {{periodo}}",
+        "sinAnterior": "Ainda não há um período anterior completo para comparar.",
+        "igual": "Sua frequência se manteve igual {{periodo}} em relação ao período anterior.",
+        "tendencia": "{{verbo}} {{pct}}% em frequência {{periodo}} em relação ao período anterior.",
+        "creciste": "Você cresceu",
+        "bajaste": "Você caiu",
+        "igualVerbo": "Você se manteve igual",
+        "rango": "{{rango}} · {{asistentes}} presenças em {{actividades}} atividades.",
+        "mejorPeriodo": "Seu melhor {{periodo}} dos últimos {{cantidad}} períodos",
+        "mejorPeriodoDetalle": "{{asistentes}} presenças, o nível mais alto que você já teve neste intervalo.",
+        "asistencia": "Frequência",
+        "vsAnterior": "{{signo}}{{valor}}% vs. anterior",
+        "bautizadosSellados": "Batizados / Selados",
+        "nuevosPeriodo": "novos {{periodo}}",
+        "altasBajas": "Entradas / Saídas",
+        "balanceNeto": "saldo líquido {{signo}}{{valor}}{{antes}}",
+        "balanceAntes": " (antes {{valor}})",
+        "alertasPastorales": "Alertas pastorais",
+        "requierenAtencion": "precisam da sua atenção agora",
+        "sinPendientesHoy": "nada pendente hoje",
+        "senalesOperativas_one": "{{count}} sinal operacional em \"Precisa da sua atenção\".",
+        "senalesOperativas_other": "{{count}} sinais operacionais em \"Precisa da sua atenção\".",
+        "sinSenales": "Sem famílias ou comitês pendentes neste momento."
+      },
+      "insightAsistencia": {
+        "sinAnteriorSuffix": ", sem {{periodoPasado}} para comparar.",
+        "base_one": "{{count}} atividade registrada",
+        "base_other": "{{count}} atividades registradas",
+        "igualQue": " — igual a {{periodoPasado}}.",
+        "masQue": " — {{cantidad}} a mais que {{periodoPasado}}.",
+        "menosQue": " — {{cantidad}} a menos que {{periodoPasado}}."
+      },
+      "insightBautizadosSellados": {
+        "sinNuevos": "Sem batismos nem selamentos novos {{periodo}}.",
+        "pendientes_one": "{{count}} dos batizados {{periodo}} ainda não está selado.",
+        "pendientes_other": "{{count}} dos batizados {{periodo}} ainda não estão selados.",
+        "todosSellados": "Todos os batizados {{periodo}} já estão selados.",
+        "selladosNuevos_one": "{{count}} selado novo, sem batismos novos {{periodo}}.",
+        "selladosNuevos_other": "{{count}} selados novos, sem batismos novos {{periodo}}."
+      },
+      "insightAltasBajas": {
+        "sinMovimientos": "Sem movimentos de membresia {{periodo}}.",
+        "ambos": "Entradas: {{altas}}. Saídas: {{bajas}}.",
+        "soloAltas": "Entradas {{periodo}}: {{detalle}}.",
+        "soloBajas": "Saídas {{periodo}}: {{detalle}}."
+      },
+      "necesitaAtencion": {
+        "eyebrow": "Precisa da sua atenção",
+        "pendientes_one": "{{count}} pendente {{periodo}}",
+        "pendientes_other": "{{count}} pendentes {{periodo}}",
+        "sinPendientes": "Nada pendente {{periodo}}",
+        "familiasSinAsociar_one": "{{count}} pessoa ativa sem família associada",
+        "familiasSinAsociar_other": "{{count}} pessoas ativas sem família associada",
+        "detectadoCenso": "Detectado automaticamente no censo.",
+        "comitesSinIntegrantes_one": "{{count}} comitê ativo sem integrantes",
+        "comitesSinIntegrantes_other": "{{count}} comitês ativos sem integrantes",
+        "sugeridoComite_one": "Sugerido: {{count}} pessoa pronta para comitê",
+        "sugeridoComite_other": "Sugerido: {{count}} pessoas prontas para comitê",
+        "sugeridoDetalle": "Já batizadas, encaixam por idade/gênero em um comitê configurado.",
+        "sinNada": "Sem famílias por associar, comitês sem integrantes nem sugestões pendentes -- tudo em dia."
+      },
+      "actividadCategoria": {
+        "eyebrow": "Atividade por categoria",
+        "titulo": "Como cada frente se moveu {{periodo}}",
+        "sinCategorias": "Ainda não há categorias configuradas para detalhar a frequência."
+      },
+      "resumen": {
+        "eyebrow": "Resumo",
+        "titulo": "Leitura de frequência",
+        "ariaFrecuencia": "Selecionar frequência"
+      },
+      "categoriaSeleccionada": {
+        "eyebrow": "Categoria selecionada",
+        "titulo": "Contagem para tomada de decisão",
+        "subtitulo": "Selecione uma categoria para consultar o total do(a) {{frecuencia}} escolhido.",
+        "aplicarTodos": "Aplicar frequência a todos",
+        "aplicarTodosTip": "Se desmarcar, você pode ver esta categoria em um período diferente (por exemplo semanal) do resto dos gráficos do painel.",
+        "ariaFrecuenciaCategoria": "Selecionar frequência da categoria",
+        "ariaCategoria": "Selecionar categoria de frequência",
+        "general": "Geral",
+        "asistentesDe": "Presentes de {{nombre}}",
+        "asistentesTotales": "Presentes totais",
+        "actividadesPeriodo": "Atividades do período",
+        "variacionAnterior": "Variação anterior",
+        "asistenciaTotal": "Frequência total"
+      },
+      "statTiles": {
+        "asistentesDel": "Presentes de{{periodo}}",
+        "insightConDatos": "{{cantidad}} atividades alimentam este resultado.",
+        "insightSinDatos": "Aguardando os primeiros registros.",
+        "alertasActivas": "Alertas ativos",
+        "hayAlertas": "Há sinais que precisam de atenção.",
+        "sinAlertas": "Nenhum assunto pendente hoje.",
+        "alertasTip": "Situações que o SIGAP detecta sozinho: famílias sem associar, batismos pendentes, ausência individual ou comitês sem integrantes.",
+        "promedioPorActividad": "Média por atividade",
+        "sinComparable": "Ainda não há um período comparável.",
+        "crecimientoDescenso": "{{tendencia}} de {{valor}}% em relação ao período anterior.",
+        "crecimiento": "Crescimento",
+        "descenso": "Queda"
+      },
+      "ritmo": {
+        "eyebrow": "Ritmo de frequência",
+        "titulo": "Leitura do período",
+        "subtitulo": "Presenças registradas · {{rango}}",
+        "actividades": "Atividades",
+        "asistenciasRegistradas": "Presenças registradas",
+        "variacionFrecuencia": "Variação {{frecuencia}}",
+        "sinComparable": "Ainda não há um período anterior comparável. Continue registrando dados para construir um sinal confiável.",
+        "bajo": "A frequência caiu {{pct}}% ({{registros}} registros) em relação ao período anterior. Vale revisar as atividades com menor participação.",
+        "crecio": "A frequência cresceu {{pct}}% ({{registros}} registros) em relação ao período anterior. Identifique qual atividade está impulsionando este resultado.",
+        "ultimoRegistro": "Último registro: {{fecha}}"
+      },
+      "composicion": {
+        "eyebrow": "Composição",
+        "titulo": "Onde está o volume",
+        "lider": "{{pct}}% líder",
+        "concentra": "{{nombre}} concentra {{pct}}% da frequência registrada{{cambio}} Veja o detalhe completo em \"Evolução {{frecuencia}}\" abaixo.",
+        "crecioVentanas": " e cresceu {{pct}}% nas últimas seis janelas.",
+        "bajoVentanas": " e caiu {{pct}}% nas últimas seis janelas.",
+        "sinCambio": ".",
+        "sinDesglose": "Ainda não há detalhamento por categorias."
+      },
+      "amigos": {
+        "eyebrow": "Amigos e integração",
+        "titulo": "Da frequência ao acompanhamento",
+        "subtitulo": "Separa o que Porteiros registra do que a rota pastoral gerencia.",
+        "abrirRuta": "Abrir rota de amigos",
+        "asistenciaAmigos": "Frequência \"Amigos\"",
+        "sumaDesglose": "Soma do detalhamento de Porteiros",
+        "amigosEnRuta": "Amigos na rota",
+        "registrosNoConvertidos": "Registros não convertidos",
+        "convertidos": "Convertidos",
+        "marcadosRuta": "Marcados na rota",
+        "conCategoria": "Com categoria atribuída",
+        "listosIntegracion": "Prontos para integração",
+        "seriesLabel": "Frequência de Amigos",
+        "sinDatos": "Ainda não há informação de frequência de Amigos para mostrar.",
+        "nota": "Importante: esta frequência é um total por categoria; não identifica qual amigo esteve presente. Para medir conversão individual, seria necessário cadastrar o amigo como pessoa ou adicionar um vínculo de presença por amigo."
+      },
+      "accesosRapidos": {
+        "titulo": "Acessos rápidos",
+        "correccion": {
+          "titulo": "Correção / contingência",
+          "descripcion": "Complete um registro excepcional"
+        },
+        "integracion": {
+          "titulo": "Rota de integração",
+          "descripcion": "Acompanhe seus amigos"
+        },
+        "censo": {
+          "titulo": "Censo de membresia",
+          "descripcion": "Consulte a população"
+        },
+        "seguimiento": {
+          "titulo": "Acompanhamento pastoral",
+          "descripcion": "Revise a agenda pendente"
+        }
+      },
+      "feligresiaStats": {
+        "personasActivas": "Pessoas ativas",
+        "bautizados": "Batizados",
+        "bautizadosTip": "Total em tempo real, agora mesmo. O Relatório trimestral de Membresia mostra em vez disso uma foto no fechamento de um trimestre -- podem não coincidir se você não estiver no trimestre atual.",
+        "familias": "Famílias",
+        "apartados": "Afastados",
+        "reconciliados90": "Reconciliados (90 dias)",
+        "reconciliadosTip": "Pessoas afastadas que voltaram ao status Ativo nos últimos 90 dias corridos. É diferente do número que você vê em Membresia → Relatório trimestral, que se limita ao trimestre calendário exato -- podem não coincidir.",
+        "proyeccion12m": "Projeção para 12 meses",
+        "sinDatos": "Ainda não há dados suficientes.",
+        "ritmo3m": "No ritmo dos últimos 3 meses ({{signo}}{{valor}}/mês), em 12 meses. Estimativa com pouco histórico."
+      },
+      "vacio": {
+        "titulo": "Seu painel está pronto para receber dados",
+        "subtitulo": "Quando houver novas atividades registradas, as tendências e alertas pastorais aparecerão aqui. As métricas ficam vazias até haver informação real."
+      },
+      "evolucion": {
+        "eyebrow": "Evolução {{frecuencia}}",
+        "titulo": "Participação por categoria",
+        "subtitulo": "Presenças registradas · {{rango}}",
+        "datosReales": "Dados de registros reais",
+        "sinDatos": "Ainda não há registros de atividade para plotar aqui."
+      },
+      "alertasPastorales": {
+        "titulo": "Alertas pastorais",
+        "ultimoRegistro": "Último registro: {{fecha}}",
+        "sinAlertas": "Sem alertas por enquanto. O SIGAP revisa tendências de frequência e condições pastorais do censo, como famílias pendentes, batismo, ausência individual e comitês sem integrantes.",
+        "prioridadMedia": "média",
+        "verFicha": "Ver ficha",
+        "guardando": "Salvando...",
+        "atender": "Atender",
+        "atenderTip": "Fecha o alerta de uma vez e salva um acompanhamento automático (sem nota própria). Para registrar a ação real que você tomou, faça isso em Membresia → Acompanhamento pastoral.",
+        "siguientePaso": "Próximo passo: {{recomendacion}}",
+        "mostrarMenos": "Mostrar menos",
+        "verTodas": "Ver todas ({{cantidad}})"
+      },
+      "riesgoApartamiento": {
+        "titulo": "Risco de afastamento",
+        "subtitulo": "Pessoas com mais de um sinal de afastamento, antes que se completem os 90 dias do alerta pastoral — para agir cedo, não apenas reagir.",
+        "masConSenales": "E mais {{cantidad}} pessoa(s) com sinais de risco."
+      },
+      "cumpleanos": {
+        "titulo": "Próximos aniversários",
+        "dias30": "· 30 dias",
+        "sinCumpleanos": "Ninguém da sua congregação faz aniversário nos próximos 30 dias.",
+        "hoy": "Hoje",
+        "manana": "Amanhã",
+        "enDias": "Em {{dias}} dias",
+        "cumple": "completa {{edad}}",
+        "masEnMes": "E mais {{cantidad}} neste mês."
+      }
     }
   }
 }
