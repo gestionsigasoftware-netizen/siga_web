@@ -26,13 +26,26 @@
 	  `MainLayout.jsx`, dialogo de inactividad, y el pie de pagina
 	  compartido (`Footer.jsx`). Ver
 	  `docs/fixes/i18n-sidebar-header-footer-2026-09-25.md`.
-	- **Falta**: el contenido propio de cada pantalla (Dashboard,
-	  Feligresia, Reportes, y las ~40 restantes) sigue en espanol fijo
-	  -- pendiente por grupos de modulos en proximas sesiones. Tambien
-	  falta el resto de `RoleChooser.jsx` (pantalla de seleccion de rol
-	  al iniciar sesion). Y la Fase 3 (mismo tema+idiomas en la PWA,
-	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
-	  tocar).
+	- **Dashboard.jsx completo (2026-09-25)**: las 4 variantes por rol
+	  (local, distrital, nacional, super_admin/negocio) quedaron 100%
+	  trilingues -- hero, "Como estuvimos", semaforos, insights BI,
+	  piramides, tablas comparativas, informe de negocio exportable,
+	  simulador, alertas pastorales, riesgo de apartamiento, cumpleanos.
+	  Verificado con Playwright (login real, EN/PT, cero errores de
+	  consola). Ver los 4 commits de esa fecha (`i18n: traducir panel
+	  Dashboard ...`). Quedan sin traducir a proposito (no son texto de
+	  interfaz): nombres de categorias configuradas por cada
+	  congregacion, `MOVIMIENTO_LABELS`/`CARGO_DISTRITAL_LABELS` (otros
+	  archivos `lib/`), y el texto de las alertas pastorales generadas
+	  por `vw_alertas_pastorales`.
+	- **Falta**: el contenido propio de las ~44 pantallas restantes
+	  (Feligresia, Reportes, Auditoria, y el resto) sigue en espanol
+	  fijo -- pendiente por grupos de modulos en proximas sesiones,
+	  trabajo de contenido muy grande (cientos de textos por pantalla
+	  en algunos casos). Tambien falta el resto de `RoleChooser.jsx`
+	  (pantalla de seleccion de rol al iniciar sesion). Y la Fase 3
+	  (mismo tema+idiomas en la PWA, `SIGA\siga movil\siga-pwa-nacional`,
+	  proyecto aparte, todavia sin tocar).
 
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en
