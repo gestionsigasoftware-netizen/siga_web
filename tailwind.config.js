@@ -1,6 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // 'class' en vez de 'media': el modo oscuro lo decide useTheme.js (con
+  // persistencia propia en localStorage + arranque en el prefers-color-scheme
+  // del sistema), no directamente la preferencia del SO -- así el usuario
+  // puede anular esa preferencia con el interruptor. Empieza aplicado solo en
+  // InicioPublico.jsx; el resto de la app no usa clases dark: todavía, así
+  // que esto no cambia nada en ninguna otra pantalla.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

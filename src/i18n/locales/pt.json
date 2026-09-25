@@ -1,0 +1,83 @@
+{
+  "common": {
+    "nav": { "ayuda": "Ajuda", "ingresar": "Entrar" },
+    "theme": { "toLight": "Mudar para modo claro", "toDark": "Mudar para modo escuro" },
+    "language": { "switchLabel": "Mudar idioma" },
+    "footer": {
+      "line": "Sistema Integrado de Gestão e Analítica Pastoral",
+      "rights": "Todos os direitos reservados.",
+      "by": "By Jormelia Soft",
+      "privacy": "Privacidade e termos",
+      "help": "Ajuda"
+    }
+  },
+  "inicio": {
+    "hero": {
+      "eyebrow": "Inteligência pastoral",
+      "eyebrowLive": "Inteligência pastoral em tempo real",
+      "titlePre": "Cada nível, ",
+      "titleAccent": "a leitura",
+      "titlePost": " que precisa para decidir.",
+      "subhead": "O SIGAP transforma o censo, a frequência e os comitês em pirâmide populacional, ciclo de vida espiritual e projeção de crescimento — com a mesma clareza para o pastor local, o distrital e a direção nacional.",
+      "cta": "Entrar no SIGAP",
+      "trust": "Acesso privado por convite e perfil autorizado."
+    },
+    "dashboardMock": {
+      "yourCongregation": "Sua congregação",
+      "sharedReading": "Uma leitura compartilhada",
+      "activity": "Atividade",
+      "activityValue": "Clara",
+      "byModule": "por módulo",
+      "accompaniment": "Acompanhamento",
+      "accompanimentValue": "Próximo",
+      "byPerson": "por pessoa"
+    },
+    "levels": {
+      "eyebrow": "Um único sistema, quatro leituras",
+      "congregacion": "Congregação",
+      "congregacionDesc": "Censo e pastoral do dia a dia",
+      "distrital": "Nível Distrital",
+      "distritalDesc": "Consolidado do seu distrito",
+      "nacional": "Nível Nacional",
+      "nacionalDesc": "Leitura dos 36 distritos",
+      "superAdmin": "Super Admin",
+      "superAdminDesc": "Operação e integridade da plataforma"
+    },
+    "rollup": {
+      "caption": "Um único dado, consolidado até o topo",
+      "congregacion": "Congregação",
+      "congregacionDesc": "Censo e atividade real",
+      "distrito": "Distrito",
+      "distritoDesc": "Consolidado do território",
+      "nacional": "Nacional",
+      "nacionalDesc": "Leitura do país inteiro"
+    },
+    "modules": {
+      "title1": "Membresia com contexto",
+      "text1": "Censo, famílias e ciclo de vida espiritual de cada pessoa, desde a entrada até o cargo.",
+      "title2": "Analítica para decidir",
+      "text2": "Pirâmide populacional, projeção de crescimento e semáforo de saúde, igual no local, distrital e nacional.",
+      "title3": "Trabalho territorial",
+      "text3": "Evangelismo, Missão Juvenil e os 10 comitês, com seu consolidado em cada nível."
+    },
+    "plans": {
+      "eyebrow": "Planos",
+      "title": "O mesmo SIGAP completo, no ritmo que funcionar para a sua congregação.",
+      "subtext": "Sem funções reduzidas nem \"versão básica\" — a diferença entre os planos é o tempo de permanência, não o que você pode fazer no sistema. Fale conosco e te orientamos com o valor exato para o tamanho da sua congregação.",
+      "monthlyName": "Plano mensal",
+      "monthlySummary": "Para começar sem amarras e ver a mudança já no primeiro fechamento do mês.",
+      "monthlyBenefit1": "Acesso completo a todos os módulos, sem funções bloqueadas.",
+      "monthlyBenefit2": "Sua congregação fica operando no SIGAP em dias, não em meses.",
+      "monthlyBenefit3": "Ajuste ou cancele quando precisar.",
+      "monthlyCta": "Cotar plano mensal",
+      "annualName": "Plano anual",
+      "annualBadge": "Melhor custo total",
+      "annualSummary": "Para a congregação que já decidiu que o SIGAP é sua forma de trabalhar o ano todo.",
+      "annualBenefit1": "Mesmo acesso completo, com melhor custo total no ano.",
+      "annualBenefit2": "Acompanhamento contínuo em cada trimestre de crescimento.",
+      "annualBenefit3": "Prioridade em suporte e nas novas funcionalidades.",
+      "annualCta": "Cotar plano anual",
+      "trust": "Respondemos por WhatsApp com o valor de acordo com o número de congregações e distritos que você precisa gerenciar."
+    }
+  }
+}

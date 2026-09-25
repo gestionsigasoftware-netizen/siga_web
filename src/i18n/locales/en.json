@@ -1,0 +1,83 @@
+{
+  "common": {
+    "nav": { "ayuda": "Help", "ingresar": "Sign in" },
+    "theme": { "toLight": "Switch to light mode", "toDark": "Switch to dark mode" },
+    "language": { "switchLabel": "Change language" },
+    "footer": {
+      "line": "Integrated Pastoral Management and Analytics System",
+      "rights": "All rights reserved.",
+      "by": "By Jormelia Soft",
+      "privacy": "Privacy & terms",
+      "help": "Help"
+    }
+  },
+  "inicio": {
+    "hero": {
+      "eyebrow": "Pastoral intelligence",
+      "eyebrowLive": "Pastoral intelligence, live",
+      "titlePre": "Every level, ",
+      "titleAccent": "the clarity",
+      "titlePost": " it needs to decide.",
+      "subhead": "SIGAP turns your census, attendance and committees into population pyramids, spiritual life-cycle tracking and growth projections — with the same clarity for the local pastor, the district leader and national leadership.",
+      "cta": "Enter SIGAP",
+      "trust": "Private access by invitation and authorized profile."
+    },
+    "dashboardMock": {
+      "yourCongregation": "Your congregation",
+      "sharedReading": "One shared view",
+      "activity": "Activity",
+      "activityValue": "Clear",
+      "byModule": "by module",
+      "accompaniment": "Follow-up",
+      "accompanimentValue": "Close",
+      "byPerson": "by person"
+    },
+    "levels": {
+      "eyebrow": "One system, four views",
+      "congregacion": "Congregation",
+      "congregacionDesc": "Day-to-day census and pastoral care",
+      "distrital": "District Level",
+      "distritalDesc": "Consolidated view of their district",
+      "nacional": "National Level",
+      "nacionalDesc": "A view across all 36 districts",
+      "superAdmin": "Super Admin",
+      "superAdminDesc": "Platform operation and health"
+    },
+    "rollup": {
+      "caption": "One data point, rolled all the way up",
+      "congregacion": "Congregation",
+      "congregacionDesc": "Real census and activity",
+      "distrito": "District",
+      "distritoDesc": "Consolidated by territory",
+      "nacional": "National",
+      "nacionalDesc": "A read on the whole country"
+    },
+    "modules": {
+      "title1": "Membership, with context",
+      "text1": "Census, families and each person's spiritual life cycle, from the day they join to the role they hold.",
+      "title2": "Analytics to decide with",
+      "text2": "Population pyramid, growth projection and a health traffic-light — the same at the local, district and national level.",
+      "title3": "Territorial outreach",
+      "text3": "Evangelism, Youth Mission and the 10 committees, consolidated at every level."
+    },
+    "plans": {
+      "eyebrow": "Plans",
+      "title": "The same complete SIGAP, at whatever pace works for your congregation.",
+      "subtext": "No trimmed-down features or a \"basic version\" — the difference between plans is the commitment period, not what you can do with the system. Message us and we'll advise you on the exact price for your congregation's size.",
+      "monthlyName": "Monthly plan",
+      "monthlySummary": "To get started with no strings attached, and see the change from your very first month-end close.",
+      "monthlyBenefit1": "Full access to every module, with no features locked.",
+      "monthlyBenefit2": "Your congregation is up and running on SIGAP in days, not months.",
+      "monthlyBenefit3": "Adjust or cancel whenever you need to.",
+      "monthlyCta": "Get a monthly quote",
+      "annualName": "Annual plan",
+      "annualBadge": "Best overall value",
+      "annualSummary": "For the congregation that has already decided SIGAP is how it works, all year round.",
+      "annualBenefit1": "Same full access, with a better total cost across the year.",
+      "annualBenefit2": "Ongoing support through every quarter of growth.",
+      "annualBenefit3": "Priority support and early access to new features.",
+      "annualCta": "Get an annual quote",
+      "trust": "We'll reply on WhatsApp with the price based on the number of congregations and districts you need to manage."
+    }
+  }
+}

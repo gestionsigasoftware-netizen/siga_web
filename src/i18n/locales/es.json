@@ -1,0 +1,83 @@
+{
+  "common": {
+    "nav": { "ayuda": "Ayuda", "ingresar": "Ingresar" },
+    "theme": { "toLight": "Cambiar a modo claro", "toDark": "Cambiar a modo oscuro" },
+    "language": { "switchLabel": "Cambiar idioma" },
+    "footer": {
+      "line": "Sistema Integrado de Gestión y Analítica Pastoral",
+      "rights": "Todos los derechos reservados.",
+      "by": "By Jormelia Soft",
+      "privacy": "Privacidad y términos",
+      "help": "Ayuda"
+    }
+  },
+  "inicio": {
+    "hero": {
+      "eyebrow": "Inteligencia pastoral",
+      "eyebrowLive": "Inteligencia pastoral en vivo",
+      "titlePre": "Cada nivel, ",
+      "titleAccent": "la lectura",
+      "titlePost": " que necesita para decidir.",
+      "subhead": "SIGAP convierte el censo, la asistencia y los comités en pirámide poblacional, ciclo de vida espiritual y proyección de crecimiento — con la misma claridad para el pastor local, el distrital y la dirección nacional.",
+      "cta": "Entrar a SIGAP",
+      "trust": "Acceso privado por invitación y perfil autorizado."
+    },
+    "dashboardMock": {
+      "yourCongregation": "Tu congregación",
+      "sharedReading": "Una lectura compartida",
+      "activity": "Actividad",
+      "activityValue": "Clara",
+      "byModule": "por módulo",
+      "accompaniment": "Acompañamiento",
+      "accompanimentValue": "Cercano",
+      "byPerson": "por persona"
+    },
+    "levels": {
+      "eyebrow": "Un mismo sistema, cuatro lecturas",
+      "congregacion": "Congregación",
+      "congregacionDesc": "Censo y pastoral del día a día",
+      "distrital": "Nivel Distrital",
+      "distritalDesc": "Consolidado de su distrito",
+      "nacional": "Nivel Nacional",
+      "nacionalDesc": "Lectura de los 36 distritos",
+      "superAdmin": "Super Admin",
+      "superAdminDesc": "Operación y salud de la plataforma"
+    },
+    "rollup": {
+      "caption": "Un solo dato, consolidado hacia arriba",
+      "congregacion": "Congregación",
+      "congregacionDesc": "Censo y actividad real",
+      "distrito": "Distrito",
+      "distritoDesc": "Consolidado del territorio",
+      "nacional": "Nacional",
+      "nacionalDesc": "Lectura del país completo"
+    },
+    "modules": {
+      "title1": "Feligresía con contexto",
+      "text1": "Censo, familias y ciclo de vida espiritual de cada persona, desde su ingreso hasta su cargo.",
+      "title2": "Analítica para decidir",
+      "text2": "Pirámide poblacional, proyección de crecimiento y semáforo de salud, igual en lo local, distrital y nacional.",
+      "title3": "Trabajo territorial",
+      "text3": "Evangelismo, Misión Juvenil y los 10 comités, con su consolidado en cada nivel."
+    },
+    "plans": {
+      "eyebrow": "Planes",
+      "title": "El mismo SIGAP completo, al ritmo que le sirva a tu congregación.",
+      "subtext": "Sin funciones recortadas ni \"versión básica\" — la diferencia entre planes es el tiempo de permanencia, no lo que puedes hacer con el sistema. Escríbenos y te asesoramos con el valor exacto para el tamaño de tu congregación.",
+      "monthlyName": "Plan mensual",
+      "monthlySummary": "Para empezar sin ataduras y ver el cambio desde el primer cierre de mes.",
+      "monthlyBenefit1": "Acceso completo a todos los módulos, sin funciones bloqueadas.",
+      "monthlyBenefit2": "Tu congregación queda operando en SIGAP en días, no en meses.",
+      "monthlyBenefit3": "Ajustas o cancelas cuando lo necesites.",
+      "monthlyCta": "Cotizar plan mensual",
+      "annualName": "Plan anual",
+      "annualBadge": "Mejor costo total",
+      "annualSummary": "Para la congregación que ya decidió que SIGAP es su forma de trabajar todo el año.",
+      "annualBenefit1": "Mismo acceso completo, con mejor costo total en el año.",
+      "annualBenefit2": "Acompañamiento continuo en cada trimestre de crecimiento.",
+      "annualBenefit3": "Prioridad en soporte y en las nuevas funciones.",
+      "annualCta": "Cotizar plan anual",
+      "trust": "Te respondemos por WhatsApp con el valor según el número de congregaciones y distritos que necesites gestionar."
+    }
+  }
+}

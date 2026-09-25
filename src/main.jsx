@@ -4,6 +4,8 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { instalarCapturaGlobalDeErrores } from './lib/errorLogging'
 import { inicializarSentry } from './lib/sentry'
+import { ThemeProvider } from './hooks/useTheme.jsx'
+import './i18n'
 import './index.css'
 
 inicializarSentry()
@@ -27,7 +29,9 @@ window.addEventListener('vite:preloadError', () => {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 )

@@ -2,6 +2,22 @@
 
 ## Prioridad critica antes de produccion
 
+- **En curso (2026-09-25) -- Fase 1 de 3 completa**: modo dia/noche +
+	3 idiomas (es/en/pt) en toda la app (web y PWA), pedido explicito
+	del usuario. Fase 1 (esta sesion): Inicio publico con tema real
+	(dia = Opcion A refinada con la franja de 4 niveles; noche =
+	Opcion B con diagrama de consolidado Congregacion-Distrito-Nacional)
+	+ los 3 idiomas reales, mas la base reutilizable (`ThemeProvider`/
+	`useTheme`, i18next con namespace `common.*` listo). Bug real
+	encontrado y corregido: useTheme con estado local (no Context)
+	hacia que el boton cambiara pero la pagina no se enterara --
+	convertido a Context. Ver
+	`docs/fixes/inicio-modo-oscuro-e-idiomas-2026-09-25.md`. **Falta**:
+	Fase 2 (extender tema+idiomas al resto de las ~45 pantallas de la
+	app web) y Fase 3 (mismo tema+idiomas en la PWA,
+	`SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
+	tocar).
+
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en
 	5 grupos con encabezado (Feligresia, Evangelismo y mision, Comites
