@@ -134,7 +134,7 @@ export default function InicioPublico() {
               <ShieldCheck className={`w-4 h-4 ${esOscuro ? 'text-[#8FC8FF]' : 'text-success'}`} /> {t('inicio.hero.trust')}
             </p>
           </div>
-          <div className="relative min-h-[330px] bg-ink rounded-card overflow-hidden p-7 sm:p-10 text-white shadow-[0_24px_60px_rgba(21,27,34,0.18)]">
+          <div className="relative min-h-[330px] bg-night rounded-card overflow-hidden p-7 sm:p-10 text-white shadow-[0_24px_60px_rgba(21,27,34,0.18)]">
             <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_82%_12%,#2a78d6_0,transparent_35%),linear-gradient(145deg,transparent_40%,#173404_160%)]" />
             <div className="relative h-full flex flex-col justify-between">
               <div><p className="text-xs uppercase tracking-[0.18em] text-white/55">{t('inicio.dashboardMock.yourCongregation')}</p><p className="text-2xl font-medium mt-3">{t('inicio.dashboardMock.sharedReading')}</p></div>
@@ -204,7 +204,7 @@ export default function InicioPublico() {
             </svg>
           </section>
         ) : (
-          <section className="relative z-[1] w-full bg-ink text-white">
+          <section className="relative z-[1] w-full bg-night text-white">
             <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
               <p className="text-xs uppercase tracking-[0.14em] text-[#8FC8FF] font-semibold mb-4">{t('inicio.levels.eyebrow')}</p>
               <div className="grid sm:grid-cols-3 gap-3">
@@ -228,7 +228,7 @@ export default function InicioPublico() {
         )}
       </div>
 
-      <section className="relative overflow-hidden border-t border-white/10 bg-ink text-white">
+      <section className="relative overflow-hidden border-t border-white/10 bg-night text-white">
         <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_15%_20%,rgba(42,120,214,0.28),transparent_38%),radial-gradient(circle_at_85%_80%,rgba(42,120,214,0.2),transparent_42%)]" />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-16 grid md:grid-cols-3 gap-4">{modules.map(({ icon: Icon, title, text }) => <article key={title} className="p-5 border border-white/10 rounded-card bg-[linear-gradient(145deg,rgba(42,120,214,0.3),rgba(42,120,214,0.12))] shadow-[0_14px_30px_rgba(5,12,20,0.18)]"><Icon className="w-5 h-5 text-[#8fc8ff]" /><h2 className="font-medium mt-5">{title}</h2><p className="text-sm text-white/65 leading-6 mt-2">{text}</p></article>)}</div>
       </section>
@@ -260,7 +260,7 @@ export default function InicioPublico() {
                 <article
                   key={plan}
                   className={oscuroCard
-                    ? 'relative p-8 rounded-card flex flex-col bg-ink text-white shadow-[0_28px_64px_rgba(21,27,34,0.28)] ring-1 ring-white/10'
+                    ? 'relative p-8 rounded-card flex flex-col bg-night text-white shadow-[0_28px_64px_rgba(21,27,34,0.28)] ring-1 ring-white/10'
                     : 'card relative p-8 flex flex-col'}
                 >
                   {oscuroCard && <div className="absolute inset-0 rounded-card opacity-70 bg-[radial-gradient(circle_at_88%_0%,#2a78d6_0,transparent_42%),radial-gradient(circle_at_2%_100%,rgba(240,200,118,0.4)_0,transparent_48%)]" />}

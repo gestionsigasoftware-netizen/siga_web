@@ -2,25 +2,28 @@
 
 ## Prioridad critica antes de produccion
 
-- **En curso (2026-09-25) -- Fase 1 de 3 completa**: modo dia/noche +
-	3 idiomas (es/en/pt) en toda la app (web y PWA), pedido explicito
-	del usuario. Fase 1 (esta sesion): Inicio publico con tema real
-	(dia = Opcion A refinada con la franja "tres lecturas"; noche =
-	Opcion B con diagrama de consolidado Congregacion-Distrito-Nacional)
-	+ los 3 idiomas reales, mas la base reutilizable (`ThemeProvider`/
-	`useTheme`, i18next con namespace `common.*` listo). Bug real
-	encontrado y corregido: useTheme con estado local (no Context)
-	hacia que el boton cambiara pero la pagina no se enterara --
-	convertido a Context. Ajustes pedidos tras revisar: se quito la
-	mencion publica a "36 distritos" y a "Super Admin" (rol interno),
-	"Inteligencia pastoral" paso a "Analitica pastoral", la franja de
-	niveles paso a banda oscura (antes clara con tinte azul), y se
-	agrego copy nuevo "Disponible 24/7, los 365 dias del ano." Ver
-	`docs/fixes/inicio-modo-oscuro-e-idiomas-2026-09-25.md`. **Falta**:
-	Fase 2 (extender tema+idiomas al resto de las ~45 pantallas de la
-	app web) y Fase 3 (mismo tema+idiomas en la PWA,
-	`SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
-	tocar).
+- **En curso (2026-09-25) -- Fase 2 de 3 completa (modo oscuro)**:
+	modo dia/noche + 3 idiomas (es/en/pt) en toda la app (web y PWA),
+	pedido explicito del usuario.
+	- Fase 1: Inicio publico con tema real (dia = Opcion A con la
+	  franja "tres lecturas"; noche = Opcion B con diagrama de
+	  consolidado Congregacion-Distrito-Nacional) + los 3 idiomas
+	  reales. Ver `docs/fixes/inicio-modo-oscuro-e-idiomas-2026-09-25.md`.
+	- Fase 2: modo oscuro extendido a TODA la app web autenticada
+	  (~45 pantallas) via tokens de color como variables CSS en
+	  `index.css`/`tailwind.config.js` -- ninguna pagina se toco
+	  individualmente para esto, ya usaban las clases semanticas
+	  (bg-surface-1, text-ink, etc.). Interruptor real agregado al
+	  header de `MainLayout.jsx`. Bug real encontrado y corregido:
+	  `ink` se usaba a la vez como texto (debe invertirse) y como
+	  relleno de superficies siempre-oscuras (botones, banners,
+	  modales -- NO deben invertirse); se separo en un token nuevo
+	  fijo `night`, migrado en ~22 lugares reales. Ver
+	  `docs/fixes/fase2-modo-oscuro-toda-la-app-2026-09-25.md`.
+	- **Falta**: traducir el resto de la app a ingles/portugues
+	  (contenido, la infraestructura de i18next ya existe), y Fase 3
+	  (mismo tema+idiomas en la PWA, `SIGA\siga movil\siga-pwa-nacional`,
+	  proyecto aparte, todavia sin tocar).
 
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en

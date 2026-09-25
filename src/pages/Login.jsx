@@ -183,7 +183,7 @@ export default function Login() {
         </g>
       </svg>
       <div className="relative z-[1] min-h-0 lg:min-h-[calc(100vh-3rem)] max-w-xl lg:max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] overflow-hidden rounded-card bg-surface-2 shadow-[0_24px_80px_rgba(21,27,34,0.12)]">
-        <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink text-white p-12">
+        <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-night text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
           <div className="relative">
             <Link to="/" className="inline-flex items-center" aria-label="Volver a la página principal de SIGAP">

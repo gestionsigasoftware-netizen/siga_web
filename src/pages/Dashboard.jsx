@@ -473,7 +473,7 @@ function DashboardDistrital({ rolPrincipal }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+      <section className="relative overflow-hidden rounded-card bg-night text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -832,7 +832,7 @@ function DashboardNacional() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+      <section className="relative overflow-hidden rounded-card bg-night text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -1194,7 +1194,7 @@ function DashboardSuperAdmin() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+      <section className="relative overflow-hidden rounded-card bg-night text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#f0c876_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -1581,7 +1581,7 @@ export default function Dashboard() {
   if (rolPrincipal.nivel === 'super_admin') return <DashboardSuperAdmin />
   if (loadingData) return (
     <div className="flex flex-col gap-6" role="status" aria-label="Cargando indicadores del resumen">
-      <div className="rounded-card bg-ink/90 p-7 sm:p-9 animate-pulse">
+      <div className="rounded-card bg-night/90 p-7 sm:p-9 animate-pulse">
         <div className="h-2.5 w-32 rounded bg-white/20" />
         <div className="h-8 w-64 rounded bg-white/20 mt-4" />
         <div className="h-3.5 w-96 max-w-full rounded bg-white/10 mt-4" />
@@ -1824,7 +1824,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-card bg-ink text-white p-7 sm:p-9">
+      <section className="relative overflow-hidden rounded-card bg-night text-white p-7 sm:p-9">
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-40 bg-[radial-gradient(circle_at_70%_25%,#2a78d6_0,transparent_55%)]" />
         <div className="relative max-w-2xl flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -1879,7 +1879,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-5">
-              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-ink text-white hover:bg-ink/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
+              <button type="button" onClick={descargarResumenPdf} disabled={!registros.length} className="text-xs font-medium bg-night text-white hover:bg-night/90 rounded-full px-4 py-2 flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Descargar informe</button>
             </div>
           </div>
         </section>

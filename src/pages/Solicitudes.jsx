@@ -218,7 +218,7 @@ export default function Solicitudes() {
       </section>
 
       {seleccionada && (
-        <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4" onClick={() => setSeleccionada(null)}>
+        <div className="fixed inset-0 z-40 bg-night/30 flex items-center justify-center p-4" onClick={() => setSeleccionada(null)}>
           <div className="w-full max-w-xl max-h-[85vh] overflow-y-auto bg-surface-2 rounded-card shadow-xl p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-4">
               <div><span className="audit-badge">{TIPO_LABELS[seleccionada.tipo]}</span><h2 className="font-medium mt-2">{seleccionada.asunto}</h2><p className="text-xs text-muted mt-1">{seleccionada.nivel_origen} → {seleccionada.nivel_destino} · {formatFecha(seleccionada.created_at, { formato: formato_fecha, conHora: true })}</p></div>

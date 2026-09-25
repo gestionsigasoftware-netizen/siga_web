@@ -189,7 +189,7 @@ export default function Suscripciones() {
       </section>
 
       {editando && (
-        <div className="fixed inset-0 z-40 bg-ink/30 flex items-center justify-center p-4" onClick={() => setEditando(null)}>
+        <div className="fixed inset-0 z-40 bg-night/30 flex items-center justify-center p-4" onClick={() => setEditando(null)}>
           <form onSubmit={guardarSuscripcion} className="w-full max-w-md bg-surface-2 rounded-card shadow-xl p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center gap-2 mb-1"><CreditCard className="w-4 h-4 text-accent" /><h2 className="font-medium">{editando.nombre}</h2></div>
             <p className="text-xs text-secondary mb-4">Configura el plan y la próxima fecha de pago.</p>

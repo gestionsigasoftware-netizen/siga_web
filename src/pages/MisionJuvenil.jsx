@@ -548,7 +548,7 @@ export default function MisionJuvenil() {
                 key={value}
                 type="button"
                 onClick={() => setPeriodo(value)}
-                className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}
+                className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}
               >
                 {label}
               </button>

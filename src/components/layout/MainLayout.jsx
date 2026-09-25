@@ -5,6 +5,7 @@ import RoleChooser from './RoleChooser'
 import NotificationCenter from './NotificationCenter'
 import GlobalSearch from './GlobalSearch'
 import Footer from '../Footer'
+import ThemeToggle from '../ThemeToggle'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Bell, Clock, Lock, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
@@ -154,6 +155,7 @@ export default function MainLayout() {
                 <span>Notificaciones</span>
               </div>
               <NotificationCenter />
+              <ThemeToggle />
               {nombrePersona && (
                 <span className="hidden sm:inline text-sm text-secondary">{nombrePersona}</span>
               )}
@@ -217,7 +219,7 @@ export default function MainLayout() {
       </main>
       <Toast tone="info">{ultimoAccesoNotice && <>Tu último acceso fue el {formatFecha(ultimoAccesoNotice, { formato: formato_fecha, conHora: true })}.</>}</Toast>
       {segundosParaCierre !== null && (
-        <div className="fixed inset-0 z-[300] bg-ink/40 flex items-center justify-center p-4" role="alertdialog" aria-labelledby="idle-title">
+        <div className="fixed inset-0 z-[300] bg-night/40 flex items-center justify-center p-4" role="alertdialog" aria-labelledby="idle-title">
           <div className="w-full max-w-sm bg-surface-2 rounded-card shadow-xl p-6">
             <h2 id="idle-title" className="font-medium">¿Sigues ahí?</h2>
             <p className="text-sm text-secondary mt-2">Por seguridad, tu sesión se cerrará en <span className="font-semibold text-ink">{segundosParaCierre}s</span> por inactividad.</p>

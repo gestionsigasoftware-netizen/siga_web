@@ -31,7 +31,7 @@ export default function LanguageSwitcher({ dark = false, className = '' }) {
               activo
                 ? dark
                   ? 'bg-white text-ink'
-                  : 'bg-ink text-white'
+                  : 'bg-night text-white'
                 : dark
                   ? 'text-white/60 hover:text-white'
                   : 'text-secondary hover:text-ink'

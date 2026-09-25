@@ -269,7 +269,7 @@ export default function EducacionArtistica() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
             {PERIODOS.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-ink text-white border-ink" : "border-border text-secondary"}`}>{label}</button>
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
             ))}
           </div>
           <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
