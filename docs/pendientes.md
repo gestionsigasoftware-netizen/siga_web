@@ -92,8 +92,23 @@
 	  real (login + EN/PT, cero errores de consola, clic real dentro
 	  de un grupo REFAM para confirmar el panel de participantes y
 	  reuniones).
-	- **Falta**: el contenido propio de las ~12 pantallas restantes
-	  (Manual, Conquistadores,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 3)**:
+	  `Manual.jsx` (460 lineas -- el archivo con mas texto de toda
+	  la app: documentacion completa de cada pantalla, por rol, con
+	  flujos paso a paso). Patron nuevo: en vez de convertir cada
+	  campo a `t()` individual, todo el contenido estructurado (que
+	  es/como/pasos, 94+24+16+9 pasos segun el rol) se movio COMPLETO
+	  a los 3 JSON de idioma y se lee entero con
+	  `t('manual.contenido', { returnObjects: true })` -- mismo patron
+	  de diccionario ya usado para estados/etapas, aplicado aqui a un
+	  arbol de contenido completo en vez de un mapa plano. Se elimino
+	  tambien su propio `NIVEL_LABEL` duplicado, reemplazado por
+	  `sidebar.levels` (ya existente, usado por RoleChooser). 34
+	  pantallas en total verificadas con Playwright real (login +
+	  EN/PT, cero errores de consola, conteo de secciones/items/pasos
+	  identico en los 3 idiomas antes de dar por cerrado).
+	- **Falta**: el contenido propio de las ~11 pantallas restantes
+	  (Conquistadores,
 	  EducacionTeologica, Musica, EducacionArtistica, DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
