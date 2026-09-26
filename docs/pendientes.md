@@ -54,27 +54,34 @@
 	  fechas.
 	- **Mas pantallas grandes traducidas (2026-09-26)**: ImpactoMisionero
 	  (+ `MapaTerritorios.jsx`), Amigos (ruta evangelistica, 1573
-	  lineas), MisionJuvenil, Evangelismo, ObraCarcelaria -- 28
-	  pantallas en total verificadas con Playwright real (login +
-	  EN/PT, cero errores). `FeligresiaAdmin.jsx` (1772 lineas) quedo
-	  **en curso, delegado a un subagente en segundo plano** que sigue
-	  el mismo patron (namespace `feligresiaAdmin` con sub-objetos
-	  anidados por seccion) -- retomar revisando si ya termino
-	  (`git log`/`git status` en el repo) antes de tocar ese archivo de
-	  nuevo, para no pisar su trabajo. `RutaFormacion.jsx` (636 lineas,
-	  sirve tanto ESFOB como Discipulado via un mismo componente
-	  parametrizado) quedo con el namespace `rutaFormacion` ya
-	  disenado en el script de merge (sin ejecutar todavia, sin tocar
-	  el JSX) -- siguiente paso literal al retomar.
-	- **Falta**: el contenido propio de las ~17 pantallas restantes
-	  (RutaFormacion, Modulos, EscuelaDominical, EstacionRefam, Manual,
-	  Conquistadores, EducacionTeologica, Musica, EducacionArtistica,
-	  DamasDorcas, ObraSocial, SaludDatos, Legal, PastoralDistrital, y
-	  el resto de modulos operativos) sigue en espanol fijo --
-	  pendiente por archivo en proximas sesiones, trabajo de contenido
-	  muy grande (cientos de textos por pantalla en algunos casos,
-	  especialmente PastoralDistrital.jsx 2271 lineas). Y la Fase 3
-	  (mismo tema+idiomas en la PWA,
+	  lineas), MisionJuvenil, Evangelismo, ObraCarcelaria, y
+	  **`FeligresiaAdmin.jsx` (1772 lineas, la pantalla operativa mas
+	  grande y compleja de toda la app)** -- 29 pantallas en total
+	  verificadas con Playwright real (login + EN/PT, cero errores de
+	  consola). `FeligresiaAdmin.jsx` se habia delegado a un subagente
+	  en segundo plano que **fallo a mitad de camino por un limite de
+	  sesion (rate limit)**, dejando ~279 llaves de traduccion
+	  referenciadas en el codigo pero nunca agregadas al JSON de
+	  idiomas (se veian literalmente como `feligresiaAdmin.titulo` en
+	  vez de texto real). Se detecto con Playwright, se reconstruyo el
+	  contenido exacto comparando contra la ultima version 100% en
+	  espanol del archivo (`git show` de un commit anterior a esta
+	  sesion) y se completaron las 279 llaves en los 3 idiomas -- cero
+	  llaves faltantes verificado por script antes de dar por cerrado.
+	  De paso se elimino una funcion `PersonForm` duplicada y muerta
+	  (nunca se renderizaba, referenciaba una variable `STATES` que ya
+	  no existia en su alcance -- habria lanzado error si alguna vez se
+	  hubiera llamado).
+	- **Falta**: el contenido propio de las ~16 pantallas restantes
+	  (RutaFormacion -- namespace ya disenado, siguiente paso literal --
+	  Modulos, EscuelaDominical, EstacionRefam, Manual, Conquistadores,
+	  EducacionTeologica, Musica, EducacionArtistica, DamasDorcas,
+	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
+	  modulos operativos) sigue en espanol fijo -- pendiente por
+	  archivo en proximas sesiones, trabajo de contenido muy grande
+	  (cientos de textos por pantalla en algunos casos, especialmente
+	  PastoralDistrital.jsx 2271 lineas, la mas grande que queda). Y la
+	  Fase 3 (mismo tema+idiomas en la PWA,
 	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
 	  tocar).
 
