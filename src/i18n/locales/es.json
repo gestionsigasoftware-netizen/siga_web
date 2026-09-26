@@ -1036,5 +1036,155 @@
     "requisitosContrasenaTip": "Debe tener al menos 8 caracteres, con una mayúscula, un número y un símbolo.",
     "placeholderNuevaContrasena": "Nueva contraseña segura",
     "actualizar": "Actualizar"
+  },
+  "comitesNacional": {
+    "validandoPermisos": "Validando permisos...",
+    "soloNacional": "Esta vista es exclusiva de nacional/super_admin.",
+    "cargando": "Cargando consolidado de comités...",
+    "loadError": "No se pudo cargar el consolidado nacional de comités.",
+    "eyebrow": "Administración nacional",
+    "titulo": "Comités Nacional",
+    "subtitulo": "Los 10 comités reales de la IPUC, consolidados por distrito — misma información que ya ve cada distrital sobre su propio distrito, ahora a escala país.",
+    "porDistrito": "Por distrito",
+    "porDistritoSubtitulo": "Número principal de cada comité — el detalle operativo completo lo maneja cada distrital en Pastoral Distrital.",
+    "sinDistritos": "Aún no hay distritos registrados.",
+    "colDistrito": "Distrito",
+    "distritoLabel": "Distrito {{numero}}",
+    "desc": {
+      "escuelaDominical": "Niños activos inscritos en Escuela Dominical, no el número de maestros ni de clases.",
+      "damasDorcas": "Personas beneficiadas por Damas Dorcas (ayudas, visitas, apoyo), no el número de mujeres que integran el comité.",
+      "obraCarcelaria": "Internos activos alcanzados por el ministerio carcelario, no los voluntarios que van a las cárceles.",
+      "obraSocial": "Casos activos atendidos por Obra Social (una familia o persona en apoyo), no el número de voluntarios.",
+      "redFamilias": "Casos activos en seguimiento por Red de Familias, no el número de familias que integran el comité."
+    }
+  },
+  "redFamilias": {
+    "caseTypes": {
+      "acompanamiento_solicitado": "Acompañamiento solicitado",
+      "visita_pendiente": "Visita pendiente",
+      "orientacion": "Orientación",
+      "integracion": "Integración",
+      "reactivacion": "Reactivación",
+      "necesidad_identificada": "Necesidad identificada"
+    },
+    "caseStates": {
+      "solicitado": "Solicitado",
+      "activo": "Activo",
+      "pausado": "Pausado",
+      "cerrado": "Cerrado"
+    },
+    "priorities": {
+      "baja": "Baja",
+      "media": "Media",
+      "alta": "Alta"
+    },
+    "visitStates": {
+      "programada": "Programada",
+      "realizada": "Realizada",
+      "cancelada": "Cancelada"
+    },
+    "activityTypes": {
+      "taller": "Taller",
+      "escuela": "Escuela de familia",
+      "campana": "Campaña",
+      "conferencia": "Conferencia",
+      "visita_grupal": "Visita grupal"
+    },
+    "sinResponsable": "Sin responsable",
+    "familiaNoDisponible": "Familia no disponible",
+    "cargando": "Cargando Red de Familias...",
+    "sinCongregacion": "Tu usuario no tiene una congregación local asignada.",
+    "eyebrow": "DEFAM · Trabajo familiar",
+    "eyebrowTip": "DEFAM es el área de la iglesia dedicada a las familias del censo: acompañamiento, visitas y actividades, más allá del registro que ya existe en Feligresía.",
+    "titulo": "Red de Familias",
+    "subtitulo": "Convierte el contexto del censo en acompañamiento, visitas y acciones medibles.",
+    "modoConsulta": "Modo consulta",
+    "reintentar": "Reintentar",
+    "metrics": {
+      "familiasCenso": "Familias del censo",
+      "fuenteFeligresia": "Fuente: Feligresía",
+      "acompanamientosAbiertos": "Acompañamientos abiertos",
+      "vencidos": "{{cantidad}} vencidos",
+      "sinVencidos": "Sin vencidos",
+      "visitasPendientes": "Visitas pendientes",
+      "proximas": "{{cantidad}} próximas",
+      "personasVinculadas": "Personas vinculadas",
+      "enCasos": "En casos de acompañamiento",
+      "familiasAlcanzadas": "Familias alcanzadas",
+      "actividadesCantidad": "{{cantidad}} actividades"
+    },
+    "tabs": {
+      "ariaLabel": "Secciones de Red de Familias",
+      "panorama": "Panorama",
+      "acompanamiento": "Acompañamiento",
+      "visitas": "Visitas",
+      "actividades": "Actividades"
+    },
+    "panorama": {
+      "prioridadEyebrow": "Prioridad de trabajo",
+      "prioridadTitulo": "Lo que requiere atención",
+      "vencidoDesde": "vencido desde {{fecha}}",
+      "sinVencidos": "No hay acompañamientos vencidos. Mantén actualizada la agenda.",
+      "actividadEyebrow": "Actividad reciente",
+      "actividadTitulo": "Trabajo realizado",
+      "familiasCantidad": "{{cantidad}} familias",
+      "sinActividades": "Aún no hay actividades registradas."
+    },
+    "acompanamiento": {
+      "tituloForm": "Abrir acompañamiento",
+      "familia": "Familia",
+      "seleccionarFamilia": "Seleccionar familia",
+      "personaRelacionada": "Persona relacionada",
+      "opcional": "Opcional",
+      "responsable": "Responsable",
+      "sinAsignar": "Sin asignar",
+      "necesidad": "Necesidad",
+      "prioridad": "Prioridad",
+      "proximoContacto": "Próximo contacto",
+      "notasConfidenciales": "Notas confidenciales",
+      "notasConfidencialesTip": "Solo la visualiza el equipo con permiso de edición de Red de Familias. Úsala para información sensible que no debe quedar en el historial general.",
+      "registrar": "Registrar acompañamiento",
+      "agendaTitulo": "Agenda de acompañamientos",
+      "agendaTip": "'Cerrar caso' es definitivo: no hay botón para reabrirlo desde aquí. Si la familia necesita seguimiento otra vez, abre un nuevo acompañamiento.",
+      "agendaSubtitulo": "Cada caso tiene una familia, una necesidad y un siguiente paso.",
+      "proximoContactoValor": "Próximo contacto: {{fecha}}",
+      "sinProximoContacto": "Sin próximo contacto",
+      "cerrarCaso": "Cerrar caso",
+      "sinCasos": "Aún no hay acompañamientos.",
+      "errorRegistrar": "No se pudo registrar el acompañamiento: {{mensaje}}",
+      "notice": "Acompañamiento registrado.",
+      "errorActualizar": "No se pudo actualizar el caso: {{mensaje}}",
+      "noticeEstado": "Acompañamiento {{estado}}."
+    },
+    "visitas": {
+      "tituloForm": "Programar visita domiciliaria",
+      "fecha": "Fecha",
+      "motivo": "Motivo",
+      "programar": "Programar visita",
+      "listaTitulo": "Visitas domiciliarias",
+      "listaSubtitulo": "La agenda muestra lo programado y permite registrar lo realizado.",
+      "marcarRealizada": "Marcar realizada",
+      "cancelar": "Cancelar",
+      "sinVisitas": "Aún no hay visitas programadas.",
+      "errorProgramar": "No se pudo programar la visita: {{mensaje}}",
+      "notice": "Visita programada.",
+      "errorActualizar": "No se pudo actualizar la visita: {{mensaje}}",
+      "noticeEstado": "Estado de visita actualizado."
+    },
+    "actividades": {
+      "tituloForm": "Registrar taller, escuela o campaña",
+      "nombre": "Nombre",
+      "tipo": "Tipo",
+      "asistentes": "Asistentes",
+      "familiasAlcanzadas": "Familias alcanzadas",
+      "objetivo": "Objetivo",
+      "registrar": "Registrar actividad",
+      "listaTitulo": "Actividades realizadas",
+      "listaSubtitulo": "Mide alcance y resultados para decidir qué repetir o ajustar.",
+      "sinActividades": "Aún no hay actividades registradas.",
+      "errorRegistrar": "No se pudo registrar la actividad: {{mensaje}}",
+      "notice": "Actividad registrada."
+    },
+    "errorCargar": "No se pudo cargar Red de Familias: {{mensaje}}"
   }
 }

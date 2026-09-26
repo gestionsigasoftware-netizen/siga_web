@@ -1036,5 +1036,155 @@
     "requisitosContrasenaTip": "Must have at least 8 characters, with one uppercase letter, one number, and one symbol.",
     "placeholderNuevaContrasena": "New secure password",
     "actualizar": "Update"
+  },
+  "comitesNacional": {
+    "validandoPermisos": "Validating permissions...",
+    "soloNacional": "This view is exclusive to national/super_admin.",
+    "cargando": "Loading committee consolidation...",
+    "loadError": "Could not load the national committee consolidation.",
+    "eyebrow": "National administration",
+    "titulo": "National Committees",
+    "subtitulo": "The IPUC's 10 real committees, consolidated by district -- the same information each district leader already sees about their own district, now at country scale.",
+    "porDistrito": "By district",
+    "porDistritoSubtitulo": "Main number of each committee -- the full operational detail is handled by each district leader in District Pastoral Care.",
+    "sinDistritos": "No districts registered yet.",
+    "colDistrito": "District",
+    "distritoLabel": "District {{numero}}",
+    "desc": {
+      "escuelaDominical": "Active children enrolled in Sunday School, not the number of teachers or classes.",
+      "damasDorcas": "People helped by Dorcas Ladies (aid, visits, support), not the number of women in the committee.",
+      "obraCarcelaria": "Active inmates reached by the prison ministry, not the volunteers who go to the prisons.",
+      "obraSocial": "Active cases handled by Social Outreach (a family or person receiving support), not the number of volunteers.",
+      "redFamilias": "Active cases followed up by the Family Network, not the number of families in the committee."
+    }
+  },
+  "redFamilias": {
+    "caseTypes": {
+      "acompanamiento_solicitado": "Follow-up requested",
+      "visita_pendiente": "Visit pending",
+      "orientacion": "Guidance",
+      "integracion": "Integration",
+      "reactivacion": "Reactivation",
+      "necesidad_identificada": "Need identified"
+    },
+    "caseStates": {
+      "solicitado": "Requested",
+      "activo": "Active",
+      "pausado": "Paused",
+      "cerrado": "Closed"
+    },
+    "priorities": {
+      "baja": "Low",
+      "media": "Medium",
+      "alta": "High"
+    },
+    "visitStates": {
+      "programada": "Scheduled",
+      "realizada": "Completed",
+      "cancelada": "Cancelled"
+    },
+    "activityTypes": {
+      "taller": "Workshop",
+      "escuela": "Family school",
+      "campana": "Campaign",
+      "conferencia": "Conference",
+      "visita_grupal": "Group visit"
+    },
+    "sinResponsable": "No one assigned",
+    "familiaNoDisponible": "Family not available",
+    "cargando": "Loading Family Network...",
+    "sinCongregacion": "Your user has no local congregation assigned.",
+    "eyebrow": "DEFAM · Family work",
+    "eyebrowTip": "DEFAM is the church's area dedicated to families in the census: follow-up, visits and activities, beyond the record that already exists in Membership.",
+    "titulo": "Family Network",
+    "subtitulo": "Turns the census context into follow-up, visits, and measurable actions.",
+    "modoConsulta": "View-only mode",
+    "reintentar": "Retry",
+    "metrics": {
+      "familiasCenso": "Census families",
+      "fuenteFeligresia": "Source: Membership",
+      "acompanamientosAbiertos": "Open follow-ups",
+      "vencidos": "{{cantidad}} overdue",
+      "sinVencidos": "None overdue",
+      "visitasPendientes": "Pending visits",
+      "proximas": "{{cantidad}} upcoming",
+      "personasVinculadas": "Linked people",
+      "enCasos": "In follow-up cases",
+      "familiasAlcanzadas": "Families reached",
+      "actividadesCantidad": "{{cantidad}} activities"
+    },
+    "tabs": {
+      "ariaLabel": "Family Network sections",
+      "panorama": "Overview",
+      "acompanamiento": "Follow-up",
+      "visitas": "Visits",
+      "actividades": "Activities"
+    },
+    "panorama": {
+      "prioridadEyebrow": "Work priority",
+      "prioridadTitulo": "What needs attention",
+      "vencidoDesde": "overdue since {{fecha}}",
+      "sinVencidos": "No overdue follow-ups. Keep the agenda up to date.",
+      "actividadEyebrow": "Recent activity",
+      "actividadTitulo": "Work done",
+      "familiasCantidad": "{{cantidad}} families",
+      "sinActividades": "No activities logged yet."
+    },
+    "acompanamiento": {
+      "tituloForm": "Open a follow-up",
+      "familia": "Family",
+      "seleccionarFamilia": "Select family",
+      "personaRelacionada": "Related person",
+      "opcional": "Optional",
+      "responsable": "Assigned to",
+      "sinAsignar": "Not assigned",
+      "necesidad": "Need",
+      "prioridad": "Priority",
+      "proximoContacto": "Next contact",
+      "notasConfidenciales": "Confidential notes",
+      "notasConfidencialesTip": "Only visible to the team with Family Network edit permission. Use it for sensitive information that shouldn't stay in the general history.",
+      "registrar": "Log follow-up",
+      "agendaTitulo": "Follow-up agenda",
+      "agendaTip": "'Close case' is final: there's no button to reopen it from here. If the family needs follow-up again, open a new one.",
+      "agendaSubtitulo": "Each case has a family, a need, and a next step.",
+      "proximoContactoValor": "Next contact: {{fecha}}",
+      "sinProximoContacto": "No next contact set",
+      "cerrarCaso": "Close case",
+      "sinCasos": "No follow-ups yet.",
+      "errorRegistrar": "Could not log the follow-up: {{mensaje}}",
+      "notice": "Follow-up logged.",
+      "errorActualizar": "Could not update the case: {{mensaje}}",
+      "noticeEstado": "Follow-up {{estado}}."
+    },
+    "visitas": {
+      "tituloForm": "Schedule a home visit",
+      "fecha": "Date",
+      "motivo": "Reason",
+      "programar": "Schedule visit",
+      "listaTitulo": "Home visits",
+      "listaSubtitulo": "The agenda shows what is scheduled and lets you log what was done.",
+      "marcarRealizada": "Mark completed",
+      "cancelar": "Cancel",
+      "sinVisitas": "No visits scheduled yet.",
+      "errorProgramar": "Could not schedule the visit: {{mensaje}}",
+      "notice": "Visit scheduled.",
+      "errorActualizar": "Could not update the visit: {{mensaje}}",
+      "noticeEstado": "Visit status updated."
+    },
+    "actividades": {
+      "tituloForm": "Log a workshop, school, or campaign",
+      "nombre": "Name",
+      "tipo": "Type",
+      "asistentes": "Attendees",
+      "familiasAlcanzadas": "Families reached",
+      "objetivo": "Goal",
+      "registrar": "Log activity",
+      "listaTitulo": "Activities held",
+      "listaSubtitulo": "Measure reach and results to decide what to repeat or adjust.",
+      "sinActividades": "No activities logged yet.",
+      "errorRegistrar": "Could not log the activity: {{mensaje}}",
+      "notice": "Activity logged."
+    },
+    "errorCargar": "Could not load Family Network: {{mensaje}}"
   }
 }
