@@ -38,25 +38,29 @@
 	  congregacion, `MOVIMIENTO_LABELS`/`CARGO_DISTRITAL_LABELS` (otros
 	  archivos `lib/`), y el texto de las alertas pastorales generadas
 	  por `vw_alertas_pastorales`.
-	- **Pantallas pequenas/medianas traducidas (2026-09-25)**: NotFound,
+	- **Pantallas pequenas/medianas traducidas (2026-09-25/26)**: NotFound,
 	  Ayuda (FAQ publico), Perfil, RoleChooser completo (ya no falta),
 	  ComitesNacional, RedFamilias, ErroresSistema, Soporte,
-	  ReportesOptimizado, Aprobaciones -- las 10 verificadas con
-	  Playwright real (login + EN/PT, cero errores). Nota menor
-	  detectada: `ReportesOptimizado.jsx` formatea fechas con
+	  ReportesOptimizado, Aprobaciones, Suscripciones, AuditoriaFeligresia,
+	  ConfiguracionSistema (Preferencias), Solicitudes, EquipoCongregacion,
+	  Login, EstacionUnoMas, EstacionBis, RegistrarAsistencia,
+	  MisionesEvangelismo -- las 19 verificadas con Playwright real
+	  (login + EN/PT, cero errores). Nota menor detectada:
+	  `ReportesOptimizado.jsx` formatea fechas con
 	  `toLocaleDateString('es-CO', ...)` fijo -- salen en espanol
 	  aunque el resto de la UI este en otro idioma; mismo patron existe
 	  en varios reportes mas, pendiente de una pasada futura dedicada a
 	  fechas.
-	- **Falta**: el contenido propio de las ~34 pantallas restantes
+	- **Falta**: el contenido propio de las ~24 pantallas restantes
 	  (Feligresia, la mas grande; Evangelismo, MisionJuvenil, Amigos,
-	  PastoralDistrital, y el resto de modulos operativos) sigue en
-	  espanol fijo -- pendiente por archivo en proximas sesiones,
-	  trabajo de contenido muy grande (cientos de textos por pantalla
-	  en algunos casos, especialmente FeligresiaAdmin.jsx 1772 lineas y
-	  PastoralDistrital.jsx 2271 lineas). Y la Fase 3 (mismo
-	  tema+idiomas en la PWA, `SIGA\siga movil\siga-pwa-nacional`,
-	  proyecto aparte, todavia sin tocar).
+	  PastoralDistrital, EstacionRefam, y el resto de modulos
+	  operativos) sigue en espanol fijo -- pendiente por archivo en
+	  proximas sesiones, trabajo de contenido muy grande (cientos de
+	  textos por pantalla en algunos casos, especialmente
+	  FeligresiaAdmin.jsx 1772 lineas y PastoralDistrital.jsx 2271
+	  lineas). Y la Fase 3 (mismo tema+idiomas en la PWA,
+	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
+	  tocar).
 
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en
