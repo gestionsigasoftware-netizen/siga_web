@@ -52,14 +52,29 @@
 	  aunque el resto de la UI este en otro idioma; mismo patron existe
 	  en varios reportes mas, pendiente de una pasada futura dedicada a
 	  fechas.
-	- **Falta**: el contenido propio de las ~20 pantallas restantes
-	  (Feligresia, la mas grande; Evangelismo, MisionJuvenil, Amigos,
-	  PastoralDistrital, EstacionRefam, y el resto de modulos
-	  operativos) sigue en espanol fijo -- pendiente por archivo en
-	  proximas sesiones, trabajo de contenido muy grande (cientos de
-	  textos por pantalla en algunos casos, especialmente
-	  FeligresiaAdmin.jsx 1772 lineas y PastoralDistrital.jsx 2271
-	  lineas). Y la Fase 3 (mismo tema+idiomas en la PWA,
+	- **Mas pantallas grandes traducidas (2026-09-26)**: ImpactoMisionero
+	  (+ `MapaTerritorios.jsx`), Amigos (ruta evangelistica, 1573
+	  lineas), MisionJuvenil, Evangelismo, ObraCarcelaria -- 28
+	  pantallas en total verificadas con Playwright real (login +
+	  EN/PT, cero errores). `FeligresiaAdmin.jsx` (1772 lineas) quedo
+	  **en curso, delegado a un subagente en segundo plano** que sigue
+	  el mismo patron (namespace `feligresiaAdmin` con sub-objetos
+	  anidados por seccion) -- retomar revisando si ya termino
+	  (`git log`/`git status` en el repo) antes de tocar ese archivo de
+	  nuevo, para no pisar su trabajo. `RutaFormacion.jsx` (636 lineas,
+	  sirve tanto ESFOB como Discipulado via un mismo componente
+	  parametrizado) quedo con el namespace `rutaFormacion` ya
+	  disenado en el script de merge (sin ejecutar todavia, sin tocar
+	  el JSX) -- siguiente paso literal al retomar.
+	- **Falta**: el contenido propio de las ~17 pantallas restantes
+	  (RutaFormacion, Modulos, EscuelaDominical, EstacionRefam, Manual,
+	  Conquistadores, EducacionTeologica, Musica, EducacionArtistica,
+	  DamasDorcas, ObraSocial, SaludDatos, Legal, PastoralDistrital, y
+	  el resto de modulos operativos) sigue en espanol fijo --
+	  pendiente por archivo en proximas sesiones, trabajo de contenido
+	  muy grande (cientos de textos por pantalla en algunos casos,
+	  especialmente PastoralDistrital.jsx 2271 lineas). Y la Fase 3
+	  (mismo tema+idiomas en la PWA,
 	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
 	  tocar).
 
