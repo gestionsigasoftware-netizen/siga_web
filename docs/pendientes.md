@@ -113,8 +113,13 @@
 	  Evangelistica" ya visto en Mision Juvenil/Obra Carcelaria). 35
 	  pantallas en total verificadas con Playwright real (login +
 	  EN/PT, cero errores de consola).
-	- **Falta**: el contenido propio de las ~10 pantallas restantes
-	  (EducacionTeologica, Musica, EducacionArtistica, DamasDorcas,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 5)**:
+	  `EducacionTeologica.jsx` (440 lineas -- comite de servicio,
+	  grupos por nivel academico con certificacion). 36 pantallas en
+	  total verificadas con Playwright real (login + EN/PT, cero
+	  errores de consola).
+	- **Falta**: el contenido propio de las ~9 pantallas restantes
+	  (Musica, EducacionArtistica, DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
