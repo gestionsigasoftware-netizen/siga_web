@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
@@ -6,11 +7,11 @@ import InfoTip from '../components/InfoTip'
 
 const registrarAsistenciaCache = new Map()
 
-function withRequestTimeout(request, milliseconds = 12000) {
-  return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('La operación tardó demasiado. Intenta nuevamente.')), milliseconds))])
-}
-
 export default function RegistrarAsistencia() {
+  const { t } = useTranslation()
+  function withRequestTimeout(request, milliseconds = 12000) {
+    return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error(t('registrarAsistencia.errorTimeout'))), milliseconds))])
+  }
   const { rolPrincipal, loading: loadingRol } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
 
@@ -66,7 +67,7 @@ export default function RegistrarAsistencia() {
       supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }).limit(10),
     ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult]) => {
       const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult].find((result) => result.error)
-      if (failed) setError('No se pudo cargar toda la información. Intenta nuevamente o contacta al administrador.')
+      if (failed) setError(t('registrarAsistencia.errorCargarTodo'))
       const newModulos = modulosResult.data ?? []
       const newCategorias = categoriasResult.data ?? []
       const newResponsables = responsablesResult.data ?? []
@@ -93,7 +94,7 @@ export default function RegistrarAsistencia() {
         canCapture: newCanCapture,
       })
     }).catch(() => {
-      setError('No se pudo cargar la información de asistencia.')
+      setError(t('registrarAsistencia.errorCargarInfo'))
       setLoadingPermission(false)
       setLoadingData(false)
     })
@@ -133,17 +134,17 @@ export default function RegistrarAsistencia() {
     e.preventDefault()
     const total = Object.values(conteos).reduce((a, b) => a + b, 0)
     const modulo = modulos.find((item) => item.id === moduloId)
-    if ((captureRules.exigir_responsable && !responsableId) || total <= 0) { setError(`${captureRules.exigir_responsable ? 'Elige un responsable e ' : ''}ingresa al menos un asistente.`); return }
-    if (captureRules.exigir_novedades && !novedades.trim()) { setError('Escribe las novedades de la actividad según la configuración de la congregación.'); return }
-    if (modulo?.requiere_zona && !zonaId) { setError('Selecciona el barrio o zona de la actividad.'); return }
+    if ((captureRules.exigir_responsable && !responsableId) || total <= 0) { setError(`${captureRules.exigir_responsable ? t('registrarAsistencia.errorEligeResponsable') : ''}${t('registrarAsistencia.errorIngresaAsistente')}`); return }
+    if (captureRules.exigir_novedades && !novedades.trim()) { setError(t('registrarAsistencia.errorNovedades')); return }
+    if (modulo?.requiere_zona && !zonaId) { setError(t('registrarAsistencia.errorZona')); return }
     setError(null)
     setSaving(true)
 
     let duplicateQuery = supabase.from('registros_actividad').select('id', { count: 'exact', head: true }).eq('congregacion_id', congregacionId).eq('fecha', fecha).eq('modulo_id', moduloId).eq('tipo_actividad_id', tipoId)
     duplicateQuery = zonaId ? duplicateQuery.eq('zona_id', zonaId) : duplicateQuery.is('zona_id', null)
     const { count: duplicateCount, error: duplicateError } = await duplicateQuery
-    if (duplicateError) { setSaving(false); setError('No se pudo verificar si ya existe un registro duplicado. Intenta nuevamente.'); return }
-    if (duplicateCount > 0 && !window.confirm('Ya existe un registro para esta fecha, módulo, actividad y zona. ¿Deseas continuar como corrección?')) { setSaving(false); return }
+    if (duplicateError) { setSaving(false); setError(t('registrarAsistencia.errorVerificarDuplicado')); return }
+    if (duplicateCount > 0 && !window.confirm(t('registrarAsistencia.confirmarDuplicado'))) { setSaving(false); return }
 
     let result
     try {
@@ -160,10 +161,10 @@ export default function RegistrarAsistencia() {
         motivo_captura: motivoCaptura,
         desglose: conteos,
       }))
-    } catch (requestError) { setSaving(false); setError('No se pudo guardar la corrección. Intenta nuevamente.'); return }
+    } catch (requestError) { setSaving(false); setError(t('registrarAsistencia.errorGuardar')); return }
     setSaving(false)
     const { error } = result
-    if (error) { setError('No se pudo guardar la corrección. Intenta nuevamente.'); return }
+    if (error) { setError(t('registrarAsistencia.errorGuardar')); return }
     setOk(true)
     setConteos({})
     setNovedades('')
@@ -172,56 +173,56 @@ export default function RegistrarAsistencia() {
     setTimeout(() => setOk(false), 3000)
   }
 
-  if (loadingRol || loadingPermission || loadingData) return <div className="module-loading" role="status"><span className="loading-dot" />Preparando corrección de asistencia...</div>
+  if (loadingRol || loadingPermission || loadingData) return <div className="module-loading" role="status"><span className="loading-dot" />{t('registrarAsistencia.preparando')}</div>
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-medium">Corrección / contingencia de asistencia</h1>
-        <p className="text-sm text-secondary mt-0.5">Usa esta pantalla solo para corregir un registro cuando la captura habitual no estuvo disponible.</p>
+        <h1 className="text-xl font-medium">{t('registrarAsistencia.titulo')}</h1>
+        <p className="text-sm text-secondary mt-0.5">{t('registrarAsistencia.subtitulo')}</p>
       </div>
 
-      {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Tu perfil no tiene permiso para registrar correcciones de asistencia.</p>}
+      {!canCapture && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('registrarAsistencia.sinPermiso')}</p>}
 
       <form onSubmit={handleSubmit} className="card p-5 max-w-lg flex flex-col gap-3.5">
-        <label className="text-sm text-secondary">Fecha de la actividad<input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-field mt-1" /></label>
-        {modulos.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">No hay módulos activos configurados para esta congregación.</p>}
-        {categorias.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">No hay categorías demográficas configuradas para capturar asistencia.</p>}
+        <label className="text-sm text-secondary">{t('registrarAsistencia.fechaActividad')}<input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-field mt-1" /></label>
+        {modulos.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">{t('registrarAsistencia.sinModulos')}</p>}
+        {categorias.length === 0 && <p className="text-sm text-warning bg-warning-bg rounded p-3">{t('registrarAsistencia.sinCategorias')}</p>}
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Módulo</label>
+          <label className="text-sm text-secondary block mb-1">{t('registrarAsistencia.modulo')}</label>
           <select value={moduloId} onChange={(e) => setModuloId(e.target.value)} className="input-field" required>
-            <option value="">Selecciona un módulo</option>
+            <option value="">{t('registrarAsistencia.seleccionaModulo')}</option>
             {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre_modulo}</option>)}
           </select>
         </div>
 
-        {modulos.find((modulo) => modulo.id === moduloId)?.requiere_zona && <div><label className="text-sm text-secondary block mb-1">Barrio o zona</label><select required value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="input-field"><option value="">Selecciona una zona</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></div>}
+        {modulos.find((modulo) => modulo.id === moduloId)?.requiere_zona && <div><label className="text-sm text-secondary block mb-1">{t('registrarAsistencia.barrioZona')}</label><select required value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="input-field"><option value="">{t('registrarAsistencia.seleccionaZona')}</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></div>}
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Tipo de actividad</label>
+          <label className="text-sm text-secondary block mb-1">{t('registrarAsistencia.tipoActividad')}</label>
           <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="input-field" required disabled={!moduloId}>
-            <option value="">Selecciona una actividad</option>
-            {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}{t.caracter ? ` — ${t.caracter}` : ''}</option>)}
+            <option value="">{t('registrarAsistencia.seleccionaActividad')}</option>
+            {tipos.map((t2) => <option key={t2.id} value={t2.id}>{t2.nombre}{t2.caracter ? ` — ${t2.caracter}` : ''}</option>)}
           </select>
         </div>
 
         <div>
           <label className="text-sm text-secondary mb-1 flex items-center gap-1">
-            Responsable de tomar asistencia{captureRules.exigir_responsable ? '' : ' (opcional)'}
-            <InfoTip texto="Es la persona que da fe del conteo. La congregación decide si este dato es obligatorio." />
+            {t('registrarAsistencia.responsableAsistencia')}{captureRules.exigir_responsable ? '' : t('registrarAsistencia.opcional')}
+            <InfoTip texto={t('registrarAsistencia.responsableTip')} />
           </label>
           <select value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className="input-field w-full" required={captureRules.exigir_responsable}>
-            <option value="">Selecciona un responsable</option>
+            <option value="">{t('registrarAsistencia.seleccionaResponsable')}</option>
             {esModuloUjieres
               ? ujieresCongregacion.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)
               : responsables.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
           </select>
-          {esModuloUjieres && ujieresCongregacion.length === 0 && <p className="text-xs text-muted mt-1">Aún no hay ujieres registrados — agrégalos desde "Módulos y actividades".</p>}
+          {esModuloUjieres && ujieresCongregacion.length === 0 && <p className="text-xs text-muted mt-1">{t('registrarAsistencia.sinUjieres')}</p>}
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-2">Asistencia por categoría</label>
+          <label className="text-sm text-secondary block mb-2">{t('registrarAsistencia.asistenciaPorCategoria')}</label>
           <div className="grid grid-cols-2 gap-2.5">
             {categorias.map((cat) => (
               <div key={cat.id}>
@@ -233,41 +234,41 @@ export default function RegistrarAsistencia() {
         </div>
 
         <div>
-          <label className="text-sm text-secondary block mb-1">Novedades{captureRules.exigir_novedades ? '' : ' (opcional)'}</label>
-          <textarea required={captureRules.exigir_novedades} value={novedades} onChange={(e) => setNovedades(e.target.value)} className="input-field" rows={2} placeholder="Sin novedades" />
+          <label className="text-sm text-secondary block mb-1">{t('registrarAsistencia.novedades')}{captureRules.exigir_novedades ? '' : t('registrarAsistencia.opcional')}</label>
+          <textarea required={captureRules.exigir_novedades} value={novedades} onChange={(e) => setNovedades(e.target.value)} className="input-field" rows={2} placeholder={t('registrarAsistencia.placeholderSinNovedades')} />
         </div>
 
         <div>
           <label className="text-sm text-secondary mb-1 flex items-center gap-1">
-            Motivo de corrección o contingencia
-            <InfoTip texto="Explica por qué este registro se hizo aquí y no en la captura habitual. Queda guardado como respaldo del dato." />
+            {t('registrarAsistencia.motivoCorreccion')}
+            <InfoTip texto={t('registrarAsistencia.motivoTip')} />
           </label>
-          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder="Ej. La captura habitual no estuvo disponible o se corrigió un dato enviado" />
+          <textarea required value={motivoCaptura} onChange={(e) => setMotivoCaptura(e.target.value)} className="input-field" rows={2} placeholder={t('registrarAsistencia.motivoPlaceholder')} />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
-        {ok && <p className="text-sm text-success">Corrección guardada.</p>}
+        {ok && <p className="text-sm text-success">{t('registrarAsistencia.correccionGuardada')}</p>}
 
         <div className="flex items-center justify-between gap-3 rounded-card border border-accent/20 bg-accent-bg px-3 py-2.5">
-          <div><p className="text-[10px] uppercase tracking-[0.14em] text-accent-dark">Total a registrar</p><p className="text-xs text-secondary mt-0.5">Suma de las categorías ingresadas</p></div>
+          <div><p className="text-[10px] uppercase tracking-[0.14em] text-accent-dark">{t('registrarAsistencia.totalARegistrar')}</p><p className="text-xs text-secondary mt-0.5">{t('registrarAsistencia.sumaCategorias')}</p></div>
           <strong className="text-2xl text-accent-dark">{totalPreview}</strong>
         </div>
 
         <button type="submit" disabled={saving || !canCapture} className="btn-primary justify-center">
-          {saving ? 'Guardando...' : 'Guardar corrección'}
+          {saving ? t('registrarAsistencia.guardando') : t('registrarAsistencia.guardarCorreccion')}
         </button>
       </form>
 
       <div>
-        <h3 className="font-medium mb-3">Registros recientes</h3>
+        <h3 className="font-medium mb-3">{t('registrarAsistencia.registrosRecientes')}</h3>
         <div className="table-scroll">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-muted text-left">
-              <th className="font-normal py-1.5">Fecha</th>
-              <th className="font-normal py-1.5">Actividad</th>
-              <th className="font-normal py-1.5">Responsable</th>
-              <th className="font-normal py-1.5">Total</th>
+              <th className="font-normal py-1.5">{t('registrarAsistencia.colFecha')}</th>
+              <th className="font-normal py-1.5">{t('registrarAsistencia.colActividad')}</th>
+              <th className="font-normal py-1.5">{t('registrarAsistencia.colResponsable')}</th>
+              <th className="font-normal py-1.5">{t('registrarAsistencia.colTotal')}</th>
             </tr>
           </thead>
           <tbody>
