@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Search, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { hoyBogota } from "../lib/fechaBogota";
 import { useMiRol } from '../hooks/useMiRol'
@@ -10,6 +11,7 @@ const esModuloCarcelaria = (nombreModulo) => /carcelari/i.test(nombreModulo || '
 const equipoCongregacionCache = new Map()
 
 export default function EquipoCongregacion() {
+  const { t } = useTranslation()
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
   const isPastor = rolPrincipal?.nivel === 'local' && (!rolPrincipal.rol_local || rolPrincipal.rol_local === 'pastor')
@@ -39,7 +41,7 @@ export default function EquipoCongregacion() {
   async function load() {
     if (!congregacionId) {
       setLoading(false)
-      setMessage({ type: 'error', text: 'Tu usuario no tiene una congregación local asignada.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.sinCongregacion') })
       return
     }
     const cacheKey = congregacionId
@@ -56,7 +58,7 @@ export default function EquipoCongregacion() {
     } else {
       setLoading(true)
     }
-    setMessage((current) => (current?.text === 'Tu usuario no tiene una congregación local asignada.' ? null : current))
+    setMessage((current) => (current?.text === t('equipoCongregacion.sinCongregacion') ? null : current))
     const { data: congregacion } = await supabase.from('congregaciones').select('distrito_id').eq('id', congregacionId).single()
     const [peopleResult, profilesResult, modulesResult, zonasResult, centrosResult, assignmentsResult, cargoAssignmentsResult] = await Promise.all([
       supabase.from('personas').select('id, nombres, apellidos, auth_user_id').eq('congregacion_id', congregacionId).order('nombres'),
@@ -68,7 +70,7 @@ export default function EquipoCongregacion() {
       supabase.from('asignaciones_cargo').select('id, persona_id, fecha_inicio, zonas(nombre), centros_reclusion(nombre), cargos!inner(nombre_cargo, modulos!inner(nombre_modulo, congregacion_id))').eq('cargos.modulos.congregacion_id', congregacionId).is('fecha_fin', null).order('fecha_inicio', { ascending: false }),
     ])
     const failed = [peopleResult, profilesResult, modulesResult, zonasResult, centrosResult, assignmentsResult, cargoAssignmentsResult].find((result) => result.error)
-    if (failed) setMessage({ type: 'error', text: 'No se pudo cargar el equipo de trabajo. Intenta nuevamente o contacta al administrador.' })
+    if (failed) setMessage({ type: 'error', text: t('equipoCongregacion.errorCargar') })
     const loadedPeople = peopleResult.data ?? []
     const loadedProfiles = profilesResult.data ?? []
     const peopleById = new Map(loadedPeople.map((person) => [person.id, person]))
@@ -123,23 +125,23 @@ export default function EquipoCongregacion() {
   async function inviteUser(event) {
     event.preventDefault()
     if (!personId) {
-      setMessage({ type: 'error', text: 'Busca y selecciona una persona del censo.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorSeleccionaPersona') })
       return
     }
     if (!email.trim() || (!profileId && !moduleId)) {
-      setMessage({ type: 'error', text: 'Escribe el correo y selecciona al menos un tipo de acceso.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorCorreoTipoAcceso') })
       return
     }
     if (profileId && assignedProfileKeys.has(`${personId}:${profileId}`) && !moduleId) {
-      setMessage({ type: 'error', text: 'Esta persona ya tiene ese perfil activo.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorPerfilExistente') })
       return
     }
     if (pideZona && !zonaId) {
-      setMessage({ type: 'error', text: 'Este módulo necesita que elijas la zona de la que será responsable.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorFaltaZona') })
       return
     }
     if (pideCentro && !centroId) {
-      setMessage({ type: 'error', text: 'Este módulo necesita que elijas el centro de reclusión del que será responsable.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorFaltaCentro') })
       return
     }
     setSaving(true)
@@ -161,15 +163,15 @@ export default function EquipoCongregacion() {
       setMessage({
         type: 'error',
         text: functionUnavailable
-          ? 'El servicio de invitaciones no está disponible. Contacta al administrador.'
+          ? t('equipoCongregacion.errorServicioNoDisponible')
           : rateLimited
-            ? 'Se alcanzó el límite temporal de invitaciones. Espera antes de volver a intentarlo.'
-          : 'No se pudo enviar la invitación. Intenta nuevamente o contacta al administrador.',
+            ? t('equipoCongregacion.errorRateLimit')
+          : t('equipoCongregacion.errorEnviarInvitacion'),
       })
       return
     }
     if (!data?.ok) {
-      setMessage({ type: 'error', text: 'La invitacion no pudo confirmarse.' })
+      setMessage({ type: 'error', text: t('equipoCongregacion.errorInvitacionNoConfirmada') })
       return
     }
     setPersonId('')
@@ -182,87 +184,87 @@ export default function EquipoCongregacion() {
     setMessage({
       type: 'success',
       text: data.invitationSent
-        ? 'Invitacion enviada. La persona recibira un enlace para crear su contrasena.'
-        : 'Cuenta existente vinculada. La persona puede ingresar con sus credenciales actuales.',
+        ? t('equipoCongregacion.invitacionEnviada')
+        : t('equipoCongregacion.cuentaVinculada'),
     })
     load()
   }
 
   async function endAssignment(assignment) {
-    if (!window.confirm(`Retirar el perfil de ${assignment.personas?.nombres || 'esta persona'}?`)) return
+    if (!window.confirm(t('equipoCongregacion.confirmarRetirarPerfil', { nombre: assignment.personas?.nombres || t('equipoCongregacion.estaPersona') }))) return
     setBusyAssignmentId(assignment.id)
     const result = await supabase.from('asignaciones_acceso').update({ fecha_fin: hoyBogota() }).eq('id', assignment.id).eq('congregacion_id', congregacionId)
     setBusyAssignmentId(null)
-    if (result.error) { setMessage({ type: 'error', text: 'No se pudo retirar el perfil.' }); return }
-    setMessage({ type: 'success', text: 'Perfil retirado. El historial se conserva.' })
+    if (result.error) { setMessage({ type: 'error', text: t('equipoCongregacion.errorRetirarPerfil') }); return }
+    setMessage({ type: 'success', text: t('equipoCongregacion.perfilRetirado') })
     load()
   }
 
   async function endCargoAssignment(assignment) {
-    if (!window.confirm(`Retirar la responsabilidad de ${assignment.cargos?.modulos?.nombre_modulo || 'este módulo'} a ${assignment.personas?.nombres || 'esta persona'}?`)) return
+    if (!window.confirm(t('equipoCongregacion.confirmarRetirarCargo', { modulo: assignment.cargos?.modulos?.nombre_modulo || t('equipoCongregacion.esteModulo'), nombre: assignment.personas?.nombres || t('equipoCongregacion.estaPersona') }))) return
     setBusyCargoAssignmentId(assignment.id)
     const result = await supabase.from('asignaciones_cargo').update({ fecha_fin: hoyBogota() }).eq('id', assignment.id)
     setBusyCargoAssignmentId(null)
-    if (result.error) { setMessage({ type: 'error', text: 'No se pudo retirar la responsabilidad operativa.' }); return }
-    setMessage({ type: 'success', text: 'Responsabilidad operativa retirada. El historial se conserva.' })
+    if (result.error) { setMessage({ type: 'error', text: t('equipoCongregacion.errorRetirarCargo') }); return }
+    setMessage({ type: 'success', text: t('equipoCongregacion.cargoRetirado') })
     load()
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando equipo de trabajo...</div>
-  if (!isPastor) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Solo el pastor puede administrar el equipo de la congregacion.</p>
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('equipoCongregacion.cargando')}</div>
+  if (!isPastor) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('equipoCongregacion.soloPastor')}</p>
 
   return (
     <div className="page-shell">
-      <header><p className="eyebrow">Administración local</p><h1 className="section-title">Equipo de trabajo</h1><p className="text-sm text-secondary mt-1">Administra en un solo lugar quiénes pueden consultar SIGAP y qué responsabilidades tienen asignadas.</p></header>
+      <header><p className="eyebrow">{t('equipoCongregacion.eyebrow')}</p><h1 className="section-title">{t('equipoCongregacion.titulo')}</h1><p className="text-sm text-secondary mt-1">{t('equipoCongregacion.subtitulo')}</p></header>
       {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm rounded p-3 ${message.type === 'error' ? 'text-danger bg-danger-bg' : 'text-success bg-success-bg'}`}>{message.text}</p>}
       <section className="grid sm:grid-cols-3 gap-3">
-        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Personas con acceso</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div>
-        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">Perfiles activos</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Personas disponibles</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div>
+        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><Users className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">{t('equipoCongregacion.personasConAcceso')}</span></div><p className="text-2xl font-semibold mt-3">{peopleWithProfiles}</p></div>
+        <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">{t('equipoCongregacion.perfilesActivos')}</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('equipoCongregacion.personasDisponibles')}</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div>
       </section>
-      <section className="card p-5"><h2 className="font-medium">Agregar o actualizar acceso</h2><p className="text-sm text-secondary mt-1 mb-4">Selecciona la persona y asígnale el perfil y las responsabilidades que necesita para realizar su trabajo.</p>
+      <section className="card p-5"><h2 className="font-medium">{t('equipoCongregacion.agregarActualizar')}</h2><p className="text-sm text-secondary mt-1 mb-4">{t('equipoCongregacion.agregarActualizarSubtitulo')}</p>
       <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
         <div className="text-sm relative" ref={personFieldRef}>
-          Persona
+          {t('equipoCongregacion.persona')}
           <input
             className="input-field mt-1.5"
-            placeholder="Escribe un nombre..."
+            placeholder={t('equipoCongregacion.escribeNombre')}
             value={personSearchTerm}
             onChange={(event) => { setPersonSearchTerm(event.target.value); setPersonId(''); setPersonDropdownOpen(true) }}
             onFocus={() => setPersonDropdownOpen(true)}
           />
           {personDropdownOpen && (
             <div className="absolute z-20 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-56 overflow-y-auto">
-              {personasParaAsignar.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : personasParaAsignar.map((person) => (
+              {personasParaAsignar.length === 0 ? <p className="p-3 text-xs text-muted">{t('equipoCongregacion.sinResultados')}</p> : personasParaAsignar.map((person) => (
                 <button type="button" key={person.id} onClick={() => { setPersonId(person.id); setPersonSearchTerm(`${person.nombres} ${person.apellidos}`); setPersonDropdownOpen(false) }} className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0">
-                  {person.nombres} {person.apellidos}{person.auth_user_id ? ' (cuenta vinculada)' : ''}
+                  {person.nombres} {person.apellidos}{person.auth_user_id ? t('equipoCongregacion.cuentaVinculadaSuffix') : ''}
                 </button>
               ))}
             </div>
           )}
         </div>
-        <label className="text-sm">Correo de acceso<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+        <label className="text-sm">{t('equipoCongregacion.correoAcceso')}<input required type="email" className="input-field mt-1.5" placeholder="persona@correo.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
         <label className="text-sm">
-          <span className="flex items-center gap-1">Acceso web <span className="text-xs text-muted">(opcional)</span><InfoTip texto="Le permite entrar a SIGAP desde el navegador con el nivel de permisos de este perfil. No es lo mismo que la responsabilidad operativa de abajo." /></span>
-          <select className="input-field mt-1.5 w-full" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Sin acceso web</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select>
+          <span className="flex items-center gap-1">{t('equipoCongregacion.accesoWeb')} <span className="text-xs text-muted">{t('equipoCongregacion.opcional')}</span><InfoTip texto={t('equipoCongregacion.accesoWebTip')} /></span>
+          <select className="input-field mt-1.5 w-full" value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">{t('equipoCongregacion.sinAccesoWeb')}</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.nombre}</option>)}</select>
         </label>
         <label className="text-sm">
-          <span className="flex items-center gap-1">Responsabilidad operativa <span className="text-xs text-muted">(opcional)</span><InfoTip texto="Asigna a la persona como encargada de capturar datos de un módulo (por ejemplo Ujieres) desde la app móvil, sin necesidad de acceso web." /></span>
-          <select className="input-field mt-1.5 w-full" value={moduleId} onChange={(event) => { setModuleId(event.target.value); setZonaId(''); setCentroId('') }}><option value="">Sin responsabilidad adicional</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select>
+          <span className="flex items-center gap-1">{t('equipoCongregacion.responsabilidadOperativa')} <span className="text-xs text-muted">{t('equipoCongregacion.opcional')}</span><InfoTip texto={t('equipoCongregacion.responsabilidadOperativaTip')} /></span>
+          <select className="input-field mt-1.5 w-full" value={moduleId} onChange={(event) => { setModuleId(event.target.value); setZonaId(''); setCentroId('') }}><option value="">{t('equipoCongregacion.sinResponsabilidad')}</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.nombre_modulo}</option>)}</select>
         </label>
-        <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? 'Enviando...' : 'Invitar usuario'}</button>
-        {pideZona && <label className="text-sm md:col-span-2">Zona de la que será responsable<select required className="input-field mt-1.5" value={zonaId} onChange={(event) => setZonaId(event.target.value)}><option value="">Seleccionar zona...</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select>{zonas.length === 0 && <p className="text-xs text-danger mt-1">Esta congregación aún no tiene zonas creadas (se crean desde Misiones y Evangelismo).</p>}</label>}
-        {pideCentro && <label className="text-sm md:col-span-2">Centro de reclusión del que será responsable<select required className="input-field mt-1.5" value={centroId} onChange={(event) => setCentroId(event.target.value)}><option value="">Seleccionar centro...</option>{centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}</select>{centros.length === 0 && <p className="text-xs text-danger mt-1">Tu distrito aún no tiene centros de reclusión registrados.</p>}</label>}
+        <button disabled={saving} className="btn-primary"><UserPlus className="w-4 h-4" />{saving ? t('equipoCongregacion.enviando') : t('equipoCongregacion.invitarUsuario')}</button>
+        {pideZona && <label className="text-sm md:col-span-2">{t('equipoCongregacion.zonaResponsable')}<select required className="input-field mt-1.5" value={zonaId} onChange={(event) => setZonaId(event.target.value)}><option value="">{t('equipoCongregacion.seleccionarZona')}</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select>{zonas.length === 0 && <p className="text-xs text-danger mt-1">{t('equipoCongregacion.sinZonas')}</p>}</label>}
+        {pideCentro && <label className="text-sm md:col-span-2">{t('equipoCongregacion.centroResponsable')}<select required className="input-field mt-1.5" value={centroId} onChange={(event) => setCentroId(event.target.value)}><option value="">{t('equipoCongregacion.seleccionarCentro')}</option>{centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}</select>{centros.length === 0 && <p className="text-xs text-danger mt-1">{t('equipoCongregacion.sinCentros')}</p>}</label>}
       </form>
       </section>
-      <p className="text-xs text-secondary">La persona recibira un enlace seguro para establecer su contrasena. No se crea ninguna contrasena desde SIGAP.</p>
+      <p className="text-xs text-secondary">{t('equipoCongregacion.notaEnlace')}</p>
       <section className="card overflow-hidden">
-        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium flex items-center gap-1.5">Perfiles activos<InfoTip texto="'Retirar perfil' solo cierra el acceso desde hoy; el historial de quién lo tuvo se conserva." /></h2><p className="text-sm text-secondary mt-1">Personas con acceso en esta congregacion.</p></div><div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar integrantes del equipo" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar integrante..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div></div>
-        {assignments.length ? <div className="divide-y divide-border">{assignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.perfiles_acceso?.nombre} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyAssignmentId)} onClick={() => endAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyAssignmentId === assignment.id ? 'Retirando...' : 'Retirar perfil'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay perfiles adicionales asignados.</p>}
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-medium flex items-center gap-1.5">{t('equipoCongregacion.perfilesActivosTitulo')}<InfoTip texto={t('equipoCongregacion.perfilesActivosTip')} /></h2><p className="text-sm text-secondary mt-1">{t('equipoCongregacion.personasConAccesoSubtitulo')}</p></div><div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64"><Search className="w-4 h-4 text-muted" /><input aria-label={t('equipoCongregacion.ariaBuscarIntegrantes')} className="bg-transparent outline-none text-sm w-full" placeholder={t('equipoCongregacion.buscarIntegrante')} value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div></div>
+        {assignments.length ? <div className="divide-y divide-border">{assignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.perfiles_acceso?.nombre} · {t('equipoCongregacion.desde')} {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyAssignmentId)} onClick={() => endAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyAssignmentId === assignment.id ? t('equipoCongregacion.retirando') : t('equipoCongregacion.retirarPerfil')}</button></div>)}</div> : <p className="p-8 text-sm text-muted">{t('equipoCongregacion.sinPerfiles')}</p>}
       </section>
       <section className="card overflow-hidden">
-        <div className="p-5 border-b border-border"><h2 className="font-medium flex items-center gap-1.5">Responsabilidades operativas<InfoTip texto="'Retirar' solo termina la responsabilidad desde hoy; el historial de quién la tuvo se conserva." /></h2><p className="text-sm text-secondary mt-1">Módulos que cada persona tiene asignados para capturar desde la app móvil.</p></div>
-        {cargoAssignments.length ? <div className="divide-y divide-border">{cargoAssignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.cargos?.modulos?.nombre_modulo}{assignment.zonas?.nombre ? ` — ${assignment.zonas.nombre}` : ''}{assignment.centros_reclusion?.nombre ? ` — ${assignment.centros_reclusion.nombre}` : ''} · Desde {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyCargoAssignmentId)} onClick={() => endCargoAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyCargoAssignmentId === assignment.id ? 'Retirando...' : 'Retirar'}</button></div>)}</div> : <p className="p-8 text-sm text-muted">Aun no hay responsabilidades operativas asignadas.</p>}
+        <div className="p-5 border-b border-border"><h2 className="font-medium flex items-center gap-1.5">{t('equipoCongregacion.responsabilidadesOperativas')}<InfoTip texto={t('equipoCongregacion.responsabilidadesOperativasTip')} /></h2><p className="text-sm text-secondary mt-1">{t('equipoCongregacion.responsabilidadesOperativasSubtitulo')}</p></div>
+        {cargoAssignments.length ? <div className="divide-y divide-border">{cargoAssignments.filter((assignment) => !searchTerm || `${assignment.personas?.nombres || ''} ${assignment.personas?.apellidos || ''}`.toLowerCase().includes(searchTerm.toLowerCase())).map((assignment) => <div key={assignment.id} className="p-4 flex items-center justify-between gap-3 hover:bg-surface-1 transition-colors"><div><p className="text-sm font-medium">{assignment.personas?.nombres} {assignment.personas?.apellidos}</p><p className="text-xs text-secondary mt-1">{assignment.cargos?.modulos?.nombre_modulo}{assignment.zonas?.nombre ? ` — ${assignment.zonas.nombre}` : ''}{assignment.centros_reclusion?.nombre ? ` — ${assignment.centros_reclusion.nombre}` : ''} · {t('equipoCongregacion.desde')} {assignment.fecha_inicio}</p></div><button type="button" disabled={Boolean(busyCargoAssignmentId)} onClick={() => endCargoAssignment(assignment)} className="text-xs text-danger disabled:opacity-50">{busyCargoAssignmentId === assignment.id ? t('equipoCongregacion.retirando') : t('equipoCongregacion.retirar')}</button></div>)}</div> : <p className="p-8 text-sm text-muted">{t('equipoCongregacion.sinResponsabilidades')}</p>}
       </section>
     </div>
   )

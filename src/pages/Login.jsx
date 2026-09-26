@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3, Check, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth, registrarAcceso } from '../hooks/useAuth'
 import { getAssuranceLevel, listFactors, verifyLoginChallenge } from '../lib/mfa'
 import sigapLogo from '../assets/sigap-logo.svg'
@@ -8,6 +9,7 @@ import sigapLogoWhite from '../assets/sigap-logo-white.svg'
 import Toast from '../components/Toast'
 
 export default function Login() {
+  const { t } = useTranslation()
   const { signIn, resetPassword, updatePassword } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -49,10 +51,10 @@ export default function Login() {
   const [isInvitation] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite' || new URLSearchParams(window.location.search).get('type') === 'invite')
   const [isRecovery, setIsRecovery] = useState(() => new URLSearchParams(window.location.search).has('reset') || new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite')
   const passwordRules = [
-    { label: '8 caracteres como mínimo', valid: newPassword.length >= 8 },
-    { label: 'Una letra mayúscula', valid: /[A-Z]/.test(newPassword) },
-    { label: 'Un número', valid: /\d/.test(newPassword) },
-    { label: 'Un símbolo', valid: /[^A-Za-z0-9]/.test(newPassword) },
+    { label: t('login.regla8Caracteres'), valid: newPassword.length >= 8 },
+    { label: t('login.reglaMayuscula'), valid: /[A-Z]/.test(newPassword) },
+    { label: t('login.reglaNumero'), valid: /\d/.test(newPassword) },
+    { label: t('login.reglaSimbolo'), valid: /[^A-Za-z0-9]/.test(newPassword) },
   ]
   const validNewPassword = passwordRules.every((rule) => rule.valid)
 
@@ -68,7 +70,7 @@ export default function Login() {
       // no una respuesta del servidor -- sin esto, "sin conexion" se
       // mostraba igual que "usuario o contraseña incorrectos".
       const sinConexion = error.name === 'AuthRetryableFetchError' || !navigator.onLine
-      setError(sinConexion ? 'No hay conexión a internet. Verifica tu conexión e intenta de nuevo.' : 'Usuario o contraseña incorrectos.')
+      setError(sinConexion ? t('login.sinConexion') : t('login.credencialesIncorrectas'))
       return
     }
 
@@ -94,7 +96,7 @@ export default function Login() {
   async function handleMfaSubmit(event) {
     event.preventDefault()
     if (mfaCode.trim().length < 6) {
-      setError('Ingresa el código de 6 dígitos de tu app autenticadora.')
+      setError(t('login.errorCodigoCorto'))
       return
     }
     setLoading(true)
@@ -102,7 +104,7 @@ export default function Login() {
     const { error: mfaError } = await verifyLoginChallenge(mfaFactorId, mfaCode.trim())
     setLoading(false)
     if (mfaError) {
-      setError('Código incorrecto o expirado. Genera uno nuevo en tu app autenticadora e intenta de nuevo.')
+      setError(t('login.errorCodigoIncorrecto'))
       setMfaCode('')
       return
     }
@@ -112,30 +114,30 @@ export default function Login() {
 
   async function handlePasswordRecovery() {
     if (!email) {
-      setError('Escribe tu correo electrónico para recuperar la contraseña.')
+      setError(t('login.errorEscribeCorreo'))
       return
     }
     setError(null)
     setNotice(null)
     const { error: recoveryError } = await resetPassword(email)
     if (recoveryError) {
-      setError('No se pudo enviar el correo de recuperación. Verifica la dirección.')
+      setError(t('login.errorEnviarRecuperacion'))
       return
     }
-    setNotice('Te enviamos un enlace para crear una contraseña nueva.')
+    setNotice(t('login.enlaceEnviado'))
   }
 
   async function handleUpdatePassword(event) {
     event.preventDefault()
     if (!validNewPassword) {
-      setError('Completa todos los requisitos de seguridad de la contraseña.')
+      setError(t('login.errorRequisitos'))
       return
     }
     setLoading(true)
     setError(null)
     const { error: updateError } = await updatePassword(newPassword)
     setLoading(false)
-    if (updateError) { setError('No se pudo actualizar la contraseña. Solicita un enlace nuevo.'); return }
+    if (updateError) { setError(t('login.errorActualizarContrasena')); return }
     setNewPassword('')
     if (isInvitation) {
       await registrarAcceso()
@@ -143,7 +145,7 @@ export default function Login() {
       return
     }
     setIsRecovery(false)
-    setNotice('Contraseña actualizada. Ya puedes ingresar con tu nueva contraseña.')
+    setNotice(t('login.contrasenaActualizada'))
   }
 
   return (
@@ -186,17 +188,17 @@ export default function Login() {
         <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-night text-white p-12">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_15%,#2a78d6_0,transparent_32%),linear-gradient(145deg,transparent_45%,#173404_150%)]" />
           <div className="relative">
-            <Link to="/" className="inline-flex items-center" aria-label="Volver a la página principal de SIGAP">
+            <Link to="/" className="inline-flex items-center" aria-label={t('login.volverInicio')}>
               <img src={sigapLogoWhite} alt="SIGAP" className="h-7 w-auto" />
             </Link>
             <div className="mt-28 max-w-md">
-              <p className="text-sm uppercase tracking-[0.18em] text-white/60">Gestión pastoral inteligente</p>
-              <h2 className="mt-4 text-5xl font-semibold leading-[1.05]">Decisiones pastorales con información clara.</h2>
+              <p className="text-sm uppercase tracking-[0.18em] text-white/60">{t('login.eyebrowGestion')}</p>
+              <h2 className="mt-4 text-5xl font-semibold leading-[1.05]">{t('login.headlineHero')}</h2>
             </div>
           </div>
           <div className="relative flex items-end justify-between gap-8">
             <div className="flex flex-col gap-3 text-sm text-white/70">
-              {['Ciclo de vida espiritual', 'Comités y territorio conectados', 'Local, distrital y nacional'].map((item) => (
+              {t('login.featuresHero', { returnObjects: true }).map((item) => (
                 <span key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#8fca68]" />{item}</span>
               ))}
             </div>
@@ -206,64 +208,64 @@ export default function Login() {
 
         <section className="flex items-center justify-center p-7 sm:p-12">
           <div className="w-full max-w-sm">
-            <Link to="/" className="inline-flex items-center mb-14 lg:hidden" aria-label="Volver a la página principal de SIGAP">
+            <Link to="/" className="inline-flex items-center mb-14 lg:hidden" aria-label={t('login.volverInicio')}>
               <img src={sigapLogo} alt="SIGAP" className="h-6 w-auto" />
             </Link>
             <div className="mb-8">
-              <p className="text-sm font-medium text-accent mb-3">{mfaFactorId ? 'Verificación en dos pasos' : isRecovery ? (isInvitation ? 'Invitación a SIGAP' : 'Nueva contraseña') : 'Bienvenido de nuevo'}</p>
-              <h1 className="text-3xl font-semibold tracking-tight">{mfaFactorId ? 'Ingresa tu código' : isRecovery ? (isInvitation ? 'Crea tu contraseña' : 'Actualiza tu acceso') : 'Entra a tu espacio SIGAP'}</h1>
-              <p className="text-sm text-secondary mt-3 leading-6">{mfaFactorId ? 'Abre tu app autenticadora (Google Authenticator, Authy u otra) y escribe el código de 6 dígitos.' : isRecovery ? (isInvitation ? 'Define una contraseña segura para activar tu acceso a SIGAP.' : 'Crea una nueva contraseña para volver a entrar a tu espacio de trabajo.') : 'Administra la información de tu congregación con una mirada clara y oportuna.'}</p>
+              <p className="text-sm font-medium text-accent mb-3">{mfaFactorId ? t('login.eyebrowMfa') : isRecovery ? (isInvitation ? t('login.eyebrowInvitacion') : t('login.eyebrowNuevaContrasena')) : t('login.eyebrowBienvenido')}</p>
+              <h1 className="text-3xl font-semibold tracking-tight">{mfaFactorId ? t('login.tituloMfa') : isRecovery ? (isInvitation ? t('login.tituloCrearContrasena') : t('login.tituloActualizarAcceso')) : t('login.tituloEntrar')}</h1>
+              <p className="text-sm text-secondary mt-3 leading-6">{mfaFactorId ? t('login.subtituloMfa') : isRecovery ? (isInvitation ? t('login.subtituloInvitacion') : t('login.subtituloActualizar')) : t('login.subtituloEntrar')}</p>
             </div>
 
             {mfaFactorId ? <form onSubmit={handleMfaSubmit} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="mfa-code" className="text-sm font-medium block mb-1.5">Código de verificación</label>
+                <label htmlFor="mfa-code" className="text-sm font-medium block mb-1.5">{t('login.codigoVerificacion')}</label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input id="mfa-code" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus autoComplete="one-time-code" placeholder="123456" value={mfaCode} onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))} className="input-field pl-10 tracking-[0.3em] text-center" />
                 </div>
               </div>
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-              <button type="submit" disabled={loading || mfaCode.length < 6} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar e ingresar'}</button>
-              <button type="button" onClick={() => { setMfaFactorId(null); setMfaCode(''); setError(null); setPassword('') }} className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver a iniciar sesión</button>
+              <button type="submit" disabled={loading || mfaCode.length < 6} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('login.verificarIngresar')}</button>
+              <button type="button" onClick={() => { setMfaFactorId(null); setMfaCode(''); setError(null); setPassword('') }} className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">{t('login.volverIniciarSesion')}</button>
             </form> : isRecovery ? <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
-              <div><label htmlFor="new-password" className="text-sm font-medium block mb-1.5">Nueva contraseña</label><input id="new-password" type="password" required minLength={8} autoComplete="new-password" placeholder="Crea una contraseña segura" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(null) }} className="input-field" /></div>
-              <div aria-live="polite" className="rounded bg-surface-1 p-3"><p className="text-xs font-medium text-secondary mb-2">Requisitos de seguridad</p><div className="grid gap-1.5">{passwordRules.map((rule) => <p key={rule.label} className={`text-xs ${rule.valid ? 'text-success' : 'text-muted'}`}>{rule.valid ? '✓' : '○'} {rule.label}</p>)}</div></div>
+              <div><label htmlFor="new-password" className="text-sm font-medium block mb-1.5">{t('login.nuevaContrasena')}</label><input id="new-password" type="password" required minLength={8} autoComplete="new-password" placeholder={t('login.crearContrasenaSegura')} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(null) }} className="input-field" /></div>
+              <div aria-live="polite" className="rounded bg-surface-1 p-3"><p className="text-xs font-medium text-secondary mb-2">{t('login.requisitosSeguridad')}</p><div className="grid gap-1.5">{passwordRules.map((rule) => <p key={rule.label} className={`text-xs ${rule.valid ? 'text-success' : 'text-muted'}`}>{rule.valid ? '✓' : '○'} {rule.label}</p>)}</div></div>
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
               <Toast>{notice}</Toast>
-              <button type="submit" disabled={loading || !validNewPassword} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isInvitation ? 'Activar acceso' : 'Actualizar contraseña'}</button>
-              <Link to="/login" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver al inicio de sesión</Link>
+              <button type="submit" disabled={loading || !validNewPassword} className="btn-primary justify-center mt-2 py-3">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isInvitation ? t('login.activarAcceso') : t('login.actualizarContrasena')}</button>
+              <Link to="/login" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">{t('login.volverInicioSesion')}</Link>
             </form> : <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="email" className="text-sm font-medium block mb-1.5">Correo electrónico</label>
+                <label htmlFor="email" className="text-sm font-medium block mb-1.5">{t('login.correoElectronico')}</label>
                 <input id="email" type="email" required autoComplete="email" placeholder="nombre@ejemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input-field" />
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label htmlFor="password" className="text-sm font-medium">Contraseña</label>
-                  <button type="button" onClick={handlePasswordRecovery} className="text-xs text-accent hover:underline">¿Olvidaste tu contraseña?</button>
+                  <label htmlFor="password" className="text-sm font-medium">{t('login.contrasena')}</label>
+                  <button type="button" onClick={handlePasswordRecovery} className="text-xs text-accent hover:underline">{t('login.olvidasteContrasena')}</button>
                 </div>
                 <div className="relative">
-                  <input id="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" placeholder="Ingresa tu contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="input-field pr-11" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-ink transition-colors">
+                  <input id="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" placeholder={t('login.ingresaContrasena')} value={password} onChange={(e) => setPassword(e.target.value)} className="input-field pr-11" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? t('login.ocultarContrasena') : t('login.mostrarContrasena')} title={showPassword ? t('login.ocultarContrasena') : t('login.mostrarContrasena')} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-ink transition-colors">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-              {sessionExpiredNotice === 'idle_timeout' && <Toast tone="danger">Cerramos tu sesión por inactividad. Inicia sesión de nuevo.</Toast>}
-              {sessionExpiredNotice === 'session_expired' && <Toast tone="danger">Tu sesión expiró por seguridad. Inicia sesión de nuevo.</Toast>}
+              {sessionExpiredNotice === 'idle_timeout' && <Toast tone="danger">{t('login.cerramosPorInactividad')}</Toast>}
+              {sessionExpiredNotice === 'session_expired' && <Toast tone="danger">{t('login.sesionExpiro')}</Toast>}
               {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
               <Toast>{notice}</Toast>
               <button type="submit" disabled={loading} className="btn-primary justify-center mt-2 py-3">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Ingresar a SIGAP <ArrowUpRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{t('login.ingresarSigap')} <ArrowUpRight className="w-4 h-4" /></>}
               </button>
-              <Link to="/" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">Volver a la página principal</Link>
+              <Link to="/" className="text-sm text-center text-secondary hover:text-ink hover:underline mt-1">{t('login.volverPaginaPrincipal')}</Link>
             </form>}
 
             <div className="flex items-center gap-2 mt-8 text-xs text-muted">
-              <ShieldCheck className="w-4 h-4 text-success" /> Tu información se mantiene protegida.
+              <ShieldCheck className="w-4 h-4 text-success" /> {t('login.infoProtegida')}
             </div>
-            <p className="text-xs text-muted mt-12">SIGAP · Gestión pastoral</p>
+            <p className="text-xs text-muted mt-12">{t('login.footerMarca')}</p>
           </div>
         </section>
       </div>
