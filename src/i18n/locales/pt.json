@@ -1982,5 +1982,112 @@
     "colActividad": "Atividade",
     "colResponsable": "Responsável",
     "colTotal": "Total"
+  },
+  "misionesEvangelismo": {
+    "submodulos": {
+      "metodos": {
+        "title": "Métodos e território",
+        "description": "Caracterização local, zonas, metodologias e resultados evangelísticos.",
+        "label": "Métodos"
+      },
+      "unoMas": {
+        "title": "Um Mais",
+        "description": "Ativa cada crente para adotar em oração e contato pessoal uma pessoa.",
+        "label": "Sensibilização, tarefa de todos"
+      },
+      "bis": {
+        "title": "BIS",
+        "description": "Registra as boas-vindas, atendimento, contato posterior e integração de cada amigo.",
+        "label": "Boas-vindas, integração e acompanhamento",
+        "info": "BIS significa Boas-vindas, Integração e Seguimento: a estação que recebe cada amigo depois do primeiro contato e o acompanha de perto."
+      },
+      "refam": {
+        "title": "REFAM",
+        "description": "Reunião Familiar e de Amizade como estratégia de Missões e Evangelismo.",
+        "label": "Reunião Familiar e de Amizade",
+        "info": "REFAM significa Reunião Familiar e de Amizade: pequenos grupos que se reúnem em casas para compartilhar lições bíblicas simples."
+      },
+      "esfob": {
+        "title": "ESFOB / EFOB",
+        "description": "Prepara doutrinariamente a pessoa para a aliança do batismo.",
+        "label": "Formação batismal",
+        "info": "Escola de Formação Bíblica: prepara doutrinariamente a pessoa antes do batismo."
+      },
+      "discipulado": {
+        "title": "Discipulado",
+        "description": "Acompanha o amadurecimento espiritual e prepara para o serviço.",
+        "label": "Formar para enviar"
+      }
+    },
+    "estaciones": {
+      "metodos": "Métodos",
+      "unoMas": "Um Mais",
+      "bis": "BIS",
+      "refam": "REFAM",
+      "esfob": "ESFOB / EFOB",
+      "discipulado": "Discipulado"
+    },
+    "errorCargar": "Não foi possível carregar as métricas da Rota. Tente novamente ou contate o administrador.",
+    "decisionDiscipulado": {
+      "titulo": "Sustente o discipulado",
+      "texto_one": "{{count}} pessoa está em acompanhamento. Revise mentoria, objetivos e serviço atual para manter seu crescimento.",
+      "texto_other": "{{count}} pessoas estão em acompanhamento. Revise mentoria, objetivos e serviço atual para manter seu crescimento.",
+      "accion": "Abrir Discipulado"
+    },
+    "decisionEsfob": {
+      "titulo": "Prepare o próximo passo",
+      "texto_one": "{{count}} pessoa está em formação batismal. Revise seu avanço e data prevista para acompanhar a continuidade.",
+      "texto_other": "{{count}} pessoas estão em formação batismal. Revise seu avanço e data prevista para acompanhar a continuidade.",
+      "accion": "Abrir ESFOB / EFOB"
+    },
+    "decisionAmigos": {
+      "titulo": "Ative o acompanhamento",
+      "texto_one": "{{count}} amigo precisa de acompanhamento. Priorize a próxima ação e registre seu avanço na rota.",
+      "texto_other": "{{count}} amigos precisam de acompanhamento. Priorize a próxima ação e registre seu avanço na rota.",
+      "accion": "Abrir Amigos na rota"
+    },
+    "decisionInicio": {
+      "titulo": "Inicie a rota",
+      "texto": "Ainda não há pessoas em processo. Registre o primeiro contato para começar o acompanhamento.",
+      "accion": "Registrar primeiro contato"
+    },
+    "eyebrow": "Rota Evangelística",
+    "eyebrowTip": "Acompanha cada pessoa desde o primeiro contato até sua formação, dividido em 6 estações. Não é preciso passar por todas em ordem: cada um avança conforme sua situação real.",
+    "titulo": "Missões e Evangelismo",
+    "subtitulo": "Gerencie o acompanhamento de cada pessoa desde o primeiro contato até sua formação e crescimento.",
+    "seisEstaciones": "6 estações · uma rota",
+    "ariaCargandoIndicadores": "Carregando indicadores da rota",
+    "ariaIndicadores": "Indicadores da rota",
+    "procesosActivos": "Processos ativos",
+    "delTotal": "{{pct}}% do total",
+    "insightActivosCon": "Trabalho que precisa de acompanhamento.",
+    "insightActivosSin": "Ainda não há processos abertos.",
+    "procesosCompletados": "Processos concluídos",
+    "insightCompletadosCon": "Resultados que já alcançaram uma saída.",
+    "insightCompletadosSin": "Ainda não há encerramentos registrados.",
+    "amigosEnRuta": "Amigos na rota",
+    "personasPorAcompanar": "Pessoas a acompanhar",
+    "insightAmigosCon": "Priorize contato e próxima ação.",
+    "insightAmigosSin": "Registre o primeiro contato.",
+    "asistenciasRefam": "Presenças no REFAM",
+    "frenteAAmigos": "{{pct}}% em relação aos amigos",
+    "insightRefamCon": "Mede a continuidade nos lares.",
+    "insightRefamSin": "Ainda não há reuniões registradas.",
+    "enEsfob": "Em ESFOB / EFOB",
+    "insightEsfobCon": "Pessoas em preparação batismal.",
+    "insightEsfobSin": "Revise encaminhamentos do REFAM.",
+    "enDiscipulado": "Em Discipulado",
+    "frenteAEsfob": "{{pct}}% em relação ao ESFOB",
+    "insightDiscipuladoCon": "Acompanhamento posterior ativo.",
+    "insightDiscipuladoSin": "Fortaleça a continuidade após o batismo.",
+    "lecturaDecidir": "Leitura para decidir",
+    "personasPorEstacion": "Pessoas por estação",
+    "personasPorEstacionTip": "Quantas pessoas estão ativas agora em cada estação. Uma barra muito alta em relação às demais pode indicar que a rota está travando ali.",
+    "personasPorEstacionSubtitulo": "Identifique onde o trabalho está concentrado e onde a rota está travando.",
+    "prioridadSugerida": "Prioridade sugerida",
+    "listadoMaestro": "Lista mestra",
+    "amigosEnRutaTitulo": "Amigos na rota",
+    "amigosEnRutaDesc": "Ficha, notas, histórico e estação atual de cada pessoa que passa pelas 6 estações desta rota -- não é apenas mais uma estação, é onde cada um é administrado.",
+    "ariaSubmodulos": "Submódulos de Missões e Evangelismo"
   }
 }

@@ -1982,5 +1982,112 @@
     "colActividad": "Activity",
     "colResponsable": "Responsible",
     "colTotal": "Total"
+  },
+  "misionesEvangelismo": {
+    "submodulos": {
+      "metodos": {
+        "title": "Methods and territory",
+        "description": "Local profiling, zones, methodologies, and evangelistic results.",
+        "label": "Methods"
+      },
+      "unoMas": {
+        "title": "One More",
+        "description": "Activates every believer to adopt a person in prayer and personal contact.",
+        "label": "Raising awareness, everyone's task"
+      },
+      "bis": {
+        "title": "BIS",
+        "description": "Logs the welcome, care, follow-up contact, and integration of each friend.",
+        "label": "Welcome, integration, and follow-up",
+        "info": "BIS stands for Welcome, Integration, and Follow-up: the station that receives each friend after the first contact and follows them closely."
+      },
+      "refam": {
+        "title": "REFAM",
+        "description": "Family and Friendship Gathering as a Missions and Evangelism strategy.",
+        "label": "Family and Friendship Gathering",
+        "info": "REFAM stands for Family and Friendship Gathering: small groups that meet in homes to share simple Bible lessons."
+      },
+      "esfob": {
+        "title": "ESFOB / EFOB",
+        "description": "Doctrinally prepares the person for the covenant of baptism.",
+        "label": "Baptismal training",
+        "info": "Biblical Training School: doctrinally prepares the person before their baptism."
+      },
+      "discipulado": {
+        "title": "Discipleship",
+        "description": "Accompanies spiritual maturing and prepares for service.",
+        "label": "Forming to send"
+      }
+    },
+    "estaciones": {
+      "metodos": "Methods",
+      "unoMas": "One More",
+      "bis": "BIS",
+      "refam": "REFAM",
+      "esfob": "ESFOB / EFOB",
+      "discipulado": "Discipleship"
+    },
+    "errorCargar": "Could not load the Route metrics. Try again or contact the administrator.",
+    "decisionDiscipulado": {
+      "titulo": "Sustain discipleship",
+      "texto_one": "{{count}} person is being accompanied. Review mentoring, goals, and current service to keep their growth going.",
+      "texto_other": "{{count}} people are being accompanied. Review mentoring, goals, and current service to keep their growth going.",
+      "accion": "Open Discipleship"
+    },
+    "decisionEsfob": {
+      "titulo": "Prepare the next step",
+      "texto_one": "{{count}} person is in baptismal training. Check their progress and expected date to support continuity.",
+      "texto_other": "{{count}} people are in baptismal training. Check their progress and expected date to support continuity.",
+      "accion": "Open ESFOB / EFOB"
+    },
+    "decisionAmigos": {
+      "titulo": "Activate follow-up",
+      "texto_one": "{{count}} friend needs follow-up. Prioritize the next action and log their progress on the route.",
+      "texto_other": "{{count}} friends need follow-up. Prioritize the next action and log their progress on the route.",
+      "accion": "Open Friends on the route"
+    },
+    "decisionInicio": {
+      "titulo": "Start the route",
+      "texto": "No people in process yet. Log the first contact to start the follow-up.",
+      "accion": "Log first contact"
+    },
+    "eyebrow": "Evangelistic Route",
+    "eyebrowTip": "Accompanies each person from the first contact through their training, split into 6 stations. There is no need to go through all of them in order: each person advances according to their real situation.",
+    "titulo": "Missions and Evangelism",
+    "subtitulo": "Manage each person's follow-up from the first contact through their training and growth.",
+    "seisEstaciones": "6 stations · one route",
+    "ariaCargandoIndicadores": "Loading route indicators",
+    "ariaIndicadores": "Route indicators",
+    "procesosActivos": "Active processes",
+    "delTotal": "{{pct}}% of total",
+    "insightActivosCon": "Work that needs follow-up.",
+    "insightActivosSin": "No open processes yet.",
+    "procesosCompletados": "Completed processes",
+    "insightCompletadosCon": "Results that already reached an outcome.",
+    "insightCompletadosSin": "No closures logged yet.",
+    "amigosEnRuta": "Friends on the route",
+    "personasPorAcompanar": "People to follow up with",
+    "insightAmigosCon": "Prioritize contact and the next action.",
+    "insightAmigosSin": "Log the first contact.",
+    "asistenciasRefam": "REFAM attendances",
+    "frenteAAmigos": "{{pct}}% vs. friends",
+    "insightRefamCon": "Measures continuity in homes.",
+    "insightRefamSin": "No meetings logged yet.",
+    "enEsfob": "In ESFOB / EFOB",
+    "insightEsfobCon": "People in baptismal preparation.",
+    "insightEsfobSin": "Check referrals from REFAM.",
+    "enDiscipulado": "In Discipleship",
+    "frenteAEsfob": "{{pct}}% vs. ESFOB",
+    "insightDiscipuladoCon": "Follow-up care active.",
+    "insightDiscipuladoSin": "Strengthen continuity after baptism.",
+    "lecturaDecidir": "Reading to decide",
+    "personasPorEstacion": "People by station",
+    "personasPorEstacionTip": "How many people are active right now at each station. A bar much higher than the rest may indicate the route is stalling there.",
+    "personasPorEstacionSubtitulo": "Identify where the work is concentrated and where the route is stalling.",
+    "prioridadSugerida": "Suggested priority",
+    "listadoMaestro": "Master list",
+    "amigosEnRutaTitulo": "Friends on the route",
+    "amigosEnRutaDesc": "Record, notes, history, and current station of every person going through this route's 6 stations -- it's not just another station, it's where each person is managed.",
+    "ariaSubmodulos": "Missions and Evangelism submodules"
   }
 }

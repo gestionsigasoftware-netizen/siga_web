@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, BarChart3, CheckCircle2, Compass, GraduationCap, HeartHandshake, MapPinned, Route, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../lib/supabase";
 import { useMiRol } from "../hooks/useMiRol";
 import { SkeletonCard, SkeletonStatTiles } from "../components/Skeleton";
@@ -8,67 +9,22 @@ import InfoTip from "../components/InfoTip";
 
 const metricsCache = new Map();
 
-const SUBMODULES = [
-  {
-    to: "/evangelismo",
-    title: "Métodos y territorio",
-    description: "Caracterización local, zonas, metodologías y resultados evangelísticos.",
-    label: "Métodos",
-    icon: MapPinned,
-    codigo: "metodos",
-  },
-  {
-    to: "/uno-mas",
-    title: "Uno Más",
-    description: "Activa a cada creyente para adoptar en oración y contacto personal a una persona.",
-    label: "Sensibilización y tarea de todos",
-    icon: UsersRound,
-    codigo: "uno_mas",
-  },
-  {
-    to: "/bis",
-    title: "BIS",
-    description: "Registra la bienvenida, atención, contacto posterior e integración de cada amigo.",
-    label: "Bienvenida, integración y seguimiento",
-    icon: UsersRound,
-    codigo: "bis",
-    info: "BIS significa Bienvenida, Integración y Seguimiento: la estación que recibe a cada amigo después del primer contacto y lo acompaña de cerca.",
-  },
-  {
-    to: "/refam",
-    title: "REFAM",
-    description: "Reunión Familiar y de Amistad como estrategia de Misiones y Evangelismo.",
-    label: "Reunión Familiar y de Amistad",
-    icon: HeartHandshake,
-    codigo: "refam",
-    info: "REFAM significa Reunión Familiar y de Amistad: grupos pequeños que se reúnen en casas para compartir lecciones bíblicas sencillas.",
-  },
-  {
-    to: "/esfob",
-    title: "ESFOB / EFOB",
-    description: "Prepara doctrinalmente a la persona para el pacto del bautismo.",
-    label: "Formación bautismal",
-    icon: GraduationCap,
-    codigo: "esfob",
-    info: "Escuela de Formación Bíblica: prepara doctrinalmente a la persona antes de su bautismo.",
-  },
-  {
-    to: "/discipulado",
-    title: "Discipulado",
-    description: "Acompaña la maduración espiritual y prepara para el servicio.",
-    label: "Formar para enviar",
-    icon: Compass,
-    codigo: "discipulado",
-  },
+const SUBMODULE_DEFS = [
+  { to: "/evangelismo", key: "metodos", icon: MapPinned, codigo: "metodos" },
+  { to: "/uno-mas", key: "unoMas", icon: UsersRound, codigo: "uno_mas" },
+  { to: "/bis", key: "bis", icon: UsersRound, codigo: "bis" },
+  { to: "/refam", key: "refam", icon: HeartHandshake, codigo: "refam" },
+  { to: "/esfob", key: "esfob", icon: GraduationCap, codigo: "esfob" },
+  { to: "/discipulado", key: "discipulado", icon: Compass, codigo: "discipulado" },
 ];
 
-const ROUTE_STATIONS = [
-  { codigo: "metodos", nombre: "Métodos", color: "bg-accent" },
-  { codigo: "uno_mas", nombre: "Uno Más", color: "bg-warning" },
-  { codigo: "bis", nombre: "BIS", color: "bg-success" },
-  { codigo: "refam", nombre: "REFAM", color: "bg-accent" },
-  { codigo: "esfob", nombre: "ESFOB / EFOB", color: "bg-warning" },
-  { codigo: "discipulado", nombre: "Discipulado", color: "bg-success" },
+const STATION_CODES = [
+  { codigo: "metodos", key: "metodos", color: "bg-accent" },
+  { codigo: "uno_mas", key: "unoMas", color: "bg-warning" },
+  { codigo: "bis", key: "bis", color: "bg-success" },
+  { codigo: "refam", key: "refam", color: "bg-accent" },
+  { codigo: "esfob", key: "esfob", color: "bg-warning" },
+  { codigo: "discipulado", key: "discipulado", color: "bg-success" },
 ];
 
 const INITIAL_METRICS = {
@@ -82,6 +38,7 @@ const INITIAL_METRICS = {
 };
 
 export default function MisionesEvangelismo() {
+  const { t } = useTranslation();
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [metrics, setMetrics] = useState(INITIAL_METRICS);
@@ -129,7 +86,7 @@ export default function MisionesEvangelismo() {
       ]);
       const failed = [processResult, friendsResult, refamResult, esfobResult, discipuladoResult].find((result) => result.error);
       if (failed) {
-        setError("No se pudieron cargar las métricas de la Ruta. Intenta nuevamente o contacta al administrador.");
+        setError(t('misionesEvangelismo.errorCargar'));
         setLoading(false);
         return;
       }
@@ -154,6 +111,15 @@ export default function MisionesEvangelismo() {
     loadMetrics();
   }, [congregacionId]);
 
+  const ROUTE_STATIONS = STATION_CODES.map((station) => ({ ...station, nombre: t(`misionesEvangelismo.estaciones.${station.key}`) }));
+  const SUBMODULES = SUBMODULE_DEFS.map((mod) => ({
+    ...mod,
+    title: t(`misionesEvangelismo.submodulos.${mod.key}.title`),
+    description: t(`misionesEvangelismo.submodulos.${mod.key}.description`),
+    label: t(`misionesEvangelismo.submodulos.${mod.key}.label`),
+    info: t(`misionesEvangelismo.submodulos.${mod.key}.info`, ''),
+  }));
+
   const maxStationCount = Math.max(1, ...ROUTE_STATIONS.map((station) => metrics.stationCounts[station.codigo] || 0));
   const totalProcesses = metrics.active + metrics.completed;
   const activeRate = totalProcesses ? Math.round((metrics.active / totalProcesses) * 100) : 0;
@@ -162,42 +128,42 @@ export default function MisionesEvangelismo() {
   const esfobRate = metrics.friends ? Math.min(100, Math.round((metrics.esfobActive / metrics.friends) * 100)) : 0;
   const discipuladoRate = metrics.esfobActive ? Math.min(100, Math.round((metrics.discipuladoActive / metrics.esfobActive) * 100)) : 0;
   const decision = metrics.discipuladoActive
-    ? { title: "Sostén el discipulado", text: `${metrics.discipuladoActive} persona${metrics.discipuladoActive === 1 ? " está" : "s están"} en acompañamiento. Revisa mentoría, objetivos y servicio actual para mantener su crecimiento.`, to: "/discipulado", action: "Abrir Discipulado" }
+    ? { title: t('misionesEvangelismo.decisionDiscipulado.titulo'), text: t('misionesEvangelismo.decisionDiscipulado.texto', { count: metrics.discipuladoActive }), to: "/discipulado", action: t('misionesEvangelismo.decisionDiscipulado.accion') }
     : metrics.esfobActive
-      ? { title: "Prepara el siguiente paso", text: `${metrics.esfobActive} persona${metrics.esfobActive === 1 ? " está" : "s están"} en formación bautismal. Revisa su avance y fecha prevista para acompañar la continuidad.`, to: "/esfob", action: "Abrir ESFOB / EFOB" }
+      ? { title: t('misionesEvangelismo.decisionEsfob.titulo'), text: t('misionesEvangelismo.decisionEsfob.texto', { count: metrics.esfobActive }), to: "/esfob", action: t('misionesEvangelismo.decisionEsfob.accion') }
       : metrics.friends
-        ? { title: "Activa el acompañamiento", text: `${metrics.friends} amigo${metrics.friends === 1 ? " requiere" : "s requieren"} seguimiento. Prioriza la próxima acción y registra su avance en la ruta.`, to: "/amigos", action: "Abrir Amigos en ruta" }
-        : { title: "Inicia la ruta", text: "Aún no hay personas en proceso. Registra el primer contacto para comenzar el acompañamiento.", to: "/uno-mas", action: "Registrar primer contacto" };
+        ? { title: t('misionesEvangelismo.decisionAmigos.titulo'), text: t('misionesEvangelismo.decisionAmigos.texto', { count: metrics.friends }), to: "/amigos", action: t('misionesEvangelismo.decisionAmigos.accion') }
+        : { title: t('misionesEvangelismo.decisionInicio.titulo'), text: t('misionesEvangelismo.decisionInicio.texto'), to: "/uno-mas", action: t('misionesEvangelismo.decisionInicio.accion') };
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow flex items-center gap-1.5">Ruta Evangelística<InfoTip texto="Acompaña a cada persona desde el primer contacto hasta su formación, dividido en 6 estaciones. No hace falta pasar por todas en orden: cada quien avanza según su situación real." /></p>
-          <h1 className="section-title">Misiones y Evangelismo</h1>
+          <p className="eyebrow flex items-center gap-1.5">{t('misionesEvangelismo.eyebrow')}<InfoTip texto={t('misionesEvangelismo.eyebrowTip')} /></p>
+          <h1 className="section-title">{t('misionesEvangelismo.titulo')}</h1>
           <p className="text-sm text-secondary mt-1 max-w-2xl">
-            Gestiona el acompañamiento de cada persona desde el primer contacto hasta su formación y crecimiento.
+            {t('misionesEvangelismo.subtitulo')}
           </p>
         </div>
-        <span className="chart-highlight">6 estaciones · una ruta</span>
+        <span className="chart-highlight">{t('misionesEvangelismo.seisEstaciones')}</span>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       {roleLoading || loading ? (
         <>
-          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Cargando indicadores de la ruta">
+          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label={t('misionesEvangelismo.ariaCargandoIndicadores')}>
             <SkeletonStatTiles count={6} />
           </section>
           <SkeletonCard lines={6} />
         </>
       ) : (
         <>
-          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Indicadores de la ruta">
-            <Metric icon={BarChart3} label="Procesos activos" value={metrics.active} progress={activeRate} detail={`${activeRate}% del total`} insight={metrics.active ? "Trabajo que requiere seguimiento." : "Aún no hay procesos abiertos."} />
-            <Metric icon={CheckCircle2} label="Procesos completados" value={metrics.completed} tone="text-success" progress={completedRate} detail={`${completedRate}% del total`} insight={metrics.completed ? "Resultados que ya alcanzaron una salida." : "Todavía no hay cierres registrados."} />
-            <Metric icon={UsersRound} label="Amigos en ruta" value={metrics.friends} progress={metrics.friends ? 100 : 0} detail="Personas por acompañar" insight={metrics.friends ? "Prioriza contacto y próxima acción." : "Registra el primer contacto."} />
-            <Metric icon={HeartHandshake} label="Asistencias REFAM" value={metrics.refamAttendance} progress={refamRate} detail={`${refamRate}% frente a amigos`} insight={metrics.refamAttendance ? "Mide la continuidad en hogares." : "Aún no hay reuniones registradas."} />
-            <Metric icon={MapPinned} label="En ESFOB / EFOB" value={metrics.esfobActive} progress={esfobRate} detail={`${esfobRate}% frente a amigos`} insight={metrics.esfobActive ? "Personas en preparación bautismal." : "Revisa derivaciones desde REFAM."} />
-            <Metric icon={UsersRound} label="En Discipulado" value={metrics.discipuladoActive} progress={discipuladoRate} detail={`${discipuladoRate}% frente a ESFOB`} insight={metrics.discipuladoActive ? "Acompañamiento posterior activo." : "Fortalece la continuidad después del bautismo."} />
+          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" aria-label={t('misionesEvangelismo.ariaIndicadores')}>
+            <Metric icon={BarChart3} label={t('misionesEvangelismo.procesosActivos')} value={metrics.active} progress={activeRate} detail={t('misionesEvangelismo.delTotal', { pct: activeRate })} insight={metrics.active ? t('misionesEvangelismo.insightActivosCon') : t('misionesEvangelismo.insightActivosSin')} />
+            <Metric icon={CheckCircle2} label={t('misionesEvangelismo.procesosCompletados')} value={metrics.completed} tone="text-success" progress={completedRate} detail={t('misionesEvangelismo.delTotal', { pct: completedRate })} insight={metrics.completed ? t('misionesEvangelismo.insightCompletadosCon') : t('misionesEvangelismo.insightCompletadosSin')} />
+            <Metric icon={UsersRound} label={t('misionesEvangelismo.amigosEnRuta')} value={metrics.friends} progress={metrics.friends ? 100 : 0} detail={t('misionesEvangelismo.personasPorAcompanar')} insight={metrics.friends ? t('misionesEvangelismo.insightAmigosCon') : t('misionesEvangelismo.insightAmigosSin')} />
+            <Metric icon={HeartHandshake} label={t('misionesEvangelismo.asistenciasRefam')} value={metrics.refamAttendance} progress={refamRate} detail={t('misionesEvangelismo.frenteAAmigos', { pct: refamRate })} insight={metrics.refamAttendance ? t('misionesEvangelismo.insightRefamCon') : t('misionesEvangelismo.insightRefamSin')} />
+            <Metric icon={MapPinned} label={t('misionesEvangelismo.enEsfob')} value={metrics.esfobActive} progress={esfobRate} detail={t('misionesEvangelismo.frenteAAmigos', { pct: esfobRate })} insight={metrics.esfobActive ? t('misionesEvangelismo.insightEsfobCon') : t('misionesEvangelismo.insightEsfobSin')} />
+            <Metric icon={UsersRound} label={t('misionesEvangelismo.enDiscipulado')} value={metrics.discipuladoActive} progress={discipuladoRate} detail={t('misionesEvangelismo.frenteAEsfob', { pct: discipuladoRate })} insight={metrics.discipuladoActive ? t('misionesEvangelismo.insightDiscipuladoCon') : t('misionesEvangelismo.insightDiscipuladoSin')} />
           </section>
           <section className="card p-5">
             <div className="flex items-start gap-3 pb-4 border-b border-border">
@@ -205,9 +171,9 @@ export default function MisionesEvangelismo() {
                 <BarChart3 className="w-4 h-4" />
               </span>
               <div>
-                <p className="eyebrow">Lectura para decidir</p>
-                <h2 className="font-medium mt-1 flex items-center gap-1.5">Personas por estación<InfoTip texto="Cuántas personas están activas ahora mismo en cada estación. Una barra muy alta frente a las demás puede indicar que ahí se está frenando la ruta." /></h2>
-                <p className="text-xs text-secondary mt-1">Identifica dónde se concentra el trabajo y dónde se está deteniendo la ruta.</p>
+                <p className="eyebrow">{t('misionesEvangelismo.lecturaDecidir')}</p>
+                <h2 className="font-medium mt-1 flex items-center gap-1.5">{t('misionesEvangelismo.personasPorEstacion')}<InfoTip texto={t('misionesEvangelismo.personasPorEstacionTip')} /></h2>
+                <p className="text-xs text-secondary mt-1">{t('misionesEvangelismo.personasPorEstacionSubtitulo')}</p>
               </div>
             </div>
             <div className="mt-5 space-y-3">
@@ -226,7 +192,7 @@ export default function MisionesEvangelismo() {
             </div>
             <div className="mt-6 rounded-card border border-accent/20 bg-accent-bg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <p className="eyebrow">Prioridad sugerida</p>
+                <p className="eyebrow">{t('misionesEvangelismo.prioridadSugerida')}</p>
                 <h3 className="font-medium mt-1">{decision.title}</h3>
                 <p className="text-sm text-secondary mt-1 max-w-2xl">{decision.text}</p>
               </div>
@@ -244,14 +210,14 @@ export default function MisionesEvangelismo() {
             <Route className="w-5 h-5" />
           </span>
           <div>
-            <p className="eyebrow">Listado maestro</p>
-            <h2 className="font-medium mt-1">Amigos en ruta</h2>
-            <p className="text-sm text-secondary mt-2 max-w-xl">Ficha, notas, historial y estación actual de cada persona que pasa por las 6 estaciones de esta ruta -- no es una estación más, es donde se administra a cada quien.</p>
+            <p className="eyebrow">{t('misionesEvangelismo.listadoMaestro')}</p>
+            <h2 className="font-medium mt-1">{t('misionesEvangelismo.amigosEnRutaTitulo')}</h2>
+            <p className="text-sm text-secondary mt-2 max-w-xl">{t('misionesEvangelismo.amigosEnRutaDesc')}</p>
           </div>
         </div>
         <ArrowRight className="w-4 h-4 text-muted flex-shrink-0" />
       </Link>
-      <section className="grid md:grid-cols-2 gap-4" aria-label="Submódulos de Misiones y Evangelismo">
+      <section className="grid md:grid-cols-2 gap-4" aria-label={t('misionesEvangelismo.ariaSubmodulos')}>
         {SUBMODULES.map(({ to, title, description, label, icon: Icon, info }) => {
           const content = (
             <div className="flex items-start gap-3">
