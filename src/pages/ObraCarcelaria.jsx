@@ -19,6 +19,7 @@ import {
   Plus,
   UserCheck,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
@@ -35,10 +36,6 @@ ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, Po
 
 const obraCarcelariaCache = new Map();
 
-const ESTADO_INTERNO_LABELS = { activo: "Activo", liberado: "Liberado", trasladado: "Trasladado", inactivo: "Inactivo" };
-const TIPO_APOYO_LABELS = { visita: "Visita", consejeria: "Consejería", espiritual: "Espiritual", material: "Material", otro: "Otro" };
-const ESTADO_REINSERCION_LABELS = { asignado: "Asignado", contactado: "Contactado", activo: "Activo", inactivo: "Inactivo", reincidencia: "Reincidencia" };
-const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
 const DIAS_ALERTA_INPEC = 30;
 const CHART_OPTIONS = chartOptions();
 
@@ -63,6 +60,11 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "", info }
 
 
 export default function ObraCarcelaria() {
+  const { t } = useTranslation();
+  const ESTADO_INTERNO_LABELS = { activo: t("obraCarcelaria.estadoActivo"), liberado: t("obraCarcelaria.estadoLiberado"), trasladado: t("obraCarcelaria.estadoTrasladado"), inactivo: t("obraCarcelaria.estadoInactivo") };
+  const TIPO_APOYO_LABELS = { visita: t("obraCarcelaria.apoyoVisita"), consejeria: t("obraCarcelaria.apoyoConsejeria"), espiritual: t("obraCarcelaria.apoyoEspiritual"), material: t("obraCarcelaria.apoyoMaterial"), otro: t("obraCarcelaria.apoyoOtro") };
+  const ESTADO_REINSERCION_LABELS = { asignado: t("obraCarcelaria.reinsercionAsignado"), contactado: t("obraCarcelaria.reinsercionContactado"), activo: t("obraCarcelaria.reinsercionActivo"), inactivo: t("obraCarcelaria.reinsercionInactivo"), reincidencia: t("obraCarcelaria.reinsercionReincidencia") };
+  const PERIODOS = [["30", t("obraCarcelaria.periodo30")], ["180", t("obraCarcelaria.periodo6m")], ["365", t("obraCarcelaria.periodo12m")]];
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [tab, setTab] = useState("internos");
@@ -102,7 +104,7 @@ export default function ObraCarcelaria() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("obraCarcelaria.sinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -139,7 +141,7 @@ export default function ObraCarcelaria() {
       supabase.from("amigos").select("obra_carcelaria_interno_id").eq("congregacion_id", congregacionId).not("obra_carcelaria_interno_id", "is", null),
     ]);
     const failed = [cong, cen, i, d, cu, a, sf, r, p, f, am].find((item) => item.error);
-    if (failed) setError("No se pudo cargar Obra Carcelaria. Intenta nuevamente o contacta al administrador.");
+    if (failed) setError(t("obraCarcelaria.errorCargar"));
     const freshData = {
       centros: cen.data ?? [],
       internos: i.data ?? [],
@@ -187,8 +189,8 @@ export default function ObraCarcelaria() {
       ? await supabase.from("obra_carcelaria_internos").update(payload).eq("id", editingInternoId)
       : await supabase.from("obra_carcelaria_internos").insert({ ...payload, congregacion_id: congregacionId });
     setSaving(false);
-    if (result.error) { setError(`No se pudo guardar la ficha: ${result.error.message}`); return; }
-    setNotice(editingInternoId ? "Ficha actualizada." : "Interno registrado."); resetInternoForm(); load();
+    if (result.error) { setError(t("obraCarcelaria.errorGuardarFicha", { mensaje: result.error.message })); return; }
+    setNotice(editingInternoId ? t("obraCarcelaria.fichaActualizada") : t("obraCarcelaria.internoRegistrado")); resetInternoForm(); load();
   }
   async function marcarHito(interno, campo, fechaCampo) {
     if (!canEdit) return;
@@ -196,8 +198,8 @@ export default function ObraCarcelaria() {
     const hoy = hoyBogota();
     const result = await supabase.from("obra_carcelaria_internos").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", interno.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
-    setNotice("Ficha actualizada."); load();
+    if (result.error) { setError(t("obraCarcelaria.errorActualizarFicha", { mensaje: result.error.message })); return; }
+    setNotice(t("obraCarcelaria.fichaActualizada")); load();
   }
   async function marcarEstado(interno, estado) {
     if (!canEdit) return;
@@ -205,8 +207,8 @@ export default function ObraCarcelaria() {
     const payload = { estado, fecha_liberacion: estado === "liberado" ? hoyBogota() : interno.fecha_liberacion };
     const result = await supabase.from("obra_carcelaria_internos").update(payload).eq("id", interno.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar el estado: ${result.error.message}`); return; }
-    setNotice(`Interno marcado como ${ESTADO_INTERNO_LABELS[estado].toLowerCase()}.`); load();
+    if (result.error) { setError(t("obraCarcelaria.errorActualizarEstado", { mensaje: result.error.message })); return; }
+    setNotice(t("obraCarcelaria.internoMarcadoComo", { estado: ESTADO_INTERNO_LABELS[estado].toLowerCase() })); load();
   }
 
   function resetDelegadoForm() { setEditingDelegadoId(null); setDelegadoForm(EMPTY_DELEGADO); }
@@ -223,8 +225,8 @@ export default function ObraCarcelaria() {
       ? await supabase.from("obra_carcelaria_delegados").update(payload).eq("id", editingDelegadoId)
       : await supabase.from("obra_carcelaria_delegados").insert({ ...payload, congregacion_id: congregacionId });
     setSaving(false);
-    if (result.error) { setError(`No se pudo guardar el delegado: ${result.error.message}`); return; }
-    setNotice(editingDelegadoId ? "Delegado actualizado." : "Delegado habilitado."); resetDelegadoForm(); load();
+    if (result.error) { setError(t("obraCarcelaria.errorGuardarDelegado", { mensaje: result.error.message })); return; }
+    setNotice(editingDelegadoId ? t("obraCarcelaria.delegadoActualizado") : t("obraCarcelaria.delegadoHabilitado")); resetDelegadoForm(); load();
   }
 
   async function createCulto(event) {
@@ -242,15 +244,15 @@ export default function ObraCarcelaria() {
       responsable_persona_id: cultoForm.responsable_persona_id || null,
       notas: cultoForm.notas.trim() || null,
     }).select("id").single();
-    if (cultoResult.error) { setSaving(false); setError(`No se pudo registrar el culto: ${cultoResult.error.message}`); return; }
+    if (cultoResult.error) { setSaving(false); setError(t("obraCarcelaria.errorRegistrarCulto", { mensaje: cultoResult.error.message })); return; }
     if (activos.length > 0) {
       const asistResult = await supabase.from("obra_carcelaria_asistencia").insert(
         activos.map((interno) => ({ culto_id: cultoResult.data.id, interno_id: interno.id, asistio: Boolean(asistenciaMarcada[interno.id]) })),
       );
-      if (asistResult.error) { setSaving(false); setError(`El culto se guardó, pero no se pudo registrar la asistencia individual: ${asistResult.error.message}`); return; }
+      if (asistResult.error) { setSaving(false); setError(t("obraCarcelaria.errorAsistenciaIndividual", { mensaje: asistResult.error.message })); return; }
     }
     setSaving(false);
-    setNotice("Culto registrado con asistencia individual.");
+    setNotice(t("obraCarcelaria.cultoRegistrado"));
     setCultoForm(EMPTY_CULTO); setAsistenciaMarcada({}); load();
   }
 
@@ -271,16 +273,16 @@ export default function ObraCarcelaria() {
       notas: familiarForm.notas.trim() || null,
     });
     setSaving(false);
-    if (result.error) { setError(`No se pudo registrar el seguimiento: ${result.error.message}`); return; }
-    setNotice("Seguimiento familiar registrado."); setFamiliarForm(EMPTY_FAMILIAR); load();
+    if (result.error) { setError(t("obraCarcelaria.errorRegistrarSeguimiento", { mensaje: result.error.message })); return; }
+    setNotice(t("obraCarcelaria.seguimientoFamiliarRegistrado")); setFamiliarForm(EMPTY_FAMILIAR); load();
   }
 
   async function actualizarReinsercion(item, estado) {
     setSaving(true); setError(null);
     const result = await supabase.from("obra_carcelaria_reinsercion").update({ estado }).eq("id", item.id);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar la reinserción: ${result.error.message}`); return; }
-    setNotice(`Reinserción marcada como ${ESTADO_REINSERCION_LABELS[estado].toLowerCase()}.`); load();
+    if (result.error) { setError(t("obraCarcelaria.errorActualizarReinsercion", { mensaje: result.error.message })); return; }
+    setNotice(t("obraCarcelaria.reinsercionMarcadaComo", { estado: ESTADO_REINSERCION_LABELS[estado].toLowerCase() })); load();
   }
 
   // Un interno no tenia ningun siguiente paso formal una vez contactado
@@ -296,8 +298,8 @@ export default function ObraCarcelaria() {
   // interno sigue preso) como para la reinsercion post-liberacion
   // (congregacionDestinoId = la congregacion receptora).
   async function vincularRutaEvangelistica(interno, congregacionDestinoId) {
-    if (!interno) { setError("No se encontró la ficha del interno."); return; }
-    if (!interno.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    if (!interno) { setError(t("obraCarcelaria.errorSinFichaInterno")); return; }
+    if (!interno.bautizado && !responsableVinculoId) { setError(t("obraCarcelaria.errorSeleccionaResponsable")); return; }
     setSaving(true); setError(null);
     const nombreCompleto = `${interno.nombres} ${interno.apellidos}`.trim();
     const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
@@ -307,23 +309,23 @@ export default function ObraCarcelaria() {
       obra_carcelaria_interno_id: interno.id,
       ...(interno.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: interno.fecha_bautismo } : {}),
     }).select("id").single();
-    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (amigoError) { setSaving(false); setError(t("obraCarcelaria.errorVincularRuta", { mensaje: amigoError.message })); return; }
     if (interno.bautizado) {
       setSaving(false);
-      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setNotice(t("obraCarcelaria.vinculadoBautizado", { nombre: nombreCompleto }));
       setVinculandoId(null); setResponsableVinculoId(""); load();
       return;
     }
     const { data: estacionBis, error: estacionError } = await getEstacion(congregacionDestinoId, "bis");
-    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    if (estacionError || !estacionBis) { setSaving(false); setError(t("obraCarcelaria.errorSinEstacionBis")); return; }
     const movResult = await iniciarOMoverEstacion({ congregacionId: congregacionDestinoId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
     setSaving(false);
-    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
-    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    if (movResult.error) { setError(t("obraCarcelaria.errorAgregarBis", { mensaje: movResult.error.message })); return; }
+    setNotice(t("obraCarcelaria.vinculadoBis", { nombre: nombreCompleto }));
     setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Obra Carcelaria...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("obraCarcelaria.cargando")}</div>;
 
   const activos = internos.filter((item) => item.estado === "activo");
   const bautizados = internos.filter((item) => item.bautizado);
@@ -363,15 +365,15 @@ export default function ObraCarcelaria() {
   });
 
   const insightGeneral = activos.length
-    ? `${delegadosAlerta.length > 0 ? `${delegadosAlerta.length} delegado(s) con permiso INPEC vencido o por vencer. ` : "Todos los delegados activos tienen permiso INPEC vigente. "}${bautizados.length} de ${activos.length} internos activos ya se han bautizado en el centro.`
-    : "Registra internos y delegados para construir una lectura del trabajo carcelario.";
+    ? `${delegadosAlerta.length > 0 ? t("obraCarcelaria.insightGeneralConAlerta", { cantidad: delegadosAlerta.length }) : t("obraCarcelaria.insightGeneralSinAlerta")}${t("obraCarcelaria.insightGeneralBautizados", { bautizados: bautizados.length, activos: activos.length })}`
+    : t("obraCarcelaria.insightGeneralVacio");
 
-  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistencia" });
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("obraCarcelaria.asistenciaLabel") });
   const poblacionChartData = {
-    labels: ["Asistencia acumulada", "Bautizados", "Sellados"],
+    labels: [t("obraCarcelaria.asistenciaAcumuladaLabel"), t("obraCarcelaria.metricBautizados"), t("obraCarcelaria.metricSellados")],
     datasets: [
-      { label: "Asistencia (personas-culto)", data: [asistenciaAcumulada, null, null], backgroundColor: paletteAt(0).line, yAxisID: "y1" },
-      { label: "Personas", data: [null, bautizados.length, sellados.length], backgroundColor: paletteAt(1).line, yAxisID: "y" },
+      { label: t("obraCarcelaria.asistenciaPersonasCultoLabel"), data: [asistenciaAcumulada, null, null], backgroundColor: paletteAt(0).line, yAxisID: "y1" },
+      { label: t("obraCarcelaria.personasLabel"), data: [null, bautizados.length, sellados.length], backgroundColor: paletteAt(1).line, yAxisID: "y" },
     ],
   };
   const POBLACION_CHART_OPTIONS = {
@@ -379,41 +381,41 @@ export default function ObraCarcelaria() {
     plugins: { ...CHART_OPTIONS.plugins, legend: { ...CHART_OPTIONS.plugins.legend, display: true, position: "top", align: "start" } },
     scales: {
       ...CHART_OPTIONS.scales,
-      y: { ...CHART_OPTIONS.scales.y, position: "left", title: { display: true, text: "Personas" } },
-      y1: { ...CHART_OPTIONS.scales.y, position: "right", grid: { display: false }, title: { display: true, text: "Asistencia acumulada" } },
+      y: { ...CHART_OPTIONS.scales.y, position: "left", title: { display: true, text: t("obraCarcelaria.personasLabel") } },
+      y1: { ...CHART_OPTIONS.scales.y, position: "right", grid: { display: false }, title: { display: true, text: t("obraCarcelaria.asistenciaAcumuladaLabel") } },
     },
   };
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Internos activos", value: activos.length },
-        { label: "Bautizados", value: bautizados.length },
-        { label: "Sellados", value: sellados.length },
-        { label: "Delegados habilitados", value: delegadosHabilitados.length },
+        { label: t("obraCarcelaria.exportInternosActivos"), value: activos.length },
+        { label: t("obraCarcelaria.exportBautizados"), value: bautizados.length },
+        { label: t("obraCarcelaria.exportSellados"), value: sellados.length },
+        { label: t("obraCarcelaria.exportDelegadosHabilitados"), value: delegadosHabilitados.length },
       ],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Nombre", "Centro", "Patio", "Estado", "Bautizado", "Sellado", "Última visita familiar"],
-      rows: internos.map((item) => [`${item.nombres} ${item.apellidos}`, item.centros_reclusion?.nombre || "—", item.patio || "—", ESTADO_INTERNO_LABELS[item.estado] || item.estado, item.bautizado ? "Sí" : "No", item.sellado ? "Sí" : "No", ultimaVisitaPorInterno.get(item.id) || "Sin registro"]),
+      headers: [t("obraCarcelaria.exportColNombre"), t("obraCarcelaria.exportColCentro"), t("obraCarcelaria.exportColPatio"), t("obraCarcelaria.exportColEstado"), t("obraCarcelaria.exportColBautizado"), t("obraCarcelaria.exportColSellado"), t("obraCarcelaria.exportColUltimaVisita")],
+      rows: internos.map((item) => [`${item.nombres} ${item.apellidos}`, item.centros_reclusion?.nombre || "—", item.patio || "—", ESTADO_INTERNO_LABELS[item.estado] || item.estado, item.bautizado ? t("obraCarcelaria.si") : t("obraCarcelaria.no"), item.sellado ? t("obraCarcelaria.si") : t("obraCarcelaria.no"), ultimaVisitaPorInterno.get(item.id) || t("obraCarcelaria.sinRegistro")]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `obra-carcelaria-${hoyBogota()}.csv`, titulo: "Obra Carcelaria — Internos", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `obra-carcelaria-${hoyBogota()}.xlsx`, hoja: "Internos", titulo: "Obra Carcelaria — Internos", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `obra-carcelaria-${hoyBogota()}.pdf`, titulo: "Obra Carcelaria — Internos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `obra-carcelaria-${hoyBogota()}.csv`, titulo: t("obraCarcelaria.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `obra-carcelaria-${hoyBogota()}.xlsx`, hoja: t("obraCarcelaria.exportHoja"), titulo: t("obraCarcelaria.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `obra-carcelaria-${hoyBogota()}.pdf`, titulo: t("obraCarcelaria.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Comité de evangelismo</p>
-          <h1 className="section-title flex items-center gap-2"><LockKeyhole className="w-6 h-6 text-accent" />Obra Carcelaria</h1>
-          <p className="text-sm text-secondary mt-1">Asistencia interna en el centro de reclusión, seguimiento familiar externo y reinserción eclesial post-penitenciaria.</p>
+          <p className="eyebrow">{t("obraCarcelaria.comiteEvangelismo")}</p>
+          <h1 className="section-title flex items-center gap-2"><LockKeyhole className="w-6 h-6 text-accent" />{t("obraCarcelaria.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("obraCarcelaria.subtitulo")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
+          <div className="flex gap-1.5" role="group" aria-label={t("obraCarcelaria.periodoAnalisis")}>
             {PERIODOS.map(([value, label]) => (
               <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
             ))}
@@ -422,32 +424,32 @@ export default function ObraCarcelaria() {
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Carcelaria.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("obraCarcelaria.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric label="Internos activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${internos.length} registrados en total`} insight="Población atendida actualmente dentro del centro." />
-        <Metric label="Bautizados" value={bautizados.length} progress={activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0}% de los activos`} insight="Membresía interna formal tras las rejas." />
-        <Metric label="Sellados" value={sellados.length} progress={activos.length ? Math.round((sellados.length / activos.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Hito espiritual registrado durante la reclusión." />
-        <Metric label="Delegados habilitados" value={delegadosHabilitados.length} tone={delegadosAlerta.length > 0 ? "text-danger" : "text-success"} progress={delegados.length ? Math.round((delegadosHabilitados.length / delegados.length) * 100) : 0} detail={`${delegadosAlerta.length} con permiso por revisar`} insight="Voluntarios con ingreso autorizado por el INPEC." info="El INPEC es la entidad que autoriza el ingreso de voluntarios a los centros de reclusión. Sin este permiso vigente, el delegado no puede entrar." />
+        <Metric label={t("obraCarcelaria.metricInternosActivos")} value={activos.length} progress={activos.length ? 100 : 0} detail={t("obraCarcelaria.detalleRegistradosTotal", { cantidad: internos.length })} insight={t("obraCarcelaria.insightPoblacionAtendida")} />
+        <Metric label={t("obraCarcelaria.metricBautizados")} value={bautizados.length} progress={activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0} detail={t("obraCarcelaria.detallePctActivos", { pct: activos.length ? Math.round((bautizados.length / activos.length) * 100) : 0 })} insight={t("obraCarcelaria.insightMembresiaInterna")} />
+        <Metric label={t("obraCarcelaria.metricSellados")} value={sellados.length} progress={activos.length ? Math.round((sellados.length / activos.length) * 100) : 0} detail={t("obraCarcelaria.detalleConEspirituSanto")} insight={t("obraCarcelaria.insightHitoEspiritual")} />
+        <Metric label={t("obraCarcelaria.metricDelegadosHabilitados")} value={delegadosHabilitados.length} tone={delegadosAlerta.length > 0 ? "text-danger" : "text-success"} progress={delegados.length ? Math.round((delegadosHabilitados.length / delegados.length) * 100) : 0} detail={t("obraCarcelaria.detallePermisoPorRevisar", { cantidad: delegadosAlerta.length })} insight={t("obraCarcelaria.insightVoluntariosAutorizados")} info={t("obraCarcelaria.infoInpec")} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Asistencia interna</p>
-          <h2 className="font-medium mt-1">Tendencia de asistencia a cultos</h2>
+          <p className="eyebrow">{t("obraCarcelaria.asistenciaInterna")}</p>
+          <h2 className="font-medium mt-1">{t("obraCarcelaria.tendenciaAsistenciaCultos")}</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin cultos registrados en el periodo." />}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("obraCarcelaria.sinCultosPeriodo")} />}
           </div>
-          <p className="text-xs text-secondary mt-2">{tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} {estudiosUltimoMes} estudios REFAM entregados en los últimos 30 días.</p>
+          <p className="text-xs text-secondary mt-2">{tendenciaVariacion === null ? t("obraCarcelaria.sinHistorialComparar") : (tendenciaVariacion >= 0 ? t("obraCarcelaria.crecioVariacion", { pct: Math.abs(tendenciaVariacion) }) : t("obraCarcelaria.bajoVariacion", { pct: Math.abs(tendenciaVariacion) }))}{t("obraCarcelaria.estudiosRefamEntregados", { cantidad: estudiosUltimoMes })}</p>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Población flotante vs. membresía interna</p>
-          <h2 className="font-medium mt-1">Asistencia vs. hitos espirituales</h2>
+          <p className="eyebrow">{t("obraCarcelaria.poblacionFlotanteVsMembresia")}</p>
+          <h2 className="font-medium mt-1">{t("obraCarcelaria.asistenciaVsHitos")}</h2>
           <div className="h-56 mt-4">
-            {cultos.length ? <Bar data={poblacionChartData} options={POBLACION_CHART_OPTIONS} /> : <ChartEmpty message="Sin datos registrados todavía." />}
+            {cultos.length ? <Bar data={poblacionChartData} options={POBLACION_CHART_OPTIONS} /> : <ChartEmpty message={t("obraCarcelaria.sinDatosRegistrados")} />}
           </div>
         </div>
       </section>
@@ -456,21 +458,21 @@ export default function ObraCarcelaria() {
         <section className="card p-5 border-2 border-warning/30">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-            <div><h2 className="font-medium">Delegados con permiso INPEC por revisar</h2><p className="text-xs text-secondary mt-1">Vencido, sin fecha registrada, o vence en los próximos {DIAS_ALERTA_INPEC} días.</p></div>
+            <div><h2 className="font-medium">{t("obraCarcelaria.delegadosPermisoPorRevisar")}</h2><p className="text-xs text-secondary mt-1">{t("obraCarcelaria.delegadosAlertaDesc", { dias: DIAS_ALERTA_INPEC })}</p></div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
             {delegadosAlerta.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
                 <p className="text-sm font-medium">{item.personas?.nombres} {item.personas?.apellidos}</p>
-                <p className="text-xs text-secondary mt-1">{item.permiso_inpec_vencimiento ? `Vence: ${item.permiso_inpec_vencimiento}` : "Sin fecha de vencimiento registrada"}</p>
+                <p className="text-xs text-secondary mt-1">{item.permiso_inpec_vencimiento ? t("obraCarcelaria.vence", { fecha: item.permiso_inpec_vencimiento }) : t("obraCarcelaria.sinFechaVencimiento")}</p>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label="Secciones de Obra Carcelaria" role="tablist">
-        {[["internos", "Internos", LockKeyhole], ["cultos", "Cultos y REFAM", Church], ["delegados", "Delegados", UserCheck], ["familiar", "Seguimiento familiar", HeartHandshake], ["reinsercion", "Reinserción", ArrowRightLeft]].map(([key, label, Icon]) => (
+      <nav className="flex gap-1 border-b border-border overflow-x-auto" aria-label={t("obraCarcelaria.seccionesAriaLabel")} role="tablist">
+        {[["internos", t("obraCarcelaria.tabInternos"), LockKeyhole], ["cultos", t("obraCarcelaria.tabCultosRefam"), Church], ["delegados", t("obraCarcelaria.tabDelegados"), UserCheck], ["familiar", t("obraCarcelaria.tabSeguimientoFamiliar"), HeartHandshake], ["reinsercion", t("obraCarcelaria.tabReinsercion"), ArrowRightLeft]].map(([key, label, Icon]) => (
           <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab === key ? "border-accent text-accent" : "border-transparent text-secondary"}`}><Icon className="w-4 h-4" />{label}</button>
         ))}
       </nav>
@@ -478,7 +480,7 @@ export default function ObraCarcelaria() {
       {tab === "internos" && (
         <section className="grid lg:grid-cols-2 gap-4">
           <div className="card p-5">
-            <p className="eyebrow">Censo</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Internos<InfoTip texto="'Marcar liberado' registra la salida del centro y su fecha. Después, la asignación a una congregación receptora la hace el coordinador distrital en Pastoral Distrital." /></h2>
+            <p className="eyebrow">{t("obraCarcelaria.censo")}</p><h2 className="font-medium mt-1 flex items-center gap-1.5">{t("obraCarcelaria.internosLabel")}<InfoTip texto={t("obraCarcelaria.internosTip")} /></h2>
             <div className="overflow-x-auto mt-4 max-h-96 overflow-y-auto">
               {internos.length ? internos.map((item) => {
                 const yaVinculado = internosVinculados.has(item.id);
@@ -488,44 +490,44 @@ export default function ObraCarcelaria() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">{item.nombres} {item.apellidos}</p>
-                      <p className="text-xs text-secondary mt-1">{item.centros_reclusion?.nombre || "Sin centro"}{item.patio ? ` · Patio ${item.patio}` : ""}</p>
+                      <p className="text-xs text-secondary mt-1">{item.centros_reclusion?.nombre || t("obraCarcelaria.sinCentro")}{item.patio ? t("obraCarcelaria.patioNumero", { patio: item.patio }) : ""}</p>
                       <div className="flex gap-1.5 mt-1.5 flex-wrap">
                         <span className="text-[11px] px-2 py-0.5 rounded bg-surface-1">{ESTADO_INTERNO_LABELS[item.estado]}</span>
-                        {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
-                        {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
-                        {yaVinculado && <span className="text-[11px] px-2 py-0.5 rounded bg-success-bg text-success">Vinculado a la Ruta</span>}
+                        {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("obraCarcelaria.bautizadoBadge")}</span>}
+                        {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("obraCarcelaria.selladoBadge")}</span>}
+                        {yaVinculado && <span className="text-[11px] px-2 py-0.5 rounded bg-success-bg text-success">{t("obraCarcelaria.vinculadoALaRutaBadge")}</span>}
                         {item.estado === "activo" && cultos.length > 0 && (
                           asistenciasInterno > 0
-                            ? <span className="text-[11px] px-2 py-0.5 rounded bg-surface-1">Asistió a {asistenciasInterno} culto{asistenciasInterno === 1 ? "" : "s"} en este periodo</span>
-                            : <span className="text-[11px] px-2 py-0.5 rounded bg-warning-bg text-warning-dark">Sin asistencia registrada en este periodo</span>
+                            ? <span className="text-[11px] px-2 py-0.5 rounded bg-surface-1">{t("obraCarcelaria.asistioACultos", { count: asistenciasInterno })}</span>
+                            : <span className="text-[11px] px-2 py-0.5 rounded bg-warning-bg text-warning-dark">{t("obraCarcelaria.sinAsistenciaPeriodo")}</span>
                         )}
                       </div>
                     </div>
-                    {canEdit && <button type="button" className="text-xs text-accent flex-shrink-0" onClick={() => editInterno(item)}>Editar</button>}
+                    {canEdit && <button type="button" className="text-xs text-accent flex-shrink-0" onClick={() => editInterno(item)}>{t("obraCarcelaria.editar")}</button>}
                   </div>
                   {canEdit && item.estado === "activo" && (
                     <div className="flex gap-2 mt-2 flex-wrap items-start">
-                      {!item.bautizado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>Marcar bautizado</button>}
-                      {!item.sellado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>Marcar sellado</button>}
-                      <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarEstado(item, "liberado")}>Marcar liberado</button>
+                      {!item.bautizado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>{t("obraCarcelaria.marcarBautizado")}</button>}
+                      {!item.sellado && <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>{t("obraCarcelaria.marcarSellado")}</button>}
+                      <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => marcarEstado(item, "liberado")}>{t("obraCarcelaria.marcarLiberado")}</button>
                       {!yaVinculado && (
                         vinculandoId === item.id ? (
                           <div className="flex flex-col gap-1.5 min-w-[180px]">
                             <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
-                              <option value="">Responsable...</option>
+                              <option value="">{t("obraCarcelaria.responsableSeleccionar")}</option>
                               {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                             </select>
                             <div className="flex gap-1.5">
-                              <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item, congregacionId)}>Confirmar</button>
-                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                              <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item, congregacionId)}>{t("obraCarcelaria.confirmar")}</button>
+                              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>{t("obraCarcelaria.cancelar")}</button>
                             </div>
                           </div>
                         ) : (
                           <span className="inline-flex items-center gap-1">
                             <button type="button" className="text-xs btn-secondary px-2 py-1" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item, congregacionId) : setVinculandoId(item.id))}>
-                              Vincular a la Ruta
+                              {t("obraCarcelaria.vincularALaRuta")}
                             </button>
-                            <InfoTip texto="Crea una ficha en la Ruta Evangelística para darle seguimiento después de salir del centro. Si ya está bautizado, queda listo para pasar a Feligresía; si no, entra a la estación BIS con un responsable asignado." />
+                            <InfoTip texto={t("obraCarcelaria.vincularRutaTip")} />
                           </span>
                         )
                       )}
@@ -533,27 +535,27 @@ export default function ObraCarcelaria() {
                   )}
                 </div>
                 );
-              }) : <Empty text="Aún no hay internos registrados." />}
+              }) : <Empty text={t("obraCarcelaria.sinInternosRegistrados")} />}
             </div>
           </div>
 
           {canEdit && (
             <form onSubmit={saveInterno} className="card p-5 flex flex-col gap-2 h-fit">
-              <div className="flex items-center justify-between"><h2 className="font-medium">{editingInternoId ? "Editar interno" : "Nuevo interno"}</h2>{editingInternoId && <button type="button" className="text-xs text-secondary" onClick={resetInternoForm}>Cancelar</button>}</div>
+              <div className="flex items-center justify-between"><h2 className="font-medium">{editingInternoId ? t("obraCarcelaria.editarInterno") : t("obraCarcelaria.nuevoInterno")}</h2>{editingInternoId && <button type="button" className="text-xs text-secondary" onClick={resetInternoForm}>{t("obraCarcelaria.cancelar")}</button>}</div>
               <div className="grid grid-cols-2 gap-2">
-                <input required className="input-field" placeholder="Ej: Pedro" value={internoForm.nombres} onChange={(event) => setInternoForm({ ...internoForm, nombres: event.target.value })} />
-                <input required className="input-field" placeholder="Ej: Martínez Silva" value={internoForm.apellidos} onChange={(event) => setInternoForm({ ...internoForm, apellidos: event.target.value })} />
+                <input required className="input-field" placeholder={t("obraCarcelaria.placeholderNombres")} value={internoForm.nombres} onChange={(event) => setInternoForm({ ...internoForm, nombres: event.target.value })} />
+                <input required className="input-field" placeholder={t("obraCarcelaria.placeholderApellidos")} value={internoForm.apellidos} onChange={(event) => setInternoForm({ ...internoForm, apellidos: event.target.value })} />
               </div>
               <select className="input-field" value={internoForm.centro_id} onChange={(event) => setInternoForm({ ...internoForm, centro_id: event.target.value })}>
-                <option value="">Centro de reclusión</option>
+                <option value="">{t("obraCarcelaria.centroReclusion")}</option>
                 {centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <input className="input-field" placeholder="Patio / pabellón" value={internoForm.patio} onChange={(event) => setInternoForm({ ...internoForm, patio: event.target.value })} />
+                <input className="input-field" placeholder={t("obraCarcelaria.patioPabellon")} value={internoForm.patio} onChange={(event) => setInternoForm({ ...internoForm, patio: event.target.value })} />
                 <input required type="date" className="input-field" value={internoForm.fecha_ingreso_ministerio} onChange={(event) => setInternoForm({ ...internoForm, fecha_ingreso_ministerio: event.target.value })} />
               </div>
-              <textarea className="input-field min-h-14" placeholder="Ej: Participa activamente en el estudio bíblico del patio 3" value={internoForm.observaciones} onChange={(event) => setInternoForm({ ...internoForm, observaciones: event.target.value })} />
-              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingInternoId ? "Guardar cambios" : "Registrar interno"}</button>
+              <textarea className="input-field min-h-14" placeholder={t("obraCarcelaria.observacionesPlaceholder")} value={internoForm.observaciones} onChange={(event) => setInternoForm({ ...internoForm, observaciones: event.target.value })} />
+              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingInternoId ? t("obraCarcelaria.guardarCambios") : t("obraCarcelaria.registrarInterno")}</button>
             </form>
           )}
         </section>
@@ -562,45 +564,45 @@ export default function ObraCarcelaria() {
       {tab === "cultos" && (
         <section className="grid lg:grid-cols-2 gap-4">
           <div className="card p-5">
-            <p className="eyebrow">Historial</p><h2 className="font-medium mt-1">Cultos registrados</h2>
+            <p className="eyebrow">{t("obraCarcelaria.historial")}</p><h2 className="font-medium mt-1">{t("obraCarcelaria.cultosRegistrados")}</h2>
             <div className="flex flex-col divide-y divide-border mt-4 max-h-96 overflow-y-auto">
               {cultos.length ? cultos.map((item) => (
                 <div key={item.id} className="py-2">
-                  <div className="flex justify-between gap-3"><p className="text-sm font-medium">{item.centros_reclusion?.nombre || "Sin centro"}{item.patio ? ` · Patio ${item.patio}` : ""}</p><span className="text-xs text-secondary">{item.fecha}</span></div>
-                  <p className="text-xs text-secondary mt-1">{item.asistentes_total} asistentes · {item.estudios_biblicos_entregados} estudios REFAM entregados</p>
+                  <div className="flex justify-between gap-3"><p className="text-sm font-medium">{item.centros_reclusion?.nombre || t("obraCarcelaria.sinCentro")}{item.patio ? t("obraCarcelaria.patioNumero", { patio: item.patio }) : ""}</p><span className="text-xs text-secondary">{item.fecha}</span></div>
+                  <p className="text-xs text-secondary mt-1">{t("obraCarcelaria.asistentesYEstudios", { asistentes: item.asistentes_total, estudios: item.estudios_biblicos_entregados })}</p>
                   {item.notas && <p className="text-xs text-muted mt-1">{item.notas}</p>}
                 </div>
-              )) : <Empty text="Aún no hay cultos registrados en el periodo." />}
+              )) : <Empty text={t("obraCarcelaria.sinCultosRegistradosPeriodo")} />}
             </div>
           </div>
 
           {canEdit && (
             <form onSubmit={createCulto} className="card p-5 flex flex-col gap-2 h-fit">
-              <h2 className="font-medium">Registrar culto</h2>
+              <h2 className="font-medium">{t("obraCarcelaria.registrarCulto")}</h2>
               <div className="grid grid-cols-2 gap-2">
                 <select className="input-field" value={cultoForm.centro_id} onChange={(event) => setCultoForm({ ...cultoForm, centro_id: event.target.value })}>
-                  <option value="">Centro de reclusión</option>
+                  <option value="">{t("obraCarcelaria.centroReclusion")}</option>
                   {centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}
                 </select>
                 <input required type="date" className="input-field" value={cultoForm.fecha} onChange={(event) => setCultoForm({ ...cultoForm, fecha: event.target.value })} />
               </div>
-              <input className="input-field" placeholder="Patio / pabellón" value={cultoForm.patio} onChange={(event) => setCultoForm({ ...cultoForm, patio: event.target.value })} />
+              <input className="input-field" placeholder={t("obraCarcelaria.patioPabellon")} value={cultoForm.patio} onChange={(event) => setCultoForm({ ...cultoForm, patio: event.target.value })} />
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs text-secondary">Asistentes totales<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.asistentes_total} onChange={(event) => setCultoForm({ ...cultoForm, asistentes_total: event.target.value })} /></label>
-                <label className="text-xs text-secondary flex items-center gap-1">Estudios REFAM entregados<InfoTip texto="Cuántas lecciones bíblicas de REFAM (Reunión Familiar y de Amistad) se entregaron a los internos en este culto." /><input type="number" min="0" placeholder="0" className="input-field mt-1 w-full" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
+                <label className="text-xs text-secondary">{t("obraCarcelaria.asistentesTotales")}<input type="number" min="0" placeholder="0" className="input-field mt-1" value={cultoForm.asistentes_total} onChange={(event) => setCultoForm({ ...cultoForm, asistentes_total: event.target.value })} /></label>
+                <label className="text-xs text-secondary flex items-center gap-1">{t("obraCarcelaria.estudiosRefamEntregadosLabel")}<InfoTip texto={t("obraCarcelaria.estudiosRefamTip")} /><input type="number" min="0" placeholder="0" className="input-field mt-1 w-full" value={cultoForm.estudios_biblicos_entregados} onChange={(event) => setCultoForm({ ...cultoForm, estudios_biblicos_entregados: event.target.value })} /></label>
               </div>
               <select className="input-field" value={cultoForm.responsable_persona_id} onChange={(event) => setCultoForm({ ...cultoForm, responsable_persona_id: event.target.value })}>
-                <option value="">Responsable</option>
+                <option value="">{t("obraCarcelaria.responsable")}</option>
                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
               </select>
-              <textarea className="input-field min-h-14" placeholder="Ej: Se predicó sobre el perdón, buena participación" value={cultoForm.notas} onChange={(event) => setCultoForm({ ...cultoForm, notas: event.target.value })} />
+              <textarea className="input-field min-h-14" placeholder={t("obraCarcelaria.notasCultoPlaceholder")} value={cultoForm.notas} onChange={(event) => setCultoForm({ ...cultoForm, notas: event.target.value })} />
               {activos.length > 0 && <div>
-                <p className="text-xs text-secondary mb-1">Asistencia individual (internos con ficha)</p>
+                <p className="text-xs text-secondary mb-1">{t("obraCarcelaria.asistenciaIndividualInternos")}</p>
                 <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                   {activos.map((interno) => <label key={interno.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[interno.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [interno.id]: event.target.checked })} />{interno.nombres} {interno.apellidos}</label>)}
                 </div>
               </div>}
-              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar culto</button>
+              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("obraCarcelaria.registrarCulto")}</button>
             </form>
           )}
         </section>
@@ -609,11 +611,11 @@ export default function ObraCarcelaria() {
       {tab === "delegados" && (
         <section className="grid lg:grid-cols-2 gap-4">
           <div className="card overflow-hidden">
-            <div className="p-5 border-b border-border"><p className="eyebrow">Habilitación de voluntarios</p><h2 className="font-medium mt-1">Delegados</h2></div>
+            <div className="p-5 border-b border-border"><p className="eyebrow">{t("obraCarcelaria.habilitacionVoluntarios")}</p><h2 className="font-medium mt-1">{t("obraCarcelaria.delegadosLabel")}</h2></div>
             {delegados.length ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Delegado</th><th className="font-normal px-4 py-2.5">Centro</th><th className="font-normal px-4 py-2.5">Permiso INPEC</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
+                  <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colDelegado")}</th><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colCentro")}</th><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colPermisoInpec")}</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
                   <tbody>
                     {delegados.map((item) => {
                       const vencido = !item.permiso_inpec_vigente || !item.permiso_inpec_vencimiento || item.permiso_inpec_vencimiento <= en30dias;
@@ -621,32 +623,32 @@ export default function ObraCarcelaria() {
                         <tr key={item.id} className="border-t border-border">
                           <td className="px-4 py-2.5 font-medium">{item.personas?.nombres} {item.personas?.apellidos}</td>
                           <td className="px-4 py-2.5 text-secondary">{item.centros_reclusion?.nombre || "—"}</td>
-                          <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${vencido ? "bg-danger-bg text-danger" : "bg-success-bg text-success"}`}>{item.permiso_inpec_vencimiento ? `Vence ${item.permiso_inpec_vencimiento}` : "Sin fecha"}</span></td>
-                          <td className="px-4 py-2.5 text-right">{canEdit && <button type="button" className="text-xs text-accent" onClick={() => editDelegado(item)}>Editar</button>}</td>
+                          <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${vencido ? "bg-danger-bg text-danger" : "bg-success-bg text-success"}`}>{item.permiso_inpec_vencimiento ? t("obraCarcelaria.venceFecha", { fecha: item.permiso_inpec_vencimiento }) : t("obraCarcelaria.sinFecha")}</span></td>
+                          <td className="px-4 py-2.5 text-right">{canEdit && <button type="button" className="text-xs text-accent" onClick={() => editDelegado(item)}>{t("obraCarcelaria.editar")}</button>}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
-            ) : <Empty text="Aún no hay delegados registrados." illustration="equipo" />}
+            ) : <Empty text={t("obraCarcelaria.sinDelegadosRegistrados")} illustration="equipo" />}
           </div>
 
           {canEdit && (
             <form onSubmit={saveDelegado} className="card p-5 flex flex-col gap-2 h-fit">
-              <div className="flex items-center justify-between"><h2 className="font-medium">{editingDelegadoId ? "Editar delegado" : "Nuevo delegado"}</h2>{editingDelegadoId && <button type="button" className="text-xs text-secondary" onClick={resetDelegadoForm}>Cancelar</button>}</div>
+              <div className="flex items-center justify-between"><h2 className="font-medium">{editingDelegadoId ? t("obraCarcelaria.editarDelegado") : t("obraCarcelaria.nuevoDelegado")}</h2>{editingDelegadoId && <button type="button" className="text-xs text-secondary" onClick={resetDelegadoForm}>{t("obraCarcelaria.cancelar")}</button>}</div>
               <select required className="input-field" value={delegadoForm.persona_id} onChange={(event) => setDelegadoForm({ ...delegadoForm, persona_id: event.target.value })}>
-                <option value="">Persona</option>
+                <option value="">{t("obraCarcelaria.persona")}</option>
                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
               </select>
               <select className="input-field" value={delegadoForm.centro_id} onChange={(event) => setDelegadoForm({ ...delegadoForm, centro_id: event.target.value })}>
-                <option value="">Centro de reclusión</option>
+                <option value="">{t("obraCarcelaria.centroReclusion")}</option>
                 {centros.map((centro) => <option key={centro.id} value={centro.id}>{centro.nombre}</option>)}
               </select>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.permiso_inpec_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vigente: event.target.checked })} />Permiso INPEC vigente<InfoTip texto="El INPEC es la entidad que autoriza el ingreso de voluntarios a las cárceles. Marca esta opción solo si el delegado tiene ese permiso vigente en este momento." /></label>
-              <label className="text-xs text-secondary">Vencimiento del permiso<input type="date" className="input-field mt-1" value={delegadoForm.permiso_inpec_vencimiento} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vencimiento: event.target.value })} /></label>
-              <textarea className="input-field min-h-14" placeholder="Ej: Disponible los sábados en la mañana" value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
-              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingDelegadoId ? "Guardar cambios" : "Habilitar delegado"}</button>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={delegadoForm.permiso_inpec_vigente} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vigente: event.target.checked })} />{t("obraCarcelaria.permisoInpecVigente")}<InfoTip texto={t("obraCarcelaria.permisoInpecTip")} /></label>
+              <label className="text-xs text-secondary">{t("obraCarcelaria.vencimientoPermiso")}<input type="date" className="input-field mt-1" value={delegadoForm.permiso_inpec_vencimiento} onChange={(event) => setDelegadoForm({ ...delegadoForm, permiso_inpec_vencimiento: event.target.value })} /></label>
+              <textarea className="input-field min-h-14" placeholder={t("obraCarcelaria.observacionesDelegadoPlaceholder")} value={delegadoForm.observaciones} onChange={(event) => setDelegadoForm({ ...delegadoForm, observaciones: event.target.value })} />
+              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {editingDelegadoId ? t("obraCarcelaria.guardarCambios") : t("obraCarcelaria.habilitarDelegado")}</button>
             </form>
           )}
         </section>
@@ -655,7 +657,7 @@ export default function ObraCarcelaria() {
       {tab === "familiar" && (
         <section className="grid lg:grid-cols-2 gap-4">
           <div className="card p-5">
-            <p className="eyebrow">Asistencia externa</p><h2 className="font-medium mt-1">Seguimiento familiar</h2>
+            <p className="eyebrow">{t("obraCarcelaria.asistenciaExterna")}</p><h2 className="font-medium mt-1">{t("obraCarcelaria.seguimientoFamiliar")}</h2>
             <div className="flex flex-col divide-y divide-border mt-4 max-h-96 overflow-y-auto">
               {seguimientos.length ? seguimientos.map((item) => (
                 <div key={item.id} className="py-2">
@@ -663,38 +665,38 @@ export default function ObraCarcelaria() {
                   <p className="text-xs text-secondary mt-1">{TIPO_APOYO_LABELS[item.tipo_apoyo]} · {item.contacto_nombre}{item.parentesco ? ` (${item.parentesco})` : ""}</p>
                   {item.notas && <p className="text-xs text-muted mt-1">{item.notas}</p>}
                 </div>
-              )) : <Empty text="Aún no hay seguimiento familiar registrado." />}
+              )) : <Empty text={t("obraCarcelaria.sinSeguimientoRegistrado")} />}
             </div>
           </div>
 
           {canEdit && (
             <form onSubmit={saveFamiliar} className="card p-5 flex flex-col gap-2 h-fit">
-              <h2 className="font-medium">Registrar seguimiento familiar</h2>
+              <h2 className="font-medium">{t("obraCarcelaria.registrarSeguimientoFamiliar")}</h2>
               <select required className="input-field" value={familiarForm.interno_id} onChange={(event) => setFamiliarForm({ ...familiarForm, interno_id: event.target.value })}>
-                <option value="">Interno</option>
+                <option value="">{t("obraCarcelaria.interno")}</option>
                 {internos.map((interno) => <option key={interno.id} value={interno.id}>{interno.nombres} {interno.apellidos}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <input required className="input-field" placeholder="Ej: Rosa Martínez" value={familiarForm.contacto_nombre} onChange={(event) => setFamiliarForm({ ...familiarForm, contacto_nombre: event.target.value })} />
-                <input className="input-field" placeholder="Ej: Esposa, mamá, hijo" value={familiarForm.parentesco} onChange={(event) => setFamiliarForm({ ...familiarForm, parentesco: event.target.value })} />
+                <input required className="input-field" placeholder={t("obraCarcelaria.contactoPlaceholder")} value={familiarForm.contacto_nombre} onChange={(event) => setFamiliarForm({ ...familiarForm, contacto_nombre: event.target.value })} />
+                <input className="input-field" placeholder={t("obraCarcelaria.parentescoPlaceholder")} value={familiarForm.parentesco} onChange={(event) => setFamiliarForm({ ...familiarForm, parentesco: event.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input className="input-field" placeholder="Ej: 3001234567" value={familiarForm.telefono} onChange={(event) => setFamiliarForm({ ...familiarForm, telefono: event.target.value })} />
+                <input className="input-field" placeholder={t("obraCarcelaria.telefonoPlaceholder")} value={familiarForm.telefono} onChange={(event) => setFamiliarForm({ ...familiarForm, telefono: event.target.value })} />
                 <input required type="date" className="input-field" value={familiarForm.fecha_visita} onChange={(event) => setFamiliarForm({ ...familiarForm, fecha_visita: event.target.value })} />
               </div>
               <select className="input-field" value={familiarForm.tipo_apoyo} onChange={(event) => setFamiliarForm({ ...familiarForm, tipo_apoyo: event.target.value })}>
                 {Object.entries(TIPO_APOYO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <select className="input-field" value={familiarForm.familia_id} onChange={(event) => setFamiliarForm({ ...familiarForm, familia_id: event.target.value })}>
-                <option value="">Vincular con familia censada (opcional)</option>
+                <option value="">{t("obraCarcelaria.vincularFamiliaOpcional")}</option>
                 {familias.map((familia) => <option key={familia.id} value={familia.id}>{familia.nombre_familia}</option>)}
               </select>
               <select className="input-field" value={familiarForm.responsable_persona_id} onChange={(event) => setFamiliarForm({ ...familiarForm, responsable_persona_id: event.target.value })}>
-                <option value="">Responsable</option>
+                <option value="">{t("obraCarcelaria.responsable")}</option>
                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
               </select>
-              <textarea className="input-field min-h-14" placeholder="Ej: Se le llevó mercado, familia necesita apoyo con arriendo" value={familiarForm.notas} onChange={(event) => setFamiliarForm({ ...familiarForm, notas: event.target.value })} />
-              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar seguimiento</button>
+              <textarea className="input-field min-h-14" placeholder={t("obraCarcelaria.notasFamiliarPlaceholder")} value={familiarForm.notas} onChange={(event) => setFamiliarForm({ ...familiarForm, notas: event.target.value })} />
+              <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("obraCarcelaria.registrarSeguimiento")}</button>
             </form>
           )}
         </section>
@@ -702,11 +704,11 @@ export default function ObraCarcelaria() {
 
       {tab === "reinsercion" && (
         <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border"><p className="eyebrow">Post-penitenciario</p><h2 className="font-medium mt-1">Reinserción eclesial</h2><p className="text-sm text-secondary mt-1">La asignación de un liberado a una congregación la realiza el coordinador distrital desde Pastoral Distrital. Aquí puedes ver el resultado y, si tu congregación es la receptora, actualizar el estado de integración.</p></div>
+          <div className="p-5 border-b border-border"><p className="eyebrow">{t("obraCarcelaria.postPenitenciario")}</p><h2 className="font-medium mt-1">{t("obraCarcelaria.reinsercionEclesial")}</h2><p className="text-sm text-secondary mt-1">{t("obraCarcelaria.reinsercionDesc")}</p></div>
           {reinserciones.length ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"><span className="inline-flex items-center gap-1">Ruta Evangelística<InfoTip texto="Una vez contactado, vincula al interno con el mismo seguimiento individual que usa toda la congregación: si ya se bautizó estando preso, queda listo para incorporar a Feligresía; si no, entra a BIS." /></span></th></tr></thead>
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colInterno")}</th><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colOrigen")}</th><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colDestino")}</th><th className="font-normal px-4 py-2.5">{t("obraCarcelaria.colEstado")}</th><th className="font-normal px-4 py-2.5"><span className="inline-flex items-center gap-1">{t("obraCarcelaria.colRutaEvangelistica")}<InfoTip texto={t("obraCarcelaria.rutaEvangelisticaTip")} /></span></th></tr></thead>
                 <tbody>
                   {reinserciones.map((item) => {
                     const interno = internos.find((row) => row.id === item.interno_id);
@@ -725,21 +727,21 @@ export default function ObraCarcelaria() {
                           ) : <span className="text-xs px-2 py-1 rounded bg-surface-1">{ESTADO_REINSERCION_LABELS[item.estado]}</span>}
                         </td>
                         <td className="px-4 py-2.5">
-                          {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : puedeVincular ? (
+                          {yaVinculado ? <span className="text-xs text-success">{t("obraCarcelaria.vinculado")}</span> : puedeVincular ? (
                             vinculandoId === item.id ? (
                               <div className="flex flex-col gap-1.5 min-w-[180px]">
                                 <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
-                                  <option value="">Responsable...</option>
+                                  <option value="">{t("obraCarcelaria.responsableSeleccionar")}</option>
                                   {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                                 </select>
                                 <div className="flex gap-1.5">
-                                  <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(interno, item.congregacion_destino_id)}>Confirmar</button>
-                                  <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                                  <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(interno, item.congregacion_destino_id)}>{t("obraCarcelaria.confirmar")}</button>
+                                  <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>{t("obraCarcelaria.cancelar")}</button>
                                 </div>
                               </div>
                             ) : (
                               <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (interno?.bautizado ? vincularRutaEvangelistica(interno, item.congregacion_destino_id) : setVinculandoId(item.id))}>
-                                Vincular
+                                {t("obraCarcelaria.vincular")}
                               </button>
                             )
                           ) : <span className="text-xs text-muted">—</span>}
@@ -750,7 +752,7 @@ export default function ObraCarcelaria() {
                 </tbody>
               </table>
             </div>
-          ) : <p className="p-5 text-sm text-muted">{liberados.length > 0 ? "Hay internos liberados sin asignación de reinserción todavía." : "Aún no hay casos de reinserción."}</p>}
+          ) : <p className="p-5 text-sm text-muted">{liberados.length > 0 ? t("obraCarcelaria.hayInternosLiberadosSinAsignacion") : t("obraCarcelaria.sinCasosReinsercion")}</p>}
         </section>
       )}
     </div>

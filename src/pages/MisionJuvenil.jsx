@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "chart.js";
 import { BookOpen, Building2, Plus, Target, UsersRound } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
@@ -32,25 +33,6 @@ ChartJS.register(
   PointElement,
   Tooltip,
 );
-const PERIODOS = [
-  ["30", "30 días"],
-  ["180", "6 meses"],
-  ["365", "12 meses"],
-];
-const FASES = {
-  1: "Contacto inicial",
-  2: "Talleres de valores",
-  3: "Grupo establecido",
-};
-const ESTADOS = {
-  simpatizante: "Simpatizante",
-  refam: "Asistente a REFAM",
-  discipulado: "En discipulado",
-  bautizado: "Bautizado",
-  inactivo: "Inactivo",
-};
-const TIPO_INSTITUCION_LABELS = { publica: "Pública", privada: "Privada" };
-const NIVEL_INSTITUCION_LABELS = { bachillerato: "Bachillerato", universidad: "Universidad", otro: "Otro" };
 const CHART_OPTIONS = chartOptions();
 
 const misionJuvenilCache = new Map();
@@ -73,6 +55,26 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "", info }
 }
 
 export default function MisionJuvenil() {
+  const { t } = useTranslation();
+  const PERIODOS = [
+    ["30", t("misionJuvenil.periodo30")],
+    ["180", t("misionJuvenil.periodo6m")],
+    ["365", t("misionJuvenil.periodo12m")],
+  ];
+  const FASES = {
+    1: t("misionJuvenil.fase1"),
+    2: t("misionJuvenil.fase2"),
+    3: t("misionJuvenil.fase3"),
+  };
+  const ESTADOS = {
+    simpatizante: t("misionJuvenil.estadoSimpatizante"),
+    refam: t("misionJuvenil.estadoRefam"),
+    discipulado: t("misionJuvenil.estadoDiscipulado"),
+    bautizado: t("misionJuvenil.estadoBautizado"),
+    inactivo: t("misionJuvenil.estadoInactivo"),
+  };
+  const TIPO_INSTITUCION_LABELS = { publica: t("misionJuvenil.tipoPublica"), privada: t("misionJuvenil.tipoPrivada") };
+  const NIVEL_INSTITUCION_LABELS = { bachillerato: t("misionJuvenil.nivelBachillerato"), universidad: t("misionJuvenil.nivelUniversidad"), otro: t("misionJuvenil.nivelOtro") };
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [instituciones, setInstituciones] = useState([]);
@@ -134,7 +136,7 @@ export default function MisionJuvenil() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("misionJuvenil.sinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -203,9 +205,7 @@ export default function MisionJuvenil() {
     ]);
     const failed = [i, s, g, r, p, l, am].find((item) => item.error);
     if (failed)
-      setError(
-        "No se pudo cargar Misión Juvenil. Intenta nuevamente o contacta al administrador.",
-      );
+      setError(t("misionJuvenil.errorCargar"));
     const freshData = {
       instituciones: i.data ?? [],
       estudiantes: s.data ?? [],
@@ -236,7 +236,7 @@ export default function MisionJuvenil() {
       .select("id, numero, tema, fecha, asistentes, notas")
       .eq("grupo_id", grupoId)
       .order("numero", { ascending: false });
-    if (leccionesError) setError("No se pudo cargar el historial de lecciones.");
+    if (leccionesError) setError(t("misionJuvenil.errorHistorialLecciones"));
     setLecciones(data ?? []);
   }
 
@@ -259,20 +259,20 @@ export default function MisionJuvenil() {
     }).select("id").single();
     if (leccionResult.error) {
       setSaving(false);
-      setError(`No se pudo registrar la lección: ${leccionResult.error.message}`);
+      setError(t("misionJuvenil.errorRegistrarLeccion", { mensaje: leccionResult.error.message }));
       return;
     }
     if (estudiantesGrupo.length > 0) {
       const asistenciaResult = await supabase.from("mision_asistencia_estudiante").insert(
         estudiantesGrupo.map((estudiante) => ({ leccion_id: leccionResult.data.id, estudiante_id: estudiante.id, asistio: Boolean(asistenciaMarcada[estudiante.id]) })),
       );
-      if (asistenciaResult.error) { setSaving(false); setError(`La lección se guardó, pero no se pudo registrar la asistencia individual: ${asistenciaResult.error.message}`); return; }
+      if (asistenciaResult.error) { setSaving(false); setError(t("misionJuvenil.errorAsistenciaIndividual", { mensaje: asistenciaResult.error.message })); return; }
     }
     if (proximoNumero > (grupo?.leccion_actual || 0)) {
       await supabase.from("mision_grupos").update({ leccion_actual: proximoNumero }).eq("id", selectedGrupoId).eq("congregacion_id", congregacionId);
     }
     setSaving(false);
-    setNotice("Lección registrada con asistencia individual.");
+    setNotice(t("misionJuvenil.leccionRegistrada"));
     setLeccionForm({ tema: "", fecha: hoyBogota(), notas: "" });
     setAsistenciaMarcada({});
     loadLecciones(selectedGrupoId);
@@ -287,17 +287,17 @@ export default function MisionJuvenil() {
     const result = await supabase.from("mision_lideres").insert({ congregacion_id: congregacionId, persona_id: liderForm.persona_id, rol: liderForm.rol.trim() || "gestor" });
     setSaving(false);
     if (result.error) {
-      setError(result.error.code === "23505" ? "Esta persona ya está registrada como líder." : `No se pudo registrar el líder: ${result.error.message}`);
+      setError(result.error.code === "23505" ? t("misionJuvenil.errorPersonaYaLider") : t("misionJuvenil.errorRegistrarLider", { mensaje: result.error.message }));
       return;
     }
-    setNotice("Líder registrado.");
+    setNotice(t("misionJuvenil.liderRegistrado"));
     setLiderForm({ persona_id: "", rol: "gestor" });
     load();
   }
 
   async function toggleLider(lider) {
     const result = await supabase.from("mision_lideres").update({ activo: lider.activo === false }).eq("id", lider.id).eq("congregacion_id", congregacionId);
-    if (result.error) { setError(`No se pudo cambiar el estado del líder: ${result.error.message}`); return; }
+    if (result.error) { setError(t("misionJuvenil.errorEstadoLider", { mensaje: result.error.message })); return; }
     load();
   }
   useEffect(() => {
@@ -366,29 +366,29 @@ export default function MisionJuvenil() {
     }));
   const topInstitution = institutionRows[0];
   const insight = topInstitution?.estudiantes
-    ? `${topInstitution.nombre} concentra ${topInstitution.estudiantes} estudiantes registrados. Prioriza allí los tutores y grupos que sostengan la continuidad.`
-    : "Registra instituciones y estudiantes para construir una lectura de impacto juvenil.";
+    ? t("misionJuvenil.insightTopInstitucion", { nombre: topInstitution.nombre, cantidad: topInstitution.estudiantes })
+    : t("misionJuvenil.insightSinDatos");
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Estudiantes activos", value: activeStudents },
-        { label: "Grupos activos", value: activeGroups },
-        { label: "Bautizados", value: baptized },
-        { label: "Sellados", value: sealed },
+        { label: t("misionJuvenil.exportEstudiantesActivos"), value: activeStudents },
+        { label: t("misionJuvenil.exportGruposActivos"), value: activeGroups },
+        { label: t("misionJuvenil.exportBautizados"), value: baptized },
+        { label: t("misionJuvenil.exportSellados"), value: sealed },
       ],
-      desgloses: [{ titulo: "Estudiantes por estado", items: statusRows.map((item) => ({ label: item.label, valor: item.total })) }],
+      desgloses: [{ titulo: t("misionJuvenil.exportEstudiantesPorEstado"), items: statusRows.map((item) => ({ label: item.label, valor: item.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Institución", "Estudiantes", "Grupos", "Fase"],
-      rows: institutionRows.map((item) => [item.nombre, item.estudiantes, item.grupos, item.fase === 3 ? "Establecida" : `Fase ${item.fase ?? "—"}`]),
+      headers: [t("misionJuvenil.exportColInstitucion"), t("misionJuvenil.exportColEstudiantes"), t("misionJuvenil.exportColGrupos"), t("misionJuvenil.exportColFase")],
+      rows: institutionRows.map((item) => [item.nombre, item.estudiantes, item.grupos, item.fase === 3 ? t("misionJuvenil.exportEstablecida") : t("misionJuvenil.exportFaseGuion", { fase: item.fase ?? "—" })]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `mision-juvenil-${hoyBogota()}.csv`, titulo: "Misión Juvenil — Instituciones", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `mision-juvenil-${hoyBogota()}.xlsx`, hoja: "Instituciones", titulo: "Misión Juvenil — Instituciones", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `mision-juvenil-${hoyBogota()}.pdf`, titulo: "Misión Juvenil — Instituciones", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `mision-juvenil-${hoyBogota()}.csv`, titulo: t("misionJuvenil.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `mision-juvenil-${hoyBogota()}.xlsx`, hoja: t("misionJuvenil.exportHoja"), titulo: t("misionJuvenil.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `mision-juvenil-${hoyBogota()}.pdf`, titulo: t("misionJuvenil.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   async function createInstitution(event) {
     event.preventDefault();
@@ -402,9 +402,9 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError("No se pudo registrar la institución. Intenta nuevamente o contacta al administrador.");
+      setError(t("misionJuvenil.errorRegistrarInstitucion"));
     else {
-      setNotice("Institución registrada.");
+      setNotice(t("misionJuvenil.institucionRegistrada"));
       setInstitutionForm({
         nombre: "",
         tipo: "publica",
@@ -424,8 +424,8 @@ export default function MisionJuvenil() {
     const hoy = hoyBogota();
     const result = await supabase.from("mision_estudiantes").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", student.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
-    setNotice("Ficha actualizada.");
+    if (result.error) { setError(t("misionJuvenil.errorActualizarFicha", { mensaje: result.error.message })); return; }
+    setNotice(t("misionJuvenil.fichaActualizada"));
     load();
   }
 
@@ -439,7 +439,7 @@ export default function MisionJuvenil() {
   // este bautizado, en cuyo caso queda listo para incorporar a Feligresia.
   async function vincularRutaEvangelistica(student) {
     if (!canEdit) return;
-    if (!student.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    if (!student.bautizado && !responsableVinculoId) { setError(t("misionJuvenil.errorSeleccionaResponsable")); return; }
     setSaving(true); setError(null);
     const nombreCompleto = `${student.nombres} ${student.apellidos}`.trim();
     const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
@@ -449,19 +449,19 @@ export default function MisionJuvenil() {
       mision_juvenil_estudiante_id: student.id,
       ...(student.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: student.fecha_bautismo } : {}),
     }).select("id").single();
-    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (amigoError) { setSaving(false); setError(t("misionJuvenil.errorVincularRuta", { mensaje: amigoError.message })); return; }
     if (student.bautizado) {
       setSaving(false);
-      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setNotice(t("misionJuvenil.vinculadoBautizado", { nombre: nombreCompleto }));
       setVinculandoId(null); setResponsableVinculoId(""); load();
       return;
     }
     const { data: estacionBis, error: estacionError } = await getEstacion(congregacionId, "bis");
-    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    if (estacionError || !estacionBis) { setSaving(false); setError(t("misionJuvenil.errorSinEstacionBis")); return; }
     const movResult = await iniciarOMoverEstacion({ congregacionId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
     setSaving(false);
-    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
-    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    if (movResult.error) { setError(t("misionJuvenil.errorAgregarBis", { mensaje: movResult.error.message })); return; }
+    setNotice(t("misionJuvenil.vinculadoBis", { nombre: nombreCompleto }));
     setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
@@ -478,9 +478,9 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError("No se pudo registrar el estudiante. Intenta nuevamente o contacta al administrador.");
+      setError(t("misionJuvenil.errorRegistrarEstudiante"));
     else {
-      setNotice("Estudiante registrado.");
+      setNotice(t("misionJuvenil.estudianteRegistrado"));
       setStudentForm({
         nombres: "",
         apellidos: "",
@@ -507,9 +507,9 @@ export default function MisionJuvenil() {
       });
     setSaving(false);
     if (result.error)
-      setError("No se pudo registrar el grupo. Intenta nuevamente o contacta al administrador.");
+      setError(t("misionJuvenil.errorRegistrarGrupo"));
     else {
-      setNotice("Grupo juvenil registrado.");
+      setNotice(t("misionJuvenil.grupoRegistrado"));
       setGroupForm({
         nombre: "",
         institucion_id: "",
@@ -524,24 +524,24 @@ export default function MisionJuvenil() {
     return (
       <div className="module-loading" role="status">
         <span className="loading-dot" />
-        Cargando Misión Juvenil...
+        {t("misionJuvenil.cargando")}
       </div>
     );
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Trabajo juvenil</p>
-          <h1 className="section-title">Misión Juvenil</h1>
+          <p className="eyebrow">{t("misionJuvenil.eyebrow")}</p>
+          <h1 className="section-title">{t("misionJuvenil.titulo")}</h1>
           <p className="text-sm text-secondary mt-1">
-            Instituciones, estudiantes, grupos REFAM y crecimiento espiritual.
+            {t("misionJuvenil.subtitulo")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div
             className="flex gap-1.5"
             role="group"
-            aria-label="Periodo del análisis"
+            aria-label={t("misionJuvenil.periodoAnalisis")}
           >
             {PERIODOS.map(([value, label]) => (
               <button
@@ -565,16 +565,16 @@ export default function MisionJuvenil() {
           {error}
         </p>
       )}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Misión Juvenil.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("misionJuvenil.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Metric label="Instituciones" value={instituciones.length} progress={instituciones.length ? Math.round((establishedInstitutions / instituciones.length) * 100) : 0} detail={`${establishedInstitutions} con grupo establecido`} insight={instituciones.length ? "Fortalece las instituciones que aún están en contacto inicial." : "Registra la primera institución para iniciar el trabajo."} />
-        <Metric label="Estudiantes en proceso" value={activeSympathizers} progress={students.length ? Math.round((activeSympathizers / students.length) * 100) : 0} detail={`${activeSympathizers} de ${students.length} estudiantes`} insight={activeSympathizers ? "Revisa quién necesita avanzar a REFAM o discipulado." : "Aún no hay estudiantes en proceso activo."} />
-        <Metric label="Grupos REFAM" value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={`${studentsPerGroup} estudiantes por grupo`} insight={activeGroups ? "Comprueba que cada grupo tenga líder y continuidad de lecciones." : "Crea un grupo para organizar el acompañamiento."} info="REFAM (Reunión Familiar y de Amistad) son los grupos pequeños donde los estudiantes reciben lecciones bíblicas, dentro o cerca de la institución." />
-        <Metric label="Asistencia promedio" value={average} progress={attendanceRate} detail={`${registros.length} registros de actividad`} insight={average ? "Compara la asistencia con el número de estudiantes para detectar continuidad." : "Registra actividades para conocer la participación juvenil."} />
-        <Metric label="Bautizados" value={baptized} tone="text-success" progress={baptismRate} detail={`${baptismRate}% de estudiantes activos`} insight={baptized ? "Asegura la continuidad de cada bautizado hacia el discipulado." : "Acompaña el proceso espiritual y la preparación bautismal."} />
-        <Metric label="Sellados" value={sealed} progress={activeStudents ? Math.round((sealed / activeStudents) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua, independiente del proceso REFAM." />
-        <Metric label="Registros de actividad" value={registros.length} progress={registros.length ? 100 : 0} detail={`${attendance} asistentes acumulados`} insight={registros.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay actividad registrada en el periodo."} />
+        <Metric label={t("misionJuvenil.metricInstituciones")} value={instituciones.length} progress={instituciones.length ? Math.round((establishedInstitutions / instituciones.length) * 100) : 0} detail={t("misionJuvenil.metricConGrupoEstablecido", { cantidad: establishedInstitutions })} insight={instituciones.length ? t("misionJuvenil.insightInstitucionesConDatos") : t("misionJuvenil.insightInstitucionesVacio")} />
+        <Metric label={t("misionJuvenil.metricEstudiantesProceso")} value={activeSympathizers} progress={students.length ? Math.round((activeSympathizers / students.length) * 100) : 0} detail={t("misionJuvenil.metricDeEstudiantes", { activos: activeSympathizers, total: students.length })} insight={activeSympathizers ? t("misionJuvenil.insightEstudiantesConDatos") : t("misionJuvenil.insightEstudiantesVacio")} />
+        <Metric label={t("misionJuvenil.metricGruposRefam")} value={activeGroups} progress={students.length ? Math.min(100, studentsPerGroup * 10) : 0} detail={t("misionJuvenil.metricEstudiantesPorGrupo", { cantidad: studentsPerGroup })} insight={activeGroups ? t("misionJuvenil.insightGruposConDatos") : t("misionJuvenil.insightGruposVacio")} info={t("misionJuvenil.infoRefam")} />
+        <Metric label={t("misionJuvenil.metricAsistenciaPromedio")} value={average} progress={attendanceRate} detail={t("misionJuvenil.metricRegistrosActividad", { cantidad: registros.length })} insight={average ? t("misionJuvenil.insightAsistenciaConDatos") : t("misionJuvenil.insightAsistenciaVacio")} />
+        <Metric label={t("misionJuvenil.metricBautizados")} value={baptized} tone="text-success" progress={baptismRate} detail={t("misionJuvenil.metricPctEstudiantesActivos", { pct: baptismRate })} insight={baptized ? t("misionJuvenil.insightBautizadosConDatos") : t("misionJuvenil.insightBautizadosVacio")} />
+        <Metric label={t("misionJuvenil.metricSellados")} value={sealed} progress={activeStudents ? Math.round((sealed / activeStudents) * 100) : 0} detail={t("misionJuvenil.detalleConEspirituSanto")} insight={t("misionJuvenil.insightSellados")} />
+        <Metric label={t("misionJuvenil.metricRegistrosDeActividad")} value={registros.length} progress={registros.length ? 100 : 0} detail={t("misionJuvenil.metricAsistentesAcumulados", { cantidad: attendance })} insight={registros.length ? t("misionJuvenil.insightRegistrosConDatos") : t("misionJuvenil.insightRegistrosVacio")} />
       </section>
       <section className="card p-5">
         <div className="flex items-start gap-3 pb-4 border-b border-border">
@@ -582,23 +582,22 @@ export default function MisionJuvenil() {
             <Target className="w-4 h-4" />
           </span>
           <div>
-            <p className="eyebrow">Filtros para decidir</p>
-            <h2 className="font-medium mt-1">Impacto juvenil</h2>
+            <p className="eyebrow">{t("misionJuvenil.filtrosParaDecidir")}</p>
+            <h2 className="font-medium mt-1">{t("misionJuvenil.impactoJuvenil")}</h2>
             <p className="text-xs text-secondary mt-1">
-              Compara instituciones y estados espirituales sin alterar los datos
-              capturados.
+              {t("misionJuvenil.impactoJuvenilDesc")}
             </p>
           </div>
         </div>
         <div className="grid md:grid-cols-2 gap-3 mt-4">
           <label className="text-xs text-secondary">
-            Institución
+            {t("misionJuvenil.institucion")}
             <select
               className="input-field mt-1.5"
               value={institucionFiltro}
               onChange={(event) => setInstitucionFiltro(event.target.value)}
             >
-              <option value="todos">Todas las instituciones</option>
+              <option value="todos">{t("misionJuvenil.todasInstituciones")}</option>
               {instituciones.map((institution) => (
                 <option key={institution.id} value={institution.id}>
                   {institution.nombre}
@@ -607,14 +606,14 @@ export default function MisionJuvenil() {
             </select>
           </label>
           <label className="text-xs text-secondary flex items-center gap-1">
-            Estado espiritual
-            <InfoTip texto="Filtra por el avance de cada estudiante: simpatizante, asistente a REFAM, en discipulado o ya bautizado. Ese estado se define al registrar o editar cada estudiante." />
+            {t("misionJuvenil.estadoEspiritual")}
+            <InfoTip texto={t("misionJuvenil.estadoEspiritualTip")} />
             <select
               className="input-field mt-1.5 w-full"
               value={estadoFiltro}
               onChange={(event) => setEstadoFiltro(event.target.value)}
             >
-              <option value="todos">Todos los estados</option>
+              <option value="todos">{t("misionJuvenil.todosEstados")}</option>
               {Object.entries(ESTADOS).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
@@ -629,31 +628,31 @@ export default function MisionJuvenil() {
       </p>
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Actividad juvenil registrada</p>
-          <h2 className="font-medium mt-1">Actividad juvenil</h2>
-          <p className="text-xs text-secondary mt-1">Asistencia de todo el ministerio; no varía con los filtros de institución o estado espiritual de arriba.</p>
+          <p className="eyebrow">{t("misionJuvenil.actividadJuvenilRegistrada")}</p>
+          <h2 className="font-medium mt-1">{t("misionJuvenil.actividadJuvenil")}</h2>
+          <p className="text-xs text-secondary mt-1">{t("misionJuvenil.actividadJuvenilDesc")}</p>
           <div className="h-56 mt-4">
             {trend.length ? (
               <Line
-                data={trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" })}
+                data={trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("misionJuvenil.asistentes") })}
                 options={CHART_OPTIONS}
               />
             ) : (
-              <ChartEmpty message="Aún no hay actividades registradas en el periodo." />
+              <ChartEmpty message={t("misionJuvenil.sinActividadesPeriodo")} />
             )}
           </div>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Crecimiento</p>
-          <h2 className="font-medium mt-1">Estado de estudiantes</h2>
+          <p className="eyebrow">{t("misionJuvenil.crecimiento")}</p>
+          <h2 className="font-medium mt-1">{t("misionJuvenil.estadoDeEstudiantes")}</h2>
           <div className="h-56 mt-4">
             {students.length ? (
               <Bar
-                data={distributionDataset(statusRows, { datasetLabel: "Estudiantes" })}
+                data={distributionDataset(statusRows, { datasetLabel: t("misionJuvenil.estudiantesLabel") })}
                 options={CHART_OPTIONS}
               />
             ) : (
-              <ChartEmpty message="Aún no hay estudiantes que coincidan con los filtros." />
+              <ChartEmpty message={t("misionJuvenil.sinEstudiantesFiltros")} />
             )}
           </div>
         </div>
@@ -661,9 +660,9 @@ export default function MisionJuvenil() {
       <section className="card p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="eyebrow">Detalle de estudiantes</p>
-            <h2 className="font-medium mt-1">Estudiantes por estado</h2>
-            <p className="text-xs text-secondary mt-1">Consulta los nombres que componen cada resultado del gráfico.</p>
+            <p className="eyebrow">{t("misionJuvenil.detalleEstudiantes")}</p>
+            <h2 className="font-medium mt-1">{t("misionJuvenil.estudiantesPorEstado")}</h2>
+            <p className="text-xs text-secondary mt-1">{t("misionJuvenil.consultaNombres")}</p>
           </div>
           <UsersRound className="w-5 h-5 text-accent" />
         </div>
@@ -671,12 +670,12 @@ export default function MisionJuvenil() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted border-b border-border">
-                <th className="py-2">Estudiante</th>
-                <th className="py-2">Institución</th>
-                <th className="py-2">Grado / semestre</th>
-                <th className="py-2">Estado</th>
-                <th className="py-2"><span className="flex items-center gap-1.5">Hitos<InfoTip texto="Bautizado y sellado son hitos independientes. Una vez marcados aquí no hay botón para deshacerlos." /></span></th>
-                <th className="py-2"><span className="flex items-center gap-1.5">Ruta Evangelística<InfoTip texto="Vincula al estudiante con el mismo seguimiento individual que usa toda la congregación: si ya se bautizó, queda listo para incorporar a Feligresía; si no, entra a BIS." /></span></th>
+                <th className="py-2">{t("misionJuvenil.colEstudiante")}</th>
+                <th className="py-2">{t("misionJuvenil.colInstitucion")}</th>
+                <th className="py-2">{t("misionJuvenil.colGradoSemestre")}</th>
+                <th className="py-2">{t("misionJuvenil.colEstado")}</th>
+                <th className="py-2"><span className="flex items-center gap-1.5">{t("misionJuvenil.colHitos")}<InfoTip texto={t("misionJuvenil.hitosTip")} /></span></th>
+                <th className="py-2"><span className="flex items-center gap-1.5">{t("misionJuvenil.colRutaEvangelistica")}<InfoTip texto={t("misionJuvenil.rutaEvangelisticaTip")} /></span></th>
               </tr>
             </thead>
             <tbody>
@@ -685,33 +684,33 @@ export default function MisionJuvenil() {
                 return (
                 <tr key={student.id} className="border-b border-border align-top">
                   <td className="py-2 font-medium">{student.nombres} {student.apellidos}</td>
-                  <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || "Sin institución"}</td>
-                  <td className="py-2 text-secondary">{student.grado_semestre || "Sin dato"}</td>
+                  <td className="py-2 text-secondary">{student.mision_instituciones?.nombre || t("misionJuvenil.sinInstitucion")}</td>
+                  <td className="py-2 text-secondary">{student.grado_semestre || t("misionJuvenil.sinDato")}</td>
                   <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{ESTADOS[student.estado] || student.estado}</span></td>
                   <td className="py-2">
                     <div className="flex gap-1.5 flex-wrap items-center">
-                      {student.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
-                      {student.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
-                      {canEdit && !student.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "bautizado", "fecha_bautismo")}>Marcar bautizado</button>}
-                      {canEdit && !student.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "sellado", "fecha_sellado")}>Marcar sellado</button>}
+                      {student.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("misionJuvenil.bautizadoBadge")}</span>}
+                      {student.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("misionJuvenil.selladoBadge")}</span>}
+                      {canEdit && !student.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "bautizado", "fecha_bautismo")}>{t("misionJuvenil.marcarBautizado")}</button>}
+                      {canEdit && !student.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHitoEstudiante(student, "sellado", "fecha_sellado")}>{t("misionJuvenil.marcarSellado")}</button>}
                     </div>
                   </td>
                   <td className="py-2">
-                    {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : canEdit ? (
+                    {yaVinculado ? <span className="text-xs text-success">{t("misionJuvenil.vinculado")}</span> : canEdit ? (
                       vinculandoId === student.id ? (
                         <div className="flex flex-col gap-1.5 min-w-[180px]">
                           <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
-                            <option value="">Responsable...</option>
+                            <option value="">{t("misionJuvenil.responsableSeleccionar")}</option>
                             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                           </select>
                           <div className="flex gap-1.5">
-                            <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(student)}>Confirmar</button>
-                            <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                            <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(student)}>{t("misionJuvenil.confirmar")}</button>
+                            <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>{t("misionJuvenil.cancelar")}</button>
                           </div>
                         </div>
                       ) : (
                         <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => (student.bautizado ? vincularRutaEvangelistica(student) : setVinculandoId(student.id))}>
-                          Vincular
+                          {t("misionJuvenil.vincular")}
                         </button>
                       )
                     ) : <span className="text-xs text-muted">—</span>}
@@ -721,16 +720,16 @@ export default function MisionJuvenil() {
               })}
             </tbody>
           </table>
-          {!students.length && <p className="text-sm text-secondary py-6 text-center">No hay estudiantes para los filtros seleccionados.</p>}
-          <Pager page={studentsPageSafe} totalPages={studentsPageCount} total={students.length} onPrev={() => setStudentsPage((current) => current - 1)} onNext={() => setStudentsPage((current) => current + 1)} label="estudiantes" />
+          {!students.length && <p className="text-sm text-secondary py-6 text-center">{t("misionJuvenil.sinEstudiantesFiltrosSeleccionados")}</p>}
+          <Pager page={studentsPageSafe} totalPages={studentsPageCount} total={students.length} onPrev={() => setStudentsPage((current) => current - 1)} onNext={() => setStudentsPage((current) => current + 1)} label={t("misionJuvenil.estudiantesLabel").toLowerCase()} />
         </div>
       </section>
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="eyebrow">Incursión territorial</p>
-              <h2 className="font-medium mt-1">Instituciones impactadas</h2>
+              <p className="eyebrow">{t("misionJuvenil.incursionTerritorial")}</p>
+              <h2 className="font-medium mt-1">{t("misionJuvenil.institucionesImpactadas")}</h2>
             </div>
             <Building2 className="w-5 h-5 text-accent" />
           </div>
@@ -738,10 +737,10 @@ export default function MisionJuvenil() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted border-b border-border">
-                  <th className="py-2">Institución</th>
-                  <th className="py-2">Fase</th>
-                  <th className="py-2 text-right">Est.</th>
-                  <th className="py-2 text-right">Grupos</th>
+                  <th className="py-2">{t("misionJuvenil.colInstitucion")}</th>
+                  <th className="py-2">{t("misionJuvenil.colFase")}</th>
+                  <th className="py-2 text-right">{t("misionJuvenil.colEst")}</th>
+                  <th className="py-2 text-right">{t("misionJuvenil.colGrupos")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -754,7 +753,7 @@ export default function MisionJuvenil() {
                       </p>
                     </td>
                     <td className="py-2 text-xs">
-                      Fase {institution.fase}
+                      {t("misionJuvenil.faseNumero", { numero: institution.fase })}
                       <span className="block text-muted">
                         {FASES[institution.fase]}
                       </span>
@@ -772,8 +771,8 @@ export default function MisionJuvenil() {
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="eyebrow">Crecimiento</p>
-              <h2 className="font-medium mt-1">Grupos y lecciones</h2>
+              <p className="eyebrow">{t("misionJuvenil.crecimiento")}</p>
+              <h2 className="font-medium mt-1">{t("misionJuvenil.gruposYLecciones")}</h2>
             </div>
             <BookOpen className="w-5 h-5 text-accent" />
           </div>
@@ -783,20 +782,20 @@ export default function MisionJuvenil() {
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{group.nombre}</p>
                   <span className="text-xs text-accent">
-                    Lección {group.leccion_actual}/{group.lecciones_total}
+                    {t("misionJuvenil.leccionProgreso", { actual: group.leccion_actual, total: group.lecciones_total })}
                   </span>
                 </div>
                 <p className="text-xs text-secondary mt-1">
-                  {group.mision_instituciones?.nombre || "Sin institución"} ·{" "}
+                  {group.mision_instituciones?.nombre || t("misionJuvenil.sinInstitucion")} ·{" "}
                   {group.personas
                     ? `${group.personas.nombres} ${group.personas.apellidos}`
-                    : "Sin líder"}
+                    : t("misionJuvenil.sinLider")}
                 </p>
               </button>
             ))}
             {!grupos.length && (
               <p className="text-sm text-muted py-6">
-                Aún no hay grupos registrados.
+                {t("misionJuvenil.sinGruposRegistrados")}
               </p>
             )}
           </div>
@@ -804,22 +803,22 @@ export default function MisionJuvenil() {
             const grupoSeleccionado = grupos.find((item) => item.id === selectedGrupoId);
             const estudiantesGrupo = estudiantes.filter((estudiante) => estudiante.institucion_id === grupoSeleccionado?.institucion_id);
             return <div className="border-t border-border mt-4 pt-4">
-              <p className="text-sm font-medium mb-2">Lecciones de {grupoSeleccionado?.nombre}</p>
+              <p className="text-sm font-medium mb-2">{t("misionJuvenil.leccionesDe", { nombre: grupoSeleccionado?.nombre })}</p>
               {canEdit && <form onSubmit={createLeccion} className="grid gap-2 mb-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <input required className="input-field" placeholder="Tema de la lección" value={leccionForm.tema} onChange={(event) => setLeccionForm({ ...leccionForm, tema: event.target.value })} />
+                  <input required className="input-field" placeholder={t("misionJuvenil.temaLeccion")} value={leccionForm.tema} onChange={(event) => setLeccionForm({ ...leccionForm, tema: event.target.value })} />
                   <input required type="date" className="input-field" value={leccionForm.fecha} onChange={(event) => setLeccionForm({ ...leccionForm, fecha: event.target.value })} />
                 </div>
-                <textarea className="input-field min-h-14" placeholder="Notas (opcional)" value={leccionForm.notas} onChange={(event) => setLeccionForm({ ...leccionForm, notas: event.target.value })} />
+                <textarea className="input-field min-h-14" placeholder={t("misionJuvenil.notasOpcional")} value={leccionForm.notas} onChange={(event) => setLeccionForm({ ...leccionForm, notas: event.target.value })} />
                 {estudiantesGrupo.length > 0 && <div>
-                  <p className="text-xs text-secondary mb-1">Asistencia individual</p>
+                  <p className="text-xs text-secondary mb-1">{t("misionJuvenil.asistenciaIndividual")}</p>
                   <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                     {estudiantesGrupo.map((estudiante) => <label key={estudiante.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[estudiante.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [estudiante.id]: event.target.checked })} />{estudiante.nombres} {estudiante.apellidos}</label>)}
                   </div>
                 </div>}
-                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar lección</button>
+                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("misionJuvenil.registrarLeccion")}</button>
               </form>}
-              {lecciones.length ? <div className="divide-y divide-border">{lecciones.map((leccion) => <div key={leccion.id} className="py-2"><p className="text-sm">Lección {leccion.numero}: {leccion.tema}</p><p className="text-xs text-secondary">{leccion.fecha} · {leccion.asistentes} asistentes</p></div>)}</div> : <p className="text-xs text-muted">Aún no hay lecciones registradas para este grupo.</p>}
+              {lecciones.length ? <div className="divide-y divide-border">{lecciones.map((leccion) => <div key={leccion.id} className="py-2"><p className="text-sm">{t("misionJuvenil.leccionResumen", { numero: leccion.numero, tema: leccion.tema })}</p><p className="text-xs text-secondary">{t("misionJuvenil.leccionFechaAsistentes", { fecha: leccion.fecha, asistentes: leccion.asistentes })}</p></div>)}</div> : <p className="text-xs text-muted">{t("misionJuvenil.sinLeccionesGrupo")}</p>}
             </div>;
           })()}
         </div>
@@ -827,29 +826,29 @@ export default function MisionJuvenil() {
 
       <section className="card p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
-          <div><p className="eyebrow">Equipo</p><h2 className="font-medium mt-1">Líderes de Misión Juvenil</h2></div>
+          <div><p className="eyebrow">{t("misionJuvenil.equipo")}</p><h2 className="font-medium mt-1">{t("misionJuvenil.lideresMisionJuvenil")}</h2></div>
           <UsersRound className="w-5 h-5 text-accent" />
         </div>
         {canEdit && <form onSubmit={createLider} className="grid sm:grid-cols-3 gap-2 mb-4">
           <select required className="input-field" value={liderForm.persona_id} onChange={(event) => setLiderForm({ ...liderForm, persona_id: event.target.value })}>
-            <option value="">Selecciona una persona</option>
+            <option value="">{t("misionJuvenil.seleccionaPersona")}</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
-          <input className="input-field" placeholder="Rol (ej. gestor, maestro)" value={liderForm.rol} onChange={(event) => setLiderForm({ ...liderForm, rol: event.target.value })} />
-          <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar líder</button>
+          <input className="input-field" placeholder={t("misionJuvenil.rolPlaceholder")} value={liderForm.rol} onChange={(event) => setLiderForm({ ...liderForm, rol: event.target.value })} />
+          <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("misionJuvenil.registrarLider")}</button>
         </form>}
-        <div className="divide-y divide-border">{lideres.filter((lider) => lider.activo !== false).map((lider) => <div key={lider.id} className="py-2 flex items-center justify-between gap-3"><div><p className="text-sm">{lider.personas?.nombres} {lider.personas?.apellidos}</p><p className="text-xs text-secondary">{lider.rol}</p></div>{canEdit && <button type="button" onClick={() => toggleLider(lider)} className="text-xs text-danger">Desactivar</button>}</div>)}{lideres.filter((lider) => lider.activo !== false).length === 0 && <p className="text-sm text-muted py-4">Aún no hay líderes registrados.</p>}</div>
+        <div className="divide-y divide-border">{lideres.filter((lider) => lider.activo !== false).map((lider) => <div key={lider.id} className="py-2 flex items-center justify-between gap-3"><div><p className="text-sm">{lider.personas?.nombres} {lider.personas?.apellidos}</p><p className="text-xs text-secondary">{lider.rol}</p></div>{canEdit && <button type="button" onClick={() => toggleLider(lider)} className="text-xs text-danger">{t("misionJuvenil.desactivar")}</button>}</div>)}{lideres.filter((lider) => lider.activo !== false).length === 0 && <p className="text-sm text-muted py-4">{t("misionJuvenil.sinLideresRegistrados")}</p>}</div>
       </section>
       <section className="grid lg:grid-cols-3 gap-4">
         <form
           onSubmit={createInstitution}
           className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}
         >
-          <h2 className="font-medium">Nueva institución</h2>
+          <h2 className="font-medium">{t("misionJuvenil.nuevaInstitucion")}</h2>
           <input
             required
             className="input-field"
-            placeholder="Nombre del plantel"
+            placeholder={t("misionJuvenil.nombrePlantel")}
             value={institutionForm.nombre}
             onChange={(event) =>
               setInstitutionForm({
@@ -869,8 +868,8 @@ export default function MisionJuvenil() {
                 })
               }
             >
-              <option value="publica">Pública</option>
-              <option value="privada">Privada</option>
+              <option value="publica">{t("misionJuvenil.tipoPublica")}</option>
+              <option value="privada">{t("misionJuvenil.tipoPrivada")}</option>
             </select>
             <select
               className="input-field"
@@ -882,14 +881,14 @@ export default function MisionJuvenil() {
                 })
               }
             >
-              <option value="bachillerato">Bachillerato</option>
-              <option value="universidad">Universidad</option>
-              <option value="otro">Otro</option>
+              <option value="bachillerato">{t("misionJuvenil.nivelBachillerato")}</option>
+              <option value="universidad">{t("misionJuvenil.nivelUniversidad")}</option>
+              <option value="otro">{t("misionJuvenil.nivelOtro")}</option>
             </select>
           </div>
           <input
             className="input-field"
-            placeholder="Dirección o ubicación"
+            placeholder={t("misionJuvenil.direccionUbicacion")}
             value={institutionForm.direccion}
             onChange={(event) =>
               setInstitutionForm({
@@ -900,7 +899,7 @@ export default function MisionJuvenil() {
           />
           <input
             className="input-field"
-            placeholder="Rector / coordinador"
+            placeholder={t("misionJuvenil.rectorCoordinador")}
             value={institutionForm.contacto_nombre}
             onChange={(event) =>
               setInstitutionForm({
@@ -919,21 +918,21 @@ export default function MisionJuvenil() {
               })
             }
           >
-            <option value="1">Fase 1: Contacto inicial</option>
-            <option value="2">Fase 2: Talleres de valores</option>
-            <option value="3">Fase 3: Grupo establecido</option>
+            <option value="1">{t("misionJuvenil.fase1Opcion")}</option>
+            <option value="2">{t("misionJuvenil.fase2Opcion")}</option>
+            <option value="3">{t("misionJuvenil.fase3Opcion")}</option>
           </select>
           <button disabled={saving} className="btn-primary justify-center">
-            <Plus className="w-4 h-4" /> Registrar institución
+            <Plus className="w-4 h-4" /> {t("misionJuvenil.registrarInstitucion")}
           </button>
         </form>
         <form onSubmit={createStudent} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-          <h2 className="font-medium">Nuevo estudiante</h2>
+          <h2 className="font-medium">{t("misionJuvenil.nuevoEstudiante")}</h2>
           <div className="grid grid-cols-2 gap-2">
             <input
               required
               className="input-field"
-              placeholder="Ej: Andrés"
+              placeholder={t("misionJuvenil.placeholderNombres")}
               value={studentForm.nombres}
               onChange={(event) =>
                 setStudentForm({ ...studentForm, nombres: event.target.value })
@@ -942,7 +941,7 @@ export default function MisionJuvenil() {
             <input
               required
               className="input-field"
-              placeholder="Ej: López Castro"
+              placeholder={t("misionJuvenil.placeholderApellidos")}
               value={studentForm.apellidos}
               onChange={(event) =>
                 setStudentForm({
@@ -962,7 +961,7 @@ export default function MisionJuvenil() {
               })
             }
           >
-            <option value="">Institución</option>
+            <option value="">{t("misionJuvenil.institucion")}</option>
             {instituciones.map((institution) => (
               <option key={institution.id} value={institution.id}>
                 {institution.nombre}
@@ -971,7 +970,7 @@ export default function MisionJuvenil() {
           </select>
           <input
             className="input-field"
-            placeholder="Grado o semestre"
+            placeholder={t("misionJuvenil.gradoOSemestre")}
             value={studentForm.grado_semestre}
             onChange={(event) =>
               setStudentForm({
@@ -1003,7 +1002,7 @@ export default function MisionJuvenil() {
               })
             }
           >
-            <option value="">Tutor o líder</option>
+            <option value="">{t("misionJuvenil.tutorOLider")}</option>
             {personas.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.nombres} {person.apellidos}
@@ -1011,15 +1010,15 @@ export default function MisionJuvenil() {
             ))}
           </select>
           <button disabled={saving} className="btn-secondary justify-center">
-            <Plus className="w-4 h-4" /> Registrar estudiante
+            <Plus className="w-4 h-4" /> {t("misionJuvenil.registrarEstudiante")}
           </button>
         </form>
         <form onSubmit={createGroup} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-          <h2 className="font-medium">Nuevo grupo REFAM</h2>
+          <h2 className="font-medium">{t("misionJuvenil.nuevoGrupoRefam")}</h2>
           <input
             required
             className="input-field"
-            placeholder="Nombre del grupo"
+            placeholder={t("misionJuvenil.nombreGrupo")}
             value={groupForm.nombre}
             onChange={(event) =>
               setGroupForm({ ...groupForm, nombre: event.target.value })
@@ -1032,7 +1031,7 @@ export default function MisionJuvenil() {
               setGroupForm({ ...groupForm, institucion_id: event.target.value })
             }
           >
-            <option value="">Institución de origen</option>
+            <option value="">{t("misionJuvenil.institucionOrigen")}</option>
             {instituciones.map((institution) => (
               <option key={institution.id} value={institution.id}>
                 {institution.nombre}
@@ -1041,7 +1040,7 @@ export default function MisionJuvenil() {
           </select>
           <input
             className="input-field"
-            placeholder="Dirección de reunión"
+            placeholder={t("misionJuvenil.direccionReunion")}
             value={groupForm.direccion}
             onChange={(event) =>
               setGroupForm({ ...groupForm, direccion: event.target.value })
@@ -1051,7 +1050,7 @@ export default function MisionJuvenil() {
             <input
               min="1"
               type="number"
-              placeholder="Lección actual (ej. 1)"
+              placeholder={t("misionJuvenil.leccionActualPlaceholder")}
               className="input-field"
               value={groupForm.leccion_actual}
               onChange={(event) =>
@@ -1071,7 +1070,7 @@ export default function MisionJuvenil() {
                 })
               }
             >
-              <option value="">Líder</option>
+              <option value="">{t("misionJuvenil.lider")}</option>
               {personas.map((person) => (
                 <option key={person.id} value={person.id}>
                   {person.nombres} {person.apellidos}
@@ -1080,7 +1079,7 @@ export default function MisionJuvenil() {
             </select>
           </div>
           <button disabled={saving} className="btn-primary justify-center">
-            <Plus className="w-4 h-4" /> Crear grupo
+            <Plus className="w-4 h-4" /> {t("misionJuvenil.crearGrupo")}
           </button>
         </form>
       </section>
