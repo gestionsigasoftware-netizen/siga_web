@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar } from "react-chartjs-2";
 import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from "chart.js";
 import { ArrowLeft, ArrowRightLeft, HeartHandshake, Plus } from "lucide-react";
@@ -17,9 +18,10 @@ ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const estacionRefamCache = new Map();
 const CHART_OPTIONS = chartOptions();
 const UMBRAL = UMBRAL_DIAS_ESTACION.refam;
-const REFAM_ESTADO_LABELS = { activo: "Activo", completado: "Completado", retirado: "Retirado" };
 
 export default function EstacionRefam() {
+  const { t, i18n } = useTranslation();
+  const REFAM_ESTADO_LABELS = t("estacionRefam.estados", { returnObjects: true });
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [estacion, setEstacion] = useState(null);
@@ -78,7 +80,7 @@ export default function EstacionRefam() {
     }
     setError(null);
     const estacionResult = await getEstacion(congregacionId, "refam");
-    if (estacionResult.error || !estacionResult.data) { setError("No se encontró la estación REFAM."); setLoading(false); return; }
+    if (estacionResult.error || !estacionResult.data) { setError(t("estacionRefam.errorEstacionNoEncontrada")); setLoading(false); return; }
     const [activosResult, zonasResult, personasResult, amigosResult, gruposResult, estacionesResult, leccionesResult, comitesResult] = await Promise.all([
       getEstacionActivos(congregacionId, estacionResult.data.id),
       supabase.from("zonas").select("id, nombre").eq("congregacion_id", congregacionId).order("nombre"),
@@ -89,7 +91,7 @@ export default function EstacionRefam() {
       supabase.from("refam_lecciones").select("id, numero, titulo, descripcion").eq("congregacion_id", congregacionId).eq("activo", true).order("numero"),
       getComitesActivos(congregacionId),
     ]);
-    if (activosResult.error || zonasResult.error || personasResult.error || amigosResult.error || gruposResult.error) { setError("No se pudo cargar la estación REFAM."); setLoading(false); return; }
+    if (activosResult.error || zonasResult.error || personasResult.error || amigosResult.error || gruposResult.error) { setError(t("estacionRefam.errorCargarEstacion")); setLoading(false); return; }
     const freshData = {
       estacion: estacionResult.data,
       activos: activosResult.data ?? [],
@@ -126,9 +128,9 @@ export default function EstacionRefam() {
   const filas = useMemo(() => activos.map((row) => ({
     ...row,
     dias: diasDesde(row.fecha_inicio),
-    nombre: row.amigos?.nombres || (row.persona ? `${row.persona.nombres} ${row.persona.apellidos || ""}` : "Sin nombre"),
-    zonaNombre: row.amigos?.zonas?.nombre || "Sin zona",
-  })), [activos]);
+    nombre: row.amigos?.nombres || (row.persona ? `${row.persona.nombres} ${row.persona.apellidos || ""}` : t("estacionRefam.sinNombre")),
+    zonaNombre: row.amigos?.zonas?.nombre || t("estacionRefam.sinZona"),
+  })), [activos, t]);
   const candidatos = filas.filter((row) => (row.dias ?? 0) > UMBRAL);
   const zonaRows = useMemo(() => {
     const conteo = new Map();
@@ -137,30 +139,30 @@ export default function EstacionRefam() {
   }, [filas]);
   const promedioDias = filas.length ? Math.round(filas.reduce((sum, row) => sum + (row.dias || 0), 0) / filas.length) : 0;
   const insight = candidatos.length
-    ? `${candidatos.length} persona${candidatos.length === 1 ? "" : "s"} lleva${candidatos.length === 1 ? "" : "n"} más de ${UMBRAL} días en REFAM -- revisa si están listas para ESFOB.`
+    ? t("estacionRefam.insightCandidatos", { count: candidatos.length, umbral: UMBRAL })
     : filas.length
-      ? `${filas.length} persona${filas.length === 1 ? "" : "s"} en REFAM, con un promedio de ${promedioDias} días.`
-      : "Aún no hay personas activas en REFAM.";
+      ? t("estacionRefam.insightActivos", { count: filas.length, promedio: promedioDias })
+      : t("estacionRefam.insightVacio");
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Activos", value: filas.length },
-        { label: "Candidatos a trasladar", value: candidatos.length },
-        { label: "Promedio de días", value: promedioDias },
+        { label: t("estacionRefam.statActivos"), value: filas.length },
+        { label: t("estacionRefam.statCandidatos"), value: candidatos.length },
+        { label: t("estacionRefam.statPromedioDias"), value: promedioDias },
       ],
-      desgloses: [{ titulo: "Personas en REFAM por zona", items: zonaRows.map((row) => ({ label: row.nombre, valor: row.total })) }],
+      desgloses: [{ titulo: t("estacionRefam.desgloseTitulo"), items: zonaRows.map((row) => ({ label: row.nombre, valor: row.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Persona", "Zona", "Días en REFAM", "Responsable", "Comité"],
-      rows: filas.map((row) => [row.nombre, row.zonaNombre, row.dias ?? 0, row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : "Sin asignar", row.responsable_comite?.nombre || "—"]),
+      headers: [t("estacionRefam.headerPersona"), t("estacionRefam.headerZona"), t("estacionRefam.headerDiasRefam"), t("estacionRefam.headerResponsable"), t("estacionRefam.headerComite")],
+      rows: filas.map((row) => [row.nombre, row.zonaNombre, row.dias ?? 0, row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : t("estacionRefam.sinAsignar"), row.responsable_comite?.nombre || "—"]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `refam-${hoyBogota()}.csv`, titulo: "REFAM — Personas activas", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `refam-${hoyBogota()}.xlsx`, hoja: "REFAM", titulo: "REFAM — Personas activas", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `refam-${hoyBogota()}.pdf`, titulo: "REFAM — Personas activas", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `refam-${hoyBogota()}.csv`, titulo: t("estacionRefam.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `refam-${hoyBogota()}.xlsx`, hoja: "REFAM", titulo: t("estacionRefam.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `refam-${hoyBogota()}.pdf`, titulo: t("estacionRefam.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   async function createRefamGrupo(event) {
     event.preventDefault();
@@ -175,8 +177,8 @@ export default function EstacionRefam() {
       direccion: refamGrupoForm.direccion.trim() || null,
       dia_reunion: refamGrupoForm.dia_reunion.trim() || null,
     });
-    if (result.error) { setError(`No se pudo crear el grupo REFAM: ${result.error.message}`); return; }
-    setNotice("Grupo REFAM creado.");
+    if (result.error) { setError(t("estacionRefam.errorCrearGrupo", { mensaje: result.error.message })); return; }
+    setNotice(t("estacionRefam.noticeGrupoCreado"));
     setRefamGrupoForm({ nombre: "", zona_id: "", anfitrion_persona_id: "", lider_persona_id: "", direccion: "", dia_reunion: "" });
     load();
   }
@@ -190,7 +192,7 @@ export default function EstacionRefam() {
       supabase.from("refam_participantes").select("id, amigo_id, persona_id, fecha_ingreso, estado, leccion_actual_id, amigos:amigo_id(nombres), personas:persona_id(nombres, apellidos), leccion_actual:refam_lecciones(numero, titulo)").eq("grupo_id", grupoId).order("fecha_ingreso", { ascending: false }),
       supabase.from("refam_reuniones").select("id, fecha, numero_leccion, tema, asistentes, visitantes, resultado, novedades").eq("grupo_id", grupoId).order("fecha", { ascending: false }),
     ]);
-    if (participantesResult.error || reunionesResult.error) { setError("No se pudo cargar el detalle del grupo REFAM. Intenta nuevamente."); return; }
+    if (participantesResult.error || reunionesResult.error) { setError(t("estacionRefam.errorCargarDetalleGrupo")); return; }
     const participantes = participantesResult.data ?? [];
     setRefamParticipantes(participantes);
     setRefamReuniones(reunionesResult.data ?? []);
@@ -200,7 +202,7 @@ export default function EstacionRefam() {
         supabase.from("refam_asistencia_participante").select("participante_id, asistio").in("participante_id", participantes.map((item) => item.id)).eq("asistio", true),
         supabase.from("refam_progreso_leccion").select("participante_id").in("participante_id", participantes.map((item) => item.id)),
       ]);
-      if (asistenciaResult.error || progresoResult.error) { setError("No se pudo cargar la asistencia y el progreso de los participantes."); return; }
+      if (asistenciaResult.error || progresoResult.error) { setError(t("estacionRefam.errorCargarAsistenciaProgreso")); return; }
       const conteo = {};
       (asistenciaResult.data ?? []).forEach((item) => { conteo[item.participante_id] = (conteo[item.participante_id] || 0) + 1; });
       setAsistenciaPorParticipante(conteo);
@@ -223,12 +225,12 @@ export default function EstacionRefam() {
       leccion_id: participante.leccion_actual_id,
       responsable_persona_id: grupo?.lider_persona_id || null,
     });
-    if (result.error) { setSaving(false); setError(`No se pudo marcar la lección completada: ${result.error.message}`); return; }
+    if (result.error) { setSaving(false); setError(t("estacionRefam.errorMarcarLeccion", { mensaje: result.error.message })); return; }
     const siguiente = refamLecciones.find((item) => item.numero === (participante.leccion_actual?.numero || 0) + 1);
     const updateResult = await supabase.from("refam_participantes").update({ leccion_actual_id: siguiente?.id || null }).eq("id", participante.id);
     setSaving(false);
-    if (updateResult.error) { setError(`Se registró la lección, pero no se pudo avanzar a la siguiente: ${updateResult.error.message}`); return; }
-    setNotice(siguiente ? `Lección completada. Avanzó a la lección #${siguiente.numero}.` : "Lección completada. Terminó el currículo de REFAM.");
+    if (updateResult.error) { setError(t("estacionRefam.errorAvanzarLeccion", { mensaje: updateResult.error.message })); return; }
+    setNotice(siguiente ? t("estacionRefam.noticeLeccionCompletadaAvanzo", { numero: siguiente.numero }) : t("estacionRefam.noticeLeccionCompletadaFin"));
     if (participante.id === notasAbiertasParticipanteId) refrescarNotasRefam(participante.id);
     loadRefamGrupoDetail(selectedRefamGrupoId);
   }
@@ -239,7 +241,7 @@ export default function EstacionRefam() {
       .select("id, nota, created_at, leccion:refam_lecciones(numero, titulo), responsable:personas(nombres, apellidos)")
       .eq("participante_id", participanteId)
       .order("created_at", { ascending: false });
-    if (fetchError) { setError("No se pudo cargar las notas registradas."); return; }
+    if (fetchError) { setError(t("estacionRefam.errorCargarNotas")); return; }
     setNotasPorParticipante((current) => ({ ...current, [participanteId]: data ?? [] }));
   }
 
@@ -262,7 +264,7 @@ export default function EstacionRefam() {
       responsable_persona_id: nuevaNotaRefamResponsable || null,
     });
     setSaving(false);
-    if (result.error) { setError(`No se pudo guardar la nota: ${result.error.message}`); return; }
+    if (result.error) { setError(t("estacionRefam.errorGuardarNota", { mensaje: result.error.message })); return; }
     setNuevaNotaRefam("");
     refrescarNotasRefam(participante.id);
   }
@@ -281,7 +283,7 @@ export default function EstacionRefam() {
       leccion_actual_id: refamLecciones[0]?.id || null,
     };
     const result = await supabase.from("refam_participantes").insert(payload);
-    if (result.error) { setSaving(false); setError(`No se pudo agregar el participante: ${result.error.message}`); return; }
+    if (result.error) { setSaving(false); setError(t("estacionRefam.errorAgregarParticipante", { mensaje: result.error.message })); return; }
     // Sincroniza con la ruta evangelistica -- sin esto, la persona queda en el
     // grupo REFAM pero el sistema (y funnel_refam en el BI distrital) no
     // refleja que esta activa en esta estacion.
@@ -293,8 +295,8 @@ export default function EstacionRefam() {
       responsableComiteId: refamParticipanteForm.comiteId,
     });
     setSaving(false);
-    if (rutaResult.error) { setError(`El participante se agregó al grupo, pero no se pudo sincronizar con la Ruta Evangelística: ${rutaResult.error.message}`); }
-    else setNotice("Participante agregado al grupo y activo en la estación REFAM.");
+    if (rutaResult.error) { setError(t("estacionRefam.errorSincronizarRuta", { mensaje: rutaResult.error.message })); }
+    else setNotice(t("estacionRefam.noticeParticipanteAgregado"));
     setRefamParticipanteForm({ tipo: "amigo", sujeto_id: "", comiteId: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
     load();
@@ -315,7 +317,7 @@ export default function EstacionRefam() {
       resultado: refamReunionForm.resultado.trim() || null,
       novedades: refamReunionForm.novedades.trim() || null,
     }).select("id").single();
-    if (result.error) { setError(`No se pudo registrar la reunión: ${result.error.message}`); return; }
+    if (result.error) { setError(t("estacionRefam.errorRegistrarReunion", { mensaje: result.error.message })); return; }
     if (refamParticipantes.length) {
       const asistenciaPayload = refamParticipantes.map((item) => ({
         reunion_id: result.data.id,
@@ -323,9 +325,9 @@ export default function EstacionRefam() {
         asistio: Boolean(asistenciaRefamMarcada[item.id]),
       }));
       const asistenciaResult = await supabase.from("refam_asistencia_participante").insert(asistenciaPayload);
-      if (asistenciaResult.error) { setError(`La reunión se registró, pero no se pudo guardar la asistencia individual: ${asistenciaResult.error.message}`); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
+      if (asistenciaResult.error) { setError(t("estacionRefam.errorAsistenciaIndividualReunion", { mensaje: asistenciaResult.error.message })); loadRefamGrupoDetail(selectedRefamGrupoId); return; }
     }
-    setNotice("Reunión REFAM registrada.");
+    setNotice(t("estacionRefam.noticeReunionRegistrada"));
     setRefamReunionForm({ fecha: hoyBogota(), numero_leccion: "", tema: "", asistentes: "", visitantes: "", resultado: "", novedades: "" });
     loadRefamGrupoDetail(selectedRefamGrupoId);
   }
@@ -334,7 +336,7 @@ export default function EstacionRefam() {
     if (!canEdit) return;
     const destinoId = trasladoDestino[proceso.id];
     const destino = estaciones.find((item) => item.id === destinoId);
-    if (!destino) { setError("Selecciona a qué estación trasladar."); return; }
+    if (!destino) { setError(t("estacionRefam.errorSeleccionaEstacion")); return; }
     setSaving(true);
     setError(null);
     const nuevoComiteId = trasladoComite[proceso.id];
@@ -348,8 +350,8 @@ export default function EstacionRefam() {
       responsableComiteId: nuevoComiteId || proceso.responsable_comite_id || null,
     });
     setSaving(false);
-    if (result.error) { setError(`No se pudo trasladar: ${result.error.message}`); return; }
-    setNotice(`Trasladado a ${destino.nombre}.`);
+    if (result.error) { setError(t("estacionRefam.errorTrasladar", { mensaje: result.error.message })); return; }
+    setNotice(t("estacionRefam.noticeTrasladado", { destino: destino.nombre }));
     load();
   }
 
@@ -360,136 +362,136 @@ export default function EstacionRefam() {
   async function reasignarComite(proceso) {
     if (!canEdit) return;
     const nuevoComiteId = trasladoComite[proceso.id];
-    if (!nuevoComiteId) { setError("Selecciona el comité de seguimiento."); return; }
+    if (!nuevoComiteId) { setError(t("estacionRefam.errorSeleccionaComite")); return; }
     setSaving(true);
     setError(null);
     const result = await reasignarComiteResponsable({ procesoId: proceso.id, estacionCodigo: "refam", nuevoComiteId });
     setSaving(false);
-    if (result.error) { setError(`No se pudo reasignar el comité: ${result.error.message}`); return; }
-    setNotice("Comité responsable reasignado.");
+    if (result.error) { setError(t("estacionRefam.errorReasignarComite", { mensaje: result.error.message })); return; }
+    setNotice(t("estacionRefam.noticeComiteReasignado"));
     setTrasladoComite({ ...trasladoComite, [proceso.id]: "" });
     load();
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando REFAM...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("estacionRefam.cargando")}</div>;
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <Link to="/misiones-evangelismo" className="btn-secondary mb-4"><ArrowLeft className="w-4 h-4" />Volver a Misiones y Evangelismo</Link>
-          <p className="eyebrow">Estación 4 de 6</p>
-          <h1 className="section-title">REFAM</h1>
-          <p className="text-sm text-secondary mt-1">{estacion?.descripcion || "Evangelismo en los hogares mediante lecciones."}</p>
+          <Link to="/misiones-evangelismo" className="btn-secondary mb-4"><ArrowLeft className="w-4 h-4" />{t("estacionRefam.volverMisiones")}</Link>
+          <p className="eyebrow">{t("estacionRefam.eyebrowEstacion")}</p>
+          <h1 className="section-title">{t("estacionRefam.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{estacion?.descripcion || t("estacionRefam.subtituloFallback")}</p>
         </div>
         <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       <Toast>{notice}</Toast>
       <section className="grid sm:grid-cols-3 gap-3">
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Activos</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">Candidatos a trasladar<InfoTip texto={`Personas que llevan más de ${UMBRAL} días en REFAM. Revisa si ya están listas para pasar a la siguiente estación (por ejemplo, ESFOB).`} /></p><p className={`text-2xl font-semibold mt-3 ${candidatos.length ? "text-warning" : ""}`}>{candidatos.length}</p></div>
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Promedio de días</p><p className="text-2xl font-semibold mt-3">{promedioDias}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t("estacionRefam.statActivos")}</p><p className="text-2xl font-semibold mt-3">{filas.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">{t("estacionRefam.statCandidatos")}<InfoTip texto={t("estacionRefam.infoCandidatos", { umbral: UMBRAL })} /></p><p className={`text-2xl font-semibold mt-3 ${candidatos.length ? "text-warning" : ""}`}>{candidatos.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t("estacionRefam.statPromedioDias")}</p><p className="text-2xl font-semibold mt-3">{promedioDias}</p></div>
       </section>
       <p className={`text-sm rounded p-3 ${candidatos.length ? "text-warning bg-warning-bg" : "text-secondary bg-surface-1"}`}>{insight}</p>
       <section className="card chart-card p-5">
-        <p className="eyebrow">Cobertura territorial</p>
-        <h2 className="font-medium mt-1">Personas en REFAM por zona</h2>
-        <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: "Personas" })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">Aún no hay datos.</p>}</div>
+        <p className="eyebrow">{t("estacionRefam.eyebrowCobertura")}</p>
+        <h2 className="font-medium mt-1">{t("estacionRefam.tituloPersonasPorZona")}</h2>
+        <div className="h-56 mt-4">{zonaRows.length ? <Bar data={distributionDataset(zonaRows, { labelKey: "nombre", valueKey: "total", datasetLabel: t("estacionRefam.datasetPersonas") })} options={CHART_OPTIONS} /> : <p className="text-sm text-muted py-10 text-center">{t("estacionRefam.sinDatos")}</p>}</div>
       </section>
       <section className="card p-5">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">Tablero</p><h2 className="font-medium mt-1 flex items-center gap-1.5">Personas activas en REFAM<InfoTip texto="Puedes trasladar a cualquier persona a la estación que corresponda según su situación real -- no tiene que ser la siguiente en orden. El líder de zona decide, y aquí solo se registra." /></h2></div></div>
-        {filas.length === 0 ? <p className="text-sm text-secondary py-6">Aún no hay personas en esta estación.</p> : <div className="divide-y divide-border">{filas.map((row) => (
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border"><div><p className="eyebrow">{t("estacionRefam.eyebrowTablero")}</p><h2 className="font-medium mt-1 flex items-center gap-1.5">{t("estacionRefam.tituloPersonasActivas")}<InfoTip texto={t("estacionRefam.infoPersonasActivas")} /></h2></div></div>
+        {filas.length === 0 ? <p className="text-sm text-secondary py-6">{t("estacionRefam.sinPersonasEnEstacion")}</p> : <div className="divide-y divide-border">{filas.map((row) => (
           <div key={row.id} className="py-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <div><p className="font-medium text-sm">{row.nombre}</p><p className="text-xs text-secondary mt-0.5">{row.zonaNombre} · {row.dias ?? 0} días{row.responsable_comite ? ` · Responsable: Comité ${row.responsable_comite.nombre}` : row.responsable ? ` · Responsable: ${row.responsable.nombres} ${row.responsable.apellidos}` : ""}</p></div>
-              {(row.dias ?? 0) > UMBRAL && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">Listo para trasladar</span>}
+              <div><p className="font-medium text-sm">{row.nombre}</p><p className="text-xs text-secondary mt-0.5">{row.zonaNombre} · {row.dias ?? 0} días{row.responsable_comite ? t("estacionRefam.responsableComiteTexto", { nombre: row.responsable_comite.nombre }) : row.responsable ? t("estacionRefam.responsablePersonaTexto", { nombre: `${row.responsable.nombres} ${row.responsable.apellidos}` }) : ""}</p></div>
+              {(row.dias ?? 0) > UMBRAL && <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded-full bg-warning-bg text-warning whitespace-nowrap">{t("estacionRefam.listoParaTrasladar")}</span>}
             </div>
             {canEdit && <div className="flex flex-wrap items-center gap-2">
-              <select aria-label="Trasladar a" className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">Trasladar a...</option>{estaciones.filter((item) => item.codigo !== "refam" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (row.persona_id ? "amigo" : "persona")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-              <select aria-label="Reasignar a un comité (opcional)" title="Reasignar a un comité (opcional)" className="input-field text-xs w-40" value={trasladoComite[row.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [row.id]: event.target.value })}><option value="">Mantener responsable</option>{comites.map((item) => <option key={item.id} value={item.id}>Comité: {item.nombre}</option>)}</select>
-              <button type="button" aria-label="Confirmar traslado a otra estación" onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
-              <button type="button" aria-label="Reasignar comité sin cambiar de estación" title="Cambia el comité responsable sin trasladar de estación" onClick={() => reasignarComite(row)} disabled={saving || !trasladoComite[row.id]} className="btn-secondary px-2 text-xs whitespace-nowrap">Reasignar comité</button>
+              <select aria-label={t("estacionRefam.ariaTrasladarA")} className="input-field text-xs flex-1" value={trasladoDestino[row.id] || ""} onChange={(event) => setTrasladoDestino({ ...trasladoDestino, [row.id]: event.target.value })}><option value="">{t("estacionRefam.opcionTrasladarA")}</option>{estaciones.filter((item) => item.codigo !== "refam" && item.codigo !== "metodos" && DETALLE_ESTACION[item.codigo]?.requiere !== (row.persona_id ? "amigo" : "persona")).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+              <select aria-label={t("estacionRefam.ariaReasignarComiteOpcional")} title={t("estacionRefam.ariaReasignarComiteOpcional")} className="input-field text-xs w-40" value={trasladoComite[row.id] || ""} onChange={(event) => setTrasladoComite({ ...trasladoComite, [row.id]: event.target.value })}><option value="">{t("estacionRefam.opcionMantenerResponsable")}</option>{comites.map((item) => <option key={item.id} value={item.id}>{t("estacionRefam.opcionComitePrefix", { nombre: item.nombre })}</option>)}</select>
+              <button type="button" aria-label={t("estacionRefam.ariaConfirmarTraslado")} onClick={() => trasladar(row)} disabled={saving} className="btn-secondary px-3"><ArrowRightLeft className="w-3.5 h-3.5" /></button>
+              <button type="button" aria-label={t("estacionRefam.ariaReasignarComiteBoton")} title={t("estacionRefam.tituloReasignarComiteBoton")} onClick={() => reasignarComite(row)} disabled={saving || !trasladoComite[row.id]} className="btn-secondary px-2 text-xs whitespace-nowrap">{t("estacionRefam.botonReasignarComite")}</button>
             </div>}
           </div>
         ))}</div>}
       </section>
       <section className="card p-5">
-        <div className="mb-4 flex items-start gap-3"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0"><HeartHandshake className="w-4 h-4" /></span><div><p className="eyebrow">Metodología</p><h2 className="font-medium mt-1">Grupos, participantes y reuniones</h2><p className="text-xs text-secondary mt-1">Reunión Familiar y de Amistad. No sustituye a Red de Familias.</p></div></div>
+        <div className="mb-4 flex items-start gap-3"><span className="w-9 h-9 rounded bg-accent-bg text-accent flex items-center justify-center flex-shrink-0"><HeartHandshake className="w-4 h-4" /></span><div><p className="eyebrow">{t("estacionRefam.eyebrowMetodologia")}</p><h2 className="font-medium mt-1">{t("estacionRefam.tituloGruposParticipantes")}</h2><p className="text-xs text-secondary mt-1">{t("estacionRefam.descripcionMetodologia")}</p></div></div>
         {canEdit && <form onSubmit={createRefamGrupo} className="grid md:grid-cols-3 gap-3 mb-5">
-          <label className="text-sm">Nombre del grupo<input required className="input-field mt-1.5" value={refamGrupoForm.nombre} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, nombre: event.target.value })} /></label>
-          <label className="text-sm">Zona<select className="input-field mt-1.5" value={refamGrupoForm.zona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, zona_id: event.target.value })}><option value="">Sin zona</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></label>
-          <label className="text-sm">Día de reunión<input className="input-field mt-1.5" placeholder="Ej. Martes" value={refamGrupoForm.dia_reunion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, dia_reunion: event.target.value })} /></label>
-          <label className="text-sm">Anfitrión<select className="input-field mt-1.5" value={refamGrupoForm.anfitrion_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, anfitrion_persona_id: event.target.value })}><option value="">Sin anfitrión</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
-          <label className="text-sm">Líder<select className="input-field mt-1.5" value={refamGrupoForm.lider_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, lider_persona_id: event.target.value })}><option value="">Sin líder</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
-          <label className="text-sm">Dirección<input className="input-field mt-1.5" value={refamGrupoForm.direccion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, direccion: event.target.value })} /></label>
-          <div className="md:col-span-3 flex justify-end"><button className="btn-primary"><Plus className="w-4 h-4" />Crear grupo REFAM</button></div>
+          <label className="text-sm">{t("estacionRefam.labelNombreGrupo")}<input required className="input-field mt-1.5" value={refamGrupoForm.nombre} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, nombre: event.target.value })} /></label>
+          <label className="text-sm">{t("estacionRefam.labelZona")}<select className="input-field mt-1.5" value={refamGrupoForm.zona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, zona_id: event.target.value })}><option value="">{t("estacionRefam.sinZona")}</option>{zonas.map((zona) => <option key={zona.id} value={zona.id}>{zona.nombre}</option>)}</select></label>
+          <label className="text-sm">{t("estacionRefam.labelDiaReunion")}<input className="input-field mt-1.5" placeholder={t("estacionRefam.placeholderDiaReunion")} value={refamGrupoForm.dia_reunion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, dia_reunion: event.target.value })} /></label>
+          <label className="text-sm">{t("estacionRefam.labelAnfitrion")}<select className="input-field mt-1.5" value={refamGrupoForm.anfitrion_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, anfitrion_persona_id: event.target.value })}><option value="">{t("estacionRefam.opcionSinAnfitrion")}</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+          <label className="text-sm">{t("estacionRefam.labelLider")}<select className="input-field mt-1.5" value={refamGrupoForm.lider_persona_id} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, lider_persona_id: event.target.value })}><option value="">{t("estacionRefam.opcionSinLider")}</option>{personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}</select></label>
+          <label className="text-sm">{t("estacionRefam.labelDireccion")}<input className="input-field mt-1.5" value={refamGrupoForm.direccion} onChange={(event) => setRefamGrupoForm({ ...refamGrupoForm, direccion: event.target.value })} /></label>
+          <div className="md:col-span-3 flex justify-end"><button className="btn-primary"><Plus className="w-4 h-4" />{t("estacionRefam.botonCrearGrupo")}</button></div>
         </form>}
         <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-4">
-          <div className="flex flex-col gap-2">{refamGrupos.map((grupo) => <button type="button" key={grupo.id} onClick={() => loadRefamGrupoDetail(grupo.id)} className={`text-left border rounded-card p-3 ${selectedRefamGrupoId === grupo.id ? "border-accent bg-accent-bg" : "border-border"}`}><p className="text-sm font-medium">{grupo.nombre}</p><p className="text-xs text-secondary mt-1">{grupo.zonas?.nombre || "Sin zona"}{grupo.dia_reunion ? ` · ${grupo.dia_reunion}` : ""}</p>{grupo.lider && <p className="text-xs text-muted mt-1">Líder: {grupo.lider.nombres} {grupo.lider.apellidos}</p>}</button>)}{refamGrupos.length === 0 && <p className="text-sm text-muted">Aún no hay grupos REFAM.</p>}</div>
+          <div className="flex flex-col gap-2">{refamGrupos.map((grupo) => <button type="button" key={grupo.id} onClick={() => loadRefamGrupoDetail(grupo.id)} className={`text-left border rounded-card p-3 ${selectedRefamGrupoId === grupo.id ? "border-accent bg-accent-bg" : "border-border"}`}><p className="text-sm font-medium">{grupo.nombre}</p><p className="text-xs text-secondary mt-1">{grupo.zonas?.nombre || t("estacionRefam.sinZona")}{grupo.dia_reunion ? ` · ${grupo.dia_reunion}` : ""}</p>{grupo.lider && <p className="text-xs text-muted mt-1">{t("estacionRefam.liderPrefix", { nombre: `${grupo.lider.nombres} ${grupo.lider.apellidos}` })}</p>}</button>)}{refamGrupos.length === 0 && <p className="text-sm text-muted">{t("estacionRefam.sinGruposRefam")}</p>}</div>
           <div>
             {selectedRefamGrupoId ? <div className="flex flex-col gap-4">
               <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">Participantes<InfoTip texto="Cada persona avanza lección por lección desde la #1 del catálogo. Usa 'Marcar completada' solo cuando de verdad terminó esa lección -- así el sistema sabe exactamente en cuál va cada quien." /></h3>
+                <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">{t("estacionRefam.tituloParticipantes")}<InfoTip texto={t("estacionRefam.infoParticipantes")} /></h3>
                 {canEdit && <form onSubmit={addRefamParticipante} className="grid sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] gap-2 mb-2 items-end">
-                  <label className="text-xs text-secondary flex items-center gap-1">Tipo de participante<InfoTip texto="Elige 'Amigo' si la persona aún no se ha bautizado. Elige 'Persona' si ya es feligrés bautizado y también participa en este grupo REFAM." /><select className="input-field mt-1 w-full" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, tipo: event.target.value, sujeto_id: "" })}><option value="amigo">Amigo</option><option value="persona">Persona</option></select></label>
-                  <label className="text-xs text-secondary">{refamParticipanteForm.tipo === "amigo" ? "Amigo" : "Persona"} a agregar<select required className="input-field mt-1" value={refamParticipanteForm.sujeto_id} onChange={(event) => {
+                  <label className="text-xs text-secondary flex items-center gap-1">{t("estacionRefam.labelTipoParticipante")}<InfoTip texto={t("estacionRefam.infoTipoParticipante")} /><select className="input-field mt-1 w-full" value={refamParticipanteForm.tipo} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, tipo: event.target.value, sujeto_id: "" })}><option value="amigo">{t("estacionRefam.opcionAmigo")}</option><option value="persona">{t("estacionRefam.opcionPersona")}</option></select></label>
+                  <label className="text-xs text-secondary">{t("estacionRefam.labelSujetoAAgregar", { tipo: refamParticipanteForm.tipo === "amigo" ? t("estacionRefam.opcionAmigo") : t("estacionRefam.opcionPersona") })}<select required className="input-field mt-1" value={refamParticipanteForm.sujeto_id} onChange={(event) => {
                     const sujetoId = event.target.value;
                     const amigoElegido = refamParticipanteForm.tipo === "amigo" ? amigosDisponibles.find((item) => item.id === sujetoId) : null;
                     setRefamParticipanteForm({ ...refamParticipanteForm, sujeto_id: sujetoId, comiteId: amigoElegido?.comite_origen_id || refamParticipanteForm.comiteId });
-                  }}><option value="">Selecciona...</option>{(refamParticipanteForm.tipo === "amigo" ? amigosDisponibles : personas).map((item) => <option key={item.id} value={item.id}>{item.nombres} {item.apellidos || ""}</option>)}</select></label>
-                  <label className="text-xs text-secondary flex items-center gap-1">Comité responsable de su seguimiento<InfoTip texto="Qué comité local le va a dar seguimiento a esta persona mientras esté en REFAM (por ejemplo, el comité de Jóvenes o Damas Dorcas, según a quién le corresponda). Es obligatorio para que siempre haya un comité encargado." /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.comiteId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, comiteId: event.target.value })}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
-                  <button aria-label="Agregar participante" disabled={saving} className="btn-secondary px-3"><Plus className="w-4 h-4" /></button>
+                  }}><option value="">{t("estacionRefam.opcionSelecciona")}</option>{(refamParticipanteForm.tipo === "amigo" ? amigosDisponibles : personas).map((item) => <option key={item.id} value={item.id}>{item.nombres} {item.apellidos || ""}</option>)}</select></label>
+                  <label className="text-xs text-secondary flex items-center gap-1">{t("estacionRefam.labelComiteResponsable")}<InfoTip texto={t("estacionRefam.infoComiteResponsable")} /><select required className="input-field mt-1 w-full" value={refamParticipanteForm.comiteId} onChange={(event) => setRefamParticipanteForm({ ...refamParticipanteForm, comiteId: event.target.value })}><option value="">{t("estacionRefam.opcionSeleccionaComite")}</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+                  <button aria-label={t("estacionRefam.ariaAgregarParticipante")} disabled={saving} className="btn-secondary px-3"><Plus className="w-4 h-4" /></button>
                 </form>}
                 {refamParticipantes.length ? <div className="divide-y divide-border">{refamParticipantes.map((item) => <div key={item.id} className="py-2 text-sm flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"} <span className="text-xs text-muted">· {REFAM_ESTADO_LABELS[item.estado] || item.estado}</span></p>
-                      <p className="text-xs text-muted">{item.leccion_actual ? `Lección #${item.leccion_actual.numero} — ${item.leccion_actual.titulo}` : refamLecciones.length ? "Sin lección asignada" : "Sin catálogo de lecciones configurado"} · {progresoPorParticipante[item.id] || 0}/{refamLecciones.length} completadas · {asistenciaPorParticipante[item.id] || 0} reuniones</p>
+                      <p className="truncate">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || t("estacionRefam.sinNombre")} <span className="text-xs text-muted">· {REFAM_ESTADO_LABELS[item.estado] || item.estado}</span></p>
+                      <p className="text-xs text-muted">{item.leccion_actual ? t("estacionRefam.leccionActualTexto", { numero: item.leccion_actual.numero, titulo: item.leccion_actual.titulo }) : refamLecciones.length ? t("estacionRefam.sinLeccionAsignada") : t("estacionRefam.sinCatalogoLecciones")} · {t("estacionRefam.progresoDetalle", { completadas: progresoPorParticipante[item.id] || 0, total: refamLecciones.length, reuniones: asistenciaPorParticipante[item.id] || 0 })}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {canEdit && item.leccion_actual_id && <button type="button" onClick={() => marcarLeccionCompletada(item)} disabled={saving} className="btn-secondary px-2 py-1 text-xs whitespace-nowrap">Marcar completada</button>}
-                      <button type="button" onClick={() => toggleNotasParticipante(item)} className="text-xs text-accent whitespace-nowrap">{notasAbiertasParticipanteId === item.id ? "Ocultar notas" : "Ver notas"}</button>
+                      {canEdit && item.leccion_actual_id && <button type="button" onClick={() => marcarLeccionCompletada(item)} disabled={saving} className="btn-secondary px-2 py-1 text-xs whitespace-nowrap">{t("estacionRefam.botonMarcarCompletada")}</button>}
+                      <button type="button" onClick={() => toggleNotasParticipante(item)} className="text-xs text-accent whitespace-nowrap">{notasAbiertasParticipanteId === item.id ? t("estacionRefam.botonOcultarNotas") : t("estacionRefam.botonVerNotas")}</button>
                     </div>
                   </div>
                   {notasAbiertasParticipanteId === item.id && <div className="bg-surface-1 rounded p-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2 flex items-center gap-1">Bitácora de la lección actual<InfoTip texto="Cada nota queda guardada con su autor y fecha, sin borrar las anteriores -- útil si cambia el responsable o si varias personas acompañan a la vez." /></p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted mb-2 flex items-center gap-1">{t("estacionRefam.bitacoraTitulo")}<InfoTip texto={t("estacionRefam.infoBitacora")} /></p>
                     {canEdit && (item.leccion_actual_id ? (
                       <div className="flex flex-col gap-2 mb-3">
-                        <textarea className="input-field text-sm min-h-16" placeholder="Ej. Le costó el tema de hoy, repasar la próxima vez..." value={nuevaNotaRefam} onChange={(event) => setNuevaNotaRefam(event.target.value)} />
+                        <textarea className="input-field text-sm min-h-16" placeholder={t("estacionRefam.placeholderNota")} value={nuevaNotaRefam} onChange={(event) => setNuevaNotaRefam(event.target.value)} />
                         <div className="flex items-center gap-2">
-                          <select aria-label="Quién anota" className="input-field text-xs flex-1" value={nuevaNotaRefamResponsable} onChange={(event) => setNuevaNotaRefamResponsable(event.target.value)}>
-                            <option value="">Sin autor</option>
+                          <select aria-label={t("estacionRefam.ariaQuienAnota")} className="input-field text-xs flex-1" value={nuevaNotaRefamResponsable} onChange={(event) => setNuevaNotaRefamResponsable(event.target.value)}>
+                            <option value="">{t("estacionRefam.opcionSinAutor")}</option>
                             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                           </select>
-                          <button type="button" onClick={() => agregarNotaRefam(item)} disabled={saving || !nuevaNotaRefam.trim()} className="btn-secondary px-3 text-xs whitespace-nowrap">Agregar nota</button>
+                          <button type="button" onClick={() => agregarNotaRefam(item)} disabled={saving || !nuevaNotaRefam.trim()} className="btn-secondary px-3 text-xs whitespace-nowrap">{t("estacionRefam.botonAgregarNota")}</button>
                         </div>
                       </div>
-                    ) : <p className="text-xs text-muted mb-3">Asigna una lección para poder anotar.</p>)}
+                    ) : <p className="text-xs text-muted mb-3">{t("estacionRefam.textoAsignaLeccion")}</p>)}
                     {(notasPorParticipante[item.id] || []).length ? <ul className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">{notasPorParticipante[item.id].map((nota) => (
                       <li key={nota.id} className="text-xs bg-surface-2 rounded p-2.5">
                         <p className="text-secondary">{nota.nota}</p>
-                        <p className="text-muted mt-1">#{nota.leccion?.numero} — {nota.leccion?.titulo} · {nota.responsable ? `${nota.responsable.nombres} ${nota.responsable.apellidos}` : "Sin autor"} · {new Date(nota.created_at).toLocaleDateString("es-CO")}</p>
+                        <p className="text-muted mt-1">{t("estacionRefam.notaDetalle", { numero: nota.leccion?.numero, titulo: nota.leccion?.titulo, responsable: nota.responsable ? `${nota.responsable.nombres} ${nota.responsable.apellidos}` : t("estacionRefam.opcionSinAutor"), fecha: new Date(nota.created_at).toLocaleDateString(i18n.language === "en" ? "en-US" : i18n.language === "pt" ? "pt-BR" : "es-CO") })}</p>
                       </li>
-                    ))}</ul> : <p className="text-xs text-muted">Aún no hay notas registradas.</p>}
+                    ))}</ul> : <p className="text-xs text-muted">{t("estacionRefam.sinNotasRegistradas")}</p>}
                   </div>}
-                </div>)}</div> : <p className="text-xs text-muted">Sin participantes aún.</p>}
+                </div>)}</div> : <p className="text-xs text-muted">{t("estacionRefam.sinParticipantesAun")}</p>}
               </div>
               <div>
-                <h3 className="text-sm font-medium mb-2">Reuniones</h3>
+                <h3 className="text-sm font-medium mb-2">{t("estacionRefam.tituloReuniones")}</h3>
                 {canEdit && <form onSubmit={addRefamReunion} className="grid grid-cols-2 gap-2 mb-2">
-                  <label className="text-xs text-secondary">Fecha de la reunión<input required type="date" className="input-field mt-1" value={refamReunionForm.fecha} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, fecha: event.target.value })} /></label>
-                  <label className="text-xs text-secondary">N.° de lección vista ese día<input type="number" min="1" className="input-field mt-1" placeholder="Ej. 3" value={refamReunionForm.numero_leccion} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, numero_leccion: event.target.value })} /></label>
-                  <label className="text-xs text-secondary col-span-2">Tema tratado<input className="input-field mt-1" placeholder="Ej. El perdón" value={refamReunionForm.tema} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, tema: event.target.value })} /></label>
-                  <label className="text-xs text-secondary">Total de asistentes<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} /></label>
-                  <label className="text-xs text-secondary">Total de visitantes<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} /></label>
-                  <label className="text-xs text-secondary col-span-2">Resultado de la reunión<input className="input-field mt-1" placeholder="Ej. Buena participación" value={refamReunionForm.resultado} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, resultado: event.target.value })} /></label>
-                  {refamParticipantes.length > 0 && <div className="col-span-2 border border-border rounded-card p-2"><p className="text-xs font-medium mb-1.5">Asistencia individual (estudio entregado)</p>{refamParticipantes.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs py-0.5"><input type="checkbox" checked={Boolean(asistenciaRefamMarcada[item.id])} onChange={(event) => setAsistenciaRefamMarcada({ ...asistenciaRefamMarcada, [item.id]: event.target.checked })} />{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || "Sin nombre"}</label>)}</div>}
-                  <button className="btn-secondary col-span-2 justify-center">Registrar reunión</button>
+                  <label className="text-xs text-secondary">{t("estacionRefam.labelFechaReunion")}<input required type="date" className="input-field mt-1" value={refamReunionForm.fecha} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, fecha: event.target.value })} /></label>
+                  <label className="text-xs text-secondary">{t("estacionRefam.labelNumeroLeccionVista")}<input type="number" min="1" className="input-field mt-1" placeholder={t("estacionRefam.placeholderNumeroLeccion")} value={refamReunionForm.numero_leccion} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, numero_leccion: event.target.value })} /></label>
+                  <label className="text-xs text-secondary col-span-2">{t("estacionRefam.labelTemaTratado")}<input className="input-field mt-1" placeholder={t("estacionRefam.placeholderTemaTratado")} value={refamReunionForm.tema} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, tema: event.target.value })} /></label>
+                  <label className="text-xs text-secondary">{t("estacionRefam.labelTotalAsistentes")}<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.asistentes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, asistentes: event.target.value })} /></label>
+                  <label className="text-xs text-secondary">{t("estacionRefam.labelTotalVisitantes")}<input type="number" min="0" placeholder="0" className="input-field mt-1" value={refamReunionForm.visitantes} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, visitantes: event.target.value })} /></label>
+                  <label className="text-xs text-secondary col-span-2">{t("estacionRefam.labelResultadoReunion")}<input className="input-field mt-1" placeholder={t("estacionRefam.placeholderResultado")} value={refamReunionForm.resultado} onChange={(event) => setRefamReunionForm({ ...refamReunionForm, resultado: event.target.value })} /></label>
+                  {refamParticipantes.length > 0 && <div className="col-span-2 border border-border rounded-card p-2"><p className="text-xs font-medium mb-1.5">{t("estacionRefam.asistenciaIndividualEstudio")}</p>{refamParticipantes.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs py-0.5"><input type="checkbox" checked={Boolean(asistenciaRefamMarcada[item.id])} onChange={(event) => setAsistenciaRefamMarcada({ ...asistenciaRefamMarcada, [item.id]: event.target.checked })} />{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : item.amigos?.nombres || t("estacionRefam.sinNombre")}</label>)}</div>}
+                  <button className="btn-secondary col-span-2 justify-center">{t("estacionRefam.botonRegistrarReunion")}</button>
                 </form>}
-                {refamReuniones.length ? <div className="divide-y divide-border">{refamReuniones.map((item) => <div key={item.id} className="py-1.5 text-sm">{item.fecha} · Lección {item.numero_leccion} · {item.asistentes} asistentes{item.visitantes ? ` (${item.visitantes} visitantes)` : ""}</div>)}</div> : <p className="text-xs text-muted">Sin reuniones registradas.</p>}
+                {refamReuniones.length ? <div className="divide-y divide-border">{refamReuniones.map((item) => <div key={item.id} className="py-1.5 text-sm">{t("estacionRefam.reunionLinea", { fecha: item.fecha, numero: item.numero_leccion, asistentes: item.asistentes })}{item.visitantes ? t("estacionRefam.reunionVisitantesSufijo", { count: item.visitantes }) : ""}</div>)}</div> : <p className="text-xs text-muted">{t("estacionRefam.sinReunionesRegistradas")}</p>}
               </div>
-            </div> : <p className="text-sm text-muted">Selecciona un grupo para ver sus participantes y reuniones.</p>}
+            </div> : <p className="text-sm text-muted">{t("estacionRefam.seleccionaGrupoParticipantes")}</p>}
           </div>
         </div>
       </section>
