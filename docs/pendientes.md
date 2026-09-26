@@ -72,9 +72,18 @@
 	  (nunca se renderizaba, referenciaba una variable `STATES` que ya
 	  no existia en su alcance -- habria lanzado error si alguna vez se
 	  hubiera llamado).
-	- **Falta**: el contenido propio de las ~16 pantallas restantes
-	  (RutaFormacion -- namespace ya disenado, siguiente paso literal --
-	  Modulos, EscuelaDominical, EstacionRefam, Manual, Conquistadores,
+	- **Mas pantallas traducidas (2026-09-26, continuacion)**:
+	  `RutaFormacion.jsx` (636 lineas, sirve ESFOB y Discipulado via un
+	  `CONFIG` parametrizado por `mode` -- convertido a `buildConfig(t)`)
+	  y `Modulos.jsx` (530 lineas -- catalogos de modulos/actividades,
+	  caracteres de culto, ujieres con alta masiva y borrado con
+	  deshacer, lecciones REFAM/ESFOB/Discipulado, rangos de edad por
+	  comite). 31 pantallas en total verificadas con Playwright real
+	  (login + EN/PT, cero errores de consola, pluralizacion real
+	  incluyendo la regla CLDR de portugues donde 0 y 1 comparten forma
+	  singular).
+	- **Falta**: el contenido propio de las ~14 pantallas restantes
+	  (EscuelaDominical, EstacionRefam, Manual, Conquistadores,
 	  EducacionTeologica, Musica, EducacionArtistica, DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
