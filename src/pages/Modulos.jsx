@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BookOpen, Check, ChevronDown, Edit3, GraduationCap, HeartHandshake, Layers3, Plus, Power, Search, Sparkles, Trash2, UsersRound, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -15,6 +16,7 @@ const esModuloSistema = (module) => SYSTEM_MODULE_NAMES.includes(module.nombre_m
 const modulosCache = new Map()
 
 export default function Modulos() {
+  const { t } = useTranslation()
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const congregacionId = rolPrincipal?.congregacion_id
   const { pending: pendingUndo, registerDelete, undo } = useUndoDelete(load)
@@ -94,7 +96,7 @@ export default function Modulos() {
       supabase.from('comites').select('id, nombre').eq('congregacion_id', congregacionId).eq('activo', true).order('nombre'),
       supabase.from('rangos_edad_comite').select('id, nombre, edad_desde, edad_hasta, genero, estado_civil, comite_id, activo, comites(nombre)').eq('congregacion_id', congregacionId).order('edad_desde'),
     ])
-    if (modulosResult.error) setError(`No se pudieron cargar los módulos: ${modulosResult.error.message}`)
+    if (modulosResult.error) setError(t('modulos.errores.cargarModulos', { mensaje: modulosResult.error.message }))
     const loaded = modulosResult.data ?? []
     const freshData = {
       modulos: loaded,
@@ -130,11 +132,11 @@ export default function Modulos() {
     event.preventDefault()
     const value = nombre.trim()
     if (!value) return
-    if (modulos.some((module) => module.nombre_modulo.toLowerCase() === value.toLowerCase())) { setError('Ya existe un módulo con ese nombre.'); return }
+    if (modulos.some((module) => module.nombre_modulo.toLowerCase() === value.toLowerCase())) { setError(t('modulos.moduloNombreDuplicado')); return }
     setSaving(true); setError(null)
     const { data, error: insertError } = await supabase.from('modulos').insert({ congregacion_id: congregacionId, nombre_modulo: value, alcance: 'interno' }).select('id, nombre_modulo, alcance, activo, tipos_actividad(id, nombre, caracter, activo)').single()
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear el módulo: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearModulo', { mensaje: insertError.message })); return }
     setNombre(''); setModulos((current) => [...current, data]); setSeleccionado(data)
   }
 
@@ -142,30 +144,30 @@ export default function Modulos() {
     event.preventDefault()
     const value = actividad.trim()
     if (!seleccionado || !value) return
-    if (seleccionado.tipos_actividad?.some((type) => type.nombre.toLowerCase() === value.toLowerCase())) { setError('Ya existe una actividad con ese nombre en este módulo.'); return }
+    if (seleccionado.tipos_actividad?.some((type) => type.nombre.toLowerCase() === value.toLowerCase())) { setError(t('modulos.actividadNombreDuplicada')); return }
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('tipos_actividad').insert({ modulo_id: seleccionado.id, nombre: value, caracter: caracter.trim() || null })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear la actividad: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearActividad', { mensaje: insertError.message })); return }
     setActividad(''); setCaracter(''); load()
   }
 
   async function saveModuleName(module) {
-    if (esModuloSistema(module)) { setError('Este módulo se administra desde su propia pantalla (Evangelismo o Misión Juvenil).'); return }
+    if (esModuloSistema(module)) { setError(t('modulos.moduloBloqueadoAviso')); return }
     const value = editingName.trim()
     if (!value) return
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('modulos').update({ nombre_modulo: value }).eq('id', module.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar el módulo: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarModulo', { mensaje: updateError.message })); return }
     setEditingModuleId(null); load()
   }
 
   async function toggleModule(module) {
-    if (esModuloSistema(module)) { setError('Este módulo se administra desde su propia pantalla (Evangelismo o Misión Juvenil).'); return }
-    if (!window.confirm(`${module.activo === false ? '¿Reactivar' : '¿Desactivar'} el módulo ${module.nombre_modulo}?`)) return
+    if (esModuloSistema(module)) { setError(t('modulos.moduloBloqueadoAviso')); return }
+    if (!window.confirm(t(module.activo === false ? 'modulos.confirmReactivarModulo' : 'modulos.confirmDesactivarModulo', { nombre: module.nombre_modulo }))) return
     const { error: updateError } = await supabase.from('modulos').update({ activo: module.activo === false }).eq('id', module.id).eq('congregacion_id', congregacionId)
-    if (updateError) { setError(`No se pudo cambiar el estado: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.cambiarEstado', { mensaje: updateError.message })); return }
     load()
   }
 
@@ -175,13 +177,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('tipos_actividad').update({ nombre: value }).eq('id', type.id)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar la actividad: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarActividad', { mensaje: updateError.message })); return }
     setEditingActivityId(null); load()
   }
 
   async function toggleActivity(type) {
     const { error: updateError } = await supabase.from('tipos_actividad').update({ activo: type.activo === false }).eq('id', type.id)
-    if (updateError) setError(`No se pudo cambiar el estado de la actividad: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoActividad', { mensaje: updateError.message }))
     else load()
   }
 
@@ -189,11 +191,11 @@ export default function Modulos() {
     event.preventDefault()
     const value = nuevoCaracterCulto.trim()
     if (!value) return
-    if (caracteresCulto.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError('Ya existe un carácter de culto con ese nombre.'); return }
+    if (caracteresCulto.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError(t('modulos.caracterNombreDuplicado')); return }
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('caracteres_culto').insert({ congregacion_id: congregacionId, nombre: value })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear el carácter: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearCaracter', { mensaje: insertError.message })); return }
     setNuevoCaracterCulto(''); load()
   }
 
@@ -203,13 +205,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('caracteres_culto').update({ nombre: value }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar el carácter: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarCaracter', { mensaje: updateError.message })); return }
     setEditingCaracterCultoId(null); load()
   }
 
   async function toggleCaracterCulto(item) {
     const { error: updateError } = await supabase.from('caracteres_culto').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado del carácter: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoCaracter', { mensaje: updateError.message }))
     else load()
   }
 
@@ -217,11 +219,11 @@ export default function Modulos() {
     event.preventDefault()
     const value = nuevoUjier.trim()
     if (!value) return
-    if (ujieres.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError('Ya existe un ujier con ese nombre.'); return }
+    if (ujieres.some((item) => item.nombre.toLowerCase() === value.toLowerCase())) { setError(t('modulos.ujierNombreDuplicado')); return }
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('ujieres_congregacion').insert({ congregacion_id: congregacionId, nombre: value })
     setSaving(false)
-    if (insertError) { setError(`No se pudo agregar el ujier: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.agregarUjier', { mensaje: insertError.message })); return }
     setNuevoUjier(''); load()
   }
 
@@ -234,11 +236,11 @@ export default function Modulos() {
     const nombresNuevos = [...new Set(
       bulkUjieres.split(/[\n;]+/).map((line) => line.trim()).filter(Boolean)
     )].filter((nombreLinea) => !existentes.has(nombreLinea.toLowerCase()))
-    if (nombresNuevos.length === 0) { setError('No hay nombres nuevos para agregar (revisa que no estén ya en la lista).'); return }
+    if (nombresNuevos.length === 0) { setError(t('modulos.ujieresBloqueSinNuevos')); return }
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('ujieres_congregacion').insert(nombresNuevos.map((nombreUjier) => ({ congregacion_id: congregacionId, nombre: nombreUjier })))
     setSaving(false)
-    if (insertError) { setError(`No se pudieron agregar los ujieres: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.agregarUjieresBloque', { mensaje: insertError.message })); return }
     setBulkUjieres(''); load()
   }
 
@@ -248,13 +250,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('ujieres_congregacion').update({ nombre: value }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar el ujier: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarUjier', { mensaje: updateError.message })); return }
     setEditingUjierId(null); load()
   }
 
   async function toggleUjier(item) {
     const { error: updateError } = await supabase.from('ujieres_congregacion').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado del ujier: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoUjier', { mensaje: updateError.message }))
     else load()
   }
 
@@ -267,7 +269,7 @@ export default function Modulos() {
   // en sí no se borra, solo deja de decir quién fue el responsable.
   async function quitarUjier(item) {
     const { error: deleteError } = await supabase.from('ujieres_congregacion').delete().eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (deleteError) { setError(`No se pudo eliminar el ujier: ${deleteError.message}`); return }
+    if (deleteError) { setError(t('modulos.errores.eliminarUjier', { mensaje: deleteError.message })); return }
     registerDelete('ujieres_congregacion', { ...item, congregacion_id: congregacionId }, item.nombre)
     load()
   }
@@ -280,7 +282,7 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('refam_lecciones').insert({ congregacion_id: congregacionId, numero, titulo, descripcion: nuevaLeccionRefamDescripcion.trim() || null })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear la lección: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearLeccion', { mensaje: insertError.message })); return }
     setNuevaLeccionRefamTitulo(''); setNuevaLeccionRefamDescripcion(''); load()
   }
 
@@ -290,13 +292,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('refam_lecciones').update({ titulo, descripcion: editingLeccionRefamDescripcion.trim() || null }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar la lección: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarLeccion', { mensaje: updateError.message })); return }
     setEditingLeccionRefamId(null); load()
   }
 
   async function toggleLeccionRefam(item) {
     const { error: updateError } = await supabase.from('refam_lecciones').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado de la lección: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoLeccion', { mensaje: updateError.message }))
     else load()
   }
 
@@ -308,7 +310,7 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('esfob_lecciones').insert({ congregacion_id: congregacionId, numero, titulo, descripcion: nuevaLeccionEsfobDescripcion.trim() || null })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear la lección: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearLeccion', { mensaje: insertError.message })); return }
     setNuevaLeccionEsfobTitulo(''); setNuevaLeccionEsfobDescripcion(''); load()
   }
 
@@ -318,13 +320,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('esfob_lecciones').update({ titulo, descripcion: editingLeccionEsfobDescripcion.trim() || null }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar la lección: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarLeccion', { mensaje: updateError.message })); return }
     setEditingLeccionEsfobId(null); load()
   }
 
   async function toggleLeccionEsfob(item) {
     const { error: updateError } = await supabase.from('esfob_lecciones').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado de la lección: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoLeccion', { mensaje: updateError.message }))
     else load()
   }
 
@@ -336,7 +338,7 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: insertError } = await supabase.from('discipulado_lecciones').insert({ congregacion_id: congregacionId, numero, titulo, descripcion: nuevaLeccionDiscipuladoDescripcion.trim() || null })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear la lección: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearLeccion', { mensaje: insertError.message })); return }
     setNuevaLeccionDiscipuladoTitulo(''); setNuevaLeccionDiscipuladoDescripcion(''); load()
   }
 
@@ -346,13 +348,13 @@ export default function Modulos() {
     setSaving(true); setError(null)
     const { error: updateError } = await supabase.from('discipulado_lecciones').update({ titulo, descripcion: editingLeccionDiscipuladoDescripcion.trim() || null }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar la lección: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarLeccion', { mensaje: updateError.message })); return }
     setEditingLeccionDiscipuladoId(null); load()
   }
 
   async function toggleLeccionDiscipulado(item) {
     const { error: updateError } = await supabase.from('discipulado_lecciones').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado de la lección: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoLeccion', { mensaje: updateError.message }))
     else load()
   }
 
@@ -370,7 +372,7 @@ export default function Modulos() {
       comite_id: nuevoRangoEdad.comite_id,
     })
     setSaving(false)
-    if (insertError) { setError(`No se pudo crear el rango de edad: ${insertError.message}`); return }
+    if (insertError) { setError(t('modulos.errores.crearRango', { mensaje: insertError.message })); return }
     setNuevoRangoEdad(RANGO_EDAD_VACIO); load()
   }
 
@@ -398,133 +400,133 @@ export default function Modulos() {
       comite_id: editingRangoEdad.comite_id,
     }).eq('id', item.id).eq('congregacion_id', congregacionId)
     setSaving(false)
-    if (updateError) { setError(`No se pudo actualizar el rango de edad: ${updateError.message}`); return }
+    if (updateError) { setError(t('modulos.errores.actualizarRango', { mensaje: updateError.message })); return }
     setEditingRangoEdadId(null); load()
   }
 
   async function toggleRangoEdad(item) {
     const { error: updateError } = await supabase.from('rangos_edad_comite').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
-    if (updateError) setError(`No se pudo cambiar el estado del rango: ${updateError.message}`)
+    if (updateError) setError(t('modulos.errores.cambiarEstadoRango', { mensaje: updateError.message }))
     else load()
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando módulos y actividades...</div>
-  if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">No tienes permisos para administrar módulos y actividades.</div>
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('modulos.cargando')}</div>
+  if (rolPrincipal?.nivel !== 'local' || (rolPrincipal.rol_local && rolPrincipal.rol_local !== 'pastor')) return <div className="card p-8 text-center text-sm text-secondary">{t('modulos.sinPermiso')}</div>
 
   return <div className="page-shell">
-    <header><p className="eyebrow">Estructura operativa</p><h1 className="section-title">Módulos y actividades</h1><p className="text-sm text-secondary mt-1">Configura cómo se captura la información de tu congregación.</p></header>
+    <header><p className="eyebrow">{t('modulos.eyebrow')}</p><h1 className="section-title">{t('modulos.titulo')}</h1><p className="text-sm text-secondary mt-1">{t('modulos.subtitulo')}</p></header>
     {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-    <section className="grid sm:grid-cols-3 gap-3"><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Módulos activos</p><p className="text-2xl font-semibold mt-3">{activeModules}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Actividades activas</p><p className="text-2xl font-semibold mt-3">{totalActivities}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">Módulo seleccionado</p><p className="text-sm font-semibold mt-4 truncate">{seleccionado?.nombre_modulo || 'Ninguno'}</p></div></section>
+    <section className="grid sm:grid-cols-3 gap-3"><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('modulos.statModulosActivos')}</p><p className="text-2xl font-semibold mt-3">{activeModules}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('modulos.statActividadesActivas')}</p><p className="text-2xl font-semibold mt-3">{totalActivities}</p></div><div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('modulos.statModuloSeleccionado')}</p><p className="text-sm font-semibold mt-4 truncate">{seleccionado?.nombre_modulo || t('modulos.ninguno')}</p></div></section>
     <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-4">
-      <section className="card p-5"><div className="flex justify-between items-center mb-4"><div><h2 className="font-medium">Módulos activos</h2><p className="text-xs text-secondary mt-1">Organiza las áreas de captura.</p></div><Layers3 className="w-5 h-5 text-accent" /></div><form onSubmit={agregarModulo} className="flex gap-2 mb-3"><input required className="input-field" placeholder="Nuevo módulo" value={nombre} onChange={(event) => setNombre(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar módulo"><Plus className="w-4 h-4" /></button></form><div className="flex items-center gap-2 border border-border rounded px-3 py-2 mb-4"><Search className="w-4 h-4 text-muted" /><input aria-label="Buscar módulos" className="bg-transparent outline-none text-sm w-full" placeholder="Buscar módulo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div><div className="flex flex-col gap-2">{filteredModules.map((module) => { const bloqueado = esModuloSistema(module); return <div key={module.id} className={`module-item ${seleccionado?.id === module.id ? 'module-item-active' : ''} ${module.activo === false ? 'opacity-55' : ''}`}><button type="button" onClick={() => setSeleccionado(module)} className="flex-1 text-left"><span className="flex justify-between items-center"><span className="text-sm font-medium">{module.nombre_modulo}</span><ChevronDown className="w-4 h-4 text-muted" /></span><span className="text-xs text-secondary">{bloqueado ? 'Administrado desde su propio módulo · ' : ''}{module.tipos_actividad?.filter((type) => type.activo !== false).length ?? 0} actividades activas</span></button><div className="flex items-center gap-2 ml-2">{bloqueado ? null : <><button type="button" aria-label={`Editar ${module.nombre_modulo}`} title="Editar módulo" onClick={() => { setEditingModuleId(module.id); setEditingName(module.nombre_modulo) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label="Cambiar estado" title={module.activo === false ? 'Reactivar módulo' : 'Desactivar módulo'} onClick={() => toggleModule(module)} className={module.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-4 h-4" /></button></>}</div></div> })}</div>{filteredModules.length === 0 && <p className="text-sm text-muted text-center py-5">No hay módulos que coincidan.</p>}</section>
-      <section className="card p-5"><h2 className="font-medium">{seleccionado?.nombre_modulo ?? 'Selecciona un módulo'}</h2><p className="text-xs text-secondary mt-1 mb-4">Tipos de actividad disponibles para el registro.</p>{seleccionado ? <><form onSubmit={agregarActividad} className="grid sm:grid-cols-[1fr_0.8fr_auto] gap-2 mb-4"><input required className="input-field" placeholder="Ej. Culto dominical" value={actividad} onChange={(event) => setActividad(event.target.value)} /><input className="input-field" placeholder="Característica (opcional)" value={caracter} onChange={(event) => setCaracter(event.target.value)} /><button disabled={saving} className="btn-secondary px-3" aria-label="Agregar actividad"><Plus className="w-4 h-4" /></button></form><div className="flex flex-col gap-2">{visibleActivities.map((type) => <div key={type.id} className="activity-item"><div className="min-w-0"><p className="text-sm font-medium truncate">{type.nombre}</p>{type.caracter && <span className="text-[10px] uppercase tracking-[0.1em] text-accent">{type.caracter}</span>}</div><div className="flex items-center gap-2"><button type="button" aria-label={`Editar ${type.nombre}`} title="Editar actividad" onClick={() => { setEditingActivityId(type.id); setEditingActivityName(type.nombre) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label="Desactivar actividad" title="Desactivar actividad" onClick={() => toggleActivity(type)} className="text-muted hover:text-danger"><Power className="w-4 h-4" /></button></div></div>)}</div>{visibleActivities.length === 0 && <p className="text-sm text-muted py-8 text-center">Aún no hay actividades activas.</p>}</> : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">Elige un módulo de la lista</div>}</section>
+      <section className="card p-5"><div className="flex justify-between items-center mb-4"><div><h2 className="font-medium">{t('modulos.panelModulosTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.panelModulosSubtitulo')}</p></div><Layers3 className="w-5 h-5 text-accent" /></div><form onSubmit={agregarModulo} className="flex gap-2 mb-3"><input required className="input-field" placeholder={t('modulos.placeholderNuevoModulo')} value={nombre} onChange={(event) => setNombre(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label={t('modulos.ariaAgregarModulo')}><Plus className="w-4 h-4" /></button></form><div className="flex items-center gap-2 border border-border rounded px-3 py-2 mb-4"><Search className="w-4 h-4 text-muted" /><input aria-label={t('modulos.ariaBuscarModulos')} className="bg-transparent outline-none text-sm w-full" placeholder={t('modulos.placeholderBuscarModulo')} value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div><div className="flex flex-col gap-2">{filteredModules.map((module) => { const bloqueado = esModuloSistema(module); return <div key={module.id} className={`module-item ${seleccionado?.id === module.id ? 'module-item-active' : ''} ${module.activo === false ? 'opacity-55' : ''}`}><button type="button" onClick={() => setSeleccionado(module)} className="flex-1 text-left"><span className="flex justify-between items-center"><span className="text-sm font-medium">{module.nombre_modulo}</span><ChevronDown className="w-4 h-4 text-muted" /></span><span className="text-xs text-secondary">{bloqueado ? t('modulos.administradoPropioModulo') : ''}{t('modulos.actividadesActivasCount', { count: module.tipos_actividad?.filter((type) => type.activo !== false).length ?? 0 })}</span></button><div className="flex items-center gap-2 ml-2">{bloqueado ? null : <><button type="button" aria-label={t('modulos.ariaEditarNombre', { nombre: module.nombre_modulo })} title={t('modulos.tituloEditarModulo')} onClick={() => { setEditingModuleId(module.id); setEditingName(module.nombre_modulo) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={module.activo === false ? t('modulos.reactivarModulo') : t('modulos.desactivarModulo')} onClick={() => toggleModule(module)} className={module.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-4 h-4" /></button></>}</div></div> })}</div>{filteredModules.length === 0 && <p className="text-sm text-muted text-center py-5">{t('modulos.textoSinModulos')}</p>}</section>
+      <section className="card p-5"><h2 className="font-medium">{seleccionado?.nombre_modulo ?? t('modulos.seleccionaModulo')}</h2><p className="text-xs text-secondary mt-1 mb-4">{t('modulos.panelActividadesSubtitulo')}</p>{seleccionado ? <><form onSubmit={agregarActividad} className="grid sm:grid-cols-[1fr_0.8fr_auto] gap-2 mb-4"><input required className="input-field" placeholder={t('modulos.placeholderActividad')} value={actividad} onChange={(event) => setActividad(event.target.value)} /><input className="input-field" placeholder={t('modulos.placeholderCaracter')} value={caracter} onChange={(event) => setCaracter(event.target.value)} /><button disabled={saving} className="btn-secondary px-3" aria-label={t('modulos.ariaAgregarActividad')}><Plus className="w-4 h-4" /></button></form><div className="flex flex-col gap-2">{visibleActivities.map((type) => <div key={type.id} className="activity-item"><div className="min-w-0"><p className="text-sm font-medium truncate">{type.nombre}</p>{type.caracter && <span className="text-[10px] uppercase tracking-[0.1em] text-accent">{type.caracter}</span>}</div><div className="flex items-center gap-2"><button type="button" aria-label={t('modulos.ariaEditarNombre', { nombre: type.nombre })} title={t('modulos.tituloEditarActividad')} onClick={() => { setEditingActivityId(type.id); setEditingActivityName(type.nombre) }} className="text-muted hover:text-accent"><Edit3 className="w-4 h-4" /></button><button type="button" aria-label={t('modulos.tituloDesactivarActividad')} title={t('modulos.tituloDesactivarActividad')} onClick={() => toggleActivity(type)} className="text-muted hover:text-danger"><Power className="w-4 h-4" /></button></div></div>)}</div>{visibleActivities.length === 0 && <p className="text-sm text-muted py-8 text-center">{t('modulos.sinActividades')}</p>}</> : <div className="h-48 flex items-center justify-center text-sm text-muted border border-dashed border-border rounded">{t('modulos.eligeModulo')}</div>}</section>
     </div>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Caracteres de culto</h2><p className="text-xs text-secondary mt-1">Ej. Enseñanza, Alabanza, Evangelismo. Se eligen al capturar la asistencia, sin importar el módulo — así "Culto Martes" puede ser "Enseñanza" una semana y "Alabanza" otra.</p></div><Sparkles className="w-5 h-5 text-accent flex-shrink-0" /></div>
-      <form onSubmit={agregarCaracterCulto} className="flex gap-2 my-4"><input required className="input-field" placeholder="Nuevo carácter (ej. Alabanza)" value={nuevoCaracterCulto} onChange={(event) => setNuevoCaracterCulto(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar carácter de culto"><Plus className="w-4 h-4" /></button></form>
-      <div className="flex flex-wrap gap-2">{caracteresCulto.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingCaracterCultoId(item.id); setEditingCaracterCultoName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleCaracterCulto(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
-      {caracteresCulto.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay caracteres de culto configurados.</p>}
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.caracteresTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.caracteresDescripcion')}</p></div><Sparkles className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <form onSubmit={agregarCaracterCulto} className="flex gap-2 my-4"><input required className="input-field" placeholder={t('modulos.placeholderNuevoCaracter')} value={nuevoCaracterCulto} onChange={(event) => setNuevoCaracterCulto(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label={t('modulos.ariaAgregarCaracter')}><Plus className="w-4 h-4" /></button></form>
+      <div className="flex flex-wrap gap-2">{caracteresCulto.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={t('modulos.ariaEditarNombre', { nombre: item.nombre })} title={t('modulos.editarGenerico')} onClick={() => { setEditingCaracterCultoId(item.id); setEditingCaracterCultoName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleCaracterCulto(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button></div>)}</div>
+      {caracteresCulto.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinCaracteres')}</p>}
     </section>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Ujieres</h2><p className="text-xs text-secondary mt-1">Lista fija de quienes prestan el servicio de ujier. Al registrar la asistencia se elige cuál de ellos fue el responsable de ese culto — no depende de qué cuenta esté usando el celular.</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
-      <form onSubmit={agregarUjier} className="flex gap-2 my-4"><input required className="input-field" placeholder="Nombre del ujier" value={nuevoUjier} onChange={(event) => setNuevoUjier(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label="Agregar ujier"><Plus className="w-4 h-4" /></button></form>
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.ujieresTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.ujieresDescripcion')}</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <form onSubmit={agregarUjier} className="flex gap-2 my-4"><input required className="input-field" placeholder={t('modulos.placeholderNombreUjier')} value={nuevoUjier} onChange={(event) => setNuevoUjier(event.target.value)} /><button disabled={saving} className="btn-primary px-3" aria-label={t('modulos.ariaAgregarUjier')}><Plus className="w-4 h-4" /></button></form>
       <details className="mb-4">
-        <summary className="text-xs text-accent cursor-pointer select-none">Agregar varios a la vez (pegar una lista)</summary>
+        <summary className="text-xs text-accent cursor-pointer select-none">{t('modulos.bulkAgregarVarios')}</summary>
         <form onSubmit={agregarUjieresEnBloque} className="flex flex-col gap-2 mt-3">
-          <p className="text-xs text-secondary">Un nombre completo por línea (presiona Enter entre uno y otro) o sepáralos con punto y coma <span className="font-mono">;</span> — nunca con coma, para no partir un nombre a la mitad. Ejemplo: <span className="font-mono">Juan Pérez; Pepito Pérez</span></p>
-          <textarea className="input-field min-h-24" placeholder={'Juan Pérez\nPepito Pérez'} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
-          <button disabled={saving} className="btn-secondary self-start px-3">Agregar lista</button>
+          <p className="text-xs text-secondary">{t('modulos.bulkDescripcionPre')} <span className="font-mono">;</span> {t('modulos.bulkDescripcionPost')} <span className="font-mono">{t('modulos.bulkEjemploNombres')}</span></p>
+          <textarea className="input-field min-h-24" placeholder={t('modulos.placeholderBulkTextarea')} value={bulkUjieres} onChange={(event) => setBulkUjieres(event.target.value)} />
+          <button disabled={saving} className="btn-secondary self-start px-3">{t('modulos.botonAgregarLista')}</button>
         </form>
       </details>
-      <div className="flex flex-wrap gap-2">{ujieres.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => { setEditingUjierId(item.id); setEditingUjierName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleUjier(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={`Eliminar ${item.nombre}`} title="Eliminar (usa esto para corregir un error al escribirlo, no para alguien que ya no presta el servicio -- para eso, desactívalo)" onClick={() => quitarUjier(item)} className="text-muted hover:text-danger p-1"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div>
-      {ujieres.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay ujieres registrados.</p>}
+      <div className="flex flex-wrap gap-2">{ujieres.map((item) => <div key={item.id} className={`flex items-center gap-2 rounded-full border border-border pl-3 pr-1.5 py-1.5 ${item.activo === false ? 'opacity-50' : ''}`}><span className="text-sm">{item.nombre}</span><button type="button" aria-label={t('modulos.ariaEditarNombre', { nombre: item.nombre })} title={t('modulos.editarGenerico')} onClick={() => { setEditingUjierId(item.id); setEditingUjierName(item.nombre) }} className="text-muted hover:text-accent p-1"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleUjier(item)} className={`p-1 ${item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}`}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaEliminarUjier', { nombre: item.nombre })} title={t('modulos.tituloEliminarUjier')} onClick={() => quitarUjier(item)} className="text-muted hover:text-danger p-1"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div>
+      {ujieres.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinUjieres')}</p>}
     </section>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Lecciones REFAM</h2><p className="text-xs text-secondary mt-1">Currículo compartido de la congregación. Cada persona en REFAM avanza lección por lección, sin saltarse ninguna, hasta completarlo.</p></div><HeartHandshake className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.refamTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.refamDescripcion')}</p></div><HeartHandshake className="w-5 h-5 text-accent flex-shrink-0" /></div>
       <form onSubmit={agregarLeccionRefam} className="grid sm:grid-cols-[auto_1fr_auto] gap-2 my-4 items-start">
-        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...refamLecciones.map((item) => item.numero)) + 1}<InfoTip texto="El número de la lección se asigna solo, siguiendo el orden del catálogo -- no se puede escribir a mano." /></span>
+        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...refamLecciones.map((item) => item.numero)) + 1}<InfoTip texto={t('modulos.infoNumeroAutomatico')} /></span>
         <div className="grid gap-2">
-          <input required className="input-field" placeholder="Título de la lección" value={nuevaLeccionRefamTitulo} onChange={(event) => setNuevaLeccionRefamTitulo(event.target.value)} />
-          <textarea className="input-field min-h-16" placeholder="Descripción corta (opcional)" value={nuevaLeccionRefamDescripcion} onChange={(event) => setNuevaLeccionRefamDescripcion(event.target.value)} />
+          <input required className="input-field" placeholder={t('modulos.placeholderTituloLeccion')} value={nuevaLeccionRefamTitulo} onChange={(event) => setNuevaLeccionRefamTitulo(event.target.value)} />
+          <textarea className="input-field min-h-16" placeholder={t('modulos.placeholderDescripcionLeccion')} value={nuevaLeccionRefamDescripcion} onChange={(event) => setNuevaLeccionRefamDescripcion(event.target.value)} />
         </div>
-        <button disabled={saving} className="btn-primary px-3 self-start" aria-label="Agregar lección REFAM"><Plus className="w-4 h-4" /></button>
+        <button disabled={saving} className="btn-primary px-3 self-start" aria-label={t('modulos.ariaAgregarLeccionRefam')}><Plus className="w-4 h-4" /></button>
       </form>
       <div className="flex flex-col gap-2">{refamLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={`Editar lección ${item.numero}`} title="Editar" onClick={() => { setEditingLeccionRefamId(item.id); setEditingLeccionRefamTitulo(item.titulo); setEditingLeccionRefamDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleLeccionRefam(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionRefamId(item.id); setEditingLeccionRefamTitulo(item.titulo); setEditingLeccionRefamDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionRefam(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
-      {refamLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay lecciones de REFAM configuradas.</p>}
+      {refamLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesRefam')}</p>}
     </section>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Lecciones ESFOB / EFOB</h2><p className="text-xs text-secondary mt-1">Currículo compartido de formación bautismal. El responsable marca cada lección completada antes de avanzar a la siguiente.</p></div><GraduationCap className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.esfobTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.esfobDescripcion')}</p></div><GraduationCap className="w-5 h-5 text-accent flex-shrink-0" /></div>
       <form onSubmit={agregarLeccionEsfob} className="grid sm:grid-cols-[auto_1fr_auto] gap-2 my-4 items-start">
-        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...esfobLecciones.map((item) => item.numero)) + 1}<InfoTip texto="El número de la lección se asigna solo, siguiendo el orden del catálogo -- no se puede escribir a mano." /></span>
+        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...esfobLecciones.map((item) => item.numero)) + 1}<InfoTip texto={t('modulos.infoNumeroAutomatico')} /></span>
         <div className="grid gap-2">
-          <input required className="input-field" placeholder="Título de la lección" value={nuevaLeccionEsfobTitulo} onChange={(event) => setNuevaLeccionEsfobTitulo(event.target.value)} />
-          <textarea className="input-field min-h-16" placeholder="Descripción corta (opcional)" value={nuevaLeccionEsfobDescripcion} onChange={(event) => setNuevaLeccionEsfobDescripcion(event.target.value)} />
+          <input required className="input-field" placeholder={t('modulos.placeholderTituloLeccion')} value={nuevaLeccionEsfobTitulo} onChange={(event) => setNuevaLeccionEsfobTitulo(event.target.value)} />
+          <textarea className="input-field min-h-16" placeholder={t('modulos.placeholderDescripcionLeccion')} value={nuevaLeccionEsfobDescripcion} onChange={(event) => setNuevaLeccionEsfobDescripcion(event.target.value)} />
         </div>
-        <button disabled={saving} className="btn-primary px-3 self-start" aria-label="Agregar lección ESFOB"><Plus className="w-4 h-4" /></button>
+        <button disabled={saving} className="btn-primary px-3 self-start" aria-label={t('modulos.ariaAgregarLeccionEsfob')}><Plus className="w-4 h-4" /></button>
       </form>
       <div className="flex flex-col gap-2">{esfobLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={`Editar lección ${item.numero}`} title="Editar" onClick={() => { setEditingLeccionEsfobId(item.id); setEditingLeccionEsfobTitulo(item.titulo); setEditingLeccionEsfobDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleLeccionEsfob(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionEsfobId(item.id); setEditingLeccionEsfobTitulo(item.titulo); setEditingLeccionEsfobDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionEsfob(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
-      {esfobLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay lecciones de ESFOB configuradas.</p>}
+      {esfobLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesEsfob')}</p>}
     </section>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Lecciones de Discipulado</h2><p className="text-xs text-secondary mt-1">Currículo compartido para acompañar al nuevo bautizado. A diferencia de REFAM/ESFOB, no tiene un total fijo -- el catálogo puede seguir creciendo mientras la persona avanza.</p></div><BookOpen className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.discipuladoTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.discipuladoDescripcion')}</p></div><BookOpen className="w-5 h-5 text-accent flex-shrink-0" /></div>
       <form onSubmit={agregarLeccionDiscipulado} className="grid sm:grid-cols-[auto_1fr_auto] gap-2 my-4 items-start">
-        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...discipuladoLecciones.map((item) => item.numero)) + 1}<InfoTip texto="El número de la lección se asigna solo, siguiendo el orden del catálogo -- no se puede escribir a mano." /></span>
+        <span className="input-field w-16 text-center text-sm text-muted flex items-center justify-center gap-1">#{Math.max(0, ...discipuladoLecciones.map((item) => item.numero)) + 1}<InfoTip texto={t('modulos.infoNumeroAutomatico')} /></span>
         <div className="grid gap-2">
-          <input required className="input-field" placeholder="Título de la lección" value={nuevaLeccionDiscipuladoTitulo} onChange={(event) => setNuevaLeccionDiscipuladoTitulo(event.target.value)} />
-          <textarea className="input-field min-h-16" placeholder="Descripción corta (opcional)" value={nuevaLeccionDiscipuladoDescripcion} onChange={(event) => setNuevaLeccionDiscipuladoDescripcion(event.target.value)} />
+          <input required className="input-field" placeholder={t('modulos.placeholderTituloLeccion')} value={nuevaLeccionDiscipuladoTitulo} onChange={(event) => setNuevaLeccionDiscipuladoTitulo(event.target.value)} />
+          <textarea className="input-field min-h-16" placeholder={t('modulos.placeholderDescripcionLeccion')} value={nuevaLeccionDiscipuladoDescripcion} onChange={(event) => setNuevaLeccionDiscipuladoDescripcion(event.target.value)} />
         </div>
-        <button disabled={saving} className="btn-primary px-3 self-start" aria-label="Agregar lección de Discipulado"><Plus className="w-4 h-4" /></button>
+        <button disabled={saving} className="btn-primary px-3 self-start" aria-label={t('modulos.ariaAgregarLeccionDiscipulado')}><Plus className="w-4 h-4" /></button>
       </form>
       <div className="flex flex-col gap-2">{discipuladoLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={`Editar lección ${item.numero}`} title="Editar" onClick={() => { setEditingLeccionDiscipuladoId(item.id); setEditingLeccionDiscipuladoTitulo(item.titulo); setEditingLeccionDiscipuladoDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleLeccionDiscipulado(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionDiscipuladoId(item.id); setEditingLeccionDiscipuladoTitulo(item.titulo); setEditingLeccionDiscipuladoDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionDiscipulado(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
-      {discipuladoLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay lecciones de Discipulado configuradas.</p>}
+      {discipuladoLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesDiscipulado')}</p>}
     </section>
     <section className="card p-5">
-      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">Rangos de edad y comités</h2><p className="text-xs text-secondary mt-1">Qué comité(s) corresponden a cada rango de edad -- puedes marcar más de un comité para el mismo rango (por ejemplo, Señoritas y Jóvenes a la vez), y afinar por género o estado civil si hace falta. Esto solo sugiere, nunca traslada a nadie automáticamente.</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
-      {comites.length === 0 && <p className="text-xs text-warning bg-warning-bg rounded p-2 my-3">Aún no hay comités activos en Feligresía -- crea al menos uno antes de poder configurar rangos de edad.</p>}
+      <div className="flex justify-between items-center mb-1"><div><h2 className="font-medium">{t('modulos.rangosTitulo')}</h2><p className="text-xs text-secondary mt-1">{t('modulos.rangosDescripcion')}</p></div><UsersRound className="w-5 h-5 text-accent flex-shrink-0" /></div>
+      {comites.length === 0 && <p className="text-xs text-warning bg-warning-bg rounded p-2 my-3">{t('modulos.sinComitesAviso')}</p>}
       <form onSubmit={agregarRangoEdad} className="grid sm:grid-cols-2 lg:grid-cols-6 gap-2 my-4 items-end">
-        <label className="text-xs text-secondary lg:col-span-2">Nombre del rango<input required className="input-field mt-1" placeholder="Ej. Señoritas" value={nuevoRangoEdad.nombre} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, nombre: event.target.value })} /></label>
-        <label className="text-xs text-secondary">Edad desde<input required type="number" min="0" className="input-field mt-1" value={nuevoRangoEdad.edad_desde} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_desde: event.target.value })} /></label>
-        <label className="text-xs text-secondary flex items-center gap-1">Edad hasta<InfoTip texto="Déjalo vacío si no hay tope superior (por ejemplo, para un comité de adultos)." /><input type="number" min="0" className="input-field mt-1 w-full" placeholder="Sin tope" value={nuevoRangoEdad.edad_hasta} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_hasta: event.target.value })} /></label>
-        <label className="text-xs text-secondary">Género<select className="input-field mt-1" value={nuevoRangoEdad.genero} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, genero: event.target.value })}><option value="">Cualquiera</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option></select></label>
-        <label className="text-xs text-secondary">Estado civil<select className="input-field mt-1" value={nuevoRangoEdad.estado_civil} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, estado_civil: event.target.value })}><option value="">Cualquiera</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="union_libre">Unión libre</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></label>
-        <label className="text-xs text-secondary lg:col-span-2">Comité<select required className="input-field mt-1" value={nuevoRangoEdad.comite_id} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, comite_id: event.target.value })}><option value="">Selecciona un comité...</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
-        <button disabled={saving || comites.length === 0} className="btn-primary justify-center lg:col-span-1"><Plus className="w-4 h-4" />Agregar</button>
+        <label className="text-xs text-secondary lg:col-span-2">{t('modulos.labelNombreRango')}<input required className="input-field mt-1" placeholder={t('modulos.placeholderNombreRango')} value={nuevoRangoEdad.nombre} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, nombre: event.target.value })} /></label>
+        <label className="text-xs text-secondary">{t('modulos.labelEdadDesde')}<input required type="number" min="0" className="input-field mt-1" value={nuevoRangoEdad.edad_desde} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_desde: event.target.value })} /></label>
+        <label className="text-xs text-secondary flex items-center gap-1">{t('modulos.labelEdadHasta')}<InfoTip texto={t('modulos.infoEdadHasta')} /><input type="number" min="0" className="input-field mt-1 w-full" placeholder={t('modulos.placeholderSinTope')} value={nuevoRangoEdad.edad_hasta} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, edad_hasta: event.target.value })} /></label>
+        <label className="text-xs text-secondary">{t('modulos.labelGenero')}<select className="input-field mt-1" value={nuevoRangoEdad.genero} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, genero: event.target.value })}><option value="">{t('modulos.opcionCualquiera')}</option><option value="masculino">{t('modulos.opcionMasculino')}</option><option value="femenino">{t('modulos.opcionFemenino')}</option></select></label>
+        <label className="text-xs text-secondary">{t('modulos.labelEstadoCivil')}<select className="input-field mt-1" value={nuevoRangoEdad.estado_civil} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, estado_civil: event.target.value })}><option value="">{t('modulos.opcionCualquiera')}</option><option value="soltero">{t('modulos.opcionSoltero')}</option><option value="casado">{t('modulos.opcionCasado')}</option><option value="union_libre">{t('modulos.opcionUnionLibre')}</option><option value="divorciado">{t('modulos.opcionDivorciado')}</option><option value="viudo">{t('modulos.opcionViudo')}</option></select></label>
+        <label className="text-xs text-secondary lg:col-span-2">{t('modulos.labelComite')}<select required className="input-field mt-1" value={nuevoRangoEdad.comite_id} onChange={(event) => setNuevoRangoEdad({ ...nuevoRangoEdad, comite_id: event.target.value })}><option value="">{t('modulos.placeholderSeleccionaComite')}</option>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+        <button disabled={saving || comites.length === 0} className="btn-primary justify-center lg:col-span-1"><Plus className="w-4 h-4" />{t('modulos.agregar')}</button>
       </form>
       <div className="flex flex-col gap-2">{rangosEdad.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0">
-          <p className="text-sm font-medium">{item.nombre} <span className="text-xs text-muted font-normal">→ {item.comites?.nombre || 'Comité eliminado'}</span></p>
-          <p className="text-xs text-secondary mt-1">{item.edad_desde}{item.edad_hasta === null ? '+ años' : `–${item.edad_hasta} años`}{item.genero ? ` · ${item.genero}` : ''}{item.estado_civil ? ` · ${item.estado_civil}` : ''}</p>
+          <p className="text-sm font-medium">{item.nombre} <span className="text-xs text-muted font-normal">→ {item.comites?.nombre || t('modulos.comiteEliminado')}</span></p>
+          <p className="text-xs text-secondary mt-1">{item.edad_hasta === null ? t('modulos.edadDesdeSinTope', { desde: item.edad_desde }) : t('modulos.edadRango', { desde: item.edad_desde, hasta: item.edad_hasta })}{item.genero ? ` · ${item.genero}` : ''}{item.estado_civil ? ` · ${item.estado_civil}` : ''}</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={`Editar ${item.nombre}`} title="Editar" onClick={() => editarRangoEdad(item)} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label="Cambiar estado" title={item.activo === false ? 'Reactivar' : 'Desactivar'} onClick={() => toggleRangoEdad(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarNombre', { nombre: item.nombre })} title={t('modulos.editarGenerico')} onClick={() => editarRangoEdad(item)} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleRangoEdad(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
-      {rangosEdad.length === 0 && <p className="text-sm text-muted text-center py-4">Aún no hay rangos de edad configurados.</p>}
+      {rangosEdad.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinRangos')}</p>}
     </section>
-    {editingModuleId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveModuleName(modulos.find((module) => module.id === editingModuleId)) }} className="modal-panel"><h2 className="font-medium">Editar módulo</h2><input autoFocus required className="input-field mt-4" value={editingName} onChange={(event) => setEditingName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingModuleId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingActivityId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveActivity(seleccionado.tipos_actividad.find((type) => type.id === editingActivityId)) }} className="modal-panel"><h2 className="font-medium">Editar actividad</h2><input autoFocus required className="input-field mt-4" value={editingActivityName} onChange={(event) => setEditingActivityName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingActivityId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingCaracterCultoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveCaracterCulto(caracteresCulto.find((item) => item.id === editingCaracterCultoId)) }} className="modal-panel"><h2 className="font-medium">Editar carácter de culto</h2><input autoFocus required className="input-field mt-4" value={editingCaracterCultoName} onChange={(event) => setEditingCaracterCultoName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingCaracterCultoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingUjierId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveUjier(ujieres.find((item) => item.id === editingUjierId)) }} className="modal-panel"><h2 className="font-medium">Editar ujier</h2><input autoFocus required className="input-field mt-4" value={editingUjierName} onChange={(event) => setEditingUjierName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingUjierId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingLeccionRefamId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionRefam(refamLecciones.find((item) => item.id === editingLeccionRefamId)) }} className="modal-panel"><h2 className="font-medium">Editar lección REFAM</h2><input autoFocus required className="input-field mt-4" value={editingLeccionRefamTitulo} onChange={(event) => setEditingLeccionRefamTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionRefamDescripcion} onChange={(event) => setEditingLeccionRefamDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionRefamId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingLeccionEsfobId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionEsfob(esfobLecciones.find((item) => item.id === editingLeccionEsfobId)) }} className="modal-panel"><h2 className="font-medium">Editar lección ESFOB</h2><input autoFocus required className="input-field mt-4" value={editingLeccionEsfobTitulo} onChange={(event) => setEditingLeccionEsfobTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionEsfobDescripcion} onChange={(event) => setEditingLeccionEsfobDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionEsfobId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingLeccionDiscipuladoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionDiscipulado(discipuladoLecciones.find((item) => item.id === editingLeccionDiscipuladoId)) }} className="modal-panel"><h2 className="font-medium">Editar lección de Discipulado</h2><input autoFocus required className="input-field mt-4" value={editingLeccionDiscipuladoTitulo} onChange={(event) => setEditingLeccionDiscipuladoTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder="Descripción corta (opcional)" value={editingLeccionDiscipuladoDescripcion} onChange={(event) => setEditingLeccionDiscipuladoDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionDiscipuladoId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div></form></div>}
-    {editingRangoEdadId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); guardarRangoEdad(rangosEdad.find((item) => item.id === editingRangoEdadId)) }} className="modal-panel"><h2 className="font-medium">Editar rango de edad</h2>
-      <label className="text-sm mt-4 block">Nombre<input autoFocus required className="input-field mt-1.5" value={editingRangoEdad.nombre} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, nombre: event.target.value })} /></label>
+    {editingModuleId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveModuleName(modulos.find((module) => module.id === editingModuleId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarModulo')}</h2><input autoFocus required className="input-field mt-4" value={editingName} onChange={(event) => setEditingName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingModuleId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingActivityId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveActivity(seleccionado.tipos_actividad.find((type) => type.id === editingActivityId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarActividad')}</h2><input autoFocus required className="input-field mt-4" value={editingActivityName} onChange={(event) => setEditingActivityName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingActivityId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingCaracterCultoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveCaracterCulto(caracteresCulto.find((item) => item.id === editingCaracterCultoId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarCaracter')}</h2><input autoFocus required className="input-field mt-4" value={editingCaracterCultoName} onChange={(event) => setEditingCaracterCultoName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingCaracterCultoId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingUjierId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveUjier(ujieres.find((item) => item.id === editingUjierId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarUjier')}</h2><input autoFocus required className="input-field mt-4" value={editingUjierName} onChange={(event) => setEditingUjierName(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingUjierId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingLeccionRefamId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionRefam(refamLecciones.find((item) => item.id === editingLeccionRefamId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarLeccionRefam')}</h2><input autoFocus required className="input-field mt-4" value={editingLeccionRefamTitulo} onChange={(event) => setEditingLeccionRefamTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder={t('modulos.placeholderDescripcionLeccion')} value={editingLeccionRefamDescripcion} onChange={(event) => setEditingLeccionRefamDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionRefamId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingLeccionEsfobId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionEsfob(esfobLecciones.find((item) => item.id === editingLeccionEsfobId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarLeccionEsfob')}</h2><input autoFocus required className="input-field mt-4" value={editingLeccionEsfobTitulo} onChange={(event) => setEditingLeccionEsfobTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder={t('modulos.placeholderDescripcionLeccion')} value={editingLeccionEsfobDescripcion} onChange={(event) => setEditingLeccionEsfobDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionEsfobId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingLeccionDiscipuladoId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); saveLeccionDiscipulado(discipuladoLecciones.find((item) => item.id === editingLeccionDiscipuladoId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarLeccionDiscipulado')}</h2><input autoFocus required className="input-field mt-4" value={editingLeccionDiscipuladoTitulo} onChange={(event) => setEditingLeccionDiscipuladoTitulo(event.target.value)} /><textarea className="input-field mt-2 min-h-20" placeholder={t('modulos.placeholderDescripcionLeccion')} value={editingLeccionDiscipuladoDescripcion} onChange={(event) => setEditingLeccionDiscipuladoDescripcion(event.target.value)} /><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingLeccionDiscipuladoId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div></form></div>}
+    {editingRangoEdadId && <div className="modal-backdrop"><form onSubmit={(event) => { event.preventDefault(); guardarRangoEdad(rangosEdad.find((item) => item.id === editingRangoEdadId)) }} className="modal-panel"><h2 className="font-medium">{t('modulos.modalEditarRango')}</h2>
+      <label className="text-sm mt-4 block">{t('modulos.modalNombreLabel')}<input autoFocus required className="input-field mt-1.5" value={editingRangoEdad.nombre} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, nombre: event.target.value })} /></label>
       <div className="grid grid-cols-2 gap-2 mt-3">
-        <label className="text-sm">Edad desde<input required type="number" min="0" className="input-field mt-1.5" value={editingRangoEdad.edad_desde} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_desde: event.target.value })} /></label>
-        <label className="text-sm">Edad hasta<input type="number" min="0" className="input-field mt-1.5" placeholder="Sin tope" value={editingRangoEdad.edad_hasta} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_hasta: event.target.value })} /></label>
-        <label className="text-sm">Género<select className="input-field mt-1.5" value={editingRangoEdad.genero} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, genero: event.target.value })}><option value="">Cualquiera</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option></select></label>
-        <label className="text-sm">Estado civil<select className="input-field mt-1.5" value={editingRangoEdad.estado_civil} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, estado_civil: event.target.value })}><option value="">Cualquiera</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="union_libre">Unión libre</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></label>
+        <label className="text-sm">{t('modulos.labelEdadDesde')}<input required type="number" min="0" className="input-field mt-1.5" value={editingRangoEdad.edad_desde} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_desde: event.target.value })} /></label>
+        <label className="text-sm">{t('modulos.labelEdadHasta')}<input type="number" min="0" className="input-field mt-1.5" placeholder={t('modulos.placeholderSinTope')} value={editingRangoEdad.edad_hasta} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, edad_hasta: event.target.value })} /></label>
+        <label className="text-sm">{t('modulos.labelGenero')}<select className="input-field mt-1.5" value={editingRangoEdad.genero} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, genero: event.target.value })}><option value="">{t('modulos.opcionCualquiera')}</option><option value="masculino">{t('modulos.opcionMasculino')}</option><option value="femenino">{t('modulos.opcionFemenino')}</option></select></label>
+        <label className="text-sm">{t('modulos.labelEstadoCivil')}<select className="input-field mt-1.5" value={editingRangoEdad.estado_civil} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, estado_civil: event.target.value })}><option value="">{t('modulos.opcionCualquiera')}</option><option value="soltero">{t('modulos.opcionSoltero')}</option><option value="casado">{t('modulos.opcionCasado')}</option><option value="union_libre">{t('modulos.opcionUnionLibre')}</option><option value="divorciado">{t('modulos.opcionDivorciado')}</option><option value="viudo">{t('modulos.opcionViudo')}</option></select></label>
       </div>
-      <label className="text-sm mt-3 block">Comité<select required className="input-field mt-1.5" value={editingRangoEdad.comite_id} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, comite_id: event.target.value })}>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
-      <div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingRangoEdadId(null)} className="btn-secondary"><X className="w-4 h-4" />Cancelar</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />Guardar</button></div>
+      <label className="text-sm mt-3 block">{t('modulos.labelComite')}<select required className="input-field mt-1.5" value={editingRangoEdad.comite_id} onChange={(event) => setEditingRangoEdad({ ...editingRangoEdad, comite_id: event.target.value })}>{comites.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+      <div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setEditingRangoEdadId(null)} className="btn-secondary"><X className="w-4 h-4" />{t('modulos.cancelar')}</button><button disabled={saving} className="btn-primary"><Check className="w-4 h-4" />{t('modulos.guardar')}</button></div>
     </form></div>}
     <UndoToast pending={pendingUndo} onUndo={undo} />
   </div>
