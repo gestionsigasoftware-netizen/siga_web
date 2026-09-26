@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar, Line } from "react-chartjs-2";
 import {
   BarElement,
@@ -26,8 +27,7 @@ ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, Po
 
 const conquistadoresCache = new Map();
 
-const TIPO_ACTIVIDAD_LABELS = { campamento: "Campamento", taller: "Taller", social: "Social", reunion: "Reunión", otro: "Otro" };
-const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
+const PERIODOS = ["30", "180", "365"];
 const DIAS_INACTIVIDAD = 60;
 const CHART_OPTIONS = chartOptions();
 
@@ -46,6 +46,8 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "", tip })
 }
 
 export default function Conquistadores() {
+  const { t } = useTranslation();
+  const TIPO_ACTIVIDAD_LABELS = t("conquistadores.tipos", { returnObjects: true });
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [miembros, setMiembros] = useState([]);
@@ -74,7 +76,7 @@ export default function Conquistadores() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("conquistadores.errorSinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -100,7 +102,7 @@ export default function Conquistadores() {
       supabase.from("amigos").select("conquistadores_miembro_id").eq("congregacion_id", congregacionId).not("conquistadores_miembro_id", "is", null),
     ]);
     const failed = [m, a, s, p, am].find((item) => item.error);
-    if (failed) setError("No se pudo cargar Conquistadores Pentecostales. Intenta nuevamente o contacta al administrador.");
+    if (failed) setError(t("conquistadores.errorCargar"));
     const nuevosMiembros = m.data ?? [];
     const nuevasActividades = a.data ?? [];
     const nuevasAsistencias = s.data ?? [];
@@ -133,8 +135,8 @@ export default function Conquistadores() {
       rol: miembroForm.rol,
     });
     setSaving(false);
-    if (result.error) { setError("No se pudo registrar al miembro."); return; }
-    setNotice("Miembro registrado.");
+    if (result.error) { setError(t("conquistadores.errorRegistrarMiembro")); return; }
+    setNotice(t("conquistadores.noticeMiembroRegistrado"));
     setMiembroForm({ nombres: "", apellidos: "", telefono: "", rol: "miembro" });
     load();
   }
@@ -145,8 +147,8 @@ export default function Conquistadores() {
     const hoy = hoyBogota();
     const result = await supabase.from("conquistadores_miembros").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", miembro.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
-    setNotice("Ficha actualizada.");
+    if (result.error) { setError(t("conquistadores.errorActualizarFicha", { mensaje: result.error.message })); return; }
+    setNotice(t("conquistadores.noticeFichaActualizada"));
     load();
   }
 
@@ -157,7 +159,7 @@ export default function Conquistadores() {
   // incorporar a Feligresia sin pasar por ninguna estacion.
   async function vincularRutaEvangelistica(miembro) {
     if (!canEdit) return;
-    if (!miembro.bautizado && !responsableVinculoId) { setError("Selecciona quién será el responsable de su seguimiento."); return; }
+    if (!miembro.bautizado && !responsableVinculoId) { setError(t("conquistadores.errorSeleccionaResponsable")); return; }
     setSaving(true); setError(null);
     const nombreCompleto = `${miembro.nombres} ${miembro.apellidos}`.trim();
     const { data: amigo, error: amigoError } = await supabase.from("amigos").insert({
@@ -168,19 +170,19 @@ export default function Conquistadores() {
       conquistadores_miembro_id: miembro.id,
       ...(miembro.bautizado ? { estado_espiritual: "bautizado", bautizado: true, fecha_bautismo: miembro.fecha_bautismo } : {}),
     }).select("id").single();
-    if (amigoError) { setSaving(false); setError(`No se pudo vincular a la Ruta Evangelística: ${amigoError.message}`); return; }
+    if (amigoError) { setSaving(false); setError(t("conquistadores.errorVincularRuta", { mensaje: amigoError.message })); return; }
     if (miembro.bautizado) {
       setSaving(false);
-      setNotice(`${nombreCompleto} vinculado -- ya está bautizado, listo para incorporar a Feligresía desde Amigos.`);
+      setNotice(t("conquistadores.noticeVinculadoBautizado", { nombre: nombreCompleto }));
       setVinculandoId(null); setResponsableVinculoId(""); load();
       return;
     }
     const { data: estacionBis, error: estacionError } = await getEstacion(congregacionId, "bis");
-    if (estacionError || !estacionBis) { setSaving(false); setError("No se encontró la estación BIS de la congregación."); return; }
+    if (estacionError || !estacionBis) { setSaving(false); setError(t("conquistadores.errorEstacionBisNoEncontrada")); return; }
     const movResult = await iniciarOMoverEstacion({ congregacionId, estacionDestino: estacionBis, amigoId: amigo.id, responsablePersonaId: responsableVinculoId });
     setSaving(false);
-    if (movResult.error) { setError(`Se creó el amigo pero no se pudo agregar a BIS: ${movResult.error.message}`); return; }
-    setNotice(`${nombreCompleto} vinculado y agregado a BIS.`);
+    if (movResult.error) { setError(t("conquistadores.errorAgregarBis", { mensaje: movResult.error.message })); return; }
+    setNotice(t("conquistadores.noticeVinculadoBis", { nombre: nombreCompleto }));
     setVinculandoId(null); setResponsableVinculoId(""); load();
   }
 
@@ -196,15 +198,15 @@ export default function Conquistadores() {
       descripcion: actividadForm.descripcion.trim() || null,
       responsable_persona_id: actividadForm.responsable_persona_id || null,
     }).select("id").single();
-    if (actividadResult.error) { setSaving(false); setError(`No se pudo registrar la actividad: ${actividadResult.error.message}`); return; }
+    if (actividadResult.error) { setSaving(false); setError(t("conquistadores.errorRegistrarActividad", { mensaje: actividadResult.error.message })); return; }
     if (activos.length > 0) {
       const asistenciaResult = await supabase.from("conquistadores_asistencia").insert(
         activos.map((miembro) => ({ actividad_id: actividadResult.data.id, miembro_id: miembro.id, asistio: Boolean(asistenciaMarcada[miembro.id]) })),
       );
-      if (asistenciaResult.error) { setSaving(false); setError(`La actividad se guardó, pero no se pudo registrar la asistencia individual: ${asistenciaResult.error.message}`); return; }
+      if (asistenciaResult.error) { setSaving(false); setError(t("conquistadores.errorAsistenciaIndividual", { mensaje: asistenciaResult.error.message })); return; }
     }
     setSaving(false);
-    setNotice("Actividad registrada con asistencia individual.");
+    setNotice(t("conquistadores.noticeActividadRegistrada"));
     setActividadForm({ fecha: hoyBogota(), tipo: "reunion", descripcion: "", responsable_persona_id: "" });
     setAsistenciaMarcada({});
     load();
@@ -217,7 +219,7 @@ export default function Conquistadores() {
     supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "conquistadores.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
   }, [congregacionId, rolPrincipal]);
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Conquistadores Pentecostales...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("conquistadores.cargando")}</div>;
 
   const activos = miembros.filter((item) => item.estado === "activo");
   const lideres = activos.filter((item) => item.rol === "lider");
@@ -259,76 +261,82 @@ export default function Conquistadores() {
   });
 
   const insightGeneral = activos.length
-    ? `${lideres.length} de ${activos.length} miembros activos son líderes en formación. ${miembrosSinSeguimiento.length > 0 ? `${miembrosSinSeguimiento.length} sin actividad reciente.` : "Todos con actividad reciente."}`
-    : "Registra miembros de 18 a 40 años para construir una lectura del ministerio de jóvenes adultos.";
+    ? t("conquistadores.insightGeneralConDatos", {
+        lideres: lideres.length,
+        activos: activos.length,
+        extra: miembrosSinSeguimiento.length > 0
+          ? t("conquistadores.insightExtraSinSeguimiento", { count: miembrosSinSeguimiento.length })
+          : t("conquistadores.insightExtraTodosConActividad"),
+      })
+    : t("conquistadores.insightVacio");
 
-  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Actividades" });
-  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Actividades" });
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("conquistadores.datasetActividades") });
+  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: t("conquistadores.datasetActividades") });
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Miembros activos", value: activos.length },
-        { label: "Líderes en formación", value: lideres.length },
-        { label: "Actividades (30 días)", value: actividadesUltimoMes.length },
-        { label: "Sin seguimiento reciente", value: miembrosSinSeguimiento.length },
+        { label: t("conquistadores.exportKpiMiembrosActivos"), value: activos.length },
+        { label: t("conquistadores.exportKpiLideres"), value: lideres.length },
+        { label: t("conquistadores.exportKpiActividades30"), value: actividadesUltimoMes.length },
+        { label: t("conquistadores.exportKpiSinSeguimiento"), value: miembrosSinSeguimiento.length },
       ],
-      desgloses: [{ titulo: "Actividades por tipo", items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+      desgloses: [{ titulo: t("conquistadores.tituloActividadesPorTipo"), items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Nombre", "Rol", "Estado", "Fecha de ingreso", "Última actividad"],
-      rows: miembros.map((item) => [`${item.nombres || ""} ${item.apellidos || ""}`.trim(), item.rol === "lider" ? "Líder" : "Miembro", item.estado === "activo" ? "Activo" : "Inactivo", item.fecha_ingreso || "—", ultimaActividadPorMiembro.get(item.id) || "Sin registro"]),
+      headers: [t("conquistadores.thNombre"), t("conquistadores.thRol"), t("conquistadores.headerEstado"), t("conquistadores.headerFechaIngreso"), t("conquistadores.headerUltimaActividad")],
+      rows: miembros.map((item) => [`${item.nombres || ""} ${item.apellidos || ""}`.trim(), item.rol === "lider" ? t("conquistadores.rolLider") : t("conquistadores.rolMiembro"), item.estado === "activo" ? t("conquistadores.estadoActivo") : t("conquistadores.estadoInactivo"), item.fecha_ingreso || "—", ultimaActividadPorMiembro.get(item.id) || t("conquistadores.sinRegistro")]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `conquistadores-${hoyBogota()}.csv`, titulo: "Conquistadores Pentecostales — Miembros", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `conquistadores-${hoyBogota()}.xlsx`, hoja: "Miembros", titulo: "Conquistadores Pentecostales — Miembros", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `conquistadores-${hoyBogota()}.pdf`, titulo: "Conquistadores Pentecostales — Miembros", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `conquistadores-${hoyBogota()}.csv`, titulo: t("conquistadores.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `conquistadores-${hoyBogota()}.xlsx`, hoja: "Miembros", titulo: t("conquistadores.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `conquistadores-${hoyBogota()}.pdf`, titulo: t("conquistadores.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Comité nacional · 18 a 40 años</p>
-          <h1 className="section-title flex items-center gap-2"><Flag className="w-6 h-6 text-accent" />Conquistadores Pentecostales</h1>
-          <p className="text-sm text-secondary mt-1">Formación de líderes jóvenes adultos comprometidos con la evangelización juvenil.</p>
+          <p className="eyebrow">{t("conquistadores.eyebrow")}</p>
+          <h1 className="section-title flex items-center gap-2"><Flag className="w-6 h-6 text-accent" />{t("conquistadores.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("conquistadores.subtitulo")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-            {PERIODOS.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
+          <div className="flex gap-1.5" role="group" aria-label={t("conquistadores.ariaPeriodo")}>
+            {PERIODOS.map((value, index) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{t(`conquistadores.${["periodo30", "periodo6m", "periodo12m"][index]}`)}</button>
             ))}
           </div>
           <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Conquistadores Pentecostales.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("conquistadores.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric label="Miembros activos" value={activos.length} progress={activos.length ? 100 : 0} detail={`${miembros.length} registrados en total`} insight={activos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer miembro para iniciar el trabajo."} />
-        <Metric label="Líderes en formación" value={lideres.length} progress={activos.length ? Math.round((lideres.length / activos.length) * 100) : 0} detail={`${activos.length ? Math.round((lideres.length / activos.length) * 100) : 0}% de los activos`} insight="Líderes comprometidos con la evangelización juvenil del distrito." tip="Marcar a alguien como líder aquí es solo un registro del comité; no le da permisos adicionales en el sistema." />
-        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={variacion30Dias === null || variacion30Dias >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={variacion30Dias === null ? "Aún no hay suficiente historial para comparar." : `${variacion30Dias >= 0 ? "Creció" : "Bajó"} ${Math.abs(variacion30Dias)}% frente a los 30 días anteriores.`} />
-        <Metric label="Sin seguimiento reciente" value={miembrosSinSeguimiento.length} tone={miembrosSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activos.length ? Math.round((miembrosSinSeguimiento.length / activos.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={miembrosSinSeguimiento.length > 0 ? "Revisa la lista y programa un contacto." : "Todos los miembros tienen seguimiento reciente."} />
+        <Metric label={t("conquistadores.metricMiembrosActivos")} value={activos.length} progress={activos.length ? 100 : 0} detail={t("conquistadores.metricMiembrosActivosDetalle", { count: miembros.length })} insight={activos.length ? t("conquistadores.metricMiembrosActivosInsight") : t("conquistadores.metricMiembrosActivosInsightVacio")} />
+        <Metric label={t("conquistadores.metricLideres")} value={lideres.length} progress={activos.length ? Math.round((lideres.length / activos.length) * 100) : 0} detail={t("conquistadores.metricLideresDetalle", { pct: activos.length ? Math.round((lideres.length / activos.length) * 100) : 0 })} insight={t("conquistadores.metricLideresInsight")} tip={t("conquistadores.metricLideresTip")} />
+        <Metric label={t("conquistadores.metricActividades30")} value={actividadesUltimoMes.length} tone={variacion30Dias === null || variacion30Dias >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={t("conquistadores.metricActividades30Detalle", { count: actividades.length })} insight={variacion30Dias === null ? t("conquistadores.metricActividadesInsightSinHistorial") : t("conquistadores.metricActividadesInsightVariacion", { direccion: variacion30Dias >= 0 ? t("conquistadores.direccionCrecio") : t("conquistadores.direccionBajo"), porcentaje: Math.abs(variacion30Dias) })} />
+        <Metric label={t("conquistadores.metricSinSeguimiento")} value={miembrosSinSeguimiento.length} tone={miembrosSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activos.length ? Math.round((miembrosSinSeguimiento.length / activos.length) * 100) : 0} detail={t("conquistadores.metricSinSeguimientoDetalle", { dias: DIAS_INACTIVIDAD })} insight={miembrosSinSeguimiento.length > 0 ? t("conquistadores.metricSinSeguimientoInsightPendiente") : t("conquistadores.metricSinSeguimientoInsightOk")} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Trabajo realizado</p>
-          <h2 className="font-medium mt-1">Tendencia de actividades</h2>
+          <p className="eyebrow">{t("conquistadores.eyebrowTrabajoRealizado")}</p>
+          <h2 className="font-medium mt-1">{t("conquistadores.tituloTendenciaActividades")}</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas en el periodo." />}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("conquistadores.chartEmptySinActividadesPeriodo")} />}
           </div>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Modalidad</p>
-          <h2 className="font-medium mt-1">Actividades por tipo</h2>
+          <p className="eyebrow">{t("conquistadores.eyebrowModalidad")}</p>
+          <h2 className="font-medium mt-1">{t("conquistadores.tituloActividadesPorTipo")}</h2>
           <div className="h-56 mt-4">
-            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas todavía." />}
+            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("conquistadores.chartEmptySinActividades")} />}
           </div>
         </div>
       </section>
@@ -338,15 +346,15 @@ export default function Conquistadores() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="font-medium">Miembros sin seguimiento reciente</h2>
-              <p className="text-xs text-secondary mt-1">Sin actividad registrada en más de {DIAS_INACTIVIDAD} días.</p>
+              <h2 className="font-medium">{t("conquistadores.tituloMiembrosSinSeguimiento")}</h2>
+              <p className="text-xs text-secondary mt-1">{t("conquistadores.descripcionSinSeguimiento", { dias: DIAS_INACTIVIDAD })}</p>
             </div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
             {miembrosSinSeguimiento.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
                 <p className="text-sm font-medium">{item.nombres} {item.apellidos}</p>
-                <p className="text-xs text-secondary mt-1">{ultimaActividadPorMiembro.get(item.id) ? `Última actividad: ${ultimaActividadPorMiembro.get(item.id)}` : "Sin actividad registrada"}</p>
+                <p className="text-xs text-secondary mt-1">{ultimaActividadPorMiembro.get(item.id) ? t("conquistadores.ultimaActividadTexto", { fecha: ultimaActividadPorMiembro.get(item.id) }) : t("conquistadores.sinActividadRegistrada")}</p>
               </div>
             ))}
           </div>
@@ -356,42 +364,42 @@ export default function Conquistadores() {
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Censo</p><h2 className="font-medium mt-1">Miembros</h2></div>
+            <div><p className="eyebrow">{t("conquistadores.eyebrowCenso")}</p><h2 className="font-medium mt-1">{t("conquistadores.tituloMiembros")}</h2></div>
             <UsersRound className="w-5 h-5 text-accent" />
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Rol</th><th className="py-2">Hitos</th><th className="py-2"><span className="flex items-center gap-1">Ruta<InfoTip texto="Vincula a alguien aún no bautizado con el mismo seguimiento individual que usa toda la congregación: entra a BIS, o si ya está bautizado, queda listo para incorporar a Feligresía." /></span></th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">{t("conquistadores.thNombre")}</th><th className="py-2">{t("conquistadores.thRol")}</th><th className="py-2">{t("conquistadores.thHitos")}</th><th className="py-2"><span className="flex items-center gap-1">{t("conquistadores.thRuta")}<InfoTip texto={t("conquistadores.infoRuta")} /></span></th></tr></thead>
               <tbody>
                 {miembros.map((item) => {
                   const yaVinculado = miembrosVinculados.has(item.id);
                   return (
                     <tr key={item.id} className="border-b border-border align-top">
                       <td className="py-2 font-medium">{item.nombres} {item.apellidos}</td>
-                      <td className="py-2 text-secondary">{item.rol === "lider" ? "Líder" : "Miembro"}</td>
+                      <td className="py-2 text-secondary">{item.rol === "lider" ? t("conquistadores.rolLider") : t("conquistadores.rolMiembro")}</td>
                       <td className="py-2">
                         <div className="flex gap-1 flex-wrap items-center">
-                          {item.bautizado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">Bautizado</span>}
-                          {item.sellado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">Sellado</span>}
-                          {canEdit && !item.bautizado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>+ Bautizado</button>}
-                          {canEdit && !item.sellado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>+ Sellado</button>}
+                          {item.bautizado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">{t("conquistadores.badgeBautizado")}</span>}
+                          {item.sellado && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-bg text-accent">{t("conquistadores.badgeSellado")}</span>}
+                          {canEdit && !item.bautizado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>{t("conquistadores.botonMasBautizado")}</button>}
+                          {canEdit && !item.sellado && <button type="button" className="text-[10px] btn-secondary px-1.5 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>{t("conquistadores.botonMasSellado")}</button>}
                         </div>
                       </td>
                       <td className="py-2">
-                        {yaVinculado ? <span className="text-xs text-success">Vinculado</span> : canEdit ? (
+                        {yaVinculado ? <span className="text-xs text-success">{t("conquistadores.vinculadoTexto")}</span> : canEdit ? (
                           vinculandoId === item.id ? (
                             <div className="flex flex-col gap-1.5 min-w-[170px]">
                               <select className="input-field text-xs py-1" value={responsableVinculoId} onChange={(event) => setResponsableVinculoId(event.target.value)}>
-                                <option value="">Responsable...</option>
+                                <option value="">{t("conquistadores.opcionResponsableConPuntos")}</option>
                                 {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                               </select>
                               <div className="flex gap-1.5">
-                                <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item)}>Confirmar</button>
-                                <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>Cancelar</button>
+                                <button type="button" disabled={saving} className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => vincularRutaEvangelistica(item)}>{t("conquistadores.botonConfirmar")}</button>
+                                <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => { setVinculandoId(null); setResponsableVinculoId(""); }}>{t("conquistadores.botonCancelar")}</button>
                               </div>
                             </div>
                           ) : (
-                            <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item) : setVinculandoId(item.id))}>Vincular</button>
+                            <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => (item.bautizado ? vincularRutaEvangelistica(item) : setVinculandoId(item.id))}>{t("conquistadores.botonVincular")}</button>
                           )
                         ) : <span className="text-xs text-muted">—</span>}
                       </td>
@@ -400,13 +408,13 @@ export default function Conquistadores() {
                 })}
               </tbody>
             </table>
-            {!miembros.length && <p className="text-sm text-secondary py-6 text-center">Aún no hay miembros registrados.</p>}
+            {!miembros.length && <p className="text-sm text-secondary py-6 text-center">{t("conquistadores.sinMiembrosRegistrados")}</p>}
           </div>
         </div>
 
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Trabajo realizado</p><h2 className="font-medium mt-1">Actividades</h2></div>
+            <div><p className="eyebrow">{t("conquistadores.eyebrowTrabajoRealizado")}</p><h2 className="font-medium mt-1">{t("conquistadores.tituloActividadesPanel")}</h2></div>
             <Flag className="w-5 h-5 text-accent" />
           </div>
           <div className="flex flex-col divide-y divide-border mt-4 max-h-64 overflow-y-auto">
@@ -419,44 +427,44 @@ export default function Conquistadores() {
                 {item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}
               </div>
             ))}
-            {!actividades.length && <p className="text-sm text-muted py-6">Aún no hay actividades registradas.</p>}
+            {!actividades.length && <p className="text-sm text-muted py-6">{t("conquistadores.sinActividadesRegistradas")}</p>}
           </div>
           {canEdit && <form onSubmit={createActividad} className="border-t border-border mt-4 pt-4 grid gap-2">
-            <p className="text-sm font-medium mb-1">Registrar actividad</p>
+            <p className="text-sm font-medium mb-1">{t("conquistadores.tituloRegistrarActividad")}</p>
             <div className="grid grid-cols-2 gap-2">
               <input required type="date" className="input-field" value={actividadForm.fecha} onChange={(event) => setActividadForm({ ...actividadForm, fecha: event.target.value })} />
               <select className="input-field" value={actividadForm.tipo} onChange={(event) => setActividadForm({ ...actividadForm, tipo: event.target.value })}>
                 {Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
-            <textarea className="input-field min-h-14" placeholder="Ej: Salida de integración con juegos y devocional" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
+            <textarea className="input-field min-h-14" placeholder={t("conquistadores.placeholderDescripcionActividad")} value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
             <select className="input-field" value={actividadForm.responsable_persona_id} onChange={(event) => setActividadForm({ ...actividadForm, responsable_persona_id: event.target.value })}>
-              <option value="">Responsable</option>
+              <option value="">{t("conquistadores.opcionResponsableSimple")}</option>
               {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
             </select>
             {activos.length > 0 && <div>
-              <p className="text-xs text-secondary mb-1">Asistencia individual</p>
+              <p className="text-xs text-secondary mb-1">{t("conquistadores.asistenciaIndividualLabel")}</p>
               <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                 {activos.map((miembro) => <label key={miembro.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[miembro.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [miembro.id]: event.target.checked })} />{miembro.nombres} {miembro.apellidos}</label>)}
               </div>
             </div>}
-            <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar actividad</button>
+            <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("conquistadores.botonRegistrarActividad")}</button>
           </form>}
         </div>
       </section>
 
       <form onSubmit={createMiembro} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-        <h2 className="font-medium flex items-center gap-1.5">Nuevo miembro<InfoTip texto="No hace falta que ya esté en el censo de Feligresía -- Conquistadores administra jóvenes adultos convertidos y no convertidos. Si aún no está bautizado, usa 'Vincular' en la lista para conectarlo con la Ruta Evangelística." /></h2>
+        <h2 className="font-medium flex items-center gap-1.5">{t("conquistadores.tituloNuevoMiembro")}<InfoTip texto={t("conquistadores.infoNuevoMiembro")} /></h2>
         <div className="grid sm:grid-cols-3 gap-2">
-          <input required className="input-field" placeholder="Ej: Carlos" value={miembroForm.nombres} onChange={(event) => setMiembroForm({ ...miembroForm, nombres: event.target.value })} />
-          <input required className="input-field" placeholder="Ej: Ramírez Soto" value={miembroForm.apellidos} onChange={(event) => setMiembroForm({ ...miembroForm, apellidos: event.target.value })} />
-          <input className="input-field" placeholder="Teléfono (opcional)" value={miembroForm.telefono} onChange={(event) => setMiembroForm({ ...miembroForm, telefono: event.target.value })} />
+          <input required className="input-field" placeholder={t("conquistadores.placeholderNombres")} value={miembroForm.nombres} onChange={(event) => setMiembroForm({ ...miembroForm, nombres: event.target.value })} />
+          <input required className="input-field" placeholder={t("conquistadores.placeholderApellidos")} value={miembroForm.apellidos} onChange={(event) => setMiembroForm({ ...miembroForm, apellidos: event.target.value })} />
+          <input className="input-field" placeholder={t("conquistadores.placeholderTelefono")} value={miembroForm.telefono} onChange={(event) => setMiembroForm({ ...miembroForm, telefono: event.target.value })} />
         </div>
         <select className="input-field" value={miembroForm.rol} onChange={(event) => setMiembroForm({ ...miembroForm, rol: event.target.value })}>
-          <option value="miembro">Miembro</option>
-          <option value="lider">Líder</option>
+          <option value="miembro">{t("conquistadores.rolMiembro")}</option>
+          <option value="lider">{t("conquistadores.rolLider")}</option>
         </select>
-        <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar miembro</button>
+        <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("conquistadores.botonRegistrarMiembro")}</button>
       </form>
     </div>
   );
