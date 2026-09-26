@@ -1,39 +1,14 @@
 import { ArrowLeft, MailQuestion, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Footer from '../components/Footer'
 
-const questionGroups = [
-  {
-    titulo: 'Empezar a usar SIGAP',
-    preguntas: [
-      ['¿Qué es SIGAP?', 'Es el sistema de gestión pastoral de la IPUC: censo de feligresía, comités, evangelismo y reportes, con una vista adecuada para cada nivel — local, distrital y nacional.'],
-      ['¿Cómo obtengo acceso si mi congregación ya usa SIGAP?', 'Pide al pastor de tu congregación que cree tu acceso desde "Equipo de trabajo" — ahí elige tu correo y el perfil que vas a operar, y te llega la invitación por correo.'],
-      ['¿Y si mi congregación nunca ha usado SIGAP?', 'En ese caso el alta la hace tu líder distrital, no un registro público: él/ella crea la congregación junto con los datos de su pastor desde "Gestión pastoral distrital", y el pastor recibe la invitación real por correo para activar su cuenta.'],
-      ['¿Puedo registrarme sin invitación?', 'No. El registro abierto está desactivado para proteger la información de las congregaciones — todo acceso viene de una invitación real, ya sea de tu pastor (si tu congregación ya usa SIGAP) o de tu distrital (si es la primera vez).'],
-      ['¿Qué hago si olvidé mi contraseña?', 'Usa la opción "¿Olvidaste tu contraseña?" en el inicio de sesión para recibir un enlace de recuperación por correo.'],
-      ['¿Puedo usar SIGAP desde el celular?', 'Sí, funciona desde cualquier navegador de celular o computador — no requiere instalar nada.'],
-    ],
-  },
-  {
-    titulo: 'Uso diario',
-    preguntas: [
-      ['¿Por qué no veo un módulo que esperaba?', 'Los módulos dependen de tu congregación, tu nivel (local, distrital, nacional) y el perfil de acceso que te asignaron. Si crees que deberías tenerlo, consulta al administrador de tu congregación.'],
-      ['Mi nombre aparece diferente al que esperaba, ¿cómo lo corrijo?', 'Entra a "Mi perfil" (ícono de usuario, arriba a la derecha) y corrige tus Nombres/Apellidos ahí — se actualiza en toda la aplicación, incluido el censo.'],
-      ['¿Cómo le doy acceso a otra persona de mi congregación?', 'Desde "Equipo de trabajo" (solo lo ve el pastor), selecciona a la persona en el censo, su correo y el perfil de acceso que necesita.'],
-      ['¿Qué pasa si alguien se traslada a otra congregación?', 'Desde la ficha de la persona en Feligresía puedes iniciar un traslado — la congregación que recibe lo confirma, y todo el historial de la persona viaja con ella, no se pierde.'],
-      ['¿Cómo me comunico con mi distrital o con nacional?', 'Usa "Solicitudes internas" — es un canal formal (no un chat) para pedir algo, reportar una situación o hacer una sugerencia, con seguimiento de estado hasta que se resuelva.'],
-    ],
-  },
-  {
-    titulo: 'Privacidad, datos y soporte técnico',
-    preguntas: [
-      ['¿Mis datos y los del censo están seguros?', 'Sí — el acceso está protegido por autenticación, cada congregación solo ve su propia información, y los niveles superiores solo ven lo que les corresponde según su alcance. Más detalle en Privacidad y términos.'],
-      ['Encontré un error o algo no funciona, ¿qué hago?', 'Una vez tengas acceso, usa "Soporte" dentro de la aplicación para reportarlo — queda registrado y le llega un aviso directo al equipo que mantiene SIGAP. También puedes escribir a soportesigasoftware@gmail.com.'],
-      ['¿Qué hago si mi congregación aparece "pendiente de aprobación"?', 'Las congregaciones nuevas las activa el distrital correspondiente desde "Aprobaciones". Si lleva mucho tiempo pendiente, contacta a tu líder distrital.'],
-    ],
-  },
-]
-
 export default function Ayuda() {
-  return <main className="min-h-screen bg-[#f4f1eb] text-ink px-5 sm:px-8 py-6"><div className="max-w-3xl mx-auto"><Link to="/" className="inline-flex items-center gap-2 text-sm text-secondary hover:text-ink"><ArrowLeft className="w-4 h-4" /> Inicio</Link><header className="mt-16"><p className="eyebrow">Centro de ayuda</p><h1 className="text-4xl font-semibold mt-3">Respuestas para empezar</h1><p className="text-secondary leading-7 mt-4 max-w-2xl">SIGAP trabaja con accesos autorizados por cada congregación. Aquí encuentras las respuestas más comunes antes de entrar.</p></header><section className="mt-10 flex flex-col gap-8">{questionGroups.map((grupo) => <div key={grupo.titulo}><h2 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">{grupo.titulo}</h2><div className="grid gap-3">{grupo.preguntas.map(([question, answer]) => <details key={question} className="border border-border rounded-card bg-surface-2 p-5 group"><summary className="font-medium cursor-pointer list-none flex justify-between gap-4">{question}<span className="text-accent group-open:rotate-45 transition-transform">+</span></summary><p className="text-sm text-secondary leading-6 mt-3 max-w-2xl">{answer}</p></details>)}</div></div>)}</section><section id="acceso" className="mt-10 border border-accent/20 rounded-card bg-accent-bg p-6"><MailQuestion className="w-5 h-5 text-accent" /><h2 className="font-medium mt-4">¿Necesitas acceso?</h2><div className="grid sm:grid-cols-2 gap-4 mt-3"><div><p className="text-sm font-medium">Tu congregación ya usa SIGAP</p><p className="text-sm text-secondary leading-6 mt-1">Pide al pastor de tu congregación que te registre desde "Equipo de trabajo" y te asigne el perfil adecuado.</p></div><div><p className="text-sm font-medium">Tu congregación nunca ha usado SIGAP</p><p className="text-sm text-secondary leading-6 mt-1">Contacta a tu líder distrital: él/ella da de alta la congregación junto con los datos de su pastor, y la invitación real llega por correo.</p></div></div><p className="text-xs text-muted mt-4">No compartas contraseñas ni solicites que se creen usuarios desde cuentas de terceros.</p></section><div className="flex items-center gap-2 text-xs text-muted mt-10"><ShieldCheck className="w-4 h-4 text-success" /> Tu acceso depende de los permisos asignados a tu cuenta.</div></div><Footer /></main>
+  const { t } = useTranslation()
+  const questionGroups = [
+    { key: 'grupo1', titulo: t('ayuda.grupo1.titulo'), preguntas: [1, 2, 3, 4, 5, 6].map((n) => [t(`ayuda.grupo1.q${n}.p`), t(`ayuda.grupo1.q${n}.r`)]) },
+    { key: 'grupo2', titulo: t('ayuda.grupo2.titulo'), preguntas: [1, 2, 3, 4, 5].map((n) => [t(`ayuda.grupo2.q${n}.p`), t(`ayuda.grupo2.q${n}.r`)]) },
+    { key: 'grupo3', titulo: t('ayuda.grupo3.titulo'), preguntas: [1, 2, 3].map((n) => [t(`ayuda.grupo3.q${n}.p`), t(`ayuda.grupo3.q${n}.r`)]) },
+  ]
+  return <main className="min-h-screen bg-[#f4f1eb] text-ink px-5 sm:px-8 py-6"><div className="max-w-3xl mx-auto"><Link to="/" className="inline-flex items-center gap-2 text-sm text-secondary hover:text-ink"><ArrowLeft className="w-4 h-4" /> {t('ayuda.inicio')}</Link><header className="mt-16"><p className="eyebrow">{t('ayuda.eyebrow')}</p><h1 className="text-4xl font-semibold mt-3">{t('ayuda.titulo')}</h1><p className="text-secondary leading-7 mt-4 max-w-2xl">{t('ayuda.subtitulo')}</p></header><section className="mt-10 flex flex-col gap-8">{questionGroups.map((grupo) => <div key={grupo.key}><h2 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">{grupo.titulo}</h2><div className="grid gap-3">{grupo.preguntas.map(([question, answer]) => <details key={question} className="border border-border rounded-card bg-surface-2 p-5 group"><summary className="font-medium cursor-pointer list-none flex justify-between gap-4">{question}<span className="text-accent group-open:rotate-45 transition-transform">+</span></summary><p className="text-sm text-secondary leading-6 mt-3 max-w-2xl">{answer}</p></details>)}</div></div>)}</section><section id="acceso" className="mt-10 border border-accent/20 rounded-card bg-accent-bg p-6"><MailQuestion className="w-5 h-5 text-accent" /><h2 className="font-medium mt-4">{t('ayuda.acceso.titulo')}</h2><div className="grid sm:grid-cols-2 gap-4 mt-3"><div><p className="text-sm font-medium">{t('ayuda.acceso.yaUsaTitulo')}</p><p className="text-sm text-secondary leading-6 mt-1">{t('ayuda.acceso.yaUsaTexto')}</p></div><div><p className="text-sm font-medium">{t('ayuda.acceso.nuncaTitulo')}</p><p className="text-sm text-secondary leading-6 mt-1">{t('ayuda.acceso.nuncaTexto')}</p></div></div><p className="text-xs text-muted mt-4">{t('ayuda.acceso.nota')}</p></section><div className="flex items-center gap-2 text-xs text-muted mt-10"><ShieldCheck className="w-4 h-4 text-success" /> {t('ayuda.footerNota')}</div></div><Footer /></main>
 }

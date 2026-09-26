@@ -926,5 +926,115 @@
         "masEnMes": "And {{cantidad}} more this month."
       }
     }
+  },
+  "ayuda": {
+    "inicio": "Home",
+    "eyebrow": "Help center",
+    "titulo": "Answers to get started",
+    "subtitulo": "SIGAP works with access authorized by each congregation. Here are the most common answers before you sign in.",
+    "grupo1": {
+      "titulo": "Getting started with SIGAP",
+      "q1": {
+        "p": "What is SIGAP?",
+        "r": "It's the IPUC's pastoral management system: membership census, committees, evangelism, and reports, with a view suited to each level — local, district, and national."
+      },
+      "q2": {
+        "p": "How do I get access if my congregation already uses SIGAP?",
+        "r": "Ask your congregation's pastor to create your access from \"Team\" — there they choose your email and the profile you'll operate, and the invitation arrives by email."
+      },
+      "q3": {
+        "p": "What if my congregation has never used SIGAP?",
+        "r": "In that case your district leader creates it, not a public sign-up: they create the congregation along with the pastor's details from \"District Pastoral Management\", and the pastor gets a real invitation by email to activate their account."
+      },
+      "q4": {
+        "p": "Can I sign up without an invitation?",
+        "r": "No. Open sign-up is disabled to protect congregations' information — every access comes from a real invitation, either from your pastor (if your congregation already uses SIGAP) or from your district leader (if it's the first time)."
+      },
+      "q5": {
+        "p": "What do I do if I forgot my password?",
+        "r": "Use the \"Forgot your password?\" option on the sign-in screen to get a recovery link by email."
+      },
+      "q6": {
+        "p": "Can I use SIGAP from my phone?",
+        "r": "Yes, it works from any phone or computer browser — nothing to install."
+      }
+    },
+    "grupo2": {
+      "titulo": "Everyday use",
+      "q1": {
+        "p": "Why don't I see a module I expected?",
+        "r": "Modules depend on your congregation, your level (local, district, national), and the access profile assigned to you. If you think you should have it, check with your congregation's administrator."
+      },
+      "q2": {
+        "p": "My name shows up differently than expected, how do I fix it?",
+        "r": "Go to \"My profile\" (user icon, top right) and correct your First/Last name there — it updates across the whole app, including the census."
+      },
+      "q3": {
+        "p": "How do I give access to someone else in my congregation?",
+        "r": "From \"Team\" (only the pastor sees it), select the person in the census, their email, and the access profile they need."
+      },
+      "q4": {
+        "p": "What happens if someone transfers to another congregation?",
+        "r": "From the person's record in Membership you can start a transfer — the receiving congregation confirms it, and the person's full history travels with them, nothing is lost."
+      },
+      "q5": {
+        "p": "How do I contact my district or national leadership?",
+        "r": "Use \"Internal requests\" — it's a formal channel (not a chat) to ask for something, report a situation, or make a suggestion, with status tracking until it's resolved."
+      }
+    },
+    "grupo3": {
+      "titulo": "Privacy, data, and technical support",
+      "q1": {
+        "p": "Are my data and the census data secure?",
+        "r": "Yes — access is protected by authentication, each congregation only sees its own information, and higher levels only see what falls within their scope. More detail in Privacy and terms."
+      },
+      "q2": {
+        "p": "I found a bug or something isn't working, what do I do?",
+        "r": "Once you have access, use \"Support\" inside the app to report it — it gets logged and a direct alert reaches the team that maintains SIGAP. You can also write to soportesigasoftware@gmail.com."
+      },
+      "q3": {
+        "p": "What do I do if my congregation shows as \"pending approval\"?",
+        "r": "New congregations are activated by the corresponding district leader from \"Approvals\". If it's been pending a long time, contact your district leader."
+      }
+    },
+    "acceso": {
+      "titulo": "Need access?",
+      "yaUsaTitulo": "Your congregation already uses SIGAP",
+      "yaUsaTexto": "Ask your congregation's pastor to register you from \"Team\" and assign you the right profile.",
+      "nuncaTitulo": "Your congregation has never used SIGAP",
+      "nuncaTexto": "Contact your district leader: they register the congregation along with the pastor's details, and the real invitation arrives by email.",
+      "nota": "Don't share passwords or ask for users to be created from third-party accounts."
+    },
+    "footerNota": "Your access depends on the permissions assigned to your account."
+  },
+  "roleChooser": {
+    "titulo": "How do you want to sign in today?",
+    "subtitulo": "Your account has more than one active role. Choose which one to work with; you can change it later from the menu."
+  },
+  "perfil": {
+    "usuarioSigap": "SIGAP User",
+    "errorNombre": "Could not update your name.",
+    "nombreActualizadoRecargando": "Name updated. Reloading the page...",
+    "nombreActualizado": "Name updated.",
+    "requisitosContrasena": "Use at least 8 characters, one uppercase letter, one number, and one symbol.",
+    "errorContrasena": "Could not update the password.",
+    "contrasenaActualizada": "Password updated successfully.",
+    "eyebrow": "Account",
+    "titulo": "My profile",
+    "subtitulo": "Manage your access and check your permissions within SIGAP.",
+    "nombre": "Name",
+    "nombreAyudaCenso": "Fix your name if it was misspelled or left blank when you signed up. It's the same name that appears in your congregation's census -- no separate names are kept on each side.",
+    "nombreAyudaSinCenso": "The name you'll be identified by within SIGAP.",
+    "placeholderNombres": "e.g. Ana",
+    "placeholderApellidos": "e.g. Smith Johnson",
+    "guardando": "Saving...",
+    "guardarNombre": "Save name",
+    "permisosAsignados": "Assigned permissions",
+    "rolesActivos": "Active roles on this account.",
+    "sinRoles": "No active roles.",
+    "cambiarContrasena": "Change password",
+    "requisitosContrasenaTip": "Must have at least 8 characters, with one uppercase letter, one number, and one symbol.",
+    "placeholderNuevaContrasena": "New secure password",
+    "actualizar": "Update"
   }
 }

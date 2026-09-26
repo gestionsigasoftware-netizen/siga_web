@@ -926,5 +926,115 @@
         "masEnMes": "Y {{cantidad}} más en el mes."
       }
     }
+  },
+  "ayuda": {
+    "inicio": "Inicio",
+    "eyebrow": "Centro de ayuda",
+    "titulo": "Respuestas para empezar",
+    "subtitulo": "SIGAP trabaja con accesos autorizados por cada congregación. Aquí encuentras las respuestas más comunes antes de entrar.",
+    "grupo1": {
+      "titulo": "Empezar a usar SIGAP",
+      "q1": {
+        "p": "¿Qué es SIGAP?",
+        "r": "Es el sistema de gestión pastoral de la IPUC: censo de feligresía, comités, evangelismo y reportes, con una vista adecuada para cada nivel — local, distrital y nacional."
+      },
+      "q2": {
+        "p": "¿Cómo obtengo acceso si mi congregación ya usa SIGAP?",
+        "r": "Pide al pastor de tu congregación que cree tu acceso desde \"Equipo de trabajo\" — ahí elige tu correo y el perfil que vas a operar, y te llega la invitación por correo."
+      },
+      "q3": {
+        "p": "¿Y si mi congregación nunca ha usado SIGAP?",
+        "r": "En ese caso el alta la hace tu líder distrital, no un registro público: él/ella crea la congregación junto con los datos de su pastor desde \"Gestión pastoral distrital\", y el pastor recibe la invitación real por correo para activar su cuenta."
+      },
+      "q4": {
+        "p": "¿Puedo registrarme sin invitación?",
+        "r": "No. El registro abierto está desactivado para proteger la información de las congregaciones — todo acceso viene de una invitación real, ya sea de tu pastor (si tu congregación ya usa SIGAP) o de tu distrital (si es la primera vez)."
+      },
+      "q5": {
+        "p": "¿Qué hago si olvidé mi contraseña?",
+        "r": "Usa la opción \"¿Olvidaste tu contraseña?\" en el inicio de sesión para recibir un enlace de recuperación por correo."
+      },
+      "q6": {
+        "p": "¿Puedo usar SIGAP desde el celular?",
+        "r": "Sí, funciona desde cualquier navegador de celular o computador — no requiere instalar nada."
+      }
+    },
+    "grupo2": {
+      "titulo": "Uso diario",
+      "q1": {
+        "p": "¿Por qué no veo un módulo que esperaba?",
+        "r": "Los módulos dependen de tu congregación, tu nivel (local, distrital, nacional) y el perfil de acceso que te asignaron. Si crees que deberías tenerlo, consulta al administrador de tu congregación."
+      },
+      "q2": {
+        "p": "Mi nombre aparece diferente al que esperaba, ¿cómo lo corrijo?",
+        "r": "Entra a \"Mi perfil\" (ícono de usuario, arriba a la derecha) y corrige tus Nombres/Apellidos ahí — se actualiza en toda la aplicación, incluido el censo."
+      },
+      "q3": {
+        "p": "¿Cómo le doy acceso a otra persona de mi congregación?",
+        "r": "Desde \"Equipo de trabajo\" (solo lo ve el pastor), selecciona a la persona en el censo, su correo y el perfil de acceso que necesita."
+      },
+      "q4": {
+        "p": "¿Qué pasa si alguien se traslada a otra congregación?",
+        "r": "Desde la ficha de la persona en Feligresía puedes iniciar un traslado — la congregación que recibe lo confirma, y todo el historial de la persona viaja con ella, no se pierde."
+      },
+      "q5": {
+        "p": "¿Cómo me comunico con mi distrital o con nacional?",
+        "r": "Usa \"Solicitudes internas\" — es un canal formal (no un chat) para pedir algo, reportar una situación o hacer una sugerencia, con seguimiento de estado hasta que se resuelva."
+      }
+    },
+    "grupo3": {
+      "titulo": "Privacidad, datos y soporte técnico",
+      "q1": {
+        "p": "¿Mis datos y los del censo están seguros?",
+        "r": "Sí — el acceso está protegido por autenticación, cada congregación solo ve su propia información, y los niveles superiores solo ven lo que les corresponde según su alcance. Más detalle en Privacidad y términos."
+      },
+      "q2": {
+        "p": "Encontré un error o algo no funciona, ¿qué hago?",
+        "r": "Una vez tengas acceso, usa \"Soporte\" dentro de la aplicación para reportarlo — queda registrado y le llega un aviso directo al equipo que mantiene SIGAP. También puedes escribir a soportesigasoftware@gmail.com."
+      },
+      "q3": {
+        "p": "¿Qué hago si mi congregación aparece \"pendiente de aprobación\"?",
+        "r": "Las congregaciones nuevas las activa el distrital correspondiente desde \"Aprobaciones\". Si lleva mucho tiempo pendiente, contacta a tu líder distrital."
+      }
+    },
+    "acceso": {
+      "titulo": "¿Necesitas acceso?",
+      "yaUsaTitulo": "Tu congregación ya usa SIGAP",
+      "yaUsaTexto": "Pide al pastor de tu congregación que te registre desde \"Equipo de trabajo\" y te asigne el perfil adecuado.",
+      "nuncaTitulo": "Tu congregación nunca ha usado SIGAP",
+      "nuncaTexto": "Contacta a tu líder distrital: él/ella da de alta la congregación junto con los datos de su pastor, y la invitación real llega por correo.",
+      "nota": "No compartas contraseñas ni solicites que se creen usuarios desde cuentas de terceros."
+    },
+    "footerNota": "Tu acceso depende de los permisos asignados a tu cuenta."
+  },
+  "roleChooser": {
+    "titulo": "¿Cómo quieres ingresar hoy?",
+    "subtitulo": "Tu cuenta tiene más de un rol activo. Elige con cuál quieres trabajar; puedes cambiarlo después desde el menú."
+  },
+  "perfil": {
+    "usuarioSigap": "Usuario SIGAP",
+    "errorNombre": "No se pudo actualizar tu nombre.",
+    "nombreActualizadoRecargando": "Nombre actualizado. Recargando la página...",
+    "nombreActualizado": "Nombre actualizado.",
+    "requisitosContrasena": "Usa al menos 8 caracteres, una mayúscula, un número y un símbolo.",
+    "errorContrasena": "No se pudo actualizar la contraseña.",
+    "contrasenaActualizada": "Contraseña actualizada correctamente.",
+    "eyebrow": "Cuenta",
+    "titulo": "Mi perfil",
+    "subtitulo": "Administra tu acceso y consulta tus permisos dentro de SIGAP.",
+    "nombre": "Nombre",
+    "nombreAyudaCenso": "Corrige tu nombre si quedó mal escrito o vacío al registrarte. Es el mismo nombre que aparece en el censo de tu congregación — no se guardan nombres distintos en cada lado.",
+    "nombreAyudaSinCenso": "El nombre con el que te vas a identificar dentro de SIGAP.",
+    "placeholderNombres": "Ej: Ana",
+    "placeholderApellidos": "Ej: Gómez López",
+    "guardando": "Guardando...",
+    "guardarNombre": "Guardar nombre",
+    "permisosAsignados": "Permisos asignados",
+    "rolesActivos": "Roles activos de esta cuenta.",
+    "sinRoles": "No hay roles activos.",
+    "cambiarContrasena": "Cambiar contraseña",
+    "requisitosContrasenaTip": "Debe tener al menos 8 caracteres, con una mayúscula, un número y un símbolo.",
+    "placeholderNuevaContrasena": "Nueva contraseña segura",
+    "actualizar": "Actualizar"
   }
 }
