@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import { useAuth } from '../hooks/useAuth'
@@ -18,10 +19,11 @@ const ESTADO_TONO = {
   activa: 'bg-success-bg text-success',
   suspendida: 'bg-danger-bg text-danger',
 }
-const ESTADO_LABEL = { pendiente_aprobacion: 'Pendiente de aprobación', activa: 'Activa', suspendida: 'Suspendida' }
-const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local (Constituida)' }
 
 export default function Aprobaciones() {
+  const { t } = useTranslation()
+  const ESTADO_LABEL = t('aprobaciones.estadoLabel', { returnObjects: true })
+  const MADUREZ_LABELS = t('aprobaciones.madurezLabels', { returnObjects: true })
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const { user } = useAuth()
   const [congregaciones, setCongregaciones] = useState([])
@@ -54,7 +56,7 @@ export default function Aprobaciones() {
     const { data, error: loadError } = await query
     const freshData = { congregaciones: data ?? [] }
     setCongregaciones(freshData.congregaciones)
-    if (loadError) setError('No se pudieron cargar las congregaciones.')
+    if (loadError) setError(t('aprobaciones.errorCargar'))
     setLoading(false)
     aprobacionesCache.set(cacheKey, freshData)
   }
@@ -71,7 +73,7 @@ export default function Aprobaciones() {
     setBusy(id)
     const { error: updateError } = await supabase.from('congregaciones').update({ estado, aprobada_en: new Date().toISOString(), aprobada_por: user?.id ?? null }).eq('id', id)
     setBusy(null)
-    if (updateError) { setError('No se pudo actualizar el estado de la congregación.'); return }
+    if (updateError) { setError(t('aprobaciones.errorEstado')); return }
     load()
   }
 
@@ -79,8 +81,8 @@ export default function Aprobaciones() {
     setBusy(id)
     const { error: updateError } = await supabase.from('congregaciones').update({ madurez }).eq('id', id)
     setBusy(null)
-    if (updateError) { setError('No se pudo actualizar la madurez de la sede.'); return }
-    setNotice('Madurez de la sede actualizada.')
+    if (updateError) { setError(t('aprobaciones.errorMadurez')); return }
+    setNotice(t('aprobaciones.madurezActualizada'))
     load()
   }
 
@@ -91,35 +93,35 @@ export default function Aprobaciones() {
     const { error: anularError } = await supabase.rpc('anular_congregacion', { p_congregacion_id: id })
     setBusy(null)
     setAnulandoId(null)
-    if (anularError) { setError(`No se pudo anular: ${anularError.message}`); return }
-    setNotice('Congregación anulada -- se deshizo por completo, como si nunca se hubiera creado.')
+    if (anularError) { setError(t('aprobaciones.errorAnular', { mensaje: anularError.message })); return }
+    setNotice(t('aprobaciones.anulada'))
     load()
   }
 
-  if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>
-  if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">No tienes permisos para administrar aprobaciones de congregaciones.</p>
+  if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('aprobaciones.cargando')}</div>
+  if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('aprobaciones.sinPermisos')}</p>
 
   return (
     <div className="page-shell">
       <div>
-        <p className="eyebrow">Control administrativo</p><h1 className="section-title">Aprobación de congregaciones</h1>
-        <p className="text-sm text-secondary mt-0.5">Una congregación registrada no puede usar el sistema hasta ser aprobada aquí.</p>
+        <p className="eyebrow">{t('aprobaciones.eyebrow')}</p><h1 className="section-title">{t('aprobaciones.titulo')}</h1>
+        <p className="text-sm text-secondary mt-0.5">{t('aprobaciones.subtitulo')}</p>
       </div>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
       <Toast>{notice}</Toast>
-      {loading && <div className="module-loading" role="status"><span className="loading-dot" />Cargando aprobaciones...</div>}
+      {loading && <div className="module-loading" role="status"><span className="loading-dot" />{t('aprobaciones.cargando')}</div>}
 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm border-collapse">
           <thead>
             <tr className="text-muted text-left bg-surface-1">
-              <th className="font-normal py-2.5 px-4">Congregación</th>
-              <th className="font-normal py-2.5 px-4">Pastor</th>
-              <th className="font-normal py-2.5 px-4">Distrito</th>
-              <th className="font-normal py-2.5 px-4"><span className="flex items-center gap-1">Madurez<InfoTip texto="Nivel de desarrollo de la sede: Misión Nacional (recién empieza), Lugar de Predicación (ya reúne gente de forma estable) o Iglesia Local (ya está constituida)." /></span></th>
-              <th className="font-normal py-2.5 px-4">Estado</th>
-              <th className="font-normal py-2.5 px-4 text-right"><span className="flex items-center justify-end gap-1">Acciones<InfoTip texto="El visto aprueba la congregación y le da acceso al sistema. La X la deja suspendida sin poder usarlo." /></span></th>
+              <th className="font-normal py-2.5 px-4">{t('aprobaciones.colCongregacion')}</th>
+              <th className="font-normal py-2.5 px-4">{t('aprobaciones.colPastor')}</th>
+              <th className="font-normal py-2.5 px-4">{t('aprobaciones.colDistrito')}</th>
+              <th className="font-normal py-2.5 px-4"><span className="flex items-center gap-1">{t('aprobaciones.colMadurez')}<InfoTip texto={t('aprobaciones.madurezTip')} /></span></th>
+              <th className="font-normal py-2.5 px-4">{t('aprobaciones.colEstado')}</th>
+              <th className="font-normal py-2.5 px-4 text-right"><span className="flex items-center justify-end gap-1">{t('aprobaciones.colAcciones')}<InfoTip texto={t('aprobaciones.accionesTip')} /></span></th>
             </tr>
           </thead>
           <tbody>
@@ -127,7 +129,7 @@ export default function Aprobaciones() {
               <tr key={c.id} className="border-t border-border">
                 <td className="py-2.5 px-4 font-medium">{c.nombre}</td>
                 <td className="py-2.5 px-4 text-secondary">{c.pastor_nombre}</td>
-                <td className="py-2.5 px-4 text-secondary">{c.distritos?.numero ? `Distrito ${c.distritos.numero}` : '—'}</td>
+                <td className="py-2.5 px-4 text-secondary">{c.distritos?.numero ? t('aprobaciones.distritoLabel', { numero: c.distritos.numero }) : '—'}</td>
                 <td className="py-2.5 px-4">
                   <select disabled={busy === c.id} className="input-field text-xs" value={c.madurez || 'lugar_prediccion'} onChange={(event) => actualizarMadurez(c.id, event.target.value)}>
                     {Object.entries(MADUREZ_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -139,32 +141,32 @@ export default function Aprobaciones() {
                 <td className="py-2.5 px-4 text-right">
                   {c.estado === 'pendiente_aprobacion' && anulandoId !== c.id && (
                     <div className="flex justify-end gap-2">
-                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-success hover:opacity-70" title="Aprobar">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-success hover:opacity-70" title={t('aprobaciones.aprobar')}>
                         <CheckCircle2 className="w-[18px] h-[18px]" />
                       </button>
-                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-danger hover:opacity-70" title="Suspender">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-danger hover:opacity-70" title={t('aprobaciones.suspender')}>
                         <XCircle className="w-[18px] h-[18px]" />
                       </button>
-                      <button disabled={busy === c.id} onClick={() => setAnulandoId(c.id)} className="text-muted hover:opacity-70" title="Anular (creada por error)">
+                      <button disabled={busy === c.id} onClick={() => setAnulandoId(c.id)} className="text-muted hover:opacity-70" title={t('aprobaciones.anular')}>
                         <Trash2 className="w-[18px] h-[18px]" />
                       </button>
                     </div>
                   )}
                   {c.estado === 'pendiente_aprobacion' && anulandoId === c.id && (
                     <div className="flex justify-end items-center gap-2">
-                      <span className="text-xs text-secondary">¿Anular? No se puede deshacer.</span>
-                      <button disabled={busy === c.id} onClick={() => anularCongregacion(c.id)} className="text-xs text-danger hover:underline">Sí, anular</button>
-                      <button disabled={busy === c.id} onClick={() => setAnulandoId(null)} className="text-xs text-secondary hover:underline">Cancelar</button>
+                      <span className="text-xs text-secondary">{t('aprobaciones.confirmarAnular')}</span>
+                      <button disabled={busy === c.id} onClick={() => anularCongregacion(c.id)} className="text-xs text-danger hover:underline">{t('aprobaciones.siAnular')}</button>
+                      <button disabled={busy === c.id} onClick={() => setAnulandoId(null)} className="text-xs text-secondary hover:underline">{t('aprobaciones.cancelar')}</button>
                     </div>
                   )}
                   {c.estado === 'activa' && (
                     <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-xs text-danger hover:underline">
-                      Suspender
+                      {t('aprobaciones.suspender')}
                     </button>
                   )}
                   {c.estado === 'suspendida' && (
                     <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-xs text-success hover:underline">
-                      Reactivar
+                      {t('aprobaciones.reactivar')}
                     </button>
                   )}
                 </td>
