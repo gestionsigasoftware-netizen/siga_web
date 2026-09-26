@@ -44,14 +44,15 @@
 	  ReportesOptimizado, Aprobaciones, Suscripciones, AuditoriaFeligresia,
 	  ConfiguracionSistema (Preferencias), Solicitudes, EquipoCongregacion,
 	  Login, EstacionUnoMas, EstacionBis, RegistrarAsistencia,
-	  MisionesEvangelismo -- las 19 verificadas con Playwright real
+	  MisionesEvangelismo, Configuracion (local), GestionPastoralNacional,
+	  Sepri, GestionDistritos -- las 23 verificadas con Playwright real
 	  (login + EN/PT, cero errores). Nota menor detectada:
 	  `ReportesOptimizado.jsx` formatea fechas con
 	  `toLocaleDateString('es-CO', ...)` fijo -- salen en espanol
 	  aunque el resto de la UI este en otro idioma; mismo patron existe
 	  en varios reportes mas, pendiente de una pasada futura dedicada a
 	  fechas.
-	- **Falta**: el contenido propio de las ~24 pantallas restantes
+	- **Falta**: el contenido propio de las ~20 pantallas restantes
 	  (Feligresia, la mas grande; Evangelismo, MisionJuvenil, Amigos,
 	  PastoralDistrital, EstacionRefam, y el resto de modulos
 	  operativos) sigue en espanol fijo -- pendiente por archivo en
