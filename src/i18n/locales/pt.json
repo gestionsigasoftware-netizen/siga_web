@@ -4678,5 +4678,842 @@
     "reunionVisitantesSufijo": " ({{count}} visitantes)",
     "sinReunionesRegistradas": "Sem reuniões registradas.",
     "seleccionaGrupoParticipantes": "Selecione um grupo para ver seus participantes e reuniões."
+  },
+  "manual": {
+    "cargando": "Carregando o manual...",
+    "eyebrow": "Documentação · {{nivel}}",
+    "titulo": "Manual de Uso",
+    "subtitulo": "O que é cada tela do SIGAP e como usá-la, passo a passo — de acordo com o seu próprio perfil.",
+    "herramientasTitulo": "Ferramentas gerais (todos os níveis)",
+    "footerAviso": "Algo não funciona como descrito aqui? Reporte pelo Suporte.",
+    "contenido": {
+      "local": [
+        {
+          "seccion": "Seu dia a dia",
+          "items": [
+            {
+              "titulo": "Resumo",
+              "queEs": "Seu ponto de partida diário: presença recente, alertas pastorais (famílias sem vínculo, sem batismo, sem presença recente, comitês sem integrantes), pirâmide populacional, ciclo de vida espiritual, projeção de crescimento em 12 meses e os próximos aniversários da sua congregação.",
+              "como": [
+                {
+                  "accion": "Revisar todo dia",
+                  "pasos": [
+                    "Entre e veja o cartão \"Alertas ativas\" — um número em vermelho significa que algo precisa da sua atenção.",
+                    "Clique em um alerta para ir direto à pessoa ou comitê afetado.",
+                    "Revise a pirâmide populacional e o ciclo de vida espiritual para entender a composição real da sua congregação, não apenas o total."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Censo e família",
+          "items": [
+            {
+              "titulo": "Membresia",
+              "queEs": "O censo completo da sua congregação, em 7 abas: População, Famílias, Comitês, Acompanhamento pastoral, Transferências, Evolução e Relatório trimestral. Cada pessoa ativa, separada, batizada ou transferida vive aqui.",
+              "como": [
+                {
+                  "accion": "Registrar uma pessoa nova",
+                  "pasos": [
+                    "Na aba \"População\", clique em \"Registrar pessoa\".",
+                    "Preencha nome, sobrenome, data de nascimento, gênero, estado civil e demais dados.",
+                    "Salve — se já atende aos requisitos de idade/gênero de algum comitê, você verá a etiqueta \"Sugerido: [comitê]\" na linha dela."
+                  ]
+                },
+                {
+                  "accion": "Transferir alguém para outra congregação",
+                  "pasos": [
+                    "Abra o cadastro da pessoa em População.",
+                    "Vá em \"Transferir para outra congregação\".",
+                    "Busque a congregação de destino por nome ou cidade e confirme — o histórico completo viaja com a pessoa, nada se perde."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Rede de Famílias",
+              "queEs": "A área de trabalho familiar (DEFAM): transforma o contexto que já existe em Membresia em acompanhamento mensurável. Não cria um censo próprio de pessoas — abre \"casos\" sobre famílias/pessoas já registradas, agenda visitas domiciliares e registra oficinas ou campanhas.",
+              "como": [
+                {
+                  "accion": "Abrir um acompanhamento",
+                  "pasos": [
+                    "Aba \"Acompanhamento\" → escolha a Família (e, opcionalmente, a Pessoa relacionada e o Responsável).",
+                    "Escolha a Necessidade (Acompanhamento solicitado, Visita pendente, Orientação, Integração, Reativação ou Necessidade identificada) e a Prioridade.",
+                    "Defina o \"Próximo contato\" e clique em \"Registrar acompanhamento\".",
+                    "Quando for resolvido, clique em \"Encerrar caso\" — é definitivo; se a família precisar de acompanhamento de novo, abre-se um novo caso."
+                  ]
+                },
+                {
+                  "accion": "Agendar uma visita domiciliar",
+                  "pasos": [
+                    "Aba \"Visitas\" → preencha Família, Data, Responsável e Motivo.",
+                    "Clique em \"Programar visita\".",
+                    "Quando for realizada, marque como \"Marcar realizada\" (ou \"Cancelar\" se não ocorreu)."
+                  ]
+                },
+                {
+                  "accion": "Registrar uma oficina ou campanha familiar",
+                  "pasos": [
+                    "Aba \"Atividades\" → preencha Nome, Tipo (Oficina, Escola de família, Campanha, Conferência, Visita em grupo), Data, Responsável, Presentes e Famílias alcançadas.",
+                    "Clique em \"Registrar atividade\"."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Trajetória evangelística",
+          "items": [
+            {
+              "titulo": "Missões e Evangelismo",
+              "queEs": "O painel central da Trajetória Evangelística: o caminho real de uma pessoa desde o primeiro contato até se tornar um membro formado, em 6 estações — Métodos → Mais Um → BIS → REFAM → ESFOB/EFOB → Discipulado. Não é obrigatório passar por todas em ordem estrita: cada pessoa pode ser transferida para qualquer estação conforme sua situação real.",
+              "como": [
+                {
+                  "accion": "Ver o status geral",
+                  "pasos": [
+                    "Entre e revise \"Processos ativos\", \"Amigos em jornada\", \"Presenças REFAM\" e o gráfico \"Pessoas por estação\".",
+                    "O cartão \"Prioridade sugerida\" diz o que fazer primeiro, com um botão direto (ex. \"Abrir Discipulado\").",
+                    "Clique em \"Amigos em jornada\" para a lista mestre (cadastro, notas, histórico e estação atual de cada pessoa)."
+                  ]
+                },
+                {
+                  "accion": "Registrar e avançar alguém em Mais Um",
+                  "pasos": [
+                    "Entre em \"Mais Um\" → escolha o Amigo e o Responsável (obrigatório) → \"Adicionar a Mais Um\".",
+                    "Selecione-o e registre seu \"Compromisso de Mais Um\" (status, último contato, resultado) → \"Salvar compromisso\".",
+                    "Quando estiver pronto, escolha a estação de destino em \"Transferir para...\" e confirme."
+                  ]
+                },
+                {
+                  "accion": "Trabalhar um grupo REFAM",
+                  "pasos": [
+                    "Entre em \"REFAM\" → \"Criar grupo REFAM\" (Nome, Zona, Dia da reunião, Anfitrião, Líder).",
+                    "Selecione o grupo e adicione participantes (Amigo ou Pessoa + comitê responsável).",
+                    "Marque \"Marcar concluída\" quando alguém terminar uma lição, e use \"Registrar reunião\" para deixar a presença de cada sessão."
+                  ]
+                },
+                {
+                  "accion": "Iniciar ESFOB/EFOB ou Discipulado",
+                  "pasos": [
+                    "Entre em \"ESFOB / EFOB\" ou \"Discipulado\" → \"Iniciar processo\" (pessoa, comitê/mentor, programa, data).",
+                    "Em \"Processos ativos\", clique em \"Marcar lição concluída\" conforme avança.",
+                    "No ESFOB, ao completar todas as lições aparece \"Marcar batizado\" — depois incorpore-a à Membresia a partir de Amigos."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Amigos em Jornada",
+              "queEs": "Acompanhamento de pessoas em processo de integração (evangelismo, primeiro contato, discipulado) até serem batizadas e ingressarem na Membresia, organizadas por etapas configuráveis (ex. \"Primeira visita\", \"Batizado\").",
+              "como": [
+                {
+                  "accion": "Registrar um amigo novo",
+                  "pasos": [
+                    "Clique em \"Novo amigo\".",
+                    "Preencha nome, endereço, etapa, zona e quem o convidou.",
+                    "Salve."
+                  ]
+                },
+                {
+                  "accion": "Marcar batizado e incorporar à Membresia",
+                  "pasos": [
+                    "Abra o cadastro do amigo e marque o marco do batismo.",
+                    "Uma vez batizado, clique em \"Incorporar à Membresia\" — é definitivo: cria o registro oficial de membresia e o cadastro deixa de poder voltar ao status de jornada."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Comitês que administram população (convertidos e não convertidos)",
+          "items": [
+            {
+              "titulo": "Escola Dominical",
+              "queEs": "Censo próprio de crianças por idade e fase (Ministério Infantil). As crianças não precisam estar na Membresia — são registradas com nome próprio e têm marcos independentes de batizado e selado.",
+              "como": [
+                {
+                  "accion": "Registrar uma criança nova",
+                  "pasos": [
+                    "\"Nova criança\" → Nome, Sobrenome, Turma, Data de nascimento, Nome e Telefone do responsável.",
+                    "Clique em \"Registrar criança\"."
+                  ]
+                },
+                {
+                  "accion": "Criar uma turma e registrar uma lição",
+                  "pasos": [
+                    "\"Nova turma\" → Nome, Fase (Berçário, Maternal, Primários, Pré-adolescentes), Metodologia, Professor líder → \"Registrar turma\".",
+                    "Selecione a turma, preencha Tema e Data, marque presença individual → \"Registrar lição\" (o número avança sozinho)."
+                  ]
+                },
+                {
+                  "accion": "Marcar marcos",
+                  "pasos": [
+                    "No censo, \"Marcar batizado\" ou \"Marcar selado\" ao lado da criança (fica com a data de hoje, não pode ser desfeito por aqui)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Damas Dorcas",
+              "queEs": "Trabalho evangelístico, social e espiritual com mulheres. Mesmo padrão da Escola Dominical: censo próprio de beneficiárias (não precisam já ser membros), com marcos de batizada/selada e alerta se ficarem mais de 60 dias sem atividade.",
+              "como": [
+                {
+                  "accion": "Registrar uma beneficiária",
+                  "pasos": [
+                    "\"Nova beneficiária\" → Nome, Sobrenome, Telefone, Endereço, Responsável pelo acompanhamento → \"Registrar beneficiária\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar uma atividade",
+                  "pasos": [
+                    "\"Registrar atividade\" → Data, Tipo (Visita, Social, Espiritual, Outro), Descrição, Responsável, presença individual → \"Registrar atividade\"."
+                  ]
+                },
+                {
+                  "accion": "Marcar marcos e priorizar acompanhamento",
+                  "pasos": [
+                    "\"Marcar batizada\" / \"Marcar selada\" ao lado do nome no censo.",
+                    "Revise \"Beneficiárias sem acompanhamento recente\" para saber quem visitar primeiro."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Obra Carcerária",
+              "queEs": "Trabalho com internos dentro do centro de reclusão e sua reinserção após sair em liberdade, em 5 abas: Internos, Cultos e REFAM, Delegados, Acompanhamento familiar e Reinserção. \"Vincular à Rota\" é a conexão com Missões e Evangelismo.",
+              "como": [
+                {
+                  "accion": "Registrar um interno e marcar marcos",
+                  "pasos": [
+                    "Aba \"Internos\" → \"Novo interno\" (Nome, Sobrenome, Centro, Pátio/pavilhão, Data de ingresso) → \"Registrar interno\".",
+                    "\"Marcar batizado\" / \"Marcar selado\" / \"Marcar liberado\" conforme o caso."
+                  ]
+                },
+                {
+                  "accion": "Vincular um interno à Trajetória Evangelística",
+                  "pasos": [
+                    "Ao lado do interno ativo, clique em \"Vincular à Rota\".",
+                    "Se não estiver batizado, escolha o Responsável e \"Confirmar\" (entra em BIS). Se já estiver batizado, vincula-se direto."
+                  ]
+                },
+                {
+                  "accion": "Gerenciar um liberado (reinserção)",
+                  "pasos": [
+                    "A atribuição a uma congregação receptora é feita pelo distrital a partir de Gestão Pastoral Distrital.",
+                    "Como congregação receptora: atualize o Status (Atribuído/Contatado/Ativo/Inativo/Reincidência) e use \"Vincular\" da mesma forma que com um interno."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Conquistadores Pentecostais",
+              "queEs": "Censo próprio de membros do clube (crianças/jovens), já convertidos ou não — assim como Escola Dominical e Missão Juvenil, administra tanto batizados quanto os que ainda estão a caminho, com marcos de batismo/selamento e \"Vincular\" direto à Trajetória Evangelística.",
+              "como": [
+                {
+                  "accion": "Registrar um membro novo",
+                  "pasos": [
+                    "Clique em \"Novo membro\".",
+                    "Preencha nome, sobrenome, telefone e função — não precisa já estar no censo de Membresia.",
+                    "Salve."
+                  ]
+                },
+                {
+                  "accion": "Marcar marcos e vincular à Rota",
+                  "pasos": [
+                    "Na tabela de membros, coluna \"Marcos\": marque Batizado/Selado com a data.",
+                    "Coluna \"Rota\": botão \"Vincular\" — envia à Trajetória Evangelística se ainda não estiver batizado, ou deixa pronto para incorporar à Membresia se já estiver."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Missão Juvenil",
+              "queEs": "Censo de estudantes alcançados em instituições educacionais (escolas, universidades) por meio de clubes/grupos, com acompanhamento de batismo e selamento independente do censo geral — um estudante não batizado também é administrado aqui.",
+              "como": [
+                {
+                  "accion": "Cadastrar instituição, estudante e grupo",
+                  "pasos": [
+                    "\"Nova instituição\" para uma escola ou universidade.",
+                    "\"Novo estudante\" para um aluno alcançado (não precisa já ser membro).",
+                    "\"Novo grupo REFAM\" para organizar o discipulado de vários estudantes juntos."
+                  ]
+                },
+                {
+                  "accion": "Vincular à Trajetória Evangelística",
+                  "pasos": [
+                    "Quando um estudante decide seguir o processo ou é batizado, clique em \"Vincular\" na linha dele.",
+                    "Se já estiver batizado, fica pronto para incorporar à Membresia a partir de Amigos; se não, entra em BIS com um responsável atribuído."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Comitês de serviço (somente membros já batizados)",
+          "items": [
+            {
+              "titulo": "Música",
+              "queEs": "Formação musical (FECP): coros, orquestra e equipes de louvor. Ao contrário dos comitês acima, administra somente pessoas que já são membros registrados — escolhidas da lista de pessoas, sem criar um censo novo.",
+              "como": [
+                {
+                  "accion": "Criar um grupo e adicionar um integrante",
+                  "pasos": [
+                    "\"Novo grupo\" → Nome, Tipo (Coral, Orquestra, Louvor, Outro), Instrutor → \"Registrar grupo\".",
+                    "\"Novo integrante\" → Pessoa, Grupo, Instrumento ou voz → \"Registrar integrante\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar uma sessão de ensaio",
+                  "pasos": [
+                    "Selecione o grupo, preencha Tema e Data, marque presença individual → \"Registrar sessão\" (o número avança sozinho)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Educação Artística",
+              "queEs": "Formação em dança, teatro e artes visuais com enfoque bíblico. Mesmo padrão de Música: comitê de serviço, somente membros já registrados.",
+              "como": [
+                {
+                  "accion": "Criar um grupo e adicionar um integrante",
+                  "pasos": [
+                    "\"Novo grupo\" → Nome, Disciplina (Dança, Teatro, Artes visuais, Outro), Instrutor → \"Registrar grupo\".",
+                    "\"Novo integrante\" → Pessoa, Grupo → \"Registrar integrante\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar uma sessão",
+                  "pasos": [
+                    "Selecione o grupo, preencha Tema e Data, marque presença → \"Registrar sessão\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Educação Teológica",
+              "queEs": "Formação bíblica e doutrinária da membresia (diferente da formação ministerial de pastores, que o distrital acompanha). Comitê de serviço, organizado por Nível (Título, Curso, Diplomado, Especialização, Mestrado, Doutorado, Seminário bíblico, Outro), com certificação ao terminar.",
+              "como": [
+                {
+                  "accion": "Criar um grupo e adicionar um integrante",
+                  "pasos": [
+                    "\"Novo grupo\" → Nome, Nível, Instrutor → \"Registrar grupo\".",
+                    "\"Novo integrante\" → Pessoa, Grupo → \"Registrar integrante\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar sessão e certificar",
+                  "pasos": [
+                    "Selecione o grupo, preencha Tema e Data, marque presença → \"Registrar sessão\".",
+                    "Ao terminar o processo de alguém, clique em \"Certificar\" ao lado do nome (data de hoje, não pode ser desfeito por aqui)."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Outras frentes",
+          "items": [
+            {
+              "titulo": "SEPRI",
+              "queEs": "Não é um comitê — é o fluxo de aprovação de eventos fora do templo. Deve ser apresentado à Secretaria Distrital com pelo menos 30 dias de antecedência; fora desse prazo, a igreja não responde legalmente pelo que ocorrer.",
+              "como": [
+                {
+                  "accion": "Enviar uma solicitação de evento",
+                  "pasos": [
+                    "\"Nova solicitação de evento\" → Nome, Data, Presentes esperados, Local (dentro/fora do templo), Responsável, se tem apólice de seguro, e as medidas de segurança.",
+                    "\"Enviar solicitação\" — fica \"Pendente\" até a Secretaria Distrital aprovar ou rejeitar; não pode ser editada depois de resolvida."
+                  ]
+                },
+                {
+                  "accion": "Registrar um delegado de segurança",
+                  "pasos": [
+                    "Aba \"Delegados\" → Pessoa, marque \"Certificação vigente\" e a data de vencimento → \"Registrar delegado\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Obra Social",
+              "queEs": "Assistência socioeconômica a irmãos sem recursos. Não cria censo próprio de pessoas: seus \"casos\" são abertos sobre uma família já cadastrada, com opção de vincular a um caso já aberto na Rede de Famílias para não perder a origem da necessidade.",
+              "como": [
+                {
+                  "accion": "Registrar um caso",
+                  "pasos": [
+                    "\"Novo caso\" → se já existir na Rede de Famílias, marque \"Vincular caso da Rede de Famílias\" (preenche a família automaticamente).",
+                    "Escolha Família, Tipo de necessidade (Econômica, Alimentar, Saúde, Moradia, Outra), Prioridade e Responsável → \"Registrar caso\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar uma ajuda entregue",
+                  "pasos": [
+                    "Selecione o caso, atualize o Status se for o caso (Identificada, Em apoio, Resolvida, Encerrada).",
+                    "Preencha Data, Tipo de ajuda (Material, Econômica, Acompanhamento, Outra), Descrição → \"Registrar ajuda\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Impacto Missionário",
+              "queEs": "Painel somente de consulta (sem formulários): consolida o alcance de Obra Carcerária, Missão Juvenil e Obra Social para ver de relance a quantas pessoas sua congregação alcança fora do templo.",
+              "como": [
+                {
+                  "accion": "Consultá-lo",
+                  "pasos": [
+                    "Revise \"Pessoas alcançadas\" (soma das três frentes) e o gráfico \"Pessoas alcançadas por frente\".",
+                    "Se precisar registrar algo, entre diretamente no módulo correspondente — aqui nada é editado.",
+                    "Exporte com os botões CSV/Excel/PDF se precisar compartilhar o consolidado."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Administração da sua congregação (somente o pastor)",
+          "items": [
+            {
+              "titulo": "Equipe de trabalho",
+              "queEs": "Concede ou retira acesso web e/ou responsabilidade operacional (registro pelo app móvel, sem acesso web) a pessoas do censo da sua congregação.",
+              "como": [
+                {
+                  "accion": "Dar acesso a alguém",
+                  "pasos": [
+                    "\"Adicionar ou atualizar acesso\" → selecione a pessoa (deve estar no seu censo).",
+                    "Marque \"Acesso web\" (opcional, com o perfil que vai operar) e/ou \"Responsabilidade operacional\" (opcional, registro móvel de um módulo específico).",
+                    "Salve — recebe o convite real por e-mail se você concedeu acesso web."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Módulos e Atividades",
+              "queEs": "Configura a estrutura operacional: quais módulos existem (ex. Porteiros), seus tipos de atividade, a lista de porteiros, os catálogos de lições de REFAM/ESFOB/Discipulado, e qual comitê corresponde a cada faixa etária. \"Evangelismo\" e \"Missão Juvenil\" ficam bloqueados aqui porque são administrados a partir de suas próprias telas.",
+              "como": [
+                {
+                  "accion": "Criar um módulo e suas atividades",
+                  "pasos": [
+                    "Em \"Módulos ativos\", digite o nome e clique no botão \"+\".",
+                    "Selecione o módulo e, no painel direito, adicione o nome da atividade (ex. \"Culto de domingo\") com o botão \"+\".",
+                    "Use o lápis para editar ou o ícone de energia para desativar/reativar (os módulos do sistema não podem ser alterados aqui)."
+                  ]
+                },
+                {
+                  "accion": "Definir o comitê sugerido por idade",
+                  "pasos": [
+                    "Em \"Faixas etárias e comitês\", preencha o Nome da faixa, Idade de/até, Gênero e Estado civil (opcionais) e o Comitê.",
+                    "\"Adicionar\" — isso apenas sugere o comitê correto em Membresia, nunca transfere ninguém automaticamente."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Configuração Local",
+              "queEs": "Identidade da congregação, preferências de comportamento do sistema (alertas, exigências ao registrar presença) e catálogos próprios (categorias demográficas, etapas de Amigos, tipos e cargos de comitê).",
+              "como": [
+                {
+                  "accion": "Ajustar preferências de alertas",
+                  "pasos": [
+                    "Em \"Preferências da congregação\", defina o Limite de alerta por queda (%) e o Módulo padrão ao registrar presença.",
+                    "Marque \"Exigir responsável\" e/ou \"Solicitar novidades\" se quiser torná-los obrigatórios → \"Salvar preferências\"."
+                  ]
+                },
+                {
+                  "accion": "Adicionar um cargo de comitê",
+                  "pasos": [
+                    "Em \"Cargos de comitê\", preencha Nome e Código.",
+                    "Marque \"Requer estar selado com o Espírito Santo\" somente se esse cargo exigir isso além de ser batizado (ser batizado já é sempre obrigatório) → \"Adicionar cargo\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Auditoria de Membresia",
+              "queEs": "Histórico de alterações do censo e acompanhamento pastoral: quem criou, atualizou ou excluiu um registro, e o que exatamente mudou (antes/depois).",
+              "como": [
+                {
+                  "accion": "Consultar e investigar uma alteração",
+                  "pasos": [
+                    "Em \"Filtros de auditoria\", escolha Entidade e Ação (Criações/Atualizações/Exclusões) e um intervalo de datas se precisar.",
+                    "Clique em \"Ver mudanças\" ao lado do registro que interessa para ver o detalhe antes/depois."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "distrital": [
+        {
+          "seccion": "Seu dia a dia",
+          "items": [
+            {
+              "titulo": "Resumo",
+              "queEs": "Consolida de relance a situação de todas as congregações do distrito (membros ativos, vacâncias de pastor, batizados/selados, crescimento) para detectar qual congregação precisa de atenção.",
+              "como": [
+                {
+                  "accion": "Revisá-lo",
+                  "pasos": [
+                    "Revise o \"Painel do distrito\" — cada linha mostra um ponto verde ou vermelho com o detalhe do que está falhando.",
+                    "Em \"Comparativo por congregação\", use \"Ordenar por...\" (novos 3 meses, pessoas ativas, presença último mês, saídas 3 meses) para ver quem cresce ou retrocede.",
+                    "Clique em \"Ir para Gestão Pastoral Distrital\" para passar à ação."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Gestão pastoral",
+          "items": [
+            {
+              "titulo": "Registrar nova congregação",
+              "queEs": "Cadastra uma congregação nova do seu distrito junto com seu primeiro pastor, em um único passo. Ao salvar, um convite real é enviado por e-mail ao pastor, e a congregação fica pendente de aprovação até ser ativada em \"Aprovações\".",
+              "como": [
+                {
+                  "accion": "Registrá-la",
+                  "pasos": [
+                    "No cartão \"Registrar nova congregação\", digite ou escolha o nome (há sugestões do catálogo oficial IPUC).",
+                    "Preencha Cidade/Município, Nome e Sobrenome do pastor, Telefone (opcional) e E-mail do pastor (obrigatório, é para onde vai o convite).",
+                    "Clique em \"Criar congregação e convidar pastor\" — o aviso confirma se o convite foi enviado."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Diretoria distrital",
+              "queEs": "Censo de quem exerce cada um dos 6 cargos oficiais (Supervisor, Secretário, Tesoureiro, Presbítero A, Presbítero B, Fiscal) — separado do acesso ao software; atribuir o cargo aqui não concede nem remove permissões do SIGAP.",
+              "como": [
+                {
+                  "accion": "Atribuir um cargo",
+                  "pasos": [
+                    "Em \"Diretoria distrital\", escolha a Pessoa (deve estar no censo ativo de alguma congregação do distrito), o Cargo e a data \"Desde\".",
+                    "Clique em \"Atribuir cargo\".",
+                    "Para encerrar um período, clique em \"Encerrar período\" na linha dessa pessoa."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Comitês por congregação",
+              "queEs": "Uma série de cartões (um para cada um dos 11 comitês/frentes: Escola Dominical, Damas Dorcas, Obra Carcerária, Música, Educação Artística, Educação Teológica, Conquistadores, Obra Social, Missão Juvenil, Rede de Famílias e Trajetória Evangelística) consolidando todas as congregações do distrito, sem precisar entrar em cada uma.",
+              "como": [
+                {
+                  "accion": "Revisar um comitê",
+                  "pasos": [
+                    "Desça até o cartão do comitê que interessa (ex. \"Escola Dominical por congregação\").",
+                    "Use o seletor \"Ordenar por...\" próprio desse cartão para identificar quem lidera ou quem está em zero."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Formação e transferências pastorais",
+              "queEs": "Gerencia o ciclo de vida de um pastor no distrito: registrá-lo, transferi-lo, promover sua licença ministerial, registrar sua formação acadêmica e encerrar sua atribuição quando se aposenta.",
+              "como": [
+                {
+                  "accion": "Registrar um pastor novo",
+                  "pasos": [
+                    "\"Registrar pastor\" → Nome, Sobrenome, Telefone, Família pastoral, E-mail, busque a Congregação (mostra somente as que não têm pastor), escolha o Cargo (Pastor local/associado/auxiliar ou Coordenador) e a data \"Desde\".",
+                    "Clique em \"Registrar pastor\"."
+                  ]
+                },
+                {
+                  "accion": "Transferir um pastor para outra congregação",
+                  "pasos": [
+                    "\"Transferir pastor\" → selecione Pastor, Nova congregação, Data e observações opcionais.",
+                    "Clique em \"Confirmar transferência\" — a congregação anterior fica vaga imediatamente."
+                  ]
+                },
+                {
+                  "accion": "Encerrar uma atribuição pastoral",
+                  "pasos": [
+                    "\"Encerrar atribuição pastoral\" → selecione Pastor, Data e o motivo em Observações.",
+                    "Clique em \"Encerrar atribuição\" — deixa a congregação vaga e revoga o acesso do pastor."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Supervisão",
+          "items": [
+            {
+              "titulo": "Impacto Missionário",
+              "queEs": "Consolida o alcance de Obra Carcerária, Missão Juvenil e Obra Social de todo o distrito.",
+              "como": [
+                {
+                  "accion": "Consultá-lo",
+                  "pasos": [
+                    "Revise os cartões de pessoas alcançadas e o gráfico por frente.",
+                    "Exporte com CSV/Excel/PDF se precisar compartilhar."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Auditoria de Membresia",
+              "queEs": "Alterações no censo de qualquer congregação do seu distrito, com quem as fez e quando.",
+              "como": [
+                {
+                  "accion": "Investigar uma alteração",
+                  "pasos": [
+                    "Filtre por Entidade e Ação em \"Filtros de auditoria\".",
+                    "Clique em \"Ver mudanças\" para o detalhe antes/depois."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Aprovações",
+              "queEs": "Ativa, suspende ou anula as congregações do seu distrito. Uma congregação registrada não pode usar o sistema até ser aprovada aqui.",
+              "como": [
+                {
+                  "accion": "Aprovar, suspender ou anular",
+                  "pasos": [
+                    "Localize a linha com status \"Pendente de aprovação\".",
+                    "Clique no ícone verde (✓) para aprovar, o vermelho (✗) para suspender, ou a lixeira para anular (pede para confirmar \"Sim, anular\" — não pode ser desfeito).",
+                    "Para uma congregação ativa há um link \"Suspender\"; para uma suspensa, \"Reativar\"."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "nacional": [
+        {
+          "seccion": "Seu dia a dia",
+          "items": [
+            {
+              "titulo": "Resumo",
+              "queEs": "Consolida os 36 distritos da IPUC na Colômbia em um só lugar (membros, vacâncias, batizados/selados, crescimento) para comparar e decidir em escala nacional.",
+              "como": [
+                {
+                  "accion": "Revisá-lo",
+                  "pasos": [
+                    "Revise o \"Painel nacional\" (os mesmos 5 sinais do distrital, somados em nível país).",
+                    "Em \"Comparativo por distrito\", use \"Ordenar por...\" para localizar o distrito que precisa de apoio.",
+                    "Clique em \"Ir para Gestão Pastoral Nacional\" para passar à ação."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Visão do país",
+          "items": [
+            {
+              "titulo": "Gestão Pastoral Nacional",
+              "queEs": "Escalão ministerial (Obreiro → Licença Local → Licença Geral → Ordenação) e diretoria dos 36 distritos. Também é onde se concede acesso ao sistema a um novo líder distrital (ou nacional, se você for super_admin).",
+              "como": [
+                {
+                  "accion": "Conceder acesso a um novo líder",
+                  "pasos": [
+                    "Em \"Conceder acesso ao sistema\", busque a pessoa em \"Pessoa (buscar no censo nacional)\".",
+                    "Escolha o Nível a conceder (Distrital, ou Nacional se você for super_admin) e, se for Distrital, o Distrito.",
+                    "Escreva o E-mail de acesso → \"Conceder acesso\"."
+                  ]
+                },
+                {
+                  "accion": "Baixar o relatório trimestral",
+                  "pasos": [
+                    "Em \"Relatório trimestral por distrito\", escolha Ano e Trimestre.",
+                    "Ordene por novos Batizados/Selados/Reconciliados/Entregues e clique em \"Baixar PDF\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Comitês Nacional",
+              "queEs": "Consolida em escala nacional os 10 comitês reais da IPUC — a mesma informação que cada distrital vê do seu próprio distrito, somada nacionalmente. É somente leitura, sem formulários.",
+              "como": [
+                {
+                  "accion": "Consultá-lo",
+                  "pasos": [
+                    "Revise os 10 cartões KPI (um por comitê, total nacional).",
+                    "Desça até a tabela \"Por distrito\" para o detalhamento pelos 36 distritos."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Catálogo de Distritos",
+              "queEs": "Catálogo mestre dos 36 distritos (identificados somente por número, sem nome próprio) e o lugar para reatribuir uma congregação de um distrito a outro quando ficou mal localizada.",
+              "como": [
+                {
+                  "accion": "Criar ou editar um distrito",
+                  "pasos": [
+                    "\"Novo distrito\" → digite o Número (1 a 36) → \"Criar distrito\"."
+                  ]
+                },
+                {
+                  "accion": "Reatribuir uma congregação",
+                  "pasos": [
+                    "Em \"Congregações por distrito\", busque a congregação, escolha o novo distrito no menu suspenso → \"Mover\" (só ativa se o destino mudou)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Impacto Missionário",
+              "queEs": "Igual ao distrital, mas consolida Obra Carcerária, Missão Juvenil e Obra Social de toda a IPUC na Colômbia.",
+              "como": [
+                {
+                  "accion": "Consultá-lo",
+                  "pasos": [
+                    "Revise os cartões KPI e o gráfico \"Pessoas alcançadas por frente\".",
+                    "Exporte o consolidado nacional com CSV/Excel/PDF."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Supervisão",
+          "items": [
+            {
+              "titulo": "Auditoria de Membresia",
+              "queEs": "Alterações no censo de qualquer congregação do país.",
+              "como": [
+                {
+                  "accion": "Investigar uma alteração",
+                  "pasos": [
+                    "Aplique os mesmos filtros de Entidade/Ação/datas.",
+                    "Clique em \"Ver mudanças\" para o detalhe de qualquer congregação do país."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "super_admin": [
+        {
+          "seccion": "Seu dia a dia",
+          "items": [
+            {
+              "titulo": "Painel de negócio (Resumo)",
+              "queEs": "O Resumo exclusivo do super_admin — diferente do nacional (dados pastorais da IPUC), este painel é 100% sobre o negócio SIGAP: congregações ativas/pendentes/novas, status das assinaturas, receita e quão rápido o negócio está crescendo.",
+              "como": [
+                {
+                  "accion": "Interpretá-lo",
+                  "pasos": [
+                    "Revise os cartões acima (Congregações totais/Ativas/Pendentes/Novas).",
+                    "Em \"Crescimento\", revise a tendência de novas congregações por mês e use o \"Simulador\" (novas congregações esperadas por mês) para projetar 3/6/12 meses.",
+                    "Em \"Precisam de atenção em breve\", atue sobre as bloqueadas/em carência/a vencer com o botão \"Ir para Assinaturas\"."
+                  ]
+                },
+                {
+                  "accion": "Baixar o relatório de negócio",
+                  "pasos": [
+                    "Clique em \"CSV\", \"Excel\" ou \"PDF\" ao lado de \"Relatório de negócio\" — sai com a marca SIGAP (não IPUC), pronto para compartilhar, por exemplo com você mesmo como CEO."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Negócio SIGAP (exclusivo do super_admin)",
+          "items": [
+            {
+              "titulo": "Assinaturas",
+              "queEs": "Cobrança por congregação (mensal ou anual, cobrança manual via Nequi/transferência). Define o método de pagamento que cada congregação vê e registra quando pagaram a você.",
+              "como": [
+                {
+                  "accion": "Configurar o método de pagamento",
+                  "pasos": [
+                    "Em \"Método de pagamento para as congregações\", preencha os dados de Nequi/banco → \"Salvar método de pagamento\"."
+                  ]
+                },
+                {
+                  "accion": "Registrar um pagamento",
+                  "pasos": [
+                    "Na linha da congregação, clique em \"Registrar pagamento\" — move a data do próximo pagamento um mês ou um ano conforme o plano, sem perder tempo já pago se você registrar antes do prazo."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Erros do Sistema",
+              "queEs": "Qualquer erro real de JavaScript que aconteça com um usuário (tela quebrada, algo que falhou) fica registrado aqui automaticamente, sem que ninguém precise reportá-lo.",
+              "como": [
+                {
+                  "accion": "Revisar e tratar",
+                  "pasos": [
+                    "Ative \"Mostrar somente não revisados\" para focar no que é novo.",
+                    "Clique em \"Ver stack\" para o detalhe técnico se precisar.",
+                    "Clique em \"Marcar como revisado\" ao tratá-lo, ou exclua se não se aplicar mais."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "herramientasGenerales": [
+      {
+        "titulo": "Relatórios",
+        "queEs": "Leitura de presença e atividade por período, com o detalhe completo carregado em páginas de 50 registros.",
+        "como": [
+          {
+            "accion": "Consultar e exportar",
+            "pasos": [
+              "Escolha o período no seletor superior (últimos 30 dias, histórico, etc.).",
+              "Baixe com os botões CSV / Excel / PDF (com o timbre oficial da IPUC)."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Suporte",
+        "queEs": "Reporte um problema técnico ou algo que não funcione — chega direto à equipe que mantém o SIGAP, com cópia por e-mail. (super_admin também vê e resolve os relatórios de todo o país, não só os próprios.)",
+        "como": [
+          {
+            "accion": "Enviar um relatório",
+            "pasos": [
+              "Escreva o Assunto e a Descrição (o que aconteceu, em qual tela, o que você esperava).",
+              "Clique em \"Enviar relatório\". Se for urgente, você também pode escrever para soportesigasoftware@gmail.com."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Solicitações Internas",
+        "queEs": "Canal formal (não um chat) para se comunicar com seu distrital ou nacional — pedir algo, reportar uma situação ou fazer uma sugestão, com status de acompanhamento até ser resolvido.",
+        "como": [
+          {
+            "accion": "Enviar uma solicitação",
+            "pasos": [
+              "Escolha o Tipo (Administrativa, Reclamação, Sugestão, Recurso, Outro) e a Prioridade.",
+              "Escreva Assunto e Descrição, e envie — acompanhe o status (Pendente/Em andamento/Resolvido/Encerrado) na mesma tela."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Preferências Pessoais / Meu Perfil",
+        "queEs": "Sua própria conta: corrigir seu nome (o mesmo que aparece no censo), alterar sua senha, ver seus perfis/permissões ativos, formato de data e ativar a verificação em duas etapas.",
+        "como": [
+          {
+            "accion": "Ajustá-la",
+            "pasos": [
+              "Clique no seu nome ou em \"Perfil\" (canto superior direito) para corrigir nome/sobrenome.",
+              "Em \"Preferências pessoais\", ative a Verificação em duas etapas se quiser uma camada extra de segurança."
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

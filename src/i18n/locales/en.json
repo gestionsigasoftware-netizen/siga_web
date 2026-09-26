@@ -4678,5 +4678,842 @@
     "reunionVisitantesSufijo": " ({{count}} visitors)",
     "sinReunionesRegistradas": "No meetings registered.",
     "seleccionaGrupoParticipantes": "Select a group to see its participants and meetings."
+  },
+  "manual": {
+    "cargando": "Loading the manual...",
+    "eyebrow": "Documentation · {{nivel}}",
+    "titulo": "User Manual",
+    "subtitulo": "What each SIGAP screen is for and how to use it, step by step — based on your own role.",
+    "herramientasTitulo": "General tools (all levels)",
+    "footerAviso": "Something not working as described here? Report it from Support.",
+    "contenido": {
+      "local": [
+        {
+          "seccion": "Your day to day",
+          "items": [
+            {
+              "titulo": "Overview",
+              "queEs": "Your daily starting point: recent attendance, pastoral alerts (families not linked, not baptized, no recent attendance, committees without members), population pyramid, spiritual life cycle, 12-month growth projection, and your congregation's upcoming birthdays.",
+              "como": [
+                {
+                  "accion": "Check it every day",
+                  "pasos": [
+                    "Go in and look at the \"Active alerts\" card — a number in red means something needs your attention.",
+                    "Click an alert to go straight to the affected person or committee.",
+                    "Check the population pyramid and the spiritual life cycle to understand your congregation's real makeup, not just the total."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Census and family",
+          "items": [
+            {
+              "titulo": "Membership",
+              "queEs": "Your congregation's full census, in 7 tabs: Population, Families, Committees, Pastoral follow-up, Transfers, Trends, and Quarterly report. Every active, set-apart, baptized, or transferred person lives here.",
+              "como": [
+                {
+                  "accion": "Register a new person",
+                  "pasos": [
+                    "In the \"Population\" tab, click \"Register person\".",
+                    "Fill in first and last names, date of birth, gender, marital status, and other details.",
+                    "Save — if they already meet a committee's age/gender requirements, you'll see a \"Suggested: [committee]\" tag on their row."
+                  ]
+                },
+                {
+                  "accion": "Transfer someone to another congregation",
+                  "pasos": [
+                    "Open the person's record in Population.",
+                    "Go to \"Transfer to another congregation\".",
+                    "Search for the destination congregation by name or city and confirm — the full history travels with the person, nothing is lost."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Family Network",
+              "queEs": "The family work area (DEFAM): turns the context that already exists in Membership into measurable follow-up. It does not create its own census of people — it opens \"cases\" on families/people who are already registered, schedules home visits, and logs workshops or campaigns.",
+              "como": [
+                {
+                  "accion": "Open a follow-up",
+                  "pasos": [
+                    "\"Follow-up\" tab → choose the Family (and optionally the related Person and the Responsible party).",
+                    "Choose the Need (Follow-up requested, Pending visit, Guidance, Integration, Reactivation, or Identified need) and the Priority.",
+                    "Set the \"Next contact\" and click \"Log follow-up\".",
+                    "When it's resolved, click \"Close case\" — this is final; if the family needs follow-up again, a new one is opened."
+                  ]
+                },
+                {
+                  "accion": "Schedule a home visit",
+                  "pasos": [
+                    "\"Visits\" tab → fill in Family, Date, Responsible party, and Reason.",
+                    "Click \"Schedule visit\".",
+                    "Once it happens, mark it \"Mark completed\" (or \"Cancel\" if it did not happen)."
+                  ]
+                },
+                {
+                  "accion": "Log a family workshop or campaign",
+                  "pasos": [
+                    "\"Activities\" tab → fill in Name, Type (Workshop, Family school, Campaign, Conference, Group visit), Date, Responsible party, Attendees, and Families reached.",
+                    "Click \"Log activity\"."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Evangelistic journey",
+          "items": [
+            {
+              "titulo": "Missions & Evangelism",
+              "queEs": "The central dashboard of the Evangelistic Journey: a person's real path from first contact to becoming a trained member, across 6 stations — Methods → One More → BIS → REFAM → ESFOB/EFOB → Discipleship. Going through all of them in strict order is not mandatory: any person can be transferred to whichever station fits their actual situation.",
+              "como": [
+                {
+                  "accion": "See the overall status",
+                  "pasos": [
+                    "Go in and check \"Active processes\", \"Friends on the journey\", \"REFAM attendance\", and the \"People by station\" chart.",
+                    "The \"Suggested priority\" card tells you what to do first, with a direct button (e.g. \"Open Discipleship\").",
+                    "Click \"Friends on the journey\" for the master list (record, notes, history, and current station of each person)."
+                  ]
+                },
+                {
+                  "accion": "Register and advance someone in One More",
+                  "pasos": [
+                    "Go to \"One More\" → choose the Friend and the Responsible party (required) → \"Add to One More\".",
+                    "Select them and log their \"One More commitment\" (status, last contact, outcome) → \"Save commitment\".",
+                    "When ready, choose the destination station in \"Transfer to...\" and confirm."
+                  ]
+                },
+                {
+                  "accion": "Work a REFAM group",
+                  "pasos": [
+                    "Go to \"REFAM\" → \"Create REFAM group\" (Name, Zone, Meeting day, Host, Leader).",
+                    "Select the group and add participants (Friend or Person + responsible committee).",
+                    "Mark \"Mark completed\" when someone finishes a lesson, and use \"Register meeting\" to log attendance for each session."
+                  ]
+                },
+                {
+                  "accion": "Start ESFOB/EFOB or Discipleship",
+                  "pasos": [
+                    "Go to \"ESFOB / EFOB\" or \"Discipleship\" → \"Start process\" (person, committee/mentor, program, date).",
+                    "In \"Active processes\", click \"Mark lesson completed\" as they progress.",
+                    "In ESFOB, once all lessons are completed, \"Mark baptized\" appears — then bring them into Membership from Friends."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Friends on the Journey",
+              "queEs": "Follow-up for people in the integration process (evangelism, first contact, discipleship) until they are baptized and join Membership, organized by configurable stages (e.g. \"First visit\", \"Baptized\").",
+              "como": [
+                {
+                  "accion": "Register a new friend",
+                  "pasos": [
+                    "Click \"New friend\".",
+                    "Fill in name, address, stage, zone, and who invited them.",
+                    "Save."
+                  ]
+                },
+                {
+                  "accion": "Mark baptized and bring into Membership",
+                  "pasos": [
+                    "Open the friend's record and mark the baptism milestone.",
+                    "Once baptized, click \"Bring into Membership\" — this is final: it creates the official membership record and the record can no longer return to journey status."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Committees that manage population (converted and unconverted)",
+          "items": [
+            {
+              "titulo": "Sunday School",
+              "queEs": "Its own census of children by age and stage (Children's Ministry). Children do not need to be in Membership — they are registered by their own name and carry independent baptism and sealing milestones.",
+              "como": [
+                {
+                  "accion": "Register a new child",
+                  "pasos": [
+                    "\"New child\" → First name, Last name, Class, Date of birth, Guardian's name and phone.",
+                    "Click \"Register child\"."
+                  ]
+                },
+                {
+                  "accion": "Create a class and register a lesson",
+                  "pasos": [
+                    "\"New class\" → Name, Stage (Nursery, Toddlers, Primary, Preteens), Methodology, Lead teacher → \"Register class\".",
+                    "Select the class, fill in Topic and Date, mark individual attendance → \"Register lesson\" (the number advances on its own)."
+                  ]
+                },
+                {
+                  "accion": "Mark milestones",
+                  "pasos": [
+                    "In the census, \"Mark baptized\" or \"Mark sealed\" next to the child (recorded with today's date, cannot be undone from here)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Dorcas Ladies",
+              "queEs": "Evangelistic, social, and spiritual work with women. Same pattern as Sunday School: its own census of beneficiaries (they do not need to already be members), with baptized/sealed milestones and an alert if they go more than 60 days without activity.",
+              "como": [
+                {
+                  "accion": "Register a beneficiary",
+                  "pasos": [
+                    "\"New beneficiary\" → First name, Last name, Phone, Address, Follow-up responsible party → \"Register beneficiary\"."
+                  ]
+                },
+                {
+                  "accion": "Register an activity",
+                  "pasos": [
+                    "\"Register activity\" → Date, Type (Visit, Social, Spiritual, Other), Description, Responsible party, individual attendance → \"Register activity\"."
+                  ]
+                },
+                {
+                  "accion": "Mark milestones and prioritize follow-up",
+                  "pasos": [
+                    "\"Mark baptized\" / \"Mark sealed\" next to the name in the census.",
+                    "Check \"Beneficiaries without recent follow-up\" to know who to visit first."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Prison Ministry",
+              "queEs": "Work with inmates inside the correctional facility and their reintegration after being released, across 5 tabs: Inmates, Services & REFAM, Delegates, Family follow-up, and Reintegration. \"Link to the Route\" is the connection with Missions & Evangelism.",
+              "como": [
+                {
+                  "accion": "Register an inmate and mark milestones",
+                  "pasos": [
+                    "\"Inmates\" tab → \"New inmate\" (First name, Last name, Facility, Yard/wing, Admission date) → \"Register inmate\".",
+                    "\"Mark baptized\" / \"Mark sealed\" / \"Mark released\" as applicable."
+                  ]
+                },
+                {
+                  "accion": "Link an inmate to the Evangelistic Journey",
+                  "pasos": [
+                    "Next to the active inmate, click \"Link to the Route\".",
+                    "If not baptized, choose the Responsible party and \"Confirm\" (enters BIS). If already baptized, it links directly."
+                  ]
+                },
+                {
+                  "accion": "Manage a released inmate (reintegration)",
+                  "pasos": [
+                    "Assignment to a receiving congregation is done by the district from District Pastoral Management.",
+                    "As the receiving congregation: update the Status (Assigned/Contacted/Active/Inactive/Relapse) and use \"Link\" the same as with an inmate."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Pentecostal Conquerors",
+              "queEs": "Its own census of club members (children/youth), whether already converted or not — just like Sunday School and Youth Mission, it manages both baptized members and those who are only on the way, with baptism/sealing milestones and a direct \"Link\" to the Evangelistic Journey.",
+              "como": [
+                {
+                  "accion": "Register a new member",
+                  "pasos": [
+                    "Click \"New member\".",
+                    "Fill in first name, last name, phone, and role — they do not need to already be in the Membership census.",
+                    "Save."
+                  ]
+                },
+                {
+                  "accion": "Mark milestones and link to the Journey",
+                  "pasos": [
+                    "In the members table, \"Milestones\" column: mark Baptized/Sealed with their date.",
+                    "\"Journey\" column: \"Link\" button — sends them to the Evangelistic Journey if not yet baptized, or leaves them ready to bring into Membership if they already are."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Youth Mission",
+              "queEs": "A census of students reached in educational institutions (schools, universities) through clubs/groups, with baptism and sealing follow-up independent of the general census — an unbaptized student is also managed here.",
+              "como": [
+                {
+                  "accion": "Register an institution, student, and group",
+                  "pasos": [
+                    "\"New institution\" for a school or university.",
+                    "\"New student\" for a reached student (they do not need to already be a member).",
+                    "\"New REFAM group\" to organize the discipleship of several students together."
+                  ]
+                },
+                {
+                  "accion": "Link to the Evangelistic Journey",
+                  "pasos": [
+                    "When a student decides to continue the process or is baptized, click \"Link\" on their row.",
+                    "If already baptized, they are ready to bring into Membership from Friends; if not, they enter BIS with an assigned responsible party."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Service committees (baptized members only)",
+          "items": [
+            {
+              "titulo": "Music",
+              "queEs": "Music training (FECP): choirs, orchestra, and worship teams. Unlike the committees above, it only manages people who are already registered members — they are chosen from the list of people, no new census is created.",
+              "como": [
+                {
+                  "accion": "Create a group and add a member",
+                  "pasos": [
+                    "\"New group\" → Name, Type (Choir, Orchestra, Worship, Other), Instructor → \"Register group\".",
+                    "\"New member\" → Person, Group, Instrument or voice → \"Register member\"."
+                  ]
+                },
+                {
+                  "accion": "Register a rehearsal session",
+                  "pasos": [
+                    "Select the group, fill in Topic and Date, mark individual attendance → \"Register session\" (the number advances on its own)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Arts Education",
+              "queEs": "Training in dance, theater, and visual arts with a biblical focus. Same pattern as Music: a service committee, members only.",
+              "como": [
+                {
+                  "accion": "Create a group and add a member",
+                  "pasos": [
+                    "\"New group\" → Name, Discipline (Dance, Theater, Visual arts, Other), Instructor → \"Register group\".",
+                    "\"New member\" → Person, Group → \"Register member\"."
+                  ]
+                },
+                {
+                  "accion": "Register a session",
+                  "pasos": [
+                    "Select the group, fill in Topic and Date, mark attendance → \"Register session\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Theological Education",
+              "queEs": "Biblical and doctrinal training for members (distinct from pastors' ministerial training, which the district handles). A service committee, organized by Level (Degree, Course, Diploma, Specialization, Master's, Doctorate, Bible seminary, Other), with certification upon completion.",
+              "como": [
+                {
+                  "accion": "Create a group and add a member",
+                  "pasos": [
+                    "\"New group\" → Name, Level, Instructor → \"Register group\".",
+                    "\"New member\" → Person, Group → \"Register member\"."
+                  ]
+                },
+                {
+                  "accion": "Register a session and certify",
+                  "pasos": [
+                    "Select the group, fill in Topic and Date, mark attendance → \"Register session\".",
+                    "When someone finishes the process, click \"Certify\" next to their name (today's date, cannot be undone from here)."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Other fronts",
+          "items": [
+            {
+              "titulo": "SEPRI",
+              "queEs": "It is not a committee — it is the approval flow for events outside the church building. It must be submitted to the District Secretariat at least 30 days in advance; outside that window, the church is not legally responsible for what happens.",
+              "como": [
+                {
+                  "accion": "Submit an event request",
+                  "pasos": [
+                    "\"New event request\" → Name, Date, Expected attendees, Location (inside/outside the church building), Responsible party, whether it has insurance coverage, and the safety measures.",
+                    "\"Send request\" — it stays \"Pending\" until the District Secretariat approves or rejects it; it cannot be edited once resolved."
+                  ]
+                },
+                {
+                  "accion": "Register a safety delegate",
+                  "pasos": [
+                    "\"Delegates\" tab → Person, mark \"Current certification\" and its expiration date → \"Register delegate\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Social Outreach",
+              "queEs": "Socioeconomic assistance to members without resources. It does not create its own census of people: its \"cases\" are opened on an already-censused family, with the option to link to a case already open in Family Network so the origin of the need is not lost.",
+              "como": [
+                {
+                  "accion": "Register a case",
+                  "pasos": [
+                    "\"New case\" → if it already exists in Family Network, mark \"Link Family Network case\" (auto-fills the family).",
+                    "Choose Family, Need type (Financial, Food, Health, Housing, Other), Priority, and Responsible party → \"Register case\"."
+                  ]
+                },
+                {
+                  "accion": "Register aid delivered",
+                  "pasos": [
+                    "Select the case, update the Status if applicable (Identified, Being supported, Resolved, Closed).",
+                    "Fill in Date, Aid type (Material, Financial, Companionship, Other), Description → \"Register aid\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Missionary Impact",
+              "queEs": "A read-only dashboard (no forms): consolidates the reach of Prison Ministry, Youth Mission, and Social Outreach so you can see at a glance how many people your congregation reaches outside the church building.",
+              "como": [
+                {
+                  "accion": "View it",
+                  "pasos": [
+                    "Check \"People reached\" (sum of the three fronts) and the \"People reached by front\" chart.",
+                    "If you need to register something, go directly to the relevant module — nothing is edited here.",
+                    "Export with the CSV/Excel/PDF buttons if you need to share the consolidated figures."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Managing your congregation (pastor only)",
+          "items": [
+            {
+              "titulo": "Team",
+              "queEs": "Grants or removes web access and/or operational responsibility (capture from the mobile app, without web access) for people in your congregation's census.",
+              "como": [
+                {
+                  "accion": "Grant access to someone",
+                  "pasos": [
+                    "\"Add or update access\" → select the person (they must be in your census).",
+                    "Mark \"Web access\" (optional, with the profile they will operate under) and/or \"Operational responsibility\" (optional, mobile capture for a specific module).",
+                    "Save — they receive a real email invitation if you granted web access."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Modules & Activities",
+              "queEs": "Configures the operational structure: which modules exist (e.g. Ushers), their activity types, the list of ushers, the REFAM/ESFOB/Discipleship lesson catalogs, and which committee corresponds to each age range. \"Evangelism\" and \"Youth Mission\" are locked here because they are managed from their own screens.",
+              "como": [
+                {
+                  "accion": "Create a module and its activities",
+                  "pasos": [
+                    "In \"Active modules\", type the name and click the \"+\" button.",
+                    "Select the module and add the activity name (e.g. \"Sunday service\") in the right-hand panel with the \"+\" button.",
+                    "Use the pencil to edit or the power icon to deactivate/reactivate (system modules cannot be touched here)."
+                  ]
+                },
+                {
+                  "accion": "Define the suggested committee by age",
+                  "pasos": [
+                    "In \"Age ranges and committees\", fill in the Range name, Age from/to, Gender and Marital status (optional), and the Committee.",
+                    "\"Add\" — this only suggests the correct committee in Membership, it never transfers anyone automatically."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Local Settings",
+              "queEs": "The congregation's identity, system behavior preferences (alerts, requirements when recording attendance), and its own catalogs (demographic categories, Friend stages, committee types, and roles).",
+              "como": [
+                {
+                  "accion": "Adjust alert preferences",
+                  "pasos": [
+                    "In \"Congregation's preferences\", set the Decline alert threshold (%) and the Default module when recording attendance.",
+                    "Mark \"Require responsible party\" and/or \"Request notes\" if you want to make them mandatory → \"Save preferences\"."
+                  ]
+                },
+                {
+                  "accion": "Add a committee role",
+                  "pasos": [
+                    "In \"Committee roles\", fill in Name and Code.",
+                    "Mark \"Requires being sealed with the Holy Spirit\" only if that role requires it in addition to being baptized (baptized is already always mandatory) → \"Add role\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Membership Audit",
+              "queEs": "History of changes to the census and pastoral follow-up: who created, updated, or deleted a record, and exactly what changed (before/after).",
+              "como": [
+                {
+                  "accion": "Check and investigate a change",
+                  "pasos": [
+                    "In \"Audit filters\", choose Entity and Action (Creations/Updates/Deletions) and a date range if needed.",
+                    "Click \"View changes\" next to the record you're interested in to see the before/after detail."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "distrital": [
+        {
+          "seccion": "Your day to day",
+          "items": [
+            {
+              "titulo": "Overview",
+              "queEs": "Consolidates the status of every congregation in the district at a glance (active members, vacant pastorates, baptized/sealed, growth) to spot which congregation needs attention.",
+              "como": [
+                {
+                  "accion": "Check it",
+                  "pasos": [
+                    "Check the \"District dashboard\" — each row shows a green or red dot with the detail of what is failing.",
+                    "In \"Comparison by congregation\", use \"Sort by...\" (new members 3 months, active people, attendance last month, drop-offs 3 months) to see who is growing or falling behind.",
+                    "Click \"Go to District Pastoral Management\" to take action."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Pastoral management",
+          "items": [
+            {
+              "titulo": "Register new congregation",
+              "queEs": "Registers a new congregation for your district along with its first pastor, in a single step. On save, a real email invitation is sent to the pastor, and the congregation is left pending approval until it is activated in \"Approvals\".",
+              "como": [
+                {
+                  "accion": "Register it",
+                  "pasos": [
+                    "In the \"Register new congregation\" card, type or choose the name (suggestions come from the official IPUC catalog).",
+                    "Fill in City/Municipality, the pastor's First and Last name, Phone (optional), and the pastor's Email (required, that's where the invitation is sent).",
+                    "Click \"Create congregation and invite pastor\" — the notice confirms whether the invitation was sent."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "District board",
+              "queEs": "A census of who holds each of the 6 official roles (Supervisor, Secretary, Treasurer, Presbyter A, Presbyter B, Overseer) — separate from software access, assigning the role here neither grants nor removes SIGAP permissions.",
+              "como": [
+                {
+                  "accion": "Assign a role",
+                  "pasos": [
+                    "In \"District board\", choose the Person (they must be in the active census of some congregation in the district), the Role, and the \"From\" date.",
+                    "Click \"Assign role\".",
+                    "To close a term, click \"End term\" on that person's row."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Committees by congregation",
+              "queEs": "A series of cards (one for each of the 11 committees/fronts: Sunday School, Dorcas Ladies, Prison Ministry, Music, Arts Education, Theological Education, Conquerors, Social Outreach, Youth Mission, Family Network, and Evangelistic Journey) consolidating every congregation in the district, without having to open each one.",
+              "como": [
+                {
+                  "accion": "Review a committee",
+                  "pasos": [
+                    "Scroll down to the card for the committee you want (e.g. \"Sunday School by congregation\").",
+                    "Use that card's own \"Sort by...\" selector to identify who is leading or who is at zero."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Pastoral training and transfers",
+              "queEs": "Manages a pastor's lifecycle in the district: registering them, transferring them, advancing their ministerial license, recording their academic training, and closing their assignment when they retire.",
+              "como": [
+                {
+                  "accion": "Register a new pastor",
+                  "pasos": [
+                    "\"Register pastor\" → First name, Last name, Phone, Pastoral family, Email, search for the Congregation (only shows those without a pastor), choose the Role (Local/associate/assistant pastor or Coordinator) and the \"From\" date.",
+                    "Click \"Register pastor\"."
+                  ]
+                },
+                {
+                  "accion": "Transfer a pastor to another congregation",
+                  "pasos": [
+                    "\"Transfer pastor\" → select Pastor, New congregation, Date, and optional remarks.",
+                    "Click \"Confirm transfer\" — the previous congregation is immediately left vacant."
+                  ]
+                },
+                {
+                  "accion": "End a pastoral assignment",
+                  "pasos": [
+                    "\"End pastoral assignment\" → select Pastor, Date, and the reason in Remarks.",
+                    "Click \"End assignment\" — this leaves the congregation vacant and revokes the pastor's access."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Oversight",
+          "items": [
+            {
+              "titulo": "Missionary Impact",
+              "queEs": "Consolidates the reach of Prison Ministry, Youth Mission, and Social Outreach across the whole district.",
+              "como": [
+                {
+                  "accion": "View it",
+                  "pasos": [
+                    "Check the people-reached cards and the chart by front.",
+                    "Export with CSV/Excel/PDF if you need to share it."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Membership Audit",
+              "queEs": "Changes to the census of any congregation in your district, with who made them and when.",
+              "como": [
+                {
+                  "accion": "Investigate a change",
+                  "pasos": [
+                    "Filter by Entity and Action in \"Audit filters\".",
+                    "Click \"View changes\" for the before/after detail."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Approvals",
+              "queEs": "Activate, suspend, or cancel the congregations in your district. A registered congregation cannot use the system until it is approved here.",
+              "como": [
+                {
+                  "accion": "Approve, suspend, or cancel",
+                  "pasos": [
+                    "Find the row with \"Pending approval\" status.",
+                    "Click the green icon (✓) to approve, the red one (✗) to suspend, or the trash icon to cancel (asks you to confirm \"Yes, cancel\" — cannot be undone).",
+                    "An active congregation has a \"Suspend\" link; a suspended one has \"Reactivate\"."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "nacional": [
+        {
+          "seccion": "Your day to day",
+          "items": [
+            {
+              "titulo": "Overview",
+              "queEs": "Consolidates the IPUC's 36 districts in Colombia in one place (members, vacancies, baptized/sealed, growth) to compare and decide at a country scale.",
+              "como": [
+                {
+                  "accion": "Check it",
+                  "pasos": [
+                    "Check the \"National dashboard\" (the same 5 signals as the district one, added up at country level).",
+                    "In \"Comparison by district\", use \"Sort by...\" to find the district that needs support.",
+                    "Click \"Go to National Pastoral Management\" to take action."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Country view",
+          "items": [
+            {
+              "titulo": "National Pastoral Management",
+              "queEs": "Ministerial ranking (Worker → Local License → General License → Ordination) and the board of the 36 districts. It is also where system access is granted to a new district leader (or national, if you are super_admin).",
+              "como": [
+                {
+                  "accion": "Grant access to a new leader",
+                  "pasos": [
+                    "In \"Grant system access\", search for the person in \"Person (search the national census)\".",
+                    "Choose the Level to grant (District, or National if you are super_admin) and, if District, the District.",
+                    "Type the access Email → \"Grant access\"."
+                  ]
+                },
+                {
+                  "accion": "Download the quarterly report",
+                  "pasos": [
+                    "In \"Quarterly report by district\", choose Year and Quarter.",
+                    "Sort by new Baptized/Sealed/Reconciled/Delivered and click \"Download PDF\"."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "National Committees",
+              "queEs": "Consolidates the IPUC's 10 real committees at country scale — the same information each district leader sees for their own district, added up nationally. It is read-only, with no forms.",
+              "como": [
+                {
+                  "accion": "View it",
+                  "pasos": [
+                    "Check the 10 KPI cards (one per committee, national total).",
+                    "Scroll down to the \"By district\" table for the breakdown across the 36 districts."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "District Catalog",
+              "queEs": "Master catalog of the 36 districts (identified only by number, with no name of their own) and the place to reassign a congregation from one district to another when it was placed incorrectly.",
+              "como": [
+                {
+                  "accion": "Create or edit a district",
+                  "pasos": [
+                    "\"New district\" → type the Number (1 to 36) → \"Create district\"."
+                  ]
+                },
+                {
+                  "accion": "Reassign a congregation",
+                  "pasos": [
+                    "In \"Congregations by district\", search for the congregation, choose the new district in the dropdown → \"Move\" (only enabled if the destination changed)."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "Missionary Impact",
+              "queEs": "Same as at the district level, but consolidates Prison Ministry, Youth Mission, and Social Outreach across all of the IPUC in Colombia.",
+              "como": [
+                {
+                  "accion": "View it",
+                  "pasos": [
+                    "Check the KPI cards and the \"People reached by front\" chart.",
+                    "Export the national consolidated figures with CSV/Excel/PDF."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "Oversight",
+          "items": [
+            {
+              "titulo": "Membership Audit",
+              "queEs": "Changes to the census of any congregation in the country.",
+              "como": [
+                {
+                  "accion": "Investigate a change",
+                  "pasos": [
+                    "Apply the same Entity/Action/date filters.",
+                    "Click \"View changes\" for the detail of any congregation in the country."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "super_admin": [
+        {
+          "seccion": "Your day to day",
+          "items": [
+            {
+              "titulo": "Business panel (Overview)",
+              "queEs": "The super_admin-exclusive Overview — unlike national (the IPUC's pastoral data), this panel is 100% about the SIGAP business: active/pending/new congregations, subscription status, revenue, and how fast the business is growing.",
+              "como": [
+                {
+                  "accion": "Read it",
+                  "pasos": [
+                    "Check the cards at the top (Total/Active/Pending/New congregations).",
+                    "In \"Growth\", check the trend of new congregations per month and use the \"Simulator\" (expected new congregations per month) to project 3/6/12 months out.",
+                    "In \"Need attention soon\", act on those blocked/in grace period/about to expire with the \"Go to Subscriptions\" button."
+                  ]
+                },
+                {
+                  "accion": "Download the business report",
+                  "pasos": [
+                    "Click \"CSV\", \"Excel\", or \"PDF\" next to \"Business report\" — it comes out branded as SIGAP (not IPUC), ready to share, for example with yourself as CEO."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seccion": "SIGAP business (super_admin only)",
+          "items": [
+            {
+              "titulo": "Subscriptions",
+              "queEs": "Per-congregation billing (monthly or annual, manual payment via Nequi/bank transfer). Sets the payment method each congregation sees and logs when they paid you.",
+              "como": [
+                {
+                  "accion": "Set up the payment method",
+                  "pasos": [
+                    "In \"Payment method for congregations\", fill in the Nequi/bank details → \"Save payment method\"."
+                  ]
+                },
+                {
+                  "accion": "Log a payment",
+                  "pasos": [
+                    "On the congregation's row, click \"Log payment\" — it moves the next payment date forward a month or a year depending on the plan, without losing any time already paid if you log it early."
+                  ]
+                }
+              ]
+            },
+            {
+              "titulo": "System Errors",
+              "queEs": "Any real JavaScript error a user runs into (a broken screen, something that failed) is logged here automatically, with no one having to report it.",
+              "como": [
+                {
+                  "accion": "Review and handle it",
+                  "pasos": [
+                    "Turn on \"Show only unreviewed\" to focus on what's new.",
+                    "Click \"View stack\" for the technical detail if you need it.",
+                    "Click \"Mark reviewed\" once you've handled it, or delete it if it no longer applies."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "herramientasGenerales": [
+      {
+        "titulo": "Reports",
+        "queEs": "Read-only view of attendance and activity by period, with the full detail loaded in pages of 50 records.",
+        "como": [
+          {
+            "accion": "View and export",
+            "pasos": [
+              "Choose the period in the top selector (last 30 days, all-time, etc.).",
+              "Download with the CSV / Excel / PDF buttons (with the official IPUC letterhead)."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Support",
+        "queEs": "Report a technical problem or something that isn't working — it goes straight to the team that maintains SIGAP, with an email copy. (super_admin can also see and resolve reports from the whole country, not just their own.)",
+        "como": [
+          {
+            "accion": "Send a report",
+            "pasos": [
+              "Write the Subject and the Description (what happened, on which screen, what you expected).",
+              "Click \"Send report\". If it's urgent, you can also write to soportesigasoftware@gmail.com."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Internal Requests",
+        "queEs": "A formal channel (not a chat) to communicate with your district or national leader — ask for something, report a situation, or make a suggestion, with a follow-up status until it's resolved.",
+        "como": [
+          {
+            "accion": "Send a request",
+            "pasos": [
+              "Choose the Type (Administrative, Complaint, Suggestion, Resource, Other) and the Priority.",
+              "Write the Subject and Description, and send — track the status (Pending/In progress/Resolved/Closed) from the same screen."
+            ]
+          }
+        ]
+      },
+      {
+        "titulo": "Personal Preferences / My Profile",
+        "queEs": "Your own account: correct your name (the same one shown in the census), change your password, view your active roles/permissions, date format, and turn on two-factor verification.",
+        "como": [
+          {
+            "accion": "Adjust it",
+            "pasos": [
+              "Click your name or \"Profile\" (top right) to correct your first/last name.",
+              "In \"Personal preferences\", turn on Two-factor verification if you want an extra layer of security."
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
