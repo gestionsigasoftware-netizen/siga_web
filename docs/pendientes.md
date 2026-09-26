@@ -82,8 +82,18 @@
 	  (login + EN/PT, cero errores de consola, pluralizacion real
 	  incluyendo la regla CLDR de portugues donde 0 y 1 comparten forma
 	  singular).
-	- **Falta**: el contenido propio de las ~14 pantallas restantes
-	  (EscuelaDominical, EstacionRefam, Manual, Conquistadores,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 2)**:
+	  `EscuelaDominical.jsx` (509 lineas -- diccionario de etapas
+	  Cuna/Parvulos/Primarios/Preadolescentes traducido solo para
+	  mostrar, el valor guardado en BD sigue en espanol) y
+	  `EstacionRefam.jsx` (498 lineas -- grupos REFAM, participantes,
+	  bitacora de notas por leccion, reuniones con asistencia
+	  individual). 33 pantallas en total verificadas con Playwright
+	  real (login + EN/PT, cero errores de consola, clic real dentro
+	  de un grupo REFAM para confirmar el panel de participantes y
+	  reuniones).
+	- **Falta**: el contenido propio de las ~12 pantallas restantes
+	  (Manual, Conquistadores,
 	  EducacionTeologica, Musica, EducacionArtistica, DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
