@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../lib/supabase";
 import { hoyBogota, fechaBogota } from "../lib/fechaBogota";
 import { useMiRol } from "../hooks/useMiRol";
@@ -84,6 +85,7 @@ const FRIEND_FIELDS =
   "id, nombres, telefono, telefono_tipo, tiene_whatsapp, telefono_alterno, red_social, direccion, sector, invitado_por, fecha_primer_contacto, etapa_id, zona_id, evangelismo_metodologia_id, convertido, estado_espiritual, persona_id, categoria_asignada_id, fecha_nacimiento, estado_civil, genero, comite_origen_id, created_at, bautizado, fecha_bautismo, sellado, fecha_sellado, tipo_sangre, eps_nombre, condiciones_medicas, alergias, medicamentos_actuales, discapacidad, embarazada, fecha_probable_parto, contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco, autorizacion_datos_salud, fecha_autorizacion_datos_salud, consentimiento_datos_firma, fecha_consentimiento_datos, etapas_seguimiento(nombre, orden), zonas(nombre), comite_origen:comites!amigos_comite_origen_id_fkey(nombre)";
 
 export default function Amigos() {
+  const { t } = useTranslation();
   const pageSize = 50;
   const [searchParams] = useSearchParams();
   const station = searchParams.get("station");
@@ -140,7 +142,7 @@ export default function Amigos() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("amigos.sinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${page}:${filtro}:${busqueda}`;
@@ -213,7 +215,7 @@ export default function Amigos() {
       convertedResult.error
       || analysisResult.error
     )
-      setError("No se pudo cargar la ruta de seguimiento.");
+      setError(t("amigos.errorRuta"));
     const friendIds = (friendResult.data ?? []).map((friend) => friend.id);
     let rutaActivaPorAmigo = {};
     if (friendIds.length) {
@@ -365,7 +367,7 @@ export default function Amigos() {
       .order("created_at", { ascending: false })
       .then(({ data, error: notesError }) => {
         if (requestId !== notesRequest.current) return;
-        if (notesError) setError("No se pudieron cargar las notas.");
+        if (notesError) setError(t("amigos.errorNotas"));
         setNotes(data ?? []);
         setNotesLoading(false);
       });
@@ -376,7 +378,7 @@ export default function Amigos() {
       .order("creado_en", { ascending: false })
       .then(({ data, error: historyError }) => {
         if (requestId !== notesRequest.current) return;
-        if (historyError) setError("No se pudo cargar el historial de etapas.");
+        if (historyError) setError(t("amigos.errorHistorialEtapas"));
         setStageHistory(data ?? []);
         setHistoryLoading(false);
       });
@@ -387,7 +389,7 @@ export default function Amigos() {
       .order("fecha_inicio", { ascending: true })
       .then(({ data, error: routeError }) => {
         if (requestId !== notesRequest.current) return;
-        if (routeError) setError("No se pudo cargar la ruta actual.");
+        if (routeError) setError(t("amigos.errorRutaActual"));
         const historial = data ?? [];
         setRouteHistory(historial);
         setRouteProcess(historial.find((row) => row.estado === "activo" || row.estado === "pausado") ?? null);
@@ -397,7 +399,7 @@ export default function Amigos() {
 
   async function createFriend(event) {
     event.preventDefault();
-    if (!canEdit) { setError("Tu perfil solo permite consultar Amigos en ruta."); return; }
+    if (!canEdit) { setError(t("amigos.errorSoloConsulta")); return; }
     setSaving(true);
     setError(null);
     const payload = {
@@ -432,7 +434,7 @@ export default function Amigos() {
       .single();
     setSaving(false);
     if (insertError) {
-      setError(`No se pudo registrar el amigo: ${insertError.message}`);
+      setError(t("amigos.errorRegistrar", { mensaje: insertError.message }));
       return;
     }
     setAmigos((current) => [data, ...current]);
@@ -446,7 +448,7 @@ export default function Amigos() {
 
   async function saveFriend(event) {
     event.preventDefault();
-    if (!canEdit) { setError("Tu perfil solo permite consultar Amigos en ruta."); return; }
+    if (!canEdit) { setError(t("amigos.errorSoloConsulta")); return; }
     if (!selected) return;
     setSaving(true);
     setError(null);
@@ -483,7 +485,7 @@ export default function Amigos() {
       .single();
     setSaving(false);
     if (updateError) {
-      setError(`No se pudo actualizar el seguimiento: ${updateError.message}`);
+      setError(t("amigos.errorActualizar", { mensaje: updateError.message }));
       return;
     }
     setAmigos((current) =>
@@ -496,14 +498,14 @@ export default function Amigos() {
       zona_id: data.zona_id || "",
       evangelismo_metodologia_id: data.evangelismo_metodologia_id || "",
     });
-    setNotice("Cambios guardados.");
+    setNotice(t("amigos.cambiosGuardados"));
   }
 
   async function markBaptized() {
     if (!selected) return;
-    if (!canEdit) { setError("Tu perfil no permite modificar el estado espiritual."); return; }
+    if (!canEdit) { setError(t("amigos.errorEstadoEspiritual")); return; }
     if (selected.persona_id) {
-      setError("La persona ya está incorporada a Feligresía y no puede volver a estado en ruta desde aquí.");
+      setError(t("amigos.errorYaFeligresia"));
       return;
     }
     setSaving(true);
@@ -521,7 +523,7 @@ export default function Amigos() {
       .eq("congregacion_id", congregacionId);
     setSaving(false);
     if (updateError) {
-      setError(`No se pudo actualizar la conversión: ${updateError.message}`);
+      setError(t("amigos.errorConversion", { mensaje: updateError.message }));
       return;
     }
     setAmigos((current) =>
@@ -534,7 +536,7 @@ export default function Amigos() {
 
   async function markSealed() {
     if (!selected || selected.sellado) return;
-    if (!canEdit) { setError("Tu perfil no permite modificar el estado espiritual."); return; }
+    if (!canEdit) { setError(t("amigos.errorEstadoEspiritual")); return; }
     setSaving(true);
     setError(null);
     const values = { sellado: true, fecha_sellado: hoyBogota() };
@@ -544,7 +546,7 @@ export default function Amigos() {
       .eq("id", selected.id)
       .eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (updateError) { setError(`No se pudo actualizar el sellado: ${updateError.message}`); return; }
+    if (updateError) { setError(t("amigos.errorSellado", { mensaje: updateError.message })); return; }
     setAmigos((current) => current.map((friend) => (friend.id === selected.id ? { ...friend, ...values } : friend)));
     setSelected((current) => ({ ...current, ...values }));
   }
@@ -560,15 +562,15 @@ export default function Amigos() {
         pastorNombre: congregacion?.pastor_nombre,
       });
     } catch (pdfError) {
-      setError(`No se pudo generar el certificado: ${pdfError.message}`);
+      setError(t("amigos.errorCertificado", { mensaje: pdfError.message }));
     }
   }
 
   async function incorporateIntoFeligresia() {
     if (!selected || selected.estado_espiritual !== "bautizado") return;
-    if (!canEdit) { setError("Tu perfil no permite incorporar personas a Feligresía."); return; }
+    if (!canEdit) { setError(t("amigos.errorIncorporarPermiso")); return; }
     if (!editForm.fecha_nacimiento) {
-      setError("Registra la fecha de nacimiento antes de incorporar a Feligresía.");
+      setError(t("amigos.errorFechaNacimientoRequerida"));
       return;
     }
     setSaving(true);
@@ -583,7 +585,7 @@ export default function Amigos() {
     });
     setSaving(false);
     if (transferError) {
-      setError(`No se pudo incorporar a Feligresía: ${transferError.message}`);
+      setError(t("amigos.errorIncorporar", { mensaje: transferError.message }));
       return;
     }
     setSelected((current) => ({ ...current, persona_id: personaId }));
@@ -594,25 +596,23 @@ export default function Amigos() {
     if (!selected || !routeHistory.length) return;
     await descargarPdf({
       filename: `recorrido-${selected.nombres.replace(/\s+/g, "-").toLowerCase()}.pdf`,
-      titulo: `Recorrido de la Ruta Evangelística — ${selected.nombres}`,
-      meta: [`Primer contacto: ${formatFecha(selected.fecha_primer_contacto, { formato: formato_fecha })}`, selected.convertido ? "Estado: convertido" : "Estado: en ruta"],
-      headers: ["Estación", "Inicio", "Cierre", "Responsable"],
+      titulo: t("amigos.recorridoTitulo", { nombre: selected.nombres }),
+      meta: [`${t("amigos.primerContacto")}: ${formatFecha(selected.fecha_primer_contacto, { formato: formato_fecha })}`, `${t("amigos.estado")}: ${selected.convertido ? t("amigos.estadoConvertido") : t("amigos.estadoEnRuta")}`],
+      headers: [t("amigos.colEstacion"), t("amigos.colInicio"), t("amigos.colCierre"), t("amigos.colResponsable")],
       rows: routeHistory.map((row) => [
-        row.estacion?.nombre || "Sin nombre",
+        row.estacion?.nombre || t("amigos.sinNombre"),
         formatFecha(row.fecha_inicio, { formato: formato_fecha }),
-        row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : "En curso",
-        row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : "Sin asignar",
+        row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : t("amigos.enCurso"),
+        row.responsable ? `${row.responsable.nombres} ${row.responsable.apellidos}` : t("amigos.sinAsignar"),
       ]),
     });
   }
 
   async function removeFriend() {
-    if (!canEdit) { setError("Tu perfil no permite eliminar seguimientos."); return; }
+    if (!canEdit) { setError(t("amigos.errorEliminarPermiso")); return; }
     if (
       !selected ||
-      !window.confirm(
-        `¿Eliminar el seguimiento de ${selected.nombres}? Esta acción no se puede deshacer.`,
-      )
+      !window.confirm(t("amigos.confirmEliminar", { nombre: selected.nombres }))
     )
       return;
     setSaving(true);
@@ -623,7 +623,7 @@ export default function Amigos() {
       .eq("congregacion_id", congregacionId);
     setSaving(false);
     if (deleteError) {
-      setError(`No se pudo eliminar el seguimiento: ${deleteError.message}`);
+      setError(t("amigos.errorEliminar", { mensaje: deleteError.message }));
       return;
     }
     setAmigos((current) =>
@@ -634,7 +634,7 @@ export default function Amigos() {
 
   async function addNote(event) {
     event.preventDefault();
-    if (!canEdit) { setError("Tu perfil no permite registrar notas."); return; }
+    if (!canEdit) { setError(t("amigos.errorNotasPermiso")); return; }
     if (!selected || !newNote.trim()) return;
     setSaving(true);
     const { data, error: noteError } = await supabase
@@ -644,7 +644,7 @@ export default function Amigos() {
       .single();
     setSaving(false);
     if (noteError) {
-      setError("No se pudo guardar la nota.");
+      setError(t("amigos.errorGuardarNota"));
       return;
     }
     setNotes((current) => [data, ...current]);
@@ -656,7 +656,7 @@ export default function Amigos() {
   // campo nuevo -- así no hay una fecha manual más que alguien tenga que
   // recordar escribir, y el badge de "días sin contacto" se actualiza solo.
   async function marcarContactoHoy() {
-    if (!canEdit) { setError("Tu perfil no permite registrar notas."); return; }
+    if (!canEdit) { setError(t("amigos.errorNotasPermiso")); return; }
     if (!selected) return;
     setSaving(true);
     const { data, error: noteError } = await supabase
@@ -665,17 +665,17 @@ export default function Amigos() {
       .select("id, nota, created_at")
       .single();
     setSaving(false);
-    if (noteError) { setError("No se pudo registrar el contacto."); return; }
+    if (noteError) { setError(t("amigos.errorRegistrarContacto")); return; }
     setNotes((current) => [data, ...current]);
     setUltimoContactoPorAmigo((current) => ({ ...current, [selected.id]: hoyBogota() }));
-    setNotice("Contacto de hoy registrado.");
+    setNotice(t("amigos.contactoRegistrado"));
   }
 
   if (roleLoading || loading)
     return (
       <div className="module-loading" role="status">
         <span className="loading-dot" />
-        Cargando ruta de seguimiento...
+        {t("amigos.cargandoRuta")}
       </div>
     );
   if (!congregacionId)
@@ -694,13 +694,12 @@ export default function Amigos() {
         <div>
           <Link to="/misiones-evangelismo" className="btn-secondary mb-4">
             <ArrowLeft className="w-4 h-4" />
-            Volver a Misiones y Evangelismo
+            {t("amigos.volverMisiones")}
           </Link>
-          <p className="eyebrow">Ruta de integración</p>
-          <h1 className="section-title">Amigos en ruta</h1>
+          <p className="eyebrow">{t("amigos.eyebrow")}</p>
+          <h1 className="section-title">{t("amigos.titulo")}</h1>
           <p className="text-sm text-secondary mt-1">
-            Acompaña cada historia desde el primer contacto hasta su
-            integración.
+            {t("amigos.subtitulo")}
           </p>
         </div>
         {canEdit && !isBis && <button
@@ -709,10 +708,10 @@ export default function Amigos() {
           className="btn-primary"
         >
           <Plus className="w-4 h-4" />
-          {showForm ? "Cerrar registro" : "Registrar amigo"}
+          {showForm ? t("amigos.cerrarRegistro") : t("amigos.registrarAmigo")}
         </button>}
       </header>
-      {isBis && <p className="text-sm text-secondary bg-accent-bg rounded p-3">BIS trabaja sobre amigos ya registrados en Uno Más. Selecciona una ficha para registrar bienvenida, seguimiento e integración; no crees un nuevo amigo desde esta estación.</p>}
+      {isBis && <p className="text-sm text-secondary bg-accent-bg rounded p-3">{t("amigos.bisAviso")}</p>}
       {error && (
         <p
           role="alert"
@@ -725,13 +724,13 @@ export default function Amigos() {
       <section className="grid sm:grid-cols-3 gap-3">
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">
-            En acompañamiento
+            {t("amigos.enAcompanamiento")}
           </p>
           <p className="text-2xl font-semibold mt-3">{active}</p>
         </div>
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary">
-            Convertidos
+            {t("amigos.convertidos")}
           </p>
           <p className="text-2xl font-semibold mt-3 text-success">
             {converted}
@@ -739,8 +738,8 @@ export default function Amigos() {
         </div>
         <div className="stat-tile">
           <p className="text-[10px] uppercase tracking-[0.14em] text-secondary flex items-center gap-1.5">
-            Sin ruta iniciada
-            <InfoTip texto="Amigos que todavía no tienen una estación activa en la Ruta Evangelística (Uno Más, BIS, REFAM, ESFOB, Discipulado) -- inícialos desde alguna de esas estaciones." />
+            {t("amigos.sinRutaIniciada")}
+            <InfoTip texto={t("amigos.sinRutaTip")} />
           </p>
           <p className={`text-2xl font-semibold mt-3 ${sinRutaCount ? "text-warning" : ""}`}>{sinRutaCount}</p>
         </div>
@@ -752,7 +751,7 @@ export default function Amigos() {
           className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end"
         >
           <label className="text-sm">
-            Nombre completo
+            {t("amigos.nombreCompleto")}
             <input
               required
               className="input-field mt-1.5"
@@ -763,7 +762,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Teléfono
+            {t("amigos.telefono")}
             <input
               className="input-field mt-1.5"
               value={form.telefono}
@@ -773,7 +772,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Tipo de teléfono
+            {t("amigos.tipoTelefono")}
             <select
               className="input-field mt-1.5 w-full"
               value={form.telefono_tipo}
@@ -781,7 +780,7 @@ export default function Amigos() {
                 setForm({ ...form, telefono_tipo: event.target.value })
               }
             >
-              <option value="">Sin registrar</option>
+              <option value="">{t("amigos.sinRegistrar")}</option>
               {Object.entries(TELEFONO_TIPO_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
@@ -795,10 +794,10 @@ export default function Amigos() {
                 setForm({ ...form, tiene_whatsapp: event.target.checked })
               }
             />
-            Tiene WhatsApp en ese número
+            {t("amigos.tieneWhatsappLargo")}
           </label>
           <label className="text-sm">
-            Teléfono alterno
+            {t("amigos.telefonoAlterno")}
             <input
               className="input-field mt-1.5"
               value={form.telefono_alterno}
@@ -808,11 +807,11 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Red social
-            <InfoTip texto="Para cuando no se puede contactar por los medios habituales. Ej. 'Facebook: Juan Pérez'." />
+            {t("amigos.redSocial")}
+            <InfoTip texto={t("amigos.redSocialTip")} />
             <input
               className="input-field mt-1.5 w-full"
-              placeholder="Ej. Facebook: Juan Pérez"
+              placeholder={t("amigos.redSocialPlaceholder")}
               value={form.red_social}
               onChange={(event) =>
                 setForm({ ...form, red_social: event.target.value })
@@ -820,7 +819,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Dirección
+            {t("amigos.direccion")}
             <input
               className="input-field mt-1.5"
               value={form.direccion}
@@ -830,7 +829,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Sector
+            {t("amigos.sector")}
             <input
               className="input-field mt-1.5"
               value={form.sector}
@@ -840,7 +839,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Invitado por
+            {t("amigos.invitadoPor")}
             <input
               className="input-field mt-1.5"
               value={form.invitado_por}
@@ -850,7 +849,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Primer contacto
+            {t("amigos.primerContacto")}
             <input
               type="date"
               className="input-field mt-1.5"
@@ -861,7 +860,7 @@ export default function Amigos() {
             />
           </label>
           <label className="text-sm">
-            Zona responsable
+            {t("amigos.zonaResponsable")}
             <select
               className="input-field mt-1.5"
               value={form.zona_id}
@@ -869,7 +868,7 @@ export default function Amigos() {
                 setForm({ ...form, zona_id: event.target.value })
               }
             >
-              <option value="">Sin zona</option>
+              <option value="">{t("amigos.sinZona")}</option>
               {zonas.map((zone) => (
                 <option key={zone.id} value={zone.id}>
                   {zone.nombre}
@@ -878,7 +877,7 @@ export default function Amigos() {
             </select>
           </label>
           <label className="text-sm">
-            Metodología de Evangelismo
+            {t("amigos.metodologiaEvangelismo")}
             <select
               className="input-field mt-1.5"
               value={form.evangelismo_metodologia_id}
@@ -886,7 +885,7 @@ export default function Amigos() {
                 setForm({ ...form, evangelismo_metodologia_id: event.target.value })
               }
             >
-              <option value="">Sin metodología</option>
+              <option value="">{t("amigos.sinMetodologia")}</option>
               {metodologias.map((method) => (
                 <option key={method.id} value={method.id}>
                   {method.nombre}
@@ -895,7 +894,7 @@ export default function Amigos() {
             </select>
           </label>
           <label className="text-sm">
-            Etapa inicial
+            {t("amigos.etapaInicial")}
             <select
               className="input-field mt-1.5"
               value={form.etapa_id}
@@ -903,7 +902,7 @@ export default function Amigos() {
                 setForm({ ...form, etapa_id: event.target.value })
               }
             >
-              <option value="">Sin etapa</option>
+              <option value="">{t("amigos.sinEtapa")}</option>
               {etapas.map((stage) => (
                 <option key={stage.id} value={stage.id}>
                   {stage.nombre}
@@ -912,8 +911,8 @@ export default function Amigos() {
             </select>
           </label>
           <label className="text-sm flex items-center gap-1">
-            Comité que lo recibió
-            <InfoTip texto="El comité que lo atendió en el culto o actividad y le hará seguimiento -- para no perderlo de vista aunque todavía no llegue a REFAM. Opcional." />
+            {t("amigos.comiteRecibio")}
+            <InfoTip texto={t("amigos.comiteRecibioTipCrear")} />
             <select
               className="input-field mt-1.5 w-full"
               value={form.comite_origen_id}
@@ -921,7 +920,7 @@ export default function Amigos() {
                 setForm({ ...form, comite_origen_id: event.target.value })
               }
             >
-              <option value="">Sin comité asignado</option>
+              <option value="">{t("amigos.sinComiteAsignado")}</option>
               {comites.map((comite) => (
                 <option key={comite.id} value={comite.id}>
                   {comite.nombre}
@@ -930,38 +929,38 @@ export default function Amigos() {
             </select>
           </label>
           <details className="sm:col-span-2 lg:col-span-4 border-t border-border pt-3">
-            <summary className="text-sm font-medium cursor-pointer select-none">Ficha de salud de emergencia</summary>
-            <p className="text-xs text-secondary mt-2">Es información de referencia para una emergencia (qué hacer, a quién avisar) -- la congregación no diagnostica, no prescribe ni administra medicamentos.</p>
+            <summary className="text-sm font-medium cursor-pointer select-none">{t("amigos.fichaSalud")}</summary>
+            <p className="text-xs text-secondary mt-2">{t("amigos.fichaSaludDesc")}</p>
             <label className="flex items-center gap-2 text-sm mt-3">
               <input type="checkbox" checked={Boolean(form.autorizacion_datos_salud)} onChange={(event) => setForm({ ...form, autorizacion_datos_salud: event.target.checked, fecha_autorizacion_datos_salud: event.target.checked ? (form.fecha_autorizacion_datos_salud || hoyBogota()) : "" })} />
-              La persona autoriza registrar su información de salud
-              <InfoTip texto="Requerido antes de guardar cualquier campo de esta sección -- la información de salud es un dato sensible (Ley 1581 de 2012)." />
+              {t("amigos.autorizaSalud")}
+              <InfoTip texto={t("amigos.autorizaSaludTip")} />
             </label>
             {form.autorizacion_datos_salud && <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-              <label className="text-sm">Tipo de sangre<select className="input-field mt-1.5 w-full" value={form.tipo_sangre} onChange={(event) => setForm({ ...form, tipo_sangre: event.target.value })}><option value="">Sin registrar</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
-              <label className="text-sm">EPS<input className="input-field mt-1.5" value={form.eps_nombre} onChange={(event) => setForm({ ...form, eps_nombre: event.target.value })} /></label>
-              <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={Boolean(form.embarazada)} onChange={(event) => setForm({ ...form, embarazada: event.target.checked })} /> Embarazada</label>
-              {form.embarazada && <label className="text-sm">Fecha probable de parto<input type="date" className="input-field mt-1.5" value={form.fecha_probable_parto} onChange={(event) => setForm({ ...form, fecha_probable_parto: event.target.value })} /></label>}
-              <label className="text-sm sm:col-span-2 lg:col-span-4">Condiciones médicas relevantes<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.condiciones_medicas} onChange={(event) => setForm({ ...form, condiciones_medicas: event.target.value })} /></label>
-              <label className="text-sm sm:col-span-2 lg:col-span-4">Alergias<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.alergias} onChange={(event) => setForm({ ...form, alergias: event.target.value })} /></label>
-              <label className="text-sm sm:col-span-2 lg:col-span-4">Medicamentos que toma actualmente<InfoTip texto="Solo de referencia para quien atienda una emergencia -- recetados por su propio médico, la congregación no los administra." /><textarea className="input-field mt-1.5 min-h-16 w-full" value={form.medicamentos_actuales} onChange={(event) => setForm({ ...form, medicamentos_actuales: event.target.value })} /></label>
-              <label className="text-sm sm:col-span-2 lg:col-span-4">Discapacidad<input className="input-field mt-1.5 w-full" placeholder="Ej. movilidad reducida, auditiva -- dejar vacío si no aplica" value={form.discapacidad} onChange={(event) => setForm({ ...form, discapacidad: event.target.value })} /></label>
-              <label className="text-sm">Contacto de emergencia<input className="input-field mt-1.5" placeholder="Ej: María Pérez" value={form.contacto_emergencia_nombre} onChange={(event) => setForm({ ...form, contacto_emergencia_nombre: event.target.value })} /></label>
-              <label className="text-sm mt-6"><input className="input-field" placeholder="Ej: 3001234567" value={form.contacto_emergencia_telefono} onChange={(event) => setForm({ ...form, contacto_emergencia_telefono: event.target.value })} /></label>
-              <label className="text-sm mt-6"><input className="input-field" placeholder="Ej: Mamá, esposo, hermano" value={form.contacto_emergencia_parentesco} onChange={(event) => setForm({ ...form, contacto_emergencia_parentesco: event.target.value })} /></label>
+              <label className="text-sm">{t("amigos.tipoSangre")}<select className="input-field mt-1.5 w-full" value={form.tipo_sangre} onChange={(event) => setForm({ ...form, tipo_sangre: event.target.value })}><option value="">{t("amigos.sinRegistrar")}</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
+              <label className="text-sm">{t("amigos.eps")}<input className="input-field mt-1.5" value={form.eps_nombre} onChange={(event) => setForm({ ...form, eps_nombre: event.target.value })} /></label>
+              <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={Boolean(form.embarazada)} onChange={(event) => setForm({ ...form, embarazada: event.target.checked })} /> {t("amigos.embarazada")}</label>
+              {form.embarazada && <label className="text-sm">{t("amigos.fechaProbableParto")}<input type="date" className="input-field mt-1.5" value={form.fecha_probable_parto} onChange={(event) => setForm({ ...form, fecha_probable_parto: event.target.value })} /></label>}
+              <label className="text-sm sm:col-span-2 lg:col-span-4">{t("amigos.condicionesMedicas")}<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.condiciones_medicas} onChange={(event) => setForm({ ...form, condiciones_medicas: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">{t("amigos.alergias")}<textarea className="input-field mt-1.5 min-h-16 w-full" value={form.alergias} onChange={(event) => setForm({ ...form, alergias: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">{t("amigos.medicamentosActuales")}<InfoTip texto={t("amigos.medicamentosTip")} /><textarea className="input-field mt-1.5 min-h-16 w-full" value={form.medicamentos_actuales} onChange={(event) => setForm({ ...form, medicamentos_actuales: event.target.value })} /></label>
+              <label className="text-sm sm:col-span-2 lg:col-span-4">{t("amigos.discapacidad")}<input className="input-field mt-1.5 w-full" placeholder={t("amigos.discapacidadPlaceholder")} value={form.discapacidad} onChange={(event) => setForm({ ...form, discapacidad: event.target.value })} /></label>
+              <label className="text-sm">{t("amigos.contactoEmergencia")}<input className="input-field mt-1.5" placeholder={t("amigos.contactoEmergenciaPlaceholderNombre")} value={form.contacto_emergencia_nombre} onChange={(event) => setForm({ ...form, contacto_emergencia_nombre: event.target.value })} /></label>
+              <label className="text-sm mt-6"><input className="input-field" placeholder={t("amigos.contactoEmergenciaPlaceholderTelefono")} value={form.contacto_emergencia_telefono} onChange={(event) => setForm({ ...form, contacto_emergencia_telefono: event.target.value })} /></label>
+              <label className="text-sm mt-6"><input className="input-field" placeholder={t("amigos.contactoEmergenciaPlaceholderParentesco")} value={form.contacto_emergencia_parentesco} onChange={(event) => setForm({ ...form, contacto_emergencia_parentesco: event.target.value })} /></label>
             </div>}
           </details>
           <details className="sm:col-span-2 lg:col-span-4 border-t border-border pt-3">
-            <summary className="text-sm font-medium cursor-pointer select-none">Consentimiento de datos{form.consentimiento_datos_firma ? " · Firmado" : ""}</summary>
-            <p className="text-xs text-secondary mt-2">Autorización para el uso de sus datos personales dentro de SIGAP, firmada a mano en pantalla.</p>
+            <summary className="text-sm font-medium cursor-pointer select-none">{t("amigos.consentimientoDatos")}{form.consentimiento_datos_firma ? ` · ${t("amigos.firmado")}` : ""}</summary>
+            <p className="text-xs text-secondary mt-2">{t("amigos.consentimientoDesc")}</p>
             {form.consentimiento_datos_firma ? <div className="mt-3">
-              <p className="text-xs text-secondary">Firmado el {formatFecha(form.fecha_consentimiento_datos, { formato: formato_fecha })}</p>
-              <img src={form.consentimiento_datos_firma} alt="Firma de consentimiento" className="border border-border rounded bg-white mt-2 h-20" />
-              <div className="mt-2"><button type="button" onClick={() => setForm({ ...form, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">Revocar consentimiento</button></div>
-            </div> : mostrarFirmaNueva ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setForm({ ...form, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaNueva(false) }} onCancelar={() => setMostrarFirmaNueva(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaNueva(true)} className="btn-secondary text-xs mt-3">Capturar firma</button>}
+              <p className="text-xs text-secondary">{t("amigos.firmadoEl", { fecha: formatFecha(form.fecha_consentimiento_datos, { formato: formato_fecha }) })}</p>
+              <img src={form.consentimiento_datos_firma} alt={t("amigos.firmaAlt")} className="border border-border rounded bg-white mt-2 h-20" />
+              <div className="mt-2"><button type="button" onClick={() => setForm({ ...form, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">{t("amigos.revocarConsentimiento")}</button></div>
+            </div> : mostrarFirmaNueva ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setForm({ ...form, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaNueva(false) }} onCancelar={() => setMostrarFirmaNueva(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaNueva(true)} className="btn-secondary text-xs mt-3">{t("amigos.capturarFirma")}</button>}
           </details>
           <button disabled={saving} className="btn-secondary justify-center">
-            {saving ? "Guardando..." : "Guardar amigo"}
+            {saving ? t("amigos.guardando") : t("amigos.guardarAmigo")}
           </button>
         </form>
       )}
@@ -969,21 +968,21 @@ export default function Amigos() {
         <div className="flex items-center gap-2 border border-border rounded px-3 py-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent">
           <Search className="w-4 h-4 text-muted" />
           <input
-            aria-label="Buscar amigos"
+            aria-label={t("amigos.buscarAmigosLabel")}
             className="bg-transparent outline-none text-sm w-full"
-            placeholder="Buscar amigo..."
+            placeholder={t("amigos.buscarAmigoPlaceholder")}
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
           />
         </div>
         <div
           role="group"
-          aria-label="Filtrar por etapa"
+          aria-label={t("amigos.filtrarPorEtapa")}
           className="flex items-center gap-2 flex-wrap"
         >
           <span className="text-xs text-secondary flex items-center gap-1">
-            Etapa
-            <InfoTip texto="Filtra por la etapa configurada (opcional), no por la estación de la Ruta Evangelística que ves en cada tarjeta -- son dos datos distintos." />
+            {t("amigos.etapa")}
+            <InfoTip texto={t("amigos.etapaFiltroTip")} />
           </span>
           <button
             type="button"
@@ -991,7 +990,7 @@ export default function Amigos() {
             onClick={() => setFiltro("todos")}
             className={`text-xs px-3 py-1.5 rounded-full border ${filtro === "todos" ? "bg-accent-bg text-accent border-accent/20" : "border-border text-secondary"}`}
           >
-            Todos
+            {t("amigos.todos")}
           </button>
           {etapas.map((stage) => (
             <button
@@ -1006,13 +1005,13 @@ export default function Amigos() {
           ))}
         </div>
       </div>
-      {totalAmigos > 0 && <div className="flex items-center justify-between gap-3 text-xs text-secondary"><span>Página {page + 1} de {totalPages} · {totalAmigos} amigos</span><div className="flex gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">Anterior</button><button type="button" disabled={page >= totalPages - 1 || loading} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">Siguiente</button></div></div>}
+      {totalAmigos > 0 && <div className="flex items-center justify-between gap-3 text-xs text-secondary"><span>{t("amigos.pagina", { actual: page + 1, total: totalPages, cantidad: totalAmigos })}</span><div className="flex gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => current - 1)} className="btn-secondary px-3">{t("amigos.anterior")}</button><button type="button" disabled={page >= totalPages - 1 || loading} onClick={() => setPage((current) => current + 1)} className="btn-secondary px-3">{t("amigos.siguiente")}</button></div></div>}
       <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
         <div>
           {filtrados.length === 0 ? (
             <div className="card p-8 text-center text-sm text-secondary">
               <MapPinned className="w-8 h-8 text-muted mx-auto mb-3" />
-              No hay amigos que coincidan con la búsqueda.
+              {t("amigos.sinCoincidencias")}
             </div>
           ) : (
             <div className="grid xl:grid-cols-2 gap-3">
@@ -1034,10 +1033,10 @@ export default function Amigos() {
                         <p className="text-xs text-secondary truncate">
                           {friend.sector ||
                             friend.zonas?.nombre ||
-                            "Sin sector asignado"}
+                            t("amigos.sinSectorAsignado")}
                         </p>
                         {!friend.convertido && ultimoContactoPorAmigo[friend.id] != null && diasDesde(ultimoContactoPorAmigo[friend.id]) > 21 && (
-                          <p className="text-[10px] text-warning mt-0.5">{diasDesde(ultimoContactoPorAmigo[friend.id])} días sin contacto</p>
+                          <p className="text-[10px] text-warning mt-0.5">{t("amigos.diasSinContacto", { count: diasDesde(ultimoContactoPorAmigo[friend.id]) })}</p>
                         )}
                       </div>
                     </div>
@@ -1045,8 +1044,8 @@ export default function Amigos() {
                       className={`censo-badge uppercase tracking-[0.08em] ${friend.convertido ? "bg-success-bg text-success" : (TONO_ESTACION[rutaActivaPorAmigo[friend.id]?.codigo] ?? "bg-surface-1 text-secondary")}`}
                     >
                       {friend.convertido
-                        ? "Convertido"
-                        : (rutaActivaPorAmigo[friend.id]?.nombre ?? "Sin ruta iniciada")}
+                        ? t("amigos.convertido")
+                        : (rutaActivaPorAmigo[friend.id]?.nombre ?? t("amigos.sinRutaIniciada"))}
                     </span>
                   </button>
                 );
@@ -1058,7 +1057,7 @@ export default function Amigos() {
           <aside className="card p-5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="eyebrow">Ficha de acompañamiento</p>
+                <p className="eyebrow">{t("amigos.fichaAcompanamiento")}</p>
                 <h2 className="text-lg font-semibold mt-1">
                   {selected.nombres}
                 </h2>
@@ -1067,15 +1066,15 @@ export default function Amigos() {
                 type="button"
                 onClick={() => setSelected(null)}
                 className="p-1.5 text-muted hover:text-ink"
-                aria-label="Cerrar ficha"
-                title="Cerrar ficha"
+                aria-label={t("amigos.cerrarFicha")}
+                title={t("amigos.cerrarFicha")}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={saveFriend} className="grid gap-3 mt-5">
               <label className="text-sm">
-                Nombre completo
+                {t("amigos.nombreCompleto")}
                 <input
                   required
                   className="input-field mt-1.5"
@@ -1087,7 +1086,7 @@ export default function Amigos() {
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm">
-                  Teléfono
+                  {t("amigos.telefono")}
                   <input
                     className="input-field mt-1.5"
                     value={editForm.telefono}
@@ -1097,7 +1096,7 @@ export default function Amigos() {
                   />
                 </label>
                 <label className="text-sm">
-                  Sector
+                  {t("amigos.sector")}
                   <input
                     className="input-field mt-1.5"
                     value={editForm.sector}
@@ -1109,7 +1108,7 @@ export default function Amigos() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm">
-                  Tipo de teléfono
+                  {t("amigos.tipoTelefono")}
                   <select
                     className="input-field mt-1.5 w-full"
                     value={editForm.telefono_tipo}
@@ -1117,7 +1116,7 @@ export default function Amigos() {
                       setEditForm({ ...editForm, telefono_tipo: event.target.value })
                     }
                   >
-                    <option value="">Sin registrar</option>
+                    <option value="">{t("amigos.sinRegistrar")}</option>
                     {Object.entries(TELEFONO_TIPO_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
                     ))}
@@ -1131,10 +1130,10 @@ export default function Amigos() {
                       setEditForm({ ...editForm, tiene_whatsapp: event.target.checked })
                     }
                   />
-                  Tiene WhatsApp
+                  {t("amigos.tieneWhatsappCorto")}
                 </label>
                 <label className="text-sm">
-                  Teléfono alterno
+                  {t("amigos.telefonoAlterno")}
                   <input
                     className="input-field mt-1.5"
                     value={editForm.telefono_alterno}
@@ -1144,10 +1143,10 @@ export default function Amigos() {
                   />
                 </label>
                 <label className="text-sm">
-                  Red social
+                  {t("amigos.redSocial")}
                   <input
                     className="input-field mt-1.5"
-                    placeholder="Ej. Facebook: Juan Pérez"
+                    placeholder={t("amigos.redSocialPlaceholder")}
                     value={editForm.red_social}
                     onChange={(event) =>
                       setEditForm({ ...editForm, red_social: event.target.value })
@@ -1156,7 +1155,7 @@ export default function Amigos() {
                 </label>
               </div>
               <label className="text-sm">
-                Dirección
+                {t("amigos.direccion")}
                 <input
                   className="input-field mt-1.5"
                   value={editForm.direccion}
@@ -1167,7 +1166,7 @@ export default function Amigos() {
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm">
-                  Etapa
+                  {t("amigos.etapa")}
                   <select
                     className="input-field mt-1.5"
                     value={editForm.etapa_id}
@@ -1175,7 +1174,7 @@ export default function Amigos() {
                       setEditForm({ ...editForm, etapa_id: event.target.value })
                     }
                   >
-                    <option value="">Sin etapa</option>
+                    <option value="">{t("amigos.sinEtapa")}</option>
                     {etapas.map((stage) => (
                       <option key={stage.id} value={stage.id}>
                         {stage.nombre}
@@ -1184,7 +1183,7 @@ export default function Amigos() {
                   </select>
                 </label>
                 <label className="text-sm">
-                  Zona
+                  {t("amigos.zona")}
                   <select
                     className="input-field mt-1.5"
                     value={editForm.zona_id}
@@ -1192,7 +1191,7 @@ export default function Amigos() {
                       setEditForm({ ...editForm, zona_id: event.target.value })
                     }
                   >
-                    <option value="">Sin zona</option>
+                    <option value="">{t("amigos.sinZona")}</option>
                     {zonas.map((zone) => (
                       <option key={zone.id} value={zone.id}>
                         {zone.nombre}
@@ -1201,7 +1200,7 @@ export default function Amigos() {
                   </select>
                 </label>
                 <label className="text-sm">
-                  Metodología
+                  {t("amigos.metodologia")}
                   <select
                     className="input-field mt-1.5"
                     value={editForm.evangelismo_metodologia_id}
@@ -1212,7 +1211,7 @@ export default function Amigos() {
                       })
                     }
                   >
-                    <option value="">Sin metodología</option>
+                    <option value="">{t("amigos.sinMetodologia")}</option>
                     {metodologias.map((method) => (
                       <option key={method.id} value={method.id}>
                         {method.nombre}
@@ -1222,7 +1221,7 @@ export default function Amigos() {
                 </label>
               </div>
               <label className="text-sm">
-                Invitado por
+                {t("amigos.invitadoPor")}
                 <input
                   className="input-field mt-1.5"
                   value={editForm.invitado_por}
@@ -1235,7 +1234,7 @@ export default function Amigos() {
                 />
               </label>
               <label className="text-sm">
-                Primer contacto
+                {t("amigos.primerContacto")}
                 <input
                   type="date"
                   className="input-field mt-1.5"
@@ -1249,27 +1248,27 @@ export default function Amigos() {
                 />
               </label>
               <label className="text-sm flex items-center gap-1">
-                Género
-                <InfoTip texto="Junto con la fecha de nacimiento, sirve para sugerir a qué comité le corresponde el seguimiento de esta persona." />
+                {t("amigos.genero")}
+                <InfoTip texto={t("amigos.generoTip")} />
                 <select
                   className="input-field mt-1.5 w-full"
                   value={editForm.genero}
                   onChange={(event) => setEditForm({ ...editForm, genero: event.target.value })}
                 >
-                  <option value="">Sin registrar</option>
-                  <option value="masculino">Masculino</option>
-                  <option value="femenino">Femenino</option>
+                  <option value="">{t("amigos.sinRegistrar")}</option>
+                  <option value="masculino">{t("amigos.masculino")}</option>
+                  <option value="femenino">{t("amigos.femenino")}</option>
                 </select>
               </label>
               <label className="text-sm flex items-center gap-1">
-                Comité que lo recibió
-                <InfoTip texto="El comité que lo atendió y le hace seguimiento desde el primer contacto -- para no perderlo de vista aunque todavía no llegue a REFAM. Opcional." />
+                {t("amigos.comiteRecibio")}
+                <InfoTip texto={t("amigos.comiteRecibioTipEditar")} />
                 <select
                   className="input-field mt-1.5 w-full"
                   value={editForm.comite_origen_id}
                   onChange={(event) => setEditForm({ ...editForm, comite_origen_id: event.target.value })}
                 >
-                  <option value="">Sin comité asignado</option>
+                  <option value="">{t("amigos.sinComiteAsignado")}</option>
                   {comites.map((comite) => (
                     <option key={comite.id} value={comite.id}>
                       {comite.nombre}
@@ -1278,91 +1277,91 @@ export default function Amigos() {
                 </select>
               </label>
               <details className="border-t border-border pt-3">
-                <summary className="text-sm font-medium cursor-pointer select-none">Ficha de salud de emergencia</summary>
-                <p className="text-xs text-secondary mt-2">Es información de referencia para una emergencia (qué hacer, a quién avisar) -- la congregación no diagnostica, no prescribe ni administra medicamentos.</p>
+                <summary className="text-sm font-medium cursor-pointer select-none">{t("amigos.fichaSalud")}</summary>
+                <p className="text-xs text-secondary mt-2">{t("amigos.fichaSaludDesc")}</p>
                 <label className="flex items-center gap-2 text-sm mt-3">
                   <input type="checkbox" checked={Boolean(editForm.autorizacion_datos_salud)} onChange={(event) => setEditForm({ ...editForm, autorizacion_datos_salud: event.target.checked, fecha_autorizacion_datos_salud: event.target.checked ? (editForm.fecha_autorizacion_datos_salud || hoyBogota()) : "" })} />
-                  La persona autoriza registrar su información de salud
-                  <InfoTip texto="Requerido antes de guardar cualquier campo de esta sección -- la información de salud es un dato sensible (Ley 1581 de 2012)." />
+                  {t("amigos.autorizaSalud")}
+                  <InfoTip texto={t("amigos.autorizaSaludTip")} />
                 </label>
                 {editForm.autorizacion_datos_salud && <>
                   {categoriasPrioridad(editForm, calcularEdad(editForm.fecha_nacimiento)).length > 0 && <div className="flex flex-wrap gap-1.5 mt-3">{categoriasPrioridad(editForm, calcularEdad(editForm.fecha_nacimiento)).map((categoria) => <span key={categoria.key} className="text-[10px] uppercase tracking-wide bg-warning-bg text-warning rounded px-2 py-1">{categoria.label}</span>)}</div>}
                   <div className="grid grid-cols-2 gap-3 mt-3">
-                    <label className="text-sm">Tipo de sangre<select className="input-field mt-1.5 w-full" value={editForm.tipo_sangre} onChange={(event) => setEditForm({ ...editForm, tipo_sangre: event.target.value })}><option value="">Sin registrar</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
-                    <label className="text-sm">EPS<input className="input-field mt-1.5" value={editForm.eps_nombre} onChange={(event) => setEditForm({ ...editForm, eps_nombre: event.target.value })} /></label>
+                    <label className="text-sm">{t("amigos.tipoSangre")}<select className="input-field mt-1.5 w-full" value={editForm.tipo_sangre} onChange={(event) => setEditForm({ ...editForm, tipo_sangre: event.target.value })}><option value="">{t("amigos.sinRegistrar")}</option>{TIPO_SANGRE_OPCIONES.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select></label>
+                    <label className="text-sm">{t("amigos.eps")}<input className="input-field mt-1.5" value={editForm.eps_nombre} onChange={(event) => setEditForm({ ...editForm, eps_nombre: event.target.value })} /></label>
                   </div>
-                  <label className="text-sm">Condiciones médicas relevantes<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.condiciones_medicas} onChange={(event) => setEditForm({ ...editForm, condiciones_medicas: event.target.value })} /></label>
-                  <label className="text-sm">Alergias<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.alergias} onChange={(event) => setEditForm({ ...editForm, alergias: event.target.value })} /></label>
-                  <label className="text-sm">Medicamentos que toma actualmente<InfoTip texto="Solo de referencia para quien atienda una emergencia -- recetados por su propio médico, la congregación no los administra." /><textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.medicamentos_actuales} onChange={(event) => setEditForm({ ...editForm, medicamentos_actuales: event.target.value })} /></label>
-                  <label className="text-sm">Discapacidad<input className="input-field mt-1.5 w-full" placeholder="Ej. movilidad reducida, auditiva -- dejar vacío si no aplica" value={editForm.discapacidad} onChange={(event) => setEditForm({ ...editForm, discapacidad: event.target.value })} /></label>
+                  <label className="text-sm">{t("amigos.condicionesMedicas")}<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.condiciones_medicas} onChange={(event) => setEditForm({ ...editForm, condiciones_medicas: event.target.value })} /></label>
+                  <label className="text-sm">{t("amigos.alergias")}<textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.alergias} onChange={(event) => setEditForm({ ...editForm, alergias: event.target.value })} /></label>
+                  <label className="text-sm">{t("amigos.medicamentosActuales")}<InfoTip texto={t("amigos.medicamentosTip")} /><textarea className="input-field mt-1.5 min-h-16 w-full" value={editForm.medicamentos_actuales} onChange={(event) => setEditForm({ ...editForm, medicamentos_actuales: event.target.value })} /></label>
+                  <label className="text-sm">{t("amigos.discapacidad")}<input className="input-field mt-1.5 w-full" placeholder={t("amigos.discapacidadPlaceholder")} value={editForm.discapacidad} onChange={(event) => setEditForm({ ...editForm, discapacidad: event.target.value })} /></label>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center gap-2 text-sm mt-1"><input type="checkbox" checked={Boolean(editForm.embarazada)} onChange={(event) => setEditForm({ ...editForm, embarazada: event.target.checked })} /> Embarazada</label>
-                    {editForm.embarazada && <label className="text-sm">Fecha probable de parto<input type="date" className="input-field mt-1.5" value={editForm.fecha_probable_parto} onChange={(event) => setEditForm({ ...editForm, fecha_probable_parto: event.target.value })} /></label>}
+                    <label className="flex items-center gap-2 text-sm mt-1"><input type="checkbox" checked={Boolean(editForm.embarazada)} onChange={(event) => setEditForm({ ...editForm, embarazada: event.target.checked })} /> {t("amigos.embarazada")}</label>
+                    {editForm.embarazada && <label className="text-sm">{t("amigos.fechaProbableParto")}<input type="date" className="input-field mt-1.5" value={editForm.fecha_probable_parto} onChange={(event) => setEditForm({ ...editForm, fecha_probable_parto: event.target.value })} /></label>}
                   </div>
-                  <p className="text-sm font-medium mt-2">Contacto de emergencia</p>
+                  <p className="text-sm font-medium mt-2">{t("amigos.contactoEmergencia")}</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="text-sm">Nombre<input className="input-field mt-1.5" value={editForm.contacto_emergencia_nombre} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_nombre: event.target.value })} /></label>
-                    <label className="text-sm">Teléfono<input className="input-field mt-1.5" value={editForm.contacto_emergencia_telefono} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_telefono: event.target.value })} /></label>
+                    <label className="text-sm">{t("amigos.nombre")}<input className="input-field mt-1.5" value={editForm.contacto_emergencia_nombre} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_nombre: event.target.value })} /></label>
+                    <label className="text-sm">{t("amigos.telefono")}<input className="input-field mt-1.5" value={editForm.contacto_emergencia_telefono} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_telefono: event.target.value })} /></label>
                   </div>
-                  <label className="text-sm">Parentesco<input className="input-field mt-1.5" value={editForm.contacto_emergencia_parentesco} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_parentesco: event.target.value })} /></label>
+                  <label className="text-sm">{t("amigos.parentesco")}<input className="input-field mt-1.5" value={editForm.contacto_emergencia_parentesco} onChange={(event) => setEditForm({ ...editForm, contacto_emergencia_parentesco: event.target.value })} /></label>
                 </>}
               </details>
               <details className="border-t border-border pt-3">
-                <summary className="text-sm font-medium cursor-pointer select-none">Consentimiento de datos{editForm.consentimiento_datos_firma ? " · Firmado" : ""}</summary>
-                <p className="text-xs text-secondary mt-2">Autorización para el uso de sus datos personales dentro de SIGAP, firmada a mano en pantalla.</p>
+                <summary className="text-sm font-medium cursor-pointer select-none">{t("amigos.consentimientoDatos")}{editForm.consentimiento_datos_firma ? ` · ${t("amigos.firmado")}` : ""}</summary>
+                <p className="text-xs text-secondary mt-2">{t("amigos.consentimientoDesc")}</p>
                 {editForm.consentimiento_datos_firma ? <div className="mt-3">
-                  <p className="text-xs text-secondary">Firmado el {formatFecha(editForm.fecha_consentimiento_datos, { formato: formato_fecha })}</p>
-                  <img src={editForm.consentimiento_datos_firma} alt="Firma de consentimiento" className="border border-border rounded bg-white mt-2 h-20" />
-                  <div className="mt-2"><button type="button" onClick={() => setEditForm({ ...editForm, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">Revocar consentimiento</button></div>
-                </div> : mostrarFirmaEdit ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setEditForm({ ...editForm, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaEdit(false) }} onCancelar={() => setMostrarFirmaEdit(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaEdit(true)} className="btn-secondary text-xs mt-3">Capturar firma</button>}
+                  <p className="text-xs text-secondary">{t("amigos.firmadoEl", { fecha: formatFecha(editForm.fecha_consentimiento_datos, { formato: formato_fecha }) })}</p>
+                  <img src={editForm.consentimiento_datos_firma} alt={t("amigos.firmaAlt")} className="border border-border rounded bg-white mt-2 h-20" />
+                  <div className="mt-2"><button type="button" onClick={() => setEditForm({ ...editForm, consentimiento_datos_firma: "", fecha_consentimiento_datos: "" })} className="text-xs text-danger">{t("amigos.revocarConsentimiento")}</button></div>
+                </div> : mostrarFirmaEdit ? <div className="mt-3"><SignaturePad onGuardar={(firma) => { setEditForm({ ...editForm, consentimiento_datos_firma: firma, fecha_consentimiento_datos: hoyBogota() }); setMostrarFirmaEdit(false) }} onCancelar={() => setMostrarFirmaEdit(false)} /></div> : <button type="button" onClick={() => setMostrarFirmaEdit(true)} className="btn-secondary text-xs mt-3">{t("amigos.capturarFirma")}</button>}
               </details>
               <button disabled={saving} className="btn-primary justify-center">
                 <Pencil className="w-4 h-4" />
-                {saving ? "Guardando..." : "Guardar cambios"}
+                {saving ? t("amigos.guardando") : t("amigos.guardarCambios")}
               </button>
             </form>
               <section className="mt-5 border-t border-border pt-4">
                 <div className="flex items-center gap-2">
                   <MapPinned className="w-4 h-4 text-accent" />
                   <div>
-                    <p className="eyebrow">Ruta Evangelística</p>
-                    <h3 className="font-medium text-sm mt-1 flex items-center gap-1.5">Estación de acompañamiento<InfoTip texto="La estación indica en qué parte de la Ruta Evangelística está esta persona ahora mismo. Puede moverse a cualquier estación según su situación real, no tiene que ser en orden." /></h3>
+                    <p className="eyebrow">{t("amigos.rutaEvangelistica")}</p>
+                    <h3 className="font-medium text-sm mt-1 flex items-center gap-1.5">{t("amigos.estacionAcompanamiento")}<InfoTip texto={t("amigos.estacionTip")} /></h3>
                   </div>
                 </div>
                 {selected.comite_origen?.nombre && (
                   <p className="text-xs text-secondary mt-2 flex items-center gap-1">
-                    Comité que lo recibió: <span className="font-medium text-ink">{selected.comite_origen.nombre}</span>
-                    <InfoTip texto="Comité que lo atendió y le hace seguimiento desde el primer contacto. Puedes cambiarlo desde 'Guardar cambios' arriba." />
+                    {t("amigos.comiteRecibioLinea", { comite: "" })}<span className="font-medium text-ink">{selected.comite_origen.nombre}</span>
+                    <InfoTip texto={t("amigos.comiteRecibioLineaTip")} />
                   </p>
                 )}
                 {routeLoading ? (
-                  <p className="text-xs text-muted mt-3">Cargando estación...</p>
+                  <p className="text-xs text-muted mt-3">{t("amigos.cargandoEstacion")}</p>
                 ) : routeProcess ? (
                   <p className="text-sm text-secondary mt-3">
-                    Estación actual: <span className="font-medium text-ink">{routeProcess.estacion?.nombre || "Sin nombre"}</span>
-                    {" · "}{diasDesde(routeProcess.fecha_inicio) ?? 0} días.{" "}
+                    {t("amigos.estacionActualPre")}<span className="font-medium text-ink">{routeProcess.estacion?.nombre || t("amigos.sinNombre")}</span>
+                    {t("amigos.estacionActualPost", { dias: diasDesde(routeProcess.fecha_inicio) ?? 0 })}
                     {RUTA_ESTACION_PATH[routeProcess.estacion?.codigo] && (
                       <Link to={RUTA_ESTACION_PATH[routeProcess.estacion.codigo]} className="text-accent">
-                        Gestionar en {routeProcess.estacion?.nombre} <ArrowRight className="inline w-3 h-3" />
+                        {t("amigos.gestionarEn", { nombre: routeProcess.estacion?.nombre })} <ArrowRight className="inline w-3 h-3" />
                       </Link>
                     )}
                   </p>
                 ) : (
                   <p className="text-sm text-secondary mt-3">
-                    Esta persona todavía no tiene una estación iniciada. Agrégala desde{" "}
-                    <Link to="/uno-mas" className="text-accent">Uno Más <ArrowRight className="inline w-3 h-3" /></Link>
-                    {" "}o directamente en la estación que corresponda según su situación real.
+                    {t("amigos.sinEstacionIniciadaPre")}
+                    <Link to="/uno-mas" className="text-accent">{t("amigos.unoMas")} <ArrowRight className="inline w-3 h-3" /></Link>
+                    {t("amigos.sinEstacionIniciadaPost")}
                   </p>
                 )}
                 {routeHistory.length > 0 && (
                   <div className="mt-4 border-t border-border pt-3">
                     <div className="flex items-center justify-between gap-3">
-                      <h4 className="text-xs font-medium text-secondary uppercase tracking-[0.08em] flex items-center gap-1.5">Recorrido completo<InfoTip texto="Muestra por cuáles estaciones ha pasado esta persona, cuándo y quién la acompañó en cada una." /></h4>
+                      <h4 className="text-xs font-medium text-secondary uppercase tracking-[0.08em] flex items-center gap-1.5">{t("amigos.recorridoCompleto")}<InfoTip texto={t("amigos.recorridoTip")} /></h4>
                       <span className="flex items-center gap-1">
                         <button type="button" onClick={exportarRecorrido} className="text-xs text-accent inline-flex items-center gap-1">
-                          <Download className="w-3.5 h-3.5" /> Exportar
+                          <Download className="w-3.5 h-3.5" /> {t("amigos.exportar")}
                         </button>
-                        <InfoTip texto="Descarga en PDF el recorrido completo de esta persona por la Ruta Evangelística, listo para imprimir o compartir." />
+                        <InfoTip texto={t("amigos.exportarTip")} />
                       </span>
                     </div>
                     <div className="mt-2.5 space-y-2.5">
@@ -1370,9 +1369,9 @@ export default function Amigos() {
                         <div key={row.id} className="flex items-start gap-2 text-xs">
                           <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${row.fecha_cierre ? "bg-muted" : "bg-success"}`} />
                           <div>
-                            <p className="font-medium text-ink">{row.estacion?.nombre || "Sin nombre"}</p>
+                            <p className="font-medium text-ink">{row.estacion?.nombre || t("amigos.sinNombre")}</p>
                             <p className="text-secondary">
-                              {formatFecha(row.fecha_inicio, { formato: formato_fecha })} → {row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : "en curso"}
+                              {formatFecha(row.fecha_inicio, { formato: formato_fecha })} → {row.fecha_cierre ? formatFecha(row.fecha_cierre, { formato: formato_fecha }) : t("amigos.enCurso")}
                               {row.responsable ? ` · ${row.responsable.nombres} ${row.responsable.apellidos}` : ""}
                             </p>
                           </div>
@@ -1383,17 +1382,17 @@ export default function Amigos() {
                 )}
                 {comitesSugeridos.length > 0 && (
                   <p className="text-xs text-secondary mt-3 flex items-center gap-1">
-                    Comités sugeridos: {comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean).join(", ")}
-                    <InfoTip texto="Sugerido según edad, género y estado civil, comparado con el catálogo de rangos de edad configurado en Módulos. Es solo informativo -- no traslada ni asigna a nadie automáticamente." />
+                    {t("amigos.comitesSugeridos", { lista: comitesSugeridos.map((rango) => rango.comites?.nombre).filter(Boolean).join(", ") })}
+                    <InfoTip texto={t("amigos.comitesSugeridosTip")} />
                   </p>
                 )}
               </section>
             <div className="mt-4 grid gap-2">
-              <p className="text-xs text-secondary">Confirma cómo aparecerá la persona en el censo ministerial.</p>
-              <label className="text-sm">Nombres para Feligresía<input className="input-field mt-1.5" value={transferName.nombres} onChange={(event) => setTransferName({ ...transferName, nombres: event.target.value })} /></label>
-              <label className="text-sm">Apellidos para Feligresía<input className="input-field mt-1.5" value={transferName.apellidos} onChange={(event) => setTransferName({ ...transferName, apellidos: event.target.value })} /></label>
+              <p className="text-xs text-secondary">{t("amigos.confirmaComoApareceria")}</p>
+              <label className="text-sm">{t("amigos.nombresFeligresia")}<input className="input-field mt-1.5" value={transferName.nombres} onChange={(event) => setTransferName({ ...transferName, nombres: event.target.value })} /></label>
+              <label className="text-sm">{t("amigos.apellidosFeligresia")}<input className="input-field mt-1.5" value={transferName.apellidos} onChange={(event) => setTransferName({ ...transferName, apellidos: event.target.value })} /></label>
               <label className="text-sm">
-                Fecha de nacimiento para Feligresía
+                {t("amigos.fechaNacimientoFeligresia")}
                 <input
                   type="date"
                   className="input-field mt-1.5"
@@ -1402,18 +1401,18 @@ export default function Amigos() {
                 />
               </label>
               <label className="text-sm">
-                Estado civil para Feligresía
+                {t("amigos.estadoCivilFeligresia")}
                 <select className="input-field mt-1.5" value={editForm.estado_civil} onChange={(event) => setEditForm({ ...editForm, estado_civil: event.target.value })}>
-                  <option value="soltero">Soltero/a</option>
-                  <option value="casado">Casado/a</option>
-                  <option value="union_libre">Unión libre</option>
-                  <option value="divorciado">Divorciado/a</option>
-                  <option value="viudo">Viudo/a</option>
+                  <option value="soltero">{t("amigos.soltero")}</option>
+                  <option value="casado">{t("amigos.casado")}</option>
+                  <option value="union_libre">{t("amigos.unionLibre")}</option>
+                  <option value="divorciado">{t("amigos.divorciado")}</option>
+                  <option value="viudo">{t("amigos.viudo")}</option>
                 </select>
               </label>
               <label className="text-sm flex items-center gap-1">
-                Categoría al convertir
-                <InfoTip texto="Grupo demográfico con el que quedará registrada la persona en Feligresía (por ejemplo, niño, joven o adulto)." />
+                {t("amigos.categoriaAlConvertir")}
+                <InfoTip texto={t("amigos.categoriaTip")} />
                 <select
                   className="input-field mt-1.5 w-full"
                   value={selected.categoria_asignada_id || ""}
@@ -1424,7 +1423,7 @@ export default function Amigos() {
                     })
                   }
                 >
-                  <option value="">Sin categoría</option>
+                  <option value="">{t("amigos.sinCategoria")}</option>
                   {categorias.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.nombre}
@@ -1433,8 +1432,8 @@ export default function Amigos() {
                 </select>
               </label>
               <p className="text-xs text-secondary flex items-center gap-1.5 mt-1">
-                Hitos espirituales
-                <InfoTip texto="Bautizado y sellado son hitos independientes entre sí. Incorporar a Feligresía sí es definitivo: crea el registro oficial de membresía y esta ficha deja de poder volver a estado en ruta." />
+                {t("amigos.hitosEspirituales")}
+                <InfoTip texto={t("amigos.hitosTip")} />
               </p>
               <button
                 type="button"
@@ -1444,25 +1443,25 @@ export default function Amigos() {
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {selected.persona_id
-                  ? "Ya está en Feligresía"
+                  ? t("amigos.yaEnFeligresia")
                   : selected.estado_espiritual === "bautizado"
-                  ? "Volver a estado en ruta"
-                  : "Marcar como bautizado"}
+                  ? t("amigos.volverEstadoRuta")
+                  : t("amigos.marcarBautizado")}
               </button>
               {selected.estado_espiritual === "bautizado" && (
                 <button type="button" disabled={saving || Boolean(selected.persona_id)} onClick={incorporateIntoFeligresia} className="btn-primary justify-center">
-                  {selected.persona_id ? "Ya está en Feligresía" : "Incorporar a Feligresía"}
+                  {selected.persona_id ? t("amigos.yaEnFeligresia") : t("amigos.incorporarFeligresia")}
                 </button>
               )}
               {selected.estado_espiritual === "bautizado" && (
                 <button type="button" onClick={descargarCertificado} className="btn-secondary justify-center">
                   <Download className="w-4 h-4" />
-                  Descargar certificado de bautismo
+                  {t("amigos.descargarCertificado")}
                 </button>
               )}
               <button type="button" disabled={saving || selected.sellado} onClick={markSealed} className="btn-secondary justify-center">
                 <CheckCircle2 className="w-4 h-4" />
-                {selected.sellado ? `Sellado el ${selected.fecha_sellado}` : "Marcar sellado con el Espíritu Santo"}
+                {selected.sellado ? t("amigos.selladoEl", { fecha: selected.fecha_sellado }) : t("amigos.marcarSellado")}
               </button>
               <button
                 type="button"
@@ -1471,28 +1470,28 @@ export default function Amigos() {
                 className="text-xs text-danger hover:underline inline-flex items-center justify-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Eliminar seguimiento
+                {t("amigos.eliminarSeguimiento")}
               </button>
             </div>
             <div className="mt-5 border-t border-border pt-4">
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <StickyNote className="w-4 h-4 text-accent" />
-                  <h3 className="font-medium text-sm">Notas de acompañamiento</h3>
+                  <h3 className="font-medium text-sm">{t("amigos.notasAcompanamiento")}</h3>
                 </div>
                 {!selected.convertido && (
                   <div className="flex items-center gap-2">
                     {ultimoContactoPorAmigo[selected.id] != null && (
                       <span className="text-xs text-muted flex items-center gap-1">
-                        {diasDesde(ultimoContactoPorAmigo[selected.id])} días sin contacto
-                        <InfoTip texto="Se calcula solo -- no lo escribe nadie a mano. Toma la fecha más reciente entre notas, visitas BIS, lecciones ESFOB y cambios de estación que ya registras como parte del trabajo normal." />
+                        {t("amigos.diasSinContacto", { count: diasDesde(ultimoContactoPorAmigo[selected.id]) })}
+                        <InfoTip texto={t("amigos.diasSinContactoTip")} />
                       </span>
                     )}
                     <button type="button" disabled={saving || !canEdit} onClick={marcarContactoHoy} className="btn-secondary text-xs">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Marcar contacto hoy
+                      {t("amigos.marcarContactoHoy")}
                     </button>
-                    <InfoTip texto="Registra un contacto de hoy con una nota rápida. Úsalo cuando sí hablaste con esta persona pero eso no quedó registrado por otro medio (nota, visita, lección)." />
+                    <InfoTip texto={t("amigos.marcarContactoTip")} />
                   </div>
                 )}
               </div>
@@ -1503,21 +1502,21 @@ export default function Amigos() {
                 <input
                   required
                   className="input-field"
-                  placeholder="Registrar una nota..."
+                  placeholder={t("amigos.registrarNotaPlaceholder")}
                   value={newNote}
                   onChange={(event) => setNewNote(event.target.value)}
                 />
                 <button
                   disabled={saving}
                   className="btn-primary px-3 sm:w-auto"
-                  aria-label="Guardar nota"
+                  aria-label={t("amigos.guardarNota")}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </form>
               <div className="divide-y divide-border mt-3">
                 {notesLoading ? (
-                  <p className="text-xs text-muted py-3">Cargando notas...</p>
+                  <p className="text-xs text-muted py-3">{t("amigos.cargandoNotas")}</p>
                 ) : notes.length ? (
                   notes.map((note) => (
                     <div key={note.id} className="py-3">
@@ -1528,7 +1527,7 @@ export default function Amigos() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted py-3">Aún no hay notas.</p>
+                  <p className="text-xs text-muted py-3">{t("amigos.sinNotas")}</p>
                 )}
               </div>
             </div>
@@ -1542,14 +1541,16 @@ export default function Amigos() {
 
 function FriendStageHistory({ history, loading, actorPorAuthId }) {
   const { formato_fecha } = usePreferencias()
+  const { t } = useTranslation()
   function describirActor(usuarioId) {
-    if (!usuarioId) return 'Cambio automático del sistema'
-    return actorPorAuthId.get(usuarioId) || 'Otro usuario'
+    if (!usuarioId) return t('amigos.cambioAutomatico')
+    return actorPorAuthId.get(usuarioId) || t('amigos.otroUsuario')
   }
-  return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">Historial de etapas</h3><span className="text-[10px] text-muted">{history.length} cambios</span></div>{loading ? <p className="text-xs text-muted mt-3">Cargando historial...</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || 'Inicio'} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || 'Sin etapa'}</p><p className="text-[10px] text-muted mt-1">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })} · {describirActor(item.usuario_id)}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay cambios de etapa registrados.</p>}</section>
+  return <section className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium text-sm">{t('amigos.historialEtapas')}</h3><span className="text-[10px] text-muted">{t('amigos.cambiosCount', { count: history.length })}</span></div>{loading ? <p className="text-xs text-muted mt-3">{t('amigos.cargandoHistorial')}</p> : history.length ? <div className="divide-y divide-border mt-2">{history.map((item) => <div key={item.id} className="py-2"><p className="text-xs font-medium">{item.etapa_anterior?.nombre || t('amigos.inicio')} <span className="text-muted">→</span> {item.etapa_nueva?.nombre || t('amigos.sinEtapa')}</p><p className="text-[10px] text-muted mt-1">{formatFecha(item.creado_en, { formato: formato_fecha, conHora: true })} · {describirActor(item.usuario_id)}</p>{item.observacion && <p className="text-xs text-secondary mt-1">{item.observacion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">{t('amigos.sinCambiosEtapa')}</p>}</section>
 }
 
 function FriendInsights({ amigos, etapas, zonas, metodologias, ultimoContactoPorAmigo }) {
+  const { t } = useTranslation()
   // 21 dias (no 90 como feligresia): una relacion de ruta evangelistica es
   // mas temprana y fragil, necesita un umbral mas corto para actuar a
   // tiempo. ultimoContactoPorAmigo viene de vw_ultimo_contacto_amigos
@@ -1564,9 +1565,10 @@ function FriendInsights({ amigos, etapas, zonas, metodologias, ultimoContactoPor
   const stageTotals = countBy('etapa_id', etapas)
   const zoneTotals = countBy('zona_id', zonas)
   const methodTotals = countBy('evangelismo_metodologia_id', metodologias)
-  return <section className="card p-5"><div><h2 className="font-medium">Lectura de la ruta</h2><p className="text-xs text-secondary mt-1">Resumen global de personas no convertidas; una demora sugiere revisar contacto y contexto, no juzgar compromiso.</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title="Por etapa" items={stageTotals} /><InsightList title="Por zona" items={zoneTotals} /><InsightList title="Por metodología" items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{withoutRecentContact} persona{withoutRecentContact === 1 ? '' : 's'} lleva más de 21 días sin contacto registrado (nota, visita o cambio de estación). Conviene revisar la agenda, disponibilidad y próximo paso.</p>}{sealedNotBaptized > 0 && <p className="summary-insight mt-3">{sealedNotBaptized} amigo{sealedNotBaptized === 1 ? '' : 's'} en ruta ya {sealedNotBaptized === 1 ? 'fue sellado' : 'fueron sellados'} con el Espíritu Santo aunque aún no se {sealedNotBaptized === 1 ? 'ha bautizado' : 'han bautizado'} — el bautismo y el sellado son hitos independientes.</p>}</section>
+  return <section className="card p-5"><div><h2 className="font-medium">{t('amigos.lecturaRuta')}</h2><p className="text-xs text-secondary mt-1">{t('amigos.lecturaRutaDesc')}</p></div><div className="grid md:grid-cols-3 gap-4 mt-5"><InsightList title={t('amigos.porEtapa')} items={stageTotals} /><InsightList title={t('amigos.porZona')} items={zoneTotals} /><InsightList title={t('amigos.porMetodologia')} items={methodTotals} /></div>{withoutRecentContact > 0 && <p className="summary-insight mt-5">{t('amigos.sinContacto21Dias', { count: withoutRecentContact })}</p>}{sealedNotBaptized > 0 && <p className="summary-insight mt-3">{t('amigos.selladoNoBautizado', { count: sealedNotBaptized })}</p>}</section>
 }
 
 function InsightList({ title, items }) {
-  return <div><h3 className="text-sm font-medium">{title}</h3>{items.length ? items.slice(0, 5).map((item) => <div key={item.id} className="flex justify-between gap-3 text-xs text-secondary mt-2"><span>{item.nombre}</span><strong className="text-ink">{item.total}</strong></div>) : <p className="text-xs text-muted mt-2">Sin datos disponibles.</p>}</div>
+  const { t } = useTranslation()
+  return <div><h3 className="text-sm font-medium">{title}</h3>{items.length ? items.slice(0, 5).map((item) => <div key={item.id} className="flex justify-between gap-3 text-xs text-secondary mt-2"><span>{item.nombre}</span><strong className="text-ink">{item.total}</strong></div>) : <p className="text-xs text-muted mt-2">{t('amigos.sinDatosDisponibles')}</p>}</div>
 }
