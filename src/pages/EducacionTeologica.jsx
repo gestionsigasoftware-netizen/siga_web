@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar, Line } from "react-chartjs-2";
 import {
   BarElement,
@@ -24,8 +25,7 @@ import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport"
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const educacionTeologicaCache = new Map();
 
-const NIVELES = { titulo: "Título", curso: "Curso", diplomado: "Diplomado", especializacion: "Especialización", maestria: "Maestría", doctorado: "Doctorado", seminario_biblico: "Seminario bíblico", otro: "Otro" };
-const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
+const PERIODOS = ["30", "180", "365"];
 const CHART_OPTIONS = chartOptions();
 
 function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
@@ -43,6 +43,8 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
 }
 
 export default function EducacionTeologica() {
+  const { t } = useTranslation();
+  const NIVELES = t("educacionTeologica.niveles", { returnObjects: true });
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [grupos, setGrupos] = useState([]);
@@ -71,7 +73,7 @@ export default function EducacionTeologica() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("educacionTeologica.errorSinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -95,7 +97,7 @@ export default function EducacionTeologica() {
       supabase.from("teologica_sesiones").select("id, grupo_id, numero, tema, fecha, asistentes, teologica_grupos!inner(congregacion_id, nombre)").eq("teologica_grupos.congregacion_id", congregacionId).gte("fecha", fechaBogota(start)).order("fecha"),
     ]);
     const failed = [g, i, p, s].find((item) => item.error);
-    if (failed) setError("No se pudo cargar Educación Teológica. Intenta nuevamente o contacta al administrador.");
+    if (failed) setError(t("educacionTeologica.errorCargar"));
     const freshGrupos = g.data ?? [];
     const freshIntegrantes = i.data ?? [];
     const freshPersonas = p.data ?? [];
@@ -114,7 +116,7 @@ export default function EducacionTeologica() {
     setAsistenciaMarcada({});
     if (!grupoId) return;
     const { data, error: sesionesError } = await supabase.from("teologica_sesiones").select("id, numero, tema, fecha, asistentes, notas").eq("grupo_id", grupoId).order("numero", { ascending: false });
-    if (sesionesError) setError("No se pudo cargar el historial de sesiones.");
+    if (sesionesError) setError(t("educacionTeologica.errorHistorialSesiones"));
     setSesiones(data ?? []);
   }
 
@@ -135,18 +137,18 @@ export default function EducacionTeologica() {
       asistentes: asistentesCount,
       notas: sesionForm.notas.trim() || null,
     }).select("id").single();
-    if (sesionResult.error) { setSaving(false); setError(`No se pudo registrar la sesión: ${sesionResult.error.message}`); return; }
+    if (sesionResult.error) { setSaving(false); setError(t("educacionTeologica.errorRegistrarSesion", { mensaje: sesionResult.error.message })); return; }
     if (integrantesGrupo.length > 0) {
       const asistenciaResult = await supabase.from("teologica_asistencia").insert(
         integrantesGrupo.map((item) => ({ sesion_id: sesionResult.data.id, integrante_id: item.id, asistio: Boolean(asistenciaMarcada[item.id]) })),
       );
-      if (asistenciaResult.error) { setSaving(false); setError(`La sesión se guardó, pero no se pudo registrar la asistencia individual: ${asistenciaResult.error.message}`); return; }
+      if (asistenciaResult.error) { setSaving(false); setError(t("educacionTeologica.errorAsistenciaIndividual", { mensaje: asistenciaResult.error.message })); return; }
     }
     if (proximoNumero > (grupo?.sesion_actual || 0)) {
       await supabase.from("teologica_grupos").update({ sesion_actual: proximoNumero }).eq("id", selectedGrupoId).eq("congregacion_id", congregacionId);
     }
     setSaving(false);
-    setNotice("Sesión registrada con asistencia individual.");
+    setNotice(t("educacionTeologica.noticeSesionRegistrada"));
     setSesionForm({ tema: "", fecha: hoyBogota(), notas: "" });
     setAsistenciaMarcada({});
     loadSesiones(selectedGrupoId);
@@ -164,8 +166,8 @@ export default function EducacionTeologica() {
       instructor_persona_id: grupoForm.instructor_persona_id || null,
     });
     setSaving(false);
-    if (result.error) { setError("No se pudo registrar el grupo."); return; }
-    setNotice("Grupo registrado.");
+    if (result.error) { setError(t("educacionTeologica.errorRegistrarGrupo")); return; }
+    setNotice(t("educacionTeologica.noticeGrupoRegistrado"));
     setGrupoForm({ nombre: "", nivel: "curso", instructor_persona_id: "" });
     load();
   }
@@ -180,15 +182,15 @@ export default function EducacionTeologica() {
       grupo_id: integranteForm.grupo_id || null,
     });
     setSaving(false);
-    if (result.error) { setError(result.error.code === "23505" ? "Esta persona ya está registrada en ese grupo." : "No se pudo registrar al integrante."); return; }
-    setNotice("Integrante registrado.");
+    if (result.error) { setError(result.error.code === "23505" ? t("educacionTeologica.errorIntegranteDuplicado") : t("educacionTeologica.errorRegistrarIntegrante")); return; }
+    setNotice(t("educacionTeologica.noticeIntegranteRegistrado"));
     setIntegranteForm({ persona_id: "", grupo_id: "" });
     load();
   }
 
   async function toggleIntegrante(integrante) {
     const result = await supabase.from("teologica_integrantes").update({ estado: integrante.estado === "activo" ? "inactivo" : "activo" }).eq("id", integrante.id).eq("congregacion_id", congregacionId);
-    if (result.error) { setError("No se pudo cambiar el estado del integrante."); return; }
+    if (result.error) { setError(t("educacionTeologica.errorCambiarEstadoIntegrante")); return; }
     load();
   }
 
@@ -197,8 +199,8 @@ export default function EducacionTeologica() {
     setSaving(true); setError(null);
     const result = await supabase.from("teologica_integrantes").update({ certificado: true, fecha_certificado: hoyBogota() }).eq("id", integrante.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo registrar la certificación: ${result.error.message}`); return; }
-    setNotice("Certificación registrada.");
+    if (result.error) { setError(t("educacionTeologica.errorRegistrarCertificacion", { mensaje: result.error.message })); return; }
+    setNotice(t("educacionTeologica.noticeCertificacionRegistrada"));
     load();
   }
 
@@ -209,7 +211,7 @@ export default function EducacionTeologica() {
     supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "teologica.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
   }, [congregacionId, rolPrincipal]);
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Educación Teológica...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("educacionTeologica.cargando")}</div>;
 
   const integrantesActivos = integrantes.filter((i) => i.estado === "activo");
   const certificados = integrantes.filter((i) => i.certificado);
@@ -242,90 +244,94 @@ export default function EducacionTeologica() {
 
   const topGrupo = gruposConDatos[0];
   const insightGeneral = topGrupo?.integrantesCount
-    ? `${topGrupo.nombre} concentra ${topGrupo.integrantesCount} integrantes. ${certificados.length} persona(s) ya se han certificado.`
-    : "Registra grupos e integrantes para construir una lectura de la formación bíblica de la congregación.";
+    ? t("educacionTeologica.insightGeneralConDatos", {
+        grupo: topGrupo.nombre,
+        count: topGrupo.integrantesCount,
+        extra: t("educacionTeologica.insightExtraCertificados", { count: certificados.length }),
+      })
+    : t("educacionTeologica.insightVacio");
 
-  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Asistentes" });
-  const nivelesChartData = distributionDataset(nivelesConTotal, { datasetLabel: "Integrantes" });
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("educacionTeologica.datasetAsistentes") });
+  const nivelesChartData = distributionDataset(nivelesConTotal, { datasetLabel: t("educacionTeologica.datasetIntegrantes") });
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Grupos activos", value: gruposActivos.length },
-        { label: "Integrantes activos", value: integrantesActivos.length },
-        { label: "Certificados", value: certificados.length },
-        { label: "Sesiones registradas", value: todasSesiones.length },
+        { label: t("educacionTeologica.exportKpiGruposActivos"), value: gruposActivos.length },
+        { label: t("educacionTeologica.exportKpiIntegrantesActivos"), value: integrantesActivos.length },
+        { label: t("educacionTeologica.exportKpiCertificados"), value: certificados.length },
+        { label: t("educacionTeologica.exportKpiSesionesRegistradas"), value: todasSesiones.length },
       ],
-      desgloses: [{ titulo: "Integrantes por nivel", items: nivelesConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+      desgloses: [{ titulo: t("educacionTeologica.exportDesgloseTitulo"), items: nivelesConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Grupo", "Nivel", "Integrantes", "Asistencia promedio", "Instructor"],
-      rows: gruposConDatos.map((grupo) => [grupo.nombre, NIVELES[grupo.nivel] || grupo.nivel, grupo.integrantesCount, grupo.asistenciaPromedio, grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin asignar"]),
+      headers: [t("educacionTeologica.thGrupo"), t("educacionTeologica.thNivel"), t("educacionTeologica.thIntegrantes"), t("educacionTeologica.exportHeaderAsistenciaPromedio"), t("educacionTeologica.exportHeaderInstructor")],
+      rows: gruposConDatos.map((grupo) => [grupo.nombre, NIVELES[grupo.nivel] || grupo.nivel, grupo.integrantesCount, grupo.asistenciaPromedio, grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : t("educacionTeologica.exportSinAsignar")]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `educacion-teologica-${hoyBogota()}.csv`, titulo: "Educación Teológica — Grupos", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `educacion-teologica-${hoyBogota()}.xlsx`, hoja: "Grupos", titulo: "Educación Teológica — Grupos", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `educacion-teologica-${hoyBogota()}.pdf`, titulo: "Educación Teológica — Grupos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `educacion-teologica-${hoyBogota()}.csv`, titulo: t("educacionTeologica.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `educacion-teologica-${hoyBogota()}.xlsx`, hoja: "Grupos", titulo: t("educacionTeologica.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `educacion-teologica-${hoyBogota()}.pdf`, titulo: t("educacionTeologica.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">FECP · Educación Teológica</p>
-          <h1 className="section-title flex items-center gap-2"><BookOpenCheck className="w-6 h-6 text-accent" />Educación Teológica</h1>
-          <p className="text-sm text-secondary mt-1">Formación bíblica y doctrinal de la membresía — distinta de la formación ministerial de pastores.</p>
+          <p className="eyebrow">{t("educacionTeologica.eyebrow")}</p>
+          <h1 className="section-title flex items-center gap-2"><BookOpenCheck className="w-6 h-6 text-accent" />{t("educacionTeologica.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("educacionTeologica.subtitulo")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-            {PERIODOS.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
+          <div className="flex gap-1.5" role="group" aria-label={t("educacionTeologica.ariaPeriodo")}>
+            {PERIODOS.map((value, index) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{t(`educacionTeologica.${["periodo30", "periodo6m", "periodo12m"][index]}`)}</button>
             ))}
           </div>
           <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Educación Teológica.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("educacionTeologica.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Metric label="Grupos activos" value={gruposActivos.length} progress={gruposActivos.length ? 100 : 0} detail={`${grupoSinInstructor} sin instructor`} insight={grupoSinInstructor ? "Asigna un instructor a cada grupo." : "Todos los grupos tienen instructor."} />
-        <Metric label="Integrantes activos" value={integrantesActivos.length} progress={integrantesActivos.length ? 100 : 0} detail={`${integrantesPorGrupo} por grupo`} insight={integrantesActivos.length ? "Compara con la asistencia real para detectar continuidad." : "Registra el primer integrante para iniciar."} />
-        <Metric label="Certificados" value={certificados.length} tone={certificados.length ? "text-success" : ""} progress={integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0} detail={`${integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0}% de los activos`} insight="Hito de graduación del proceso formativo." />
-        <Metric label="Asistencia promedio" value={promedioSesion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={`${todasSesiones.length} sesiones en el periodo`} insight={tendenciaVariacion === null ? "Aún no hay suficiente historial para comparar." : `${tendenciaVariacion >= 0 ? "Creció" : "Bajó"} ${Math.abs(tendenciaVariacion)}% frente a la primera mitad del periodo.`} />
-        <Metric label="Sesiones registradas" value={todasSesiones.length} progress={todasSesiones.length ? 100 : 0} detail={`${totalAsistenciaPeriodo} asistentes acumulados`} insight={todasSesiones.length ? "Usa la tendencia para identificar crecimiento o disminución." : "Aún no hay sesiones registradas en el periodo."} />
-        <Metric label="Nivel líder" value={integrantesActivos.length ? (nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={integrantesActivos.length ? Math.round((nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={`${nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} integrantes`} insight={integrantesActivos.length ? "Compara niveles para planear la siguiente oferta formativa." : "Registra integrantes activos para identificar el nivel predominante."} />
+        <Metric label={t("educacionTeologica.metricGruposActivos")} value={gruposActivos.length} progress={gruposActivos.length ? 100 : 0} detail={t("educacionTeologica.metricGruposActivosDetalle", { count: grupoSinInstructor })} insight={grupoSinInstructor ? t("educacionTeologica.metricGruposActivosInsightPendiente") : t("educacionTeologica.metricGruposActivosInsightOk")} />
+        <Metric label={t("educacionTeologica.metricIntegrantesActivos")} value={integrantesActivos.length} progress={integrantesActivos.length ? 100 : 0} detail={t("educacionTeologica.metricIntegrantesActivosDetalle", { count: integrantesPorGrupo })} insight={integrantesActivos.length ? t("educacionTeologica.metricIntegrantesActivosInsight") : t("educacionTeologica.metricIntegrantesActivosInsightVacio")} />
+        <Metric label={t("educacionTeologica.metricCertificados")} value={certificados.length} tone={certificados.length ? "text-success" : ""} progress={integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0} detail={t("educacionTeologica.metricCertificadosDetalle", { pct: integrantesActivos.length ? Math.round((certificados.length / integrantesActivos.length) * 100) : 0 })} insight={t("educacionTeologica.metricCertificadosInsight")} />
+        <Metric label={t("educacionTeologica.metricAsistenciaPromedio")} value={promedioSesion} tone={tendenciaVariacion === null || tendenciaVariacion >= 0 ? "text-success" : "text-danger"} progress={integrantesActivos.length ? Math.min(100, Math.round((promedioSesion / integrantesActivos.length) * 100)) : 0} detail={t("educacionTeologica.metricAsistenciaDetalle", { count: todasSesiones.length })} insight={tendenciaVariacion === null ? t("educacionTeologica.metricAsistenciaInsightSinHistorial") : t("educacionTeologica.metricAsistenciaInsightVariacion", { direccion: tendenciaVariacion >= 0 ? t("educacionTeologica.direccionCrecio") : t("educacionTeologica.direccionBajo"), porcentaje: Math.abs(tendenciaVariacion) })} />
+        <Metric label={t("educacionTeologica.metricSesionesRegistradas")} value={todasSesiones.length} progress={todasSesiones.length ? 100 : 0} detail={t("educacionTeologica.metricSesionesDetalle", { count: totalAsistenciaPeriodo })} insight={todasSesiones.length ? t("educacionTeologica.metricSesionesInsight") : t("educacionTeologica.metricSesionesInsightVacio")} />
+        <Metric label={t("educacionTeologica.metricNivelLider")} value={integrantesActivos.length ? (nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={integrantesActivos.length ? Math.round((nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / integrantesActivos.length * 100) : 0} detail={t("educacionTeologica.metricNivelLiderDetalle", { count: nivelesConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0 })} insight={integrantesActivos.length ? t("educacionTeologica.metricNivelLiderInsight") : t("educacionTeologica.metricNivelLiderInsightVacio")} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Asistencia registrada</p>
-          <h2 className="font-medium mt-1">Tendencia de asistencia</h2>
+          <p className="eyebrow">{t("educacionTeologica.eyebrowAsistenciaRegistrada")}</p>
+          <h2 className="font-medium mt-1">{t("educacionTeologica.tituloTendenciaAsistencia")}</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin sesiones registradas en el periodo." />}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("educacionTeologica.chartEmptySinSesiones")} />}
           </div>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Composición</p>
-          <h2 className="font-medium mt-1">Integrantes por nivel</h2>
+          <p className="eyebrow">{t("educacionTeologica.eyebrowComposicion")}</p>
+          <h2 className="font-medium mt-1">{t("educacionTeologica.tituloIntegrantesPorNivel")}</h2>
           <div className="h-56 mt-4">
-            {nivelesConTotal.length ? <Bar data={nivelesChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin integrantes registrados todavía." />}
+            {nivelesConTotal.length ? <Bar data={nivelesChartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("educacionTeologica.chartEmptySinIntegrantes")} />}
           </div>
         </div>
       </section>
 
       <section className="card p-5">
         <div className="flex items-start justify-between gap-3">
-          <div><p className="eyebrow">Comparativa</p><h2 className="font-medium mt-1">Grupos por impacto</h2><p className="text-xs text-secondary mt-1">Integrantes y asistencia promedio por grupo.</p></div>
+          <div><p className="eyebrow">{t("educacionTeologica.eyebrowComparativa")}</p><h2 className="font-medium mt-1">{t("educacionTeologica.tituloGruposPorImpacto")}</h2><p className="text-xs text-secondary mt-1">{t("educacionTeologica.descripcionGruposPorImpacto")}</p></div>
           <Target className="w-5 h-5 text-accent" />
         </div>
         <div className="overflow-x-auto mt-4">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Grupo</th><th className="py-2">Nivel</th><th className="py-2 text-right">Integrantes</th><th className="py-2 text-right">Asistencia prom.</th></tr></thead>
+            <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">{t("educacionTeologica.thGrupo")}</th><th className="py-2">{t("educacionTeologica.thNivel")}</th><th className="py-2 text-right">{t("educacionTeologica.thIntegrantes")}</th><th className="py-2 text-right">{t("educacionTeologica.thAsistenciaProm")}</th></tr></thead>
             <tbody>
               {gruposConDatos.map((grupo) => (
                 <tr key={grupo.id} className="border-b border-border">
@@ -337,14 +343,14 @@ export default function EducacionTeologica() {
               ))}
             </tbody>
           </table>
-          {!gruposConDatos.length && <p className="text-sm text-secondary py-6 text-center">Aún no hay grupos para comparar.</p>}
+          {!gruposConDatos.length && <p className="text-sm text-secondary py-6 text-center">{t("educacionTeologica.sinGruposComparar")}</p>}
         </div>
       </section>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Grupos</p><h2 className="font-medium mt-1">Grupos y sesiones</h2></div>
+            <div><p className="eyebrow">{t("educacionTeologica.eyebrowGrupos")}</p><h2 className="font-medium mt-1">{t("educacionTeologica.tituloGruposYSesiones")}</h2></div>
             <BookOpenCheck className="w-5 h-5 text-accent" />
           </div>
           <div className="flex flex-col divide-y divide-border mt-4">
@@ -352,87 +358,87 @@ export default function EducacionTeologica() {
               <div role="button" tabIndex={0} key={grupo.id} onClick={() => loadSesiones(grupo.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadSesiones(grupo.id); } }} className={`py-3 text-left cursor-pointer ${selectedGrupoId === grupo.id ? "bg-accent-bg -mx-2 px-2 rounded" : ""}`}>
                 <div className="flex justify-between gap-3">
                   <p className="text-sm font-medium">{grupo.nombre}</p>
-                  <span className="text-xs text-accent flex items-center gap-1">Sesión {grupo.sesion_actual}<InfoTip texto="Se actualiza sola cada vez que registras una sesión nueva; no se puede editar a mano." /></span>
+                  <span className="text-xs text-accent flex items-center gap-1">{t("educacionTeologica.sesionNumero", { numero: grupo.sesion_actual })}<InfoTip texto={t("educacionTeologica.infoSesionActual")} /></span>
                 </div>
-                <p className="text-xs text-secondary mt-1">{NIVELES[grupo.nivel]} · {grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : "Sin instructor"}</p>
+                <p className="text-xs text-secondary mt-1">{NIVELES[grupo.nivel]} · {grupo.personas ? `${grupo.personas.nombres} ${grupo.personas.apellidos}` : t("educacionTeologica.sinInstructor")}</p>
               </div>
             ))}
-            {!grupos.length && <p className="text-sm text-muted py-6">Aún no hay grupos registrados.</p>}
+            {!grupos.length && <p className="text-sm text-muted py-6">{t("educacionTeologica.sinGruposRegistrados")}</p>}
           </div>
           {selectedGrupoId && (() => {
             const grupoSeleccionado = grupos.find((item) => item.id === selectedGrupoId);
             const integrantesGrupo = integrantesActivos.filter((item) => item.grupo_id === selectedGrupoId);
             return <div className="border-t border-border mt-4 pt-4">
-              <p className="text-sm font-medium mb-2">Sesiones de {grupoSeleccionado?.nombre}</p>
+              <p className="text-sm font-medium mb-2">{t("educacionTeologica.sesionesDeGrupo", { nombre: grupoSeleccionado?.nombre })}</p>
               {canEdit && <form onSubmit={createSesion} className="grid gap-2 mb-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <input required className="input-field" placeholder="Tema de la sesión" value={sesionForm.tema} onChange={(event) => setSesionForm({ ...sesionForm, tema: event.target.value })} />
+                  <input required className="input-field" placeholder={t("educacionTeologica.placeholderTemaSesion")} value={sesionForm.tema} onChange={(event) => setSesionForm({ ...sesionForm, tema: event.target.value })} />
                   <input required type="date" className="input-field" value={sesionForm.fecha} onChange={(event) => setSesionForm({ ...sesionForm, fecha: event.target.value })} />
                 </div>
-                <textarea className="input-field min-h-14" placeholder="Notas (opcional)" value={sesionForm.notas} onChange={(event) => setSesionForm({ ...sesionForm, notas: event.target.value })} />
+                <textarea className="input-field min-h-14" placeholder={t("educacionTeologica.placeholderNotasOpcional")} value={sesionForm.notas} onChange={(event) => setSesionForm({ ...sesionForm, notas: event.target.value })} />
                 {integrantesGrupo.length > 0 && <div>
-                  <p className="text-xs text-secondary mb-1">Asistencia individual</p>
+                  <p className="text-xs text-secondary mb-1">{t("educacionTeologica.asistenciaIndividualLabel")}</p>
                   <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                     {integrantesGrupo.map((item) => <label key={item.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[item.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [item.id]: event.target.checked })} />{item.personas?.nombres} {item.personas?.apellidos}</label>)}
                   </div>
                 </div>}
-                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar sesión</button>
+                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("educacionTeologica.botonRegistrarSesion")}</button>
               </form>}
-              {sesiones.length ? <div className="divide-y divide-border">{sesiones.map((sesion) => <div key={sesion.id} className="py-2"><p className="text-sm">Sesión {sesion.numero}: {sesion.tema}</p><p className="text-xs text-secondary">{sesion.fecha} · {sesion.asistentes} asistentes</p></div>)}</div> : <p className="text-xs text-muted">Aún no hay sesiones registradas para este grupo.</p>}
+              {sesiones.length ? <div className="divide-y divide-border">{sesiones.map((sesion) => <div key={sesion.id} className="py-2"><p className="text-sm">{t("educacionTeologica.sesionHistorialLinea", { numero: sesion.numero, tema: sesion.tema })}</p><p className="text-xs text-secondary">{t("educacionTeologica.sesionHistorialDetalle", { fecha: sesion.fecha, count: sesion.asistentes })}</p></div>)}</div> : <p className="text-xs text-muted">{t("educacionTeologica.sinSesionesGrupo")}</p>}
             </div>;
           })()}
         </div>
 
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Censo</p><h2 className="font-medium mt-1">Integrantes de Educación Teológica</h2></div>
+            <div><p className="eyebrow">{t("educacionTeologica.eyebrowCenso")}</p><h2 className="font-medium mt-1">{t("educacionTeologica.tituloIntegrantesEducacionTeologica")}</h2></div>
             <GraduationCap className="w-5 h-5 text-accent" />
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Integrante</th><th className="py-2">Grupo</th><th className="py-2"><span className="inline-flex items-center gap-1">Certificación<InfoTip texto="Certificar registra la fecha de hoy y no se puede deshacer desde aquí." /></span></th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">{t("educacionTeologica.thIntegrante")}</th><th className="py-2">{t("educacionTeologica.thGrupo")}</th><th className="py-2"><span className="inline-flex items-center gap-1">{t("educacionTeologica.thCertificacion")}<InfoTip texto={t("educacionTeologica.infoCertificacion")} /></span></th></tr></thead>
               <tbody>
                 {integrantes.map((item) => (
                   <tr key={item.id} className="border-b border-border">
-                    <td className="py-2 font-medium">{item.personas?.nombres} {item.personas?.apellidos}{item.certificado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent ml-2">Certificado</span>}</td>
-                    <td className="py-2 text-secondary">{grupos.find((g) => g.id === item.grupo_id)?.nombre || "Sin grupo"}</td>
+                    <td className="py-2 font-medium">{item.personas?.nombres} {item.personas?.apellidos}{item.certificado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent ml-2">{t("educacionTeologica.badgeCertificado")}</span>}</td>
+                    <td className="py-2 text-secondary">{grupos.find((g) => g.id === item.grupo_id)?.nombre || t("educacionTeologica.sinGrupo")}</td>
                     <td className="py-2 text-right flex justify-end gap-2">
-                      {canEdit && !item.certificado && <button type="button" onClick={() => marcarCertificado(item)} className="text-xs text-accent">Certificar</button>}
-                      {canEdit && <button type="button" onClick={() => toggleIntegrante(item)} className={`text-xs ${item.estado === "activo" ? "text-danger" : "text-accent"}`}>{item.estado === "activo" ? "Desactivar" : "Reactivar"}</button>}
+                      {canEdit && !item.certificado && <button type="button" onClick={() => marcarCertificado(item)} className="text-xs text-accent">{t("educacionTeologica.botonCertificar")}</button>}
+                      {canEdit && <button type="button" onClick={() => toggleIntegrante(item)} className={`text-xs ${item.estado === "activo" ? "text-danger" : "text-accent"}`}>{item.estado === "activo" ? t("educacionTeologica.botonDesactivar") : t("educacionTeologica.botonReactivar")}</button>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!integrantes.length && <p className="text-sm text-secondary py-6 text-center">Aún no hay integrantes registrados.</p>}
+            {!integrantes.length && <p className="text-sm text-secondary py-6 text-center">{t("educacionTeologica.sinIntegrantesRegistrados")}</p>}
           </div>
         </div>
       </section>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <form onSubmit={createGrupo} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-          <h2 className="font-medium">Nuevo grupo</h2>
-          <input required className="input-field" placeholder="Nombre del grupo" value={grupoForm.nombre} onChange={(event) => setGrupoForm({ ...grupoForm, nombre: event.target.value })} />
+          <h2 className="font-medium">{t("educacionTeologica.tituloNuevoGrupo")}</h2>
+          <input required className="input-field" placeholder={t("educacionTeologica.placeholderNombreGrupo")} value={grupoForm.nombre} onChange={(event) => setGrupoForm({ ...grupoForm, nombre: event.target.value })} />
           <select className="input-field" value={grupoForm.nivel} onChange={(event) => setGrupoForm({ ...grupoForm, nivel: event.target.value })}>
             {Object.entries(NIVELES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <select className="input-field" value={grupoForm.instructor_persona_id} onChange={(event) => setGrupoForm({ ...grupoForm, instructor_persona_id: event.target.value })}>
-            <option value="">Instructor</option>
+            <option value="">{t("educacionTeologica.opcionInstructor")}</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
-          <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar grupo</button>
+          <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("educacionTeologica.botonRegistrarGrupo")}</button>
         </form>
         <form onSubmit={createIntegrante} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-          <h2 className="font-medium">Nuevo integrante</h2>
+          <h2 className="font-medium">{t("educacionTeologica.tituloNuevoIntegrante")}</h2>
           <select required className="input-field" value={integranteForm.persona_id} onChange={(event) => setIntegranteForm({ ...integranteForm, persona_id: event.target.value })}>
-            <option value="">Persona</option>
+            <option value="">{t("educacionTeologica.opcionPersona")}</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
           <select className="input-field" value={integranteForm.grupo_id} onChange={(event) => setIntegranteForm({ ...integranteForm, grupo_id: event.target.value })}>
-            <option value="">Grupo</option>
+            <option value="">{t("educacionTeologica.opcionGrupo")}</option>
             {grupos.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
           </select>
-          <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" /> Registrar integrante</button>
+          <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" /> {t("educacionTeologica.botonRegistrarIntegrante")}</button>
         </form>
       </section>
     </div>
