@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MapPin, Plus, PencilLine } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
 import Pager from '../components/Pager'
@@ -14,15 +15,15 @@ const CONG_PAGE_SIZE = 50
 const ALLOWED_LEVELS = ['nacional', 'super_admin']
 const EMPTY_FORM = { numero: '' }
 
-function formatDistrictLabel(nombre, numero) {
-  // Los distritos se identifican solo por numero; `nombre` es un campo
-  // legado de la tabla (obligatorio en el esquema desde antes de que
-  // existiera `numero`) que no representa un nombre propio del distrito
-  // -- nunca se muestra.
-  return numero ? `Distrito ${numero}` : null
-}
-
 export default function GestionDistritos() {
+  const { t } = useTranslation()
+  function formatDistrictLabel(nombre, numero) {
+    // Los distritos se identifican solo por numero; `nombre` es un campo
+    // legado de la tabla (obligatorio en el esquema desde antes de que
+    // existiera `numero`) que no representa un nombre propio del distrito
+    // -- nunca se muestra.
+    return numero ? t('gestionDistritos.distritoLabel', { numero }) : null
+  }
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const [distritos, setDistritos] = useState([])
   const [conteos, setConteos] = useState(new Map())
@@ -60,7 +61,7 @@ export default function GestionDistritos() {
       supabase.from('distritos').select('id, numero, nombre, created_at').order('numero', { ascending: true, nullsFirst: false }).order('nombre'),
       supabase.from('congregaciones').select('id, nombre, ciudad, latitud, longitud, distrito_id, distritos(nombre, numero)').order('nombre'),
     ])
-    if (distritosError || congregacionesError) setError('No se pudieron cargar los distritos.')
+    if (distritosError || congregacionesError) setError(t('gestionDistritos.errorCargar'))
     const nuevosDistritos = distritosData ?? []
     const nuevasCongregaciones = congregacionesData ?? []
     setDistritos(nuevosDistritos)
@@ -97,10 +98,10 @@ export default function GestionDistritos() {
     })
     setMoviendoId(null)
     if (moveError) {
-      setError('No se pudo mover la congregación: ' + moveError.message)
+      setError(t('gestionDistritos.errorMover', { mensaje: moveError.message }))
       return
     }
-    setNotice('Congregación reasignada correctamente.')
+    setNotice(t('gestionDistritos.congregacionReasignada'))
     setCambios((previo) => { const copia = { ...previo }; delete copia[congregacionId]; return copia })
     await load()
   }
@@ -149,7 +150,7 @@ export default function GestionDistritos() {
     event.preventDefault()
     const numero = form.numero === '' ? null : Number(form.numero)
     if (!numero || numero < 1 || numero > 36) {
-      setError('El número del distrito es obligatorio (1 a 36).')
+      setError(t('gestionDistritos.errorNumeroObligatorio'))
       return
     }
     setSaving(true)
@@ -164,23 +165,23 @@ export default function GestionDistritos() {
       : await supabase.from('distritos').insert(payload)
     setSaving(false)
     if (saveError) {
-      setError(saveError.code === '23505' ? 'Ese número de distrito ya está en uso.' : 'No se pudo guardar el distrito.')
+      setError(saveError.code === '23505' ? t('gestionDistritos.errorNumeroEnUso') : t('gestionDistritos.errorGuardar'))
       return
     }
-    setNotice(editingId ? 'Distrito actualizado correctamente.' : 'Distrito creado correctamente.')
+    setNotice(editingId ? t('gestionDistritos.distritoActualizado') : t('gestionDistritos.distritoCreado'))
     resetForm()
     await load()
   }
 
-  if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando catálogo de distritos...</div>
-  if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Este catálogo es exclusivo de nacional/super_admin.</p>
+  if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('gestionDistritos.cargandoCatalogo')}</div>
+  if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('gestionDistritos.soloNacional')}</p>
 
   return (
     <div className="page-shell">
       <header>
-        <p className="eyebrow">Administración nacional</p>
-        <h1 className="section-title">Catálogo de distritos</h1>
-        <p className="text-sm text-secondary mt-0.5">Los 36 distritos de la IPUC, identificados por número. Cada congregación pertenece a uno de estos distritos.</p>
+        <p className="eyebrow">{t('gestionDistritos.eyebrow')}</p>
+        <h1 className="section-title">{t('gestionDistritos.titulo')}</h1>
+        <p className="text-sm text-secondary mt-0.5">{t('gestionDistritos.subtitulo')}</p>
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -188,29 +189,29 @@ export default function GestionDistritos() {
 
       <form onSubmit={saveDistrito} className="card p-5 grid sm:grid-cols-4 gap-3 items-end">
         <div className="sm:col-span-4 flex items-center justify-between gap-3">
-          <h2 className="font-medium">{editingId ? 'Editar distrito' : 'Nuevo distrito'}</h2>
-          {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
+          <h2 className="font-medium">{editingId ? t('gestionDistritos.editarDistrito') : t('gestionDistritos.nuevoDistrito')}</h2>
+          {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>{t('gestionDistritos.cancelarEdicion')}</button>}
         </div>
-        <label className="text-sm"><span className="flex items-center gap-1">Número<InfoTip texto="Número oficial del distrito dentro de los 36 de la IPUC en Colombia. No puede repetirse entre distritos. Los distritos no tienen nombre propio, solo número -- los nombres son de las congregaciones." /></span><input required type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
+        <label className="text-sm"><span className="flex items-center gap-1">{t('gestionDistritos.numero')}<InfoTip texto={t('gestionDistritos.numeroTip')} /></span><input required type="number" min="1" max="36" className="input-field mt-1.5" value={form.numero} onChange={(event) => setForm({ ...form, numero: event.target.value })} /></label>
         <button disabled={saving} className="btn-primary">
           {editingId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear distrito'}
+          {saving ? t('gestionDistritos.guardando') : editingId ? t('gestionDistritos.guardarCambios') : t('gestionDistritos.crearDistrito')}
         </button>
       </form>
 
       <section className="card overflow-hidden">
         {loading ? (
-          <div className="module-loading" role="status"><span className="loading-dot" />Cargando distritos...</div>
+          <div className="module-loading" role="status"><span className="loading-dot" />{t('gestionDistritos.cargandoDistritos')}</div>
         ) : distritos.length === 0 ? (
-          <div className="p-10 text-center"><MapPin className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">Aún no hay distritos registrados.</p></div>
+          <div className="p-10 text-center"><MapPin className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">{t('gestionDistritos.sinDistritos')}</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="font-normal px-5 py-3">Número</th>
-                  <th className="font-normal px-5 py-3">Congregaciones</th>
-                  <th className="font-normal px-5 py-3 text-right">Acciones</th>
+                  <th className="font-normal px-5 py-3">{t('gestionDistritos.colNumero')}</th>
+                  <th className="font-normal px-5 py-3">{t('gestionDistritos.colCongregaciones')}</th>
+                  <th className="font-normal px-5 py-3 text-right">{t('gestionDistritos.colAcciones')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,7 +220,7 @@ export default function GestionDistritos() {
                     <td className="px-5 py-3 font-medium">{distrito.numero ?? '—'}</td>
                     <td className="px-5 py-3 text-secondary">{conteos.get(distrito.id) || 0}</td>
                     <td className="px-5 py-3 text-right">
-                      <button type="button" className="text-accent text-xs" onClick={() => editDistrito(distrito)}>Editar</button>
+                      <button type="button" className="text-accent text-xs" onClick={() => editDistrito(distrito)}>{t('gestionDistritos.editar')}</button>
                     </td>
                   </tr>
                 ))}
@@ -232,29 +233,29 @@ export default function GestionDistritos() {
       <section className="card overflow-hidden">
         <header className="p-5 pb-0 flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h2 className="font-medium">Congregaciones por distrito</h2>
-            <p className="text-sm text-secondary mt-0.5">Reasigna una congregación a su distrito real cuando quedó bajo uno incorrecto (por ejemplo, un distrito de prueba).</p>
+            <h2 className="font-medium">{t('gestionDistritos.congPorDistrito')}</h2>
+            <p className="text-sm text-secondary mt-0.5">{t('gestionDistritos.congPorDistritoSubtitulo')}</p>
           </div>
           <input
             className="input-field w-full sm:w-64"
-            placeholder="Buscar congregación..."
+            placeholder={t('gestionDistritos.buscarCongregacion')}
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
           />
         </header>
         {loading ? (
-          <div className="module-loading" role="status"><span className="loading-dot" />Cargando congregaciones...</div>
+          <div className="module-loading" role="status"><span className="loading-dot" />{t('gestionDistritos.cargandoCongregaciones')}</div>
         ) : congregacionesFiltradas.length === 0 ? (
-          <div className="p-10 text-center"><MapPin className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">No hay congregaciones que coincidan.</p></div>
+          <div className="p-10 text-center"><MapPin className="w-8 h-8 text-muted mx-auto mb-3" /><p className="text-sm text-secondary">{t('gestionDistritos.sinCoincidencias')}</p></div>
         ) : (
           <div className="overflow-x-auto mt-3">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="font-normal px-5 py-3">Congregación</th>
-                  <th className="font-normal px-5 py-3">Distrito actual</th>
-                  <th className="font-normal px-5 py-3">Nuevo distrito</th>
-                  <th className="font-normal px-5 py-3 text-right"><span className="flex items-center justify-end gap-1.5">Acciones<InfoTip texto="Al mover una congregación, sus estadísticas y comités empiezan a contar para el distrito nuevo, no para el actual." /></span></th>
+                  <th className="font-normal px-5 py-3">{t('gestionDistritos.colCongregacion')}</th>
+                  <th className="font-normal px-5 py-3">{t('gestionDistritos.colDistritoActual')}</th>
+                  <th className="font-normal px-5 py-3">{t('gestionDistritos.colNuevoDistrito')}</th>
+                  <th className="font-normal px-5 py-3 text-right"><span className="flex items-center justify-end gap-1.5">{t('gestionDistritos.colAcciones')}<InfoTip texto={t('gestionDistritos.accionesTip')} /></span></th>
                 </tr>
               </thead>
               <tbody>
@@ -283,7 +284,7 @@ export default function GestionDistritos() {
                           disabled={!cambioPendiente || cambioPendiente === congregacion.distrito_id || moviendoId === congregacion.id}
                           onClick={() => moverCongregacion(congregacion.id)}
                         >
-                          {moviendoId === congregacion.id ? 'Moviendo...' : 'Mover'}
+                          {moviendoId === congregacion.id ? t('gestionDistritos.moviendo') : t('gestionDistritos.mover')}
                         </button>
                       </td>
                     </tr>
@@ -294,26 +295,26 @@ export default function GestionDistritos() {
           </div>
         )}
         <div className="p-4 border-t border-border">
-          <Pager page={congPageSafe} totalPages={congPageCount} total={congregacionesFiltradas.length} onPrev={() => setCongPage((current) => current - 1)} onNext={() => setCongPage((current) => current + 1)} label="congregaciones" />
+          <Pager page={congPageSafe} totalPages={congPageCount} total={congregacionesFiltradas.length} onPrev={() => setCongPage((current) => current - 1)} onNext={() => setCongPage((current) => current + 1)} label={t('gestionDistritos.congregaciones')} />
         </div>
       </section>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card overflow-hidden">
           <header className="p-5 pb-3">
-            <h2 className="font-medium">Congregaciones por ciudad</h2>
-            <p className="text-sm text-secondary mt-0.5">Cuántas congregaciones hay en cada ciudad, y de cuántos distritos distintos vienen — útil cuando una misma ciudad tiene congregaciones de varios distritos (ej. Cali).{sinCiudad > 0 && ` ${sinCiudad} congregación(es) sin ciudad registrada no aparecen aquí.`}</p>
+            <h2 className="font-medium">{t('gestionDistritos.congPorCiudad')}</h2>
+            <p className="text-sm text-secondary mt-0.5">{t('gestionDistritos.congPorCiudadSubtitulo')}{sinCiudad > 0 && t('gestionDistritos.sinCiudadSuffix', { count: sinCiudad })}</p>
           </header>
           {porCiudad.length === 0 ? (
-            <p className="px-5 pb-5 text-sm text-muted">Aún no hay congregaciones con ciudad registrada.</p>
+            <p className="px-5 pb-5 text-sm text-muted">{t('gestionDistritos.sinCongCiudad')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted bg-surface-1">
-                    <th className="font-normal px-5 py-3">Ciudad</th>
-                    <th className="font-normal px-5 py-3 text-right">Congregaciones</th>
-                    <th className="font-normal px-5 py-3 text-right">Distritos</th>
+                    <th className="font-normal px-5 py-3">{t('gestionDistritos.colCiudad')}</th>
+                    <th className="font-normal px-5 py-3 text-right">{t('gestionDistritos.colCongregaciones')}</th>
+                    <th className="font-normal px-5 py-3 text-right">{t('gestionDistritos.colDistritos')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -330,8 +331,8 @@ export default function GestionDistritos() {
           )}
         </div>
         <div className="card p-5">
-          <h2 className="font-medium">Mapa nacional de congregaciones</h2>
-          <p className="text-sm text-secondary mt-0.5">Ubicación registrada por cada congregación en Configuración local -- exacta si ya ajustaron el pin, aproximada por ciudad si aún no.</p>
+          <h2 className="font-medium">{t('gestionDistritos.mapaTitulo')}</h2>
+          <p className="text-sm text-secondary mt-0.5">{t('gestionDistritos.mapaSubtitulo')}</p>
           <div className="mt-4">
             <GeoMap points={puntosMapa} height={420} premium colorHex="#5B9BE0" />
           </div>
