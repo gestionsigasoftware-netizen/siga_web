@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar, Line } from "react-chartjs-2";
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { supabase } from "../lib/supabase";
@@ -30,6 +31,7 @@ function Metric({ label, value, detail, tip }) {
 }
 
 export default function ImpactoMisionero() {
+  const { t, i18n } = useTranslation();
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const nivel = rolPrincipal?.nivel;
   const congregacionId = rolPrincipal?.congregacion_id;
@@ -44,7 +46,7 @@ export default function ImpactoMisionero() {
     if (!rolPrincipal) return;
     if (esLocal && !congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("impactoMisionero.sinCongregacion"));
       return;
     }
     load();
@@ -108,7 +110,7 @@ export default function ImpactoMisionero() {
       ? await supabase.from("vw_resumen_feligresia").select("congregacion_id, personas_activas").in("congregacion_id", congregacionIds)
       : { data: [] };
     const failed = [internosResult, cultosResult, estudiantesResult, institucionesResult, casosResult, ayudasResult, congregacionesResult, resumenResult].find((item) => item.error);
-    if (failed) setError("No se pudo cargar el impacto misionero. Intenta nuevamente.");
+    if (failed) setError(t("impactoMisionero.errorCargar"));
     const personasPorCongregacion = new Map((resumenResult.data ?? []).map((item) => [item.congregacion_id, item.personas_activas || 0]));
     const newData = {
       internos: internosResult.data ?? [],
@@ -124,7 +126,7 @@ export default function ImpactoMisionero() {
     impactoMisioneroCache.set(cacheKey, newData);
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando impacto misionero...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("impactoMisionero.cargando")}</div>;
   if (error && !data) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>;
 
   const internosActivos = data.internos.filter((item) => item.estado === "activo").length;
@@ -137,13 +139,13 @@ export default function ImpactoMisionero() {
   const personasAlcanzadas = internosActivos + estudiantesActivos + casosActivos;
   const distribucion = distributionDataset(
     [
-      { label: "Obra Carcelaria", total: internosActivos },
-      { label: "Misión Juvenil", total: estudiantesActivos },
-      { label: "Obra Social", total: casosActivos },
+      { label: t("impactoMisionero.export.obraCarcelaria"), total: internosActivos },
+      { label: t("impactoMisionero.export.misionJuvenil"), total: estudiantesActivos },
+      { label: t("impactoMisionero.export.obraSocial"), total: casosActivos },
     ],
-    { datasetLabel: "Personas alcanzadas" },
+    { datasetLabel: t("impactoMisionero.personasAlcanzadas") },
   );
-  const alcance = esLocal ? "tu congregación" : nivel === "distrital" ? "tu distrito" : "la IPUC en Colombia";
+  const alcance = esLocal ? t("impactoMisionero.alcanceLocal") : nivel === "distrital" ? t("impactoMisionero.alcanceDistrital") : t("impactoMisionero.alcanceNacional");
 
   // Mapa de presencia -- mismo calculo de "agrupar por ciudad" que ya usa
   // GestionDistritos.jsx, para no inventar uno distinto.
@@ -174,17 +176,17 @@ export default function ImpactoMisionero() {
     }));
   const barrasCiudades = distributionDataset(
     ciudadesMapa.slice(0, 5).map((item) => ({ label: item.ciudad, total: item.total })),
-    { datasetLabel: "Congregaciones" },
+    { datasetLabel: t("impactoMisionero.congregacionesLabel") },
   );
   const tendenciaCrecimiento = (() => {
     const hoy = new Date();
     const meses = [];
     for (let i = 5; i >= 0; i--) {
       const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-      meses.push({ limite: new Date(fecha.getFullYear(), fecha.getMonth() + 1, 1), label: fecha.toLocaleDateString("es-CO", { month: "short" }) });
+      meses.push({ limite: new Date(fecha.getFullYear(), fecha.getMonth() + 1, 1), label: fecha.toLocaleDateString(i18n.language === "en" ? "en-US" : i18n.language === "pt" ? "pt-BR" : "es-CO", { month: "short" }) });
     }
     const conteos = meses.map(({ limite }) => data.congregaciones.filter((item) => item.created_at && new Date(item.created_at) < limite).length);
-    return trendDataset(meses.map((m) => m.label), conteos, { label: "Congregaciones" });
+    return trendDataset(meses.map((m) => m.label), conteos, { label: t("impactoMisionero.congregacionesLabel") });
   })();
 
   // Territorio alcanzado por distrito: solo nacional/super_admin ve
@@ -202,34 +204,35 @@ export default function ImpactoMisionero() {
   function exportResumen() {
     return {
       kpis: [
-        { label: "Personas alcanzadas", value: personasAlcanzadas },
-        { label: "Internos en Obra Carcelaria", value: internosActivos },
-        { label: "Estudiantes en Misión Juvenil", value: estudiantesActivos },
-        { label: "Casos de Obra Social", value: casosActivos },
+        { label: t("impactoMisionero.export.personasAlcanzadas"), value: personasAlcanzadas },
+        { label: t("impactoMisionero.export.internosCarcelaria"), value: internosActivos },
+        { label: t("impactoMisionero.export.estudiantesJuvenil"), value: estudiantesActivos },
+        { label: t("impactoMisionero.export.casosObraSocial"), value: casosActivos },
       ],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Frente", "Personas/casos activos", "Detalle"],
+      headers: [t("impactoMisionero.export.colFrente"), t("impactoMisionero.export.colPersonasCasos"), t("impactoMisionero.export.colDetalle")],
       rows: [
-        ["Obra Carcelaria", internosActivos, `${internosBautizados} bautizados`],
-        ["Misión Juvenil", estudiantesActivos, `${estudiantesBautizados} bautizados · ${data.institucionesCount} instituciones`],
-        ["Obra Social", casosActivos, `${casosResueltos} resueltos`],
+        [t("impactoMisionero.export.obraCarcelaria"), internosActivos, t("impactoMisionero.export.bautizados", { cantidad: internosBautizados })],
+        [t("impactoMisionero.export.misionJuvenil"), estudiantesActivos, t("impactoMisionero.export.bautizadosInstituciones", { bautizados: estudiantesBautizados, instituciones: data.institucionesCount })],
+        [t("impactoMisionero.export.obraSocial"), casosActivos, t("impactoMisionero.export.resueltos", { cantidad: casosResueltos })],
       ],
     };
   }
-  function exportCsv() { descargarCsv({ filename: `impacto-misionero-${hoyBogota()}.csv`, titulo: `Impacto Misionero — ${alcance}`, ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `impacto-misionero-${hoyBogota()}.xlsx`, hoja: "Impacto", titulo: `Impacto Misionero — ${alcance}`, resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `impacto-misionero-${hoyBogota()}.pdf`, titulo: `Impacto Misionero — ${alcance}`, resumen: exportResumen(), ...exportHeaders() }); }
+  const tituloReporte = t("impactoMisionero.export.tituloReporte", { alcance });
+  function exportCsv() { descargarCsv({ filename: `impacto-misionero-${hoyBogota()}.csv`, titulo: tituloReporte, ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `impacto-misionero-${hoyBogota()}.xlsx`, hoja: t("impactoMisionero.export.hoja"), titulo: tituloReporte, resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `impacto-misionero-${hoyBogota()}.pdf`, titulo: tituloReporte, resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Frentes misioneros</p>
-          <h1 className="section-title">Impacto Misionero</h1>
-          <p className="text-sm text-secondary mt-1">Alcance combinado de Obra Carcelaria, Misión Juvenil y Obra Social en {alcance}.</p>
+          <p className="eyebrow">{t("impactoMisionero.eyebrow")}</p>
+          <h1 className="section-title">{t("impactoMisionero.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("impactoMisionero.subtitulo", { alcance })}</p>
         </div>
         <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
       </header>
@@ -237,30 +240,30 @@ export default function ImpactoMisionero() {
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Metric label="Personas alcanzadas" value={personasAlcanzadas} detail="Activas en los 3 frentes" tip="Suma de personas activas ahora mismo en Obra Carcelaria, Misión Juvenil y Obra Social. Es un conteo simple de los 3 frentes, no personas distintas verificadas una por una." />
-        <Metric label="Internos en Obra Carcelaria" value={internosActivos} detail={`${internosBautizados} bautizados`} />
-        <Metric label="Estudiantes en Misión Juvenil" value={estudiantesActivos} detail={`${estudiantesBautizados} bautizados · ${data.institucionesCount} instituciones`} />
-        <Metric label="Casos de Obra Social" value={casosActivos} detail={`${casosResueltos} resueltos`} />
+        <Metric label={t("impactoMisionero.personasAlcanzadas")} value={personasAlcanzadas} detail={t("impactoMisionero.activasEn3Frentes")} tip={t("impactoMisionero.personasAlcanzadasTip")} />
+        <Metric label={t("impactoMisionero.internosCarcelaria")} value={internosActivos} detail={t("impactoMisionero.bautizadosCantidad", { cantidad: internosBautizados })} />
+        <Metric label={t("impactoMisionero.estudiantesJuvenil")} value={estudiantesActivos} detail={t("impactoMisionero.bautizadosInstituciones", { bautizados: estudiantesBautizados, instituciones: data.institucionesCount })} />
+        <Metric label={t("impactoMisionero.casosObraSocial")} value={casosActivos} detail={t("impactoMisionero.resueltosCantidad", { cantidad: casosResueltos })} />
       </section>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Distribución</p>
-          <h2 className="font-medium mt-1">Personas alcanzadas por frente</h2>
+          <p className="eyebrow">{t("impactoMisionero.distribucion")}</p>
+          <h2 className="font-medium mt-1">{t("impactoMisionero.personasPorFrente")}</h2>
           <div className="h-64 mt-4">
-            {personasAlcanzadas ? <Bar data={distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay personas activas en estos frentes." />}
+            {personasAlcanzadas ? <Bar data={distribucion} options={CHART_OPTIONS} /> : <ChartEmpty message={t("impactoMisionero.sinPersonasActivas")} />}
           </div>
         </div>
         <div className="card p-5">
-          <p className="eyebrow">Últimos 12 meses</p>
-          <h2 className="font-medium mt-1">Actividad reciente</h2>
+          <p className="eyebrow">{t("impactoMisionero.ultimos12Meses")}</p>
+          <h2 className="font-medium mt-1">{t("impactoMisionero.actividadReciente")}</h2>
           <div className="flex flex-col gap-3 mt-5">
             <div className="flex justify-between items-center gap-3">
-              <p className="text-sm text-secondary flex items-center gap-1.5">Asistencia en cultos carcelarios<InfoTip texto="Suma de asistentes de todos los cultos de los últimos 12 meses. Si una misma persona fue a varios cultos, se cuenta cada vez, no una sola vez." /></p>
+              <p className="text-sm text-secondary flex items-center gap-1.5">{t("impactoMisionero.asistenciaCultos")}<InfoTip texto={t("impactoMisionero.asistenciaCultosTip")} /></p>
               <p className="text-lg font-semibold">{asistenciaCultos12m}</p>
             </div>
             <div className="flex justify-between items-center gap-3">
-              <p className="text-sm text-secondary flex items-center gap-1.5">Ayudas de Obra Social entregadas<InfoTip texto="Número de ayudas puntuales entregadas en los últimos 12 meses (por ejemplo, un mercado o un pago de servicios), no el número de familias o casos atendidos." /></p>
+              <p className="text-sm text-secondary flex items-center gap-1.5">{t("impactoMisionero.ayudasEntregadas")}<InfoTip texto={t("impactoMisionero.ayudasEntregadasTip")} /></p>
               <p className="text-lg font-semibold">{data.ayudasCount}</p>
             </div>
           </div>
@@ -270,16 +273,16 @@ export default function ImpactoMisionero() {
       {!esLocal && (
         <>
           <div>
-            <p className="eyebrow">Geografía</p>
-            <h2 className="section-title" style={{ fontSize: "1.15rem" }}>Mapa de presencia</h2>
-            <p className="text-sm text-secondary mt-1">Dónde está ubicada cada congregación de {alcance === "tu distrito" ? "tu distrito" : "la IPUC"}, y cómo ha crecido en el tiempo.</p>
+            <p className="eyebrow">{t("impactoMisionero.geografia")}</p>
+            <h2 className="section-title" style={{ fontSize: "1.15rem" }}>{t("impactoMisionero.mapaPresencia")}</h2>
+            <p className="text-sm text-secondary mt-1">{t("impactoMisionero.mapaPresenciaSubtitulo", { alcance })}</p>
           </div>
 
           <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Metric label="Congregaciones activas" value={congregacionesActivas} />
-            <Metric label="Ciudades con presencia" value={ciudadesMapa.length} tip="Ciudades distintas con al menos una congregación, según el campo 'Ciudad' de cada congregación." />
-            <Metric label="Nuevas · últimos 12 meses" value={congregacionesNuevas12m} />
-            <Metric label="Personas alcanzadas" value={personasAlcanzadasMapa} tip="Suma de feligreses activos de todas las congregaciones en el mapa. No incluye amigos en ruta ni los frentes de Obra Carcelaria/Misión Juvenil/Obra Social." />
+            <Metric label={t("impactoMisionero.congregacionesActivas")} value={congregacionesActivas} />
+            <Metric label={t("impactoMisionero.ciudadesConPresencia")} value={ciudadesMapa.length} tip={t("impactoMisionero.ciudadesTip")} />
+            <Metric label={t("impactoMisionero.nuevas12m")} value={congregacionesNuevas12m} />
+            <Metric label={t("impactoMisionero.personasAlcanzadas")} value={personasAlcanzadasMapa} tip={t("impactoMisionero.personasAlcanzadasMapaTip")} />
           </section>
 
           <section className="relative rounded-card overflow-hidden" style={{ boxShadow: "0 24px 60px -20px rgba(10,20,40,0.45)" }}>
@@ -303,17 +306,17 @@ export default function ImpactoMisionero() {
                     aquí se fundiría con el fondo del mapa. */}
                 <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)" }}>
                   <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
-                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "rgba(234,241,250,0.65)" }}>Congregaciones</p>
+                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "rgba(234,241,250,0.65)" }}>{t("impactoMisionero.congregacionesLabel")}</p>
                     <p className="text-xl font-semibold text-white mt-0.5">{congregacionesActivas}</p>
                   </div>
                   <div className="rounded-xl px-4 py-2.5" style={{ background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(62,224,200,0.35)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
-                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#8FEFDF" }}>Ciudades</p>
+                    <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#8FEFDF" }}>{t("impactoMisionero.ciudadesLabel")}</p>
                     <p className="text-xl font-semibold mt-0.5" style={{ color: "#3EE0C8" }}>{ciudadesMapa.length}</p>
                   </div>
                 </div>
                 <div className="absolute bottom-4 left-4 rounded-xl px-3.5 py-2.5 pointer-events-none" style={{ zIndex: 1200, transform: "translateZ(0)", background: "rgba(10,18,36,0.82)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.4)" }}>
-                  <p className="text-xs font-medium text-white">Congregaciones ubicadas</p>
-                  <p className="text-[11px]" style={{ color: "rgba(234,241,250,0.75)" }}>El tamaño de cada punto refleja feligreses activos</p>
+                  <p className="text-xs font-medium text-white">{t("impactoMisionero.congregacionesUbicadas")}</p>
+                  <p className="text-[11px]" style={{ color: "rgba(234,241,250,0.75)" }}>{t("impactoMisionero.tamanoPuntoNota")}</p>
                 </div>
               </>
             )}
@@ -321,17 +324,17 @@ export default function ImpactoMisionero() {
 
           <section className="grid lg:grid-cols-2 gap-4">
             <div className="card chart-card p-5">
-              <p className="eyebrow">Cobertura</p>
-              <h2 className="font-medium mt-1">Congregaciones por ciudad</h2>
+              <p className="eyebrow">{t("impactoMisionero.cobertura")}</p>
+              <h2 className="font-medium mt-1">{t("impactoMisionero.congPorCiudad")}</h2>
               <div className="h-56 mt-4">
-                {ciudadesMapa.length ? <Bar data={barrasCiudades} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay congregaciones con ciudad registrada." />}
+                {ciudadesMapa.length ? <Bar data={barrasCiudades} options={CHART_OPTIONS} /> : <ChartEmpty message={t("impactoMisionero.sinCongCiudad")} />}
               </div>
             </div>
             <div className="card chart-card p-5">
-              <p className="eyebrow">Tendencia</p>
-              <h2 className="font-medium mt-1">Crecimiento de congregaciones · 6 meses</h2>
+              <p className="eyebrow">{t("impactoMisionero.tendencia")}</p>
+              <h2 className="font-medium mt-1">{t("impactoMisionero.crecimiento6m")}</h2>
               <div className="h-56 mt-4">
-                {congregacionesActivas ? <Line data={tendenciaCrecimiento} options={CHART_OPTIONS} /> : <ChartEmpty message="Aún no hay congregaciones para mostrar la tendencia." />}
+                {congregacionesActivas ? <Line data={tendenciaCrecimiento} options={CHART_OPTIONS} /> : <ChartEmpty message={t("impactoMisionero.sinCongTendencia")} />}
               </div>
             </div>
           </section>
@@ -340,9 +343,9 @@ export default function ImpactoMisionero() {
             <>
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
                 <div>
-                  <p className="eyebrow">Territorio</p>
-                  <h2 className="section-title" style={{ fontSize: "1.15rem" }}>Territorio alcanzado por distrito</h2>
-                  <p className="text-sm text-secondary mt-1 max-w-2xl">Aproximación por radio de alcance alrededor de cada congregación, agrupada por distrito -- no es un límite territorial oficial. Las zonas sin color no tienen ninguna congregación de la IPUC cerca; es información real para decidir dónde enviar misión.</p>
+                  <p className="eyebrow">{t("impactoMisionero.territorio")}</p>
+                  <h2 className="section-title" style={{ fontSize: "1.15rem" }}>{t("impactoMisionero.territorioAlcanzado")}</h2>
+                  <p className="text-sm text-secondary mt-1 max-w-2xl">{t("impactoMisionero.territorioSubtitulo")}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {[10, 15, 20].map((valor) => (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, useMap } from 'react-leaflet'
 import { circle } from '@turf/circle'
 import { union } from '@turf/union'
@@ -49,6 +50,7 @@ function colorPorIndice(indice) {
 // ningun distrito, no hay ninguna congregacion cerca -- esa ausencia es
 // la senal util para decidir donde enviar mision, no un error del mapa.
 export default function MapaTerritorios({ congregaciones, radioKm = 15, height = 480 }) {
+  const { t } = useTranslation()
   const validas = congregaciones.filter((c) => Number.isFinite(c.latitud) && Number.isFinite(c.longitud) && c.distrito_id)
 
   const territoriosFC = useMemo(() => {
@@ -86,7 +88,7 @@ export default function MapaTerritorios({ congregaciones, radioKm = 15, height =
   if (validas.length === 0) {
     return (
       <div className="flex items-center justify-center text-sm rounded-card bg-surface-1 text-muted" style={{ height }}>
-        Aún no hay congregaciones con ubicación y distrito para calcular territorio.
+        {t('impactoMisionero.sinDatosTerritorio')}
       </div>
     )
   }
@@ -126,7 +128,7 @@ export default function MapaTerritorios({ congregaciones, radioKm = 15, height =
           onEachFeature={(feature, layer) => {
             const { numero, totalCongregaciones, areaKm2 } = feature.properties
             layer.bindTooltip(
-              `<strong>Distrito ${numero ?? '?'}</strong><br/>${totalCongregaciones} congregaci${totalCongregaciones === 1 ? 'ón' : 'ones'} · ~${areaKm2} km²`,
+              `<strong>${t('impactoMisionero.tooltipDistrito', { numero: numero ?? '?' })}</strong><br/>${t('impactoMisionero.tooltipCongregaciones', { count: totalCongregaciones, area: areaKm2 })}`,
               { sticky: true },
             )
           }}
