@@ -127,9 +127,13 @@
 	  danza/teatro/artes visuales, mismo patron que Musica). 38
 	  pantallas en total verificadas con Playwright real (login +
 	  EN/PT, cero errores de consola).
-	- **Falta**: el contenido propio de las ~7 pantallas restantes
-	  (DamasDorcas,
-	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
+	- **Mas pantallas traducidas (2026-09-26, continuacion 8)**:
+	  `DamasDorcas.jsx` (409 lineas -- beneficiarias con censo propio,
+	  hitos independientes y alerta de seguimiento a 60 dias). 39
+	  pantallas en total verificadas con Playwright real (login +
+	  EN/PT, cero errores de consola).
+	- **Falta**: el contenido propio de las ~6 pantallas restantes
+	  (ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
 	  (cientos de textos por pantalla en algunos casos, especialmente
