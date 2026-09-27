@@ -132,8 +132,14 @@
 	  hitos independientes y alerta de seguimiento a 60 dias). 39
 	  pantallas en total verificadas con Playwright real (login +
 	  EN/PT, cero errores de consola).
-	- **Falta**: el contenido propio de las ~6 pantallas restantes
-	  (ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
+	- **Mas pantallas traducidas (2026-09-26, continuacion 9)**:
+	  `ObraSocial.jsx` (388 lineas -- casos de asistencia socioeconomica
+	  vinculables a Red de Familias, reutilizando las mismas
+	  traducciones de estado de caso ya fijadas en RedFamilias.jsx para
+	  consistencia). 40 pantallas en total verificadas con Playwright
+	  real (login + EN/PT, cero errores de consola).
+	- **Falta**: el contenido propio de las ~5 pantallas restantes
+	  (SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
 	  (cientos de textos por pantalla en algunos casos, especialmente
