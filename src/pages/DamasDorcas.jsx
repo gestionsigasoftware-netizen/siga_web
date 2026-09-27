@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar, Line } from "react-chartjs-2";
 import {
   BarElement,
@@ -23,8 +24,7 @@ import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport"
 
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 
-const TIPO_ACTIVIDAD_LABELS = { visita: "Visita", social: "Social", espiritual: "Espiritual", otro: "Otro" };
-const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
+const PERIODOS = ["30", "180", "365"];
 const DIAS_INACTIVIDAD = 60;
 const CHART_OPTIONS = chartOptions();
 
@@ -45,6 +45,8 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "" }) {
 }
 
 export default function DamasDorcas() {
+  const { t } = useTranslation();
+  const TIPO_ACTIVIDAD_LABELS = t("damasDorcas.tipos", { returnObjects: true });
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [beneficiarias, setBeneficiarias] = useState([]);
@@ -70,7 +72,7 @@ export default function DamasDorcas() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("damasDorcas.errorSinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -94,7 +96,7 @@ export default function DamasDorcas() {
       supabase.from("personas").select("id, nombres, apellidos").eq("congregacion_id", congregacionId).eq("estado_membresia", "activo").order("nombres"),
     ]);
     const failed = [b, a, s, p].find((item) => item.error);
-    if (failed) setError("No se pudo cargar Damas Dorcas. Intenta nuevamente o contacta al administrador.");
+    if (failed) setError(t("damasDorcas.errorCargar"));
     const newBeneficiarias = b.data ?? [];
     const newActividades = a.data ?? [];
     const newAsistencias = s.data ?? [];
@@ -120,8 +122,8 @@ export default function DamasDorcas() {
       responsable_persona_id: beneficiariaForm.responsable_persona_id || null,
     });
     setSaving(false);
-    if (result.error) { setError("No se pudo registrar a la beneficiaria."); return; }
-    setNotice("Beneficiaria registrada.");
+    if (result.error) { setError(t("damasDorcas.errorRegistrarBeneficiaria")); return; }
+    setNotice(t("damasDorcas.noticeBeneficiariaRegistrada"));
     setBeneficiariaForm({ nombres: "", apellidos: "", telefono: "", direccion: "", responsable_persona_id: "" });
     load();
   }
@@ -138,15 +140,15 @@ export default function DamasDorcas() {
       descripcion: actividadForm.descripcion.trim() || null,
       responsable_persona_id: actividadForm.responsable_persona_id || null,
     }).select("id").single();
-    if (actividadResult.error) { setSaving(false); setError(`No se pudo registrar la actividad: ${actividadResult.error.message}`); return; }
+    if (actividadResult.error) { setSaving(false); setError(t("damasDorcas.errorRegistrarActividad", { mensaje: actividadResult.error.message })); return; }
     if (activas.length > 0) {
       const asistenciaResult = await supabase.from("damas_dorcas_asistencia").insert(
         activas.map((beneficiaria) => ({ actividad_id: actividadResult.data.id, beneficiaria_id: beneficiaria.id, asistio: Boolean(asistenciaMarcada[beneficiaria.id]) })),
       );
-      if (asistenciaResult.error) { setSaving(false); setError(`La actividad se guardó, pero no se pudo registrar la asistencia individual: ${asistenciaResult.error.message}`); return; }
+      if (asistenciaResult.error) { setSaving(false); setError(t("damasDorcas.errorAsistenciaIndividual", { mensaje: asistenciaResult.error.message })); return; }
     }
     setSaving(false);
-    setNotice("Actividad registrada con asistencia individual.");
+    setNotice(t("damasDorcas.noticeActividadRegistrada"));
     setActividadForm({ fecha: hoyBogota(), tipo: "visita", descripcion: "", responsable_persona_id: "" });
     setAsistenciaMarcada({});
     load();
@@ -158,8 +160,8 @@ export default function DamasDorcas() {
     const hoy = hoyBogota();
     const result = await supabase.from("damas_dorcas_beneficiarias").update({ [campo]: true, [fechaCampo]: hoy }).eq("id", beneficiaria.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar la ficha: ${result.error.message}`); return; }
-    setNotice("Ficha actualizada.");
+    if (result.error) { setError(t("damasDorcas.errorActualizarFicha", { mensaje: result.error.message })); return; }
+    setNotice(t("damasDorcas.noticeFichaActualizada"));
     load();
   }
 
@@ -170,7 +172,7 @@ export default function DamasDorcas() {
     supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "damas_dorcas.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
   }, [congregacionId, rolPrincipal]);
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Damas Dorcas...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("damasDorcas.cargando")}</div>;
 
   const activas = beneficiarias.filter((item) => item.estado === "activa");
   const bautizadas = activas.filter((item) => item.bautizado);
@@ -216,78 +218,83 @@ export default function DamasDorcas() {
   });
 
   const insightGeneral = activas.length
-    ? `${beneficiariasSinSeguimiento.length} de ${activas.length} beneficiarias activas no han tenido actividad en más de ${DIAS_INACTIVIDAD} días. ${beneficiariasSinSeguimiento.length > 0 ? "Prioriza visitarlas esta semana." : "El seguimiento está al día."}`
-    : "Registra beneficiarias para construir una lectura del trabajo con mujeres.";
+    ? t("damasDorcas.insightGeneralConDatos", {
+        count: beneficiariasSinSeguimiento.length,
+        total: activas.length,
+        dias: DIAS_INACTIVIDAD,
+        extra: beneficiariasSinSeguimiento.length > 0 ? t("damasDorcas.insightExtraPrioriza") : t("damasDorcas.insightExtraAlDia"),
+      })
+    : t("damasDorcas.insightVacio");
 
-  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Actividades" });
-  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Actividades" });
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("damasDorcas.datasetActividades") });
+  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: t("damasDorcas.datasetActividades") });
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Beneficiarias activas", value: activas.length },
-        { label: "Actividades (30 días)", value: actividadesUltimoMes.length },
-        { label: "Sin seguimiento reciente", value: beneficiariasSinSeguimiento.length },
-        { label: "Bautizadas", value: bautizadas.length },
+        { label: t("damasDorcas.exportKpiBeneficiariasActivas"), value: activas.length },
+        { label: t("damasDorcas.exportKpiActividades30"), value: actividadesUltimoMes.length },
+        { label: t("damasDorcas.exportKpiSinSeguimiento"), value: beneficiariasSinSeguimiento.length },
+        { label: t("damasDorcas.exportKpiBautizadas"), value: bautizadas.length },
       ],
-      desgloses: [{ titulo: "Actividades por tipo", items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+      desgloses: [{ titulo: t("damasDorcas.exportDesgloseTitulo"), items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Nombre", "Estado", "Responsable", "Bautizada", "Sellada", "Última actividad"],
-      rows: beneficiarias.map((item) => [`${item.nombres} ${item.apellidos}`, item.estado === "activa" ? "Activa" : "Inactiva", item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : "Sin asignar", item.bautizado ? "Sí" : "No", item.sellado ? "Sí" : "No", ultimaActividadPorBeneficiaria.get(item.id) || "Sin registro"]),
+      headers: [t("damasDorcas.thNombre"), t("damasDorcas.exportHeaderEstado"), t("damasDorcas.exportHeaderResponsable"), t("damasDorcas.exportHeaderBautizada"), t("damasDorcas.exportHeaderSellada"), t("damasDorcas.exportHeaderUltimaActividad")],
+      rows: beneficiarias.map((item) => [`${item.nombres} ${item.apellidos}`, item.estado === "activa" ? t("damasDorcas.estadoActiva") : t("damasDorcas.estadoInactiva"), item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : t("damasDorcas.sinAsignar"), item.bautizado ? t("damasDorcas.si") : t("damasDorcas.no"), item.sellado ? t("damasDorcas.si") : t("damasDorcas.no"), ultimaActividadPorBeneficiaria.get(item.id) || t("damasDorcas.sinRegistro")]),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `damas-dorcas-${hoyBogota()}.csv`, titulo: "Damas Dorcas — Beneficiarias", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `damas-dorcas-${hoyBogota()}.xlsx`, hoja: "Beneficiarias", titulo: "Damas Dorcas — Beneficiarias", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `damas-dorcas-${hoyBogota()}.pdf`, titulo: "Damas Dorcas — Beneficiarias", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `damas-dorcas-${hoyBogota()}.csv`, titulo: t("damasDorcas.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `damas-dorcas-${hoyBogota()}.xlsx`, hoja: "Beneficiarias", titulo: t("damasDorcas.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `damas-dorcas-${hoyBogota()}.pdf`, titulo: t("damasDorcas.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Trabajo con mujeres</p>
-          <h1 className="section-title">Damas Dorcas</h1>
-          <p className="text-sm text-secondary mt-1">Trabajo evangelístico, social y espiritual con mujeres de la congregación y su entorno.</p>
+          <p className="eyebrow">{t("damasDorcas.eyebrow")}</p>
+          <h1 className="section-title">{t("damasDorcas.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("damasDorcas.subtitulo")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-            {PERIODOS.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
+          <div className="flex gap-1.5" role="group" aria-label={t("damasDorcas.ariaPeriodo")}>
+            {PERIODOS.map((value, index) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{t(`damasDorcas.${["periodo30", "periodo6m", "periodo12m"][index]}`)}</button>
             ))}
           </div>
           <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Damas Dorcas.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("damasDorcas.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric label="Beneficiarias activas" value={activas.length} progress={activas.length ? 100 : 0} detail={`${beneficiarias.length} registradas en total`} insight={activas.length ? "Cada beneficiaria debe tener una responsable de seguimiento." : "Registra la primera beneficiaria para iniciar el trabajo."} />
-        <Metric label="Actividades (30 días)" value={actividadesUltimoMes.length} tone={variacion30Dias === null || variacion30Dias >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={`${actividades.length} en el periodo seleccionado`} insight={variacion30Dias === null ? "Aún no hay suficiente historial para comparar." : `${variacion30Dias >= 0 ? "Creció" : "Bajó"} ${Math.abs(variacion30Dias)}% frente a los 30 días anteriores.`} />
-        <Metric label="Sin seguimiento reciente" value={beneficiariasSinSeguimiento.length} tone={beneficiariasSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activas.length ? Math.round((beneficiariasSinSeguimiento.length / activas.length) * 100) : 0} detail={`Más de ${DIAS_INACTIVIDAD} días sin actividad`} insight={beneficiariasSinSeguimiento.length > 0 ? "Revisa la lista y programa una visita." : "Todas las beneficiarias tienen seguimiento reciente."} />
-        <Metric label="Tipo de trabajo líder" value={actividades.length ? (tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={`${tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0} actividades`} insight={actividades.length ? "Compara con las demás modalidades para balancear el trabajo." : "Registra actividades para identificar el tipo de trabajo predominante."} />
-        <Metric label="Bautizadas" value={bautizadas.length} progress={activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0} detail={`${activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0}% de las activas`} insight="Bautizado y sellado son hitos independientes: compara con la métrica de selladas." />
-        <Metric label="Selladas" value={selladas.length} progress={activas.length ? Math.round((selladas.length / activas.length) * 100) : 0} detail="Con el Espíritu Santo" insight="Puede pasar antes o después del bautismo en agua." />
+        <Metric label={t("damasDorcas.metricBeneficiariasActivas")} value={activas.length} progress={activas.length ? 100 : 0} detail={t("damasDorcas.metricBeneficiariasActivasDetalle", { count: beneficiarias.length })} insight={activas.length ? t("damasDorcas.metricBeneficiariasActivasInsight") : t("damasDorcas.metricBeneficiariasActivasInsightVacio")} />
+        <Metric label={t("damasDorcas.metricActividades30")} value={actividadesUltimoMes.length} tone={variacion30Dias === null || variacion30Dias >= 0 ? "text-success" : "text-danger"} progress={actividadesUltimoMes.length ? 100 : 0} detail={t("damasDorcas.metricActividades30Detalle", { count: actividades.length })} insight={variacion30Dias === null ? t("damasDorcas.metricActividadesInsightSinHistorial") : t("damasDorcas.metricActividadesInsightVariacion", { direccion: variacion30Dias >= 0 ? t("damasDorcas.direccionCrecio") : t("damasDorcas.direccionBajo"), porcentaje: Math.abs(variacion30Dias) })} />
+        <Metric label={t("damasDorcas.metricSinSeguimiento")} value={beneficiariasSinSeguimiento.length} tone={beneficiariasSinSeguimiento.length > 0 ? "text-danger" : "text-success"} progress={activas.length ? Math.round((beneficiariasSinSeguimiento.length / activas.length) * 100) : 0} detail={t("damasDorcas.metricSinSeguimientoDetalle", { dias: DIAS_INACTIVIDAD })} insight={beneficiariasSinSeguimiento.length > 0 ? t("damasDorcas.metricSinSeguimientoInsightPendiente") : t("damasDorcas.metricSinSeguimientoInsightOk")} />
+        <Metric label={t("damasDorcas.metricTipoTrabajoLider")} value={actividades.length ? (tiposConTotal.sort((a, b) => b.total - a.total)[0]?.label ?? "—") : "—"} progress={actividades.length ? Math.round((tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0) / actividades.length * 100) : 0} detail={t("damasDorcas.metricTipoTrabajoLiderDetalle", { count: tiposConTotal.sort((a, b) => b.total - a.total)[0]?.total || 0 })} insight={actividades.length ? t("damasDorcas.metricTipoTrabajoLiderInsight") : t("damasDorcas.metricTipoTrabajoLiderInsightVacio")} />
+        <Metric label={t("damasDorcas.metricBautizadas")} value={bautizadas.length} progress={activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0} detail={t("damasDorcas.metricBautizadasDetalle", { pct: activas.length ? Math.round((bautizadas.length / activas.length) * 100) : 0 })} insight={t("damasDorcas.metricBautizadasInsight")} />
+        <Metric label={t("damasDorcas.metricSelladas")} value={selladas.length} progress={activas.length ? Math.round((selladas.length / activas.length) * 100) : 0} detail={t("damasDorcas.metricSelladasDetalle")} insight={t("damasDorcas.metricSelladasInsight")} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Trabajo realizado</p>
-          <h2 className="font-medium mt-1">Tendencia de actividades</h2>
+          <p className="eyebrow">{t("damasDorcas.eyebrowTrabajoRealizado")}</p>
+          <h2 className="font-medium mt-1">{t("damasDorcas.tituloTendenciaActividades")}</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas en el periodo." />}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("damasDorcas.chartEmptySinActividadesPeriodo")} />}
           </div>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Modalidad</p>
-          <h2 className="font-medium mt-1">Actividades por tipo</h2>
+          <p className="eyebrow">{t("damasDorcas.eyebrowModalidad")}</p>
+          <h2 className="font-medium mt-1">{t("damasDorcas.tituloActividadesPorTipo")}</h2>
           <div className="h-56 mt-4">
-            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin actividades registradas todavía." />}
+            {actividades.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("damasDorcas.chartEmptySinActividades")} />}
           </div>
         </div>
       </section>
@@ -297,15 +304,15 @@ export default function DamasDorcas() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="font-medium">Beneficiarias sin seguimiento reciente</h2>
-              <p className="text-xs text-secondary mt-1">Sin actividad registrada en más de {DIAS_INACTIVIDAD} días.</p>
+              <h2 className="font-medium">{t("damasDorcas.tituloBeneficiariasSinSeguimiento")}</h2>
+              <p className="text-xs text-secondary mt-1">{t("damasDorcas.descripcionSinSeguimiento", { dias: DIAS_INACTIVIDAD })}</p>
             </div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
             {beneficiariasSinSeguimiento.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
                 <p className="text-sm font-medium">{item.nombres} {item.apellidos}</p>
-                <p className="text-xs text-secondary mt-1">{ultimaActividadPorBeneficiaria.get(item.id) ? `Última actividad: ${ultimaActividadPorBeneficiaria.get(item.id)}` : "Sin actividad registrada"}</p>
+                <p className="text-xs text-secondary mt-1">{ultimaActividadPorBeneficiaria.get(item.id) ? t("damasDorcas.ultimaActividadTexto", { fecha: ultimaActividadPorBeneficiaria.get(item.id) }) : t("damasDorcas.sinActividadRegistrada")}</p>
               </div>
             ))}
           </div>
@@ -315,37 +322,37 @@ export default function DamasDorcas() {
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Censo</p><h2 className="font-medium mt-1">Beneficiarias</h2></div>
+            <div><p className="eyebrow">{t("damasDorcas.eyebrowCenso")}</p><h2 className="font-medium mt-1">{t("damasDorcas.tituloBeneficiarias")}</h2></div>
             <UsersRound className="w-5 h-5 text-accent" />
           </div>
           <div className="overflow-x-auto mt-4 max-h-80 overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">Nombre</th><th className="py-2">Responsable</th><th className="py-2">Estado</th><th className="py-2"><span className="inline-flex items-center gap-1">Hitos<InfoTip texto="Bautizada y sellada se marcan una sola vez con la fecha de hoy; no hay botón para deshacerlo desde aquí." /></span></th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted border-b border-border"><th className="py-2">{t("damasDorcas.thNombre")}</th><th className="py-2">{t("damasDorcas.thResponsable")}</th><th className="py-2">{t("damasDorcas.thEstado")}</th><th className="py-2"><span className="inline-flex items-center gap-1">{t("damasDorcas.thHitos")}<InfoTip texto={t("damasDorcas.infoHitos")} /></span></th></tr></thead>
               <tbody>
                 {beneficiarias.map((item) => (
                   <tr key={item.id} className="border-b border-border">
                     <td className="py-2 font-medium">{item.nombres} {item.apellidos}</td>
-                    <td className="py-2 text-secondary">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : "Sin asignar"}</td>
-                    <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{item.estado === "activa" ? "Activa" : "Inactiva"}</span></td>
+                    <td className="py-2 text-secondary">{item.personas ? `${item.personas.nombres} ${item.personas.apellidos}` : t("damasDorcas.sinAsignar")}</td>
+                    <td className="py-2"><span className="text-xs px-2 py-1 rounded bg-accent-bg text-accent">{item.estado === "activa" ? t("damasDorcas.estadoActiva") : t("damasDorcas.estadoInactiva")}</span></td>
                     <td className="py-2">
                       <div className="flex gap-1.5 flex-wrap items-center">
-                        {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Bautizada</span>}
-                        {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">Sellada</span>}
-                        {canEdit && !item.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>Marcar bautizada</button>}
-                        {canEdit && !item.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>Marcar sellada</button>}
+                        {item.bautizado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("damasDorcas.badgeBautizada")}</span>}
+                        {item.sellado && <span className="text-[11px] px-2 py-0.5 rounded bg-accent-bg text-accent">{t("damasDorcas.badgeSellada")}</span>}
+                        {canEdit && !item.bautizado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "bautizado", "fecha_bautismo")}>{t("damasDorcas.botonMarcarBautizada")}</button>}
+                        {canEdit && !item.sellado && <button type="button" className="text-[11px] btn-secondary px-2 py-0.5" onClick={() => marcarHito(item, "sellado", "fecha_sellado")}>{t("damasDorcas.botonMarcarSellada")}</button>}
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!beneficiarias.length && <p className="text-sm text-secondary py-6 text-center">Aún no hay beneficiarias registradas.</p>}
+            {!beneficiarias.length && <p className="text-sm text-secondary py-6 text-center">{t("damasDorcas.sinBeneficiariasRegistradas")}</p>}
           </div>
         </div>
 
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Trabajo realizado</p><h2 className="font-medium mt-1">Actividades</h2></div>
+            <div><p className="eyebrow">{t("damasDorcas.eyebrowTrabajoRealizado")}</p><h2 className="font-medium mt-1">{t("damasDorcas.tituloActividadesPanel")}</h2></div>
             <Heart className="w-5 h-5 text-accent" />
           </div>
           <div className="flex flex-col divide-y divide-border mt-4 max-h-64 overflow-y-auto">
@@ -358,51 +365,51 @@ export default function DamasDorcas() {
                 {item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}
               </div>
             ))}
-            {!actividades.length && <p className="text-sm text-muted py-6">Aún no hay actividades registradas.</p>}
+            {!actividades.length && <p className="text-sm text-muted py-6">{t("damasDorcas.sinActividadesRegistradas")}</p>}
           </div>
           {canEdit && <form onSubmit={createActividad} className="border-t border-border mt-4 pt-4 grid gap-2">
-            <p className="text-sm font-medium mb-1">Registrar actividad</p>
+            <p className="text-sm font-medium mb-1">{t("damasDorcas.tituloRegistrarActividad")}</p>
             <div className="grid grid-cols-2 gap-2">
               <input required type="date" className="input-field" value={actividadForm.fecha} onChange={(event) => setActividadForm({ ...actividadForm, fecha: event.target.value })} />
               <select className="input-field" value={actividadForm.tipo} onChange={(event) => setActividadForm({ ...actividadForm, tipo: event.target.value })}>
                 {Object.entries(TIPO_ACTIVIDAD_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
-            <textarea className="input-field min-h-14" placeholder="Ej: Visita al hogar geriátrico San José, se llevaron alimentos y ropa" value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
+            <textarea className="input-field min-h-14" placeholder={t("damasDorcas.placeholderDescripcionActividad")} value={actividadForm.descripcion} onChange={(event) => setActividadForm({ ...actividadForm, descripcion: event.target.value })} />
             <select className="input-field" value={actividadForm.responsable_persona_id} onChange={(event) => setActividadForm({ ...actividadForm, responsable_persona_id: event.target.value })}>
-              <option value="">Responsable</option>
+              <option value="">{t("damasDorcas.opcionResponsableSimple")}</option>
               {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
             </select>
             {activas.length > 0 && <div>
-              <p className="text-xs text-secondary mb-1">Asistencia individual</p>
+              <p className="text-xs text-secondary mb-1">{t("damasDorcas.asistenciaIndividualLabel")}</p>
               <div className="grid sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                 {activas.map((beneficiaria) => <label key={beneficiaria.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(asistenciaMarcada[beneficiaria.id])} onChange={(event) => setAsistenciaMarcada({ ...asistenciaMarcada, [beneficiaria.id]: event.target.checked })} />{beneficiaria.nombres} {beneficiaria.apellidos}</label>)}
               </div>
             </div>}
-            <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar actividad</button>
+            <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("damasDorcas.botonRegistrarActividad")}</button>
           </form>}
         </div>
       </section>
 
       <form onSubmit={createBeneficiaria} className={`card p-5 flex flex-col gap-2 ${canEdit ? '' : 'hidden'}`}>
-        <h2 className="font-medium">Nueva beneficiaria</h2>
+        <h2 className="font-medium">{t("damasDorcas.tituloNuevaBeneficiaria")}</h2>
         <div className="grid grid-cols-2 gap-2">
-          <input required className="input-field" placeholder="Ej: María" value={beneficiariaForm.nombres} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, nombres: event.target.value })} />
-          <input required className="input-field" placeholder="Ej: Gómez Ruiz" value={beneficiariaForm.apellidos} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, apellidos: event.target.value })} />
+          <input required className="input-field" placeholder={t("damasDorcas.placeholderNombres")} value={beneficiariaForm.nombres} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, nombres: event.target.value })} />
+          <input required className="input-field" placeholder={t("damasDorcas.placeholderApellidos")} value={beneficiariaForm.apellidos} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, apellidos: event.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <input className="input-field" placeholder="Ej: 3001234567 (opcional)" value={beneficiariaForm.telefono} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, telefono: event.target.value })} />
-          <input className="input-field" placeholder="Ej: Calle 10 #5-20 (opcional)" value={beneficiariaForm.direccion} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, direccion: event.target.value })} />
+          <input className="input-field" placeholder={t("damasDorcas.placeholderTelefono")} value={beneficiariaForm.telefono} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, telefono: event.target.value })} />
+          <input className="input-field" placeholder={t("damasDorcas.placeholderDireccion")} value={beneficiariaForm.direccion} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, direccion: event.target.value })} />
         </div>
         <label className="text-xs text-secondary flex items-center gap-1">
-          Responsable de seguimiento
-          <InfoTip texto="Sin alguien asignado, es más fácil que esta beneficiaria quede sin visitas de seguimiento." />
+          {t("damasDorcas.labelResponsableSeguimiento")}
+          <InfoTip texto={t("damasDorcas.infoResponsableSeguimiento")} />
           <select className="input-field mt-1 w-full" value={beneficiariaForm.responsable_persona_id} onChange={(event) => setBeneficiariaForm({ ...beneficiariaForm, responsable_persona_id: event.target.value })}>
-            <option value="">Selecciona una persona</option>
+            <option value="">{t("damasDorcas.opcionSeleccionaPersona")}</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
         </label>
-        <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar beneficiaria</button>
+        <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("damasDorcas.botonRegistrarBeneficiaria")}</button>
       </form>
     </div>
   );
