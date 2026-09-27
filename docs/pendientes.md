@@ -157,13 +157,21 @@
 	  vez de una traduccion literal palabra por palabra. 42 pantallas
 	  en total verificadas con Playwright real (EN/PT, cero errores de
 	  consola).
-	- **Falta**: el contenido propio de las ~3 pantallas restantes
-	  (PastoralDistrital, y el resto de
-	  modulos operativos) sigue en espanol fijo -- pendiente por
-	  archivo en proximas sesiones, trabajo de contenido muy grande
-	  (cientos de textos por pantalla en algunos casos, especialmente
-	  PastoralDistrital.jsx 2271 lineas, la mas grande que queda). Y la
-	  Fase 3 (mismo tema+idiomas en la PWA,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 12, CIERRE)**:
+	  `PastoralDistrital.jsx` (2271 lineas, la pantalla mas grande de
+	  toda la app -- 355 llaves nuevas, censo distrital completo, 11
+	  invocaciones del componente compartido `ResumenComiteDistrital`,
+	  6 formularios CRUD independientes). Con esta pantalla se cierra
+	  la traduccion de las 43 pantallas operativas de SIGAP a
+	  ingles/portugues -- verificado con script de llaves (0 faltantes
+	  en los 3 idiomas) + build real + Playwright (login real,
+	  EN/PT/ES, cero errores de consola). Se confirmo tambien que las 2
+	  pantallas exclusivas de super_admin (`Suscripciones.jsx`
+	  facturacion, `ErroresSistema.jsx` monitoreo) ya estaban 100%
+	  traducidas desde sesiones anteriores (53 y 19 llaves, 0
+	  faltantes) -- se quedan asi, con idiomas, decision final del
+	  usuario.
+	- **Falta**: la Fase 3 (mismo tema+idiomas en la PWA,
 	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
 	  tocar).
 
