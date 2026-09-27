@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowRightLeft, Download, Plus, Search, PencilLine, Users, Building2, UserRoundCheck, CircleDashed, MapPinned, GraduationCap, BookOpen, Trash2, LockKeyhole, ClipboardCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { hoyBogota } from "../lib/fechaBogota";
@@ -9,16 +10,13 @@ import Toast from '../components/Toast'
 import { descargarPdf } from '../lib/reportExport'
 import { ETIQUETA_TRIMESTRE, limitesInformeTrimestral, trimestreCerradoMasReciente } from '../lib/trimestre'
 import { CARGO_DISTRITAL_LABELS } from '../lib/cargosDistritales'
+import i18n from '../i18n'
 
 const pastoralDistritalCache = new Map()
 
 const TODAY = hoyBogota()
 const CARGO_OPTIONS = ['Pastor local', 'Pastor asociado', 'Pastor auxiliar', 'Coordinador de congregación']
-const LICENCIA_LABELS = { obrero: 'Obrero', local: 'Licencia Local', general: 'Licencia General', ordenacion: 'Ordenación Ministerial' }
 const LICENCIA_SIGUIENTE = { obrero: 'local', local: 'general', general: 'ordenacion', ordenacion: null }
-const TIPO_FORMACION_LABELS = { titulo: 'Título', curso: 'Curso', diplomado: 'Diplomado', especializacion: 'Especialización', maestria: 'Maestría', doctorado: 'Doctorado', seminario_biblico: 'Seminario bíblico', otro: 'Otro' }
-const MADUREZ_LABELS = { mision_nacional: 'Misión Nacional', lugar_prediccion: 'Lugar de Predicación', iglesia_local: 'Iglesia Local (Constituida)' }
-const INFORME_SORT_LABELS = { bautizados_nuevos: 'Bautizados', sellados_nuevos: 'Sellados', reconciliados_actual: 'Reconciliados', entregados_nuevos: 'Entregados nuevos' }
 const EMPTY_FORM = {
   nombres: '',
   apellidos: '',
@@ -35,14 +33,13 @@ const EMPTY_FORM = {
 const EMPTY_NEW_CONGREGATION = { nombre: '', ciudad: '', pastor_nombres: '', pastor_apellidos: '', pastor_telefono: '', pastor_email: '' }
 const EMPTY_FORMACION = { pastor_id: '', tipo: 'diplomado', tipo_otro: '', nombre: '', institucion: '', fecha: '', observaciones: '' }
 const EMPTY_CENTRO = { nombre: '', tipo: 'municipal', ciudad: '', direccion: '' }
-const TIPO_CENTRO_LABELS = { maxima_seguridad: 'Máxima seguridad', mediana_seguridad: 'Mediana seguridad', municipal: 'Municipal', correccional_menores: 'Correccional de menores', otro: 'Otro' }
-const ESTADO_REINSERCION_LABELS = { asignado: 'Asignado', contactado: 'Contactado', activo: 'Activo', inactivo: 'Inactivo', reincidencia: 'Reincidencia' }
 
 const formatDate = (value) => {
-  if (!value) return 'Sin fecha'
+  if (!value) return i18n.t('pastoralDistrital.sinFecha')
   const date = new Date(`${value}T12:00:00`)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+  const locale = i18n.language === 'en' ? 'en-US' : i18n.language === 'pt' ? 'pt-BR' : 'es-CO'
+  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
 const getCurrentMonthTransfers = (assignments = []) => {
@@ -60,6 +57,7 @@ const getCurrentMonthTransfers = (assignments = []) => {
 // una transicion no es el acceso al sistema, es perder el hilo de a
 // quien habia que visitar.
 function ContinuidadPastoral({ vacantes }) {
+  const { t } = useTranslation()
   const [resumenes, setResumenes] = useState({})
   const [errores, setErrores] = useState({})
 
@@ -81,8 +79,8 @@ function ContinuidadPastoral({ vacantes }) {
   return (
     <section className="card overflow-hidden">
       <div className="p-5 border-b border-border">
-        <h2 className="font-medium flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-accent" /> Continuidad pendiente</h2>
-        <p className="text-sm text-secondary mt-1">Congregaciones sin pastor asignado ahora mismo — lo que el próximo pastor (o tú, mientras tanto) necesita saber que sigue abierto.</p>
+        <h2 className="font-medium flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-accent" /> {t('pastoralDistrital.continuidadTitulo')}</h2>
+        <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.continuidadDescripcion')}</p>
       </div>
       <div className="divide-y divide-border">
         {vacantes.map((congregacion) => {
@@ -91,14 +89,14 @@ function ContinuidadPastoral({ vacantes }) {
             <div key={congregacion.id} className="p-4">
               <p className="text-sm font-medium">{congregacion.nombre}</p>
               {errores[congregacion.id] ? (
-                <p className="text-xs text-danger mt-1">No se pudo cargar la continuidad de esta congregación. Intenta recargar la página.</p>
+                <p className="text-xs text-danger mt-1">{t('pastoralDistrital.continuidadErrorCarga')}</p>
               ) : !resumen ? (
-                <p className="text-xs text-muted mt-1">Cargando pendientes...</p>
+                <p className="text-xs text-muted mt-1">{t('pastoralDistrital.continuidadCargando')}</p>
               ) : (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.seguimientos_pendientes) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.seguimientos_pendientes} seguimiento(s) pastoral(es) pendiente(s)</span>
-                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.casos_red_familias_activos) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{resumen.casos_red_familias_activos} caso(s) activo(s) de Red de Familias</span>
-                  <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${Number(resumen.cargos_obligatorios_vacantes) > 0 ? 'bg-danger-bg text-danger' : 'bg-surface-1 text-muted'}`}>{resumen.cargos_obligatorios_vacantes} cargo(s) obligatorio(s) de comité sin cubrir<InfoTip texto="Cargos locales (de comités como Escuela Dominical, Damas Dorcas, etc.) que toda congregación debe tener cubiertos. No son los 6 cargos de la junta distrital." /></span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.seguimientos_pendientes) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{t('pastoralDistrital.continuidadSeguimientos', { count: resumen.seguimientos_pendientes })}</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${Number(resumen.casos_red_familias_activos) > 0 ? 'bg-warning-bg text-warning' : 'bg-surface-1 text-muted'}`}>{t('pastoralDistrital.continuidadCasosRedFamilias', { count: resumen.casos_red_familias_activos })}</span>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${Number(resumen.cargos_obligatorios_vacantes) > 0 ? 'bg-danger-bg text-danger' : 'bg-surface-1 text-muted'}`}>{t('pastoralDistrital.continuidadCargosVacantes', { count: resumen.cargos_obligatorios_vacantes })}<InfoTip texto={t('pastoralDistrital.infoCargosVacantes')} /></span>
                 </div>
               )}
             </div>
@@ -123,6 +121,7 @@ function ContinuidadPastoral({ vacantes }) {
 // ahi), y el mismo insight de "quien lidera" que ya usan Evangelismo/
 // Conquistadores/etc en sus propias pantallas locales.
 function ResumenComiteDistrital({ icon: Icon, titulo, infoTitulo, descripcion, data, pageKey, emptyMessage, metrics, unidadLider, paginate }) {
+  const { t } = useTranslation()
   const primary = metrics.find((metric) => metric.primary) || metrics[0]
   const [sortKey, setSortKey] = useState(primary.key)
   const sorted = useMemo(
@@ -161,18 +160,18 @@ function ResumenComiteDistrital({ icon: Icon, titulo, infoTitulo, descripcion, d
           </div>
         )}
         {lider && Number(lider[primary.key] || 0) > 0 && (
-          <p className="px-5 pt-4 text-sm text-secondary">{lider.nombre} lidera con {lider[primary.key]} {unidadLider}.</p>
+          <p className="px-5 pt-4 text-sm text-secondary">{t('pastoralDistrital.liderConMetrica', { nombre: lider.nombre, valor: lider[primary.key], unidad: unidadLider })}</p>
         )}
         <div className="px-5 pt-4 flex justify-end">
           <select className="input-field text-xs" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
-            {metrics.map((metric) => <option key={metric.key} value={metric.key}>Ordenar por {metric.label}</option>)}
+            {metrics.map((metric) => <option key={metric.key} value={metric.key}>{t('pastoralDistrital.ordenarPorGenerico', { label: metric.label })}</option>)}
           </select>
         </div>
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-muted bg-surface-1">
-                <th className="font-normal px-4 py-2.5">Congregación</th>
+                <th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thCongregacion')}</th>
                 {metrics.map((metric) => (
                   <th key={metric.key} className="font-normal px-4 py-2.5">
                     <span className="flex items-center gap-1.5">{metric.label}{metric.info && <InfoTip texto={metric.info} />}</span>
@@ -192,7 +191,7 @@ function ResumenComiteDistrital({ icon: Icon, titulo, infoTitulo, descripcion, d
             </tbody>
           </table>
         </div>
-        <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sorted.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+        <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sorted.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorCongregaciones')} /></div>
         </>
       })()}
     </section>
@@ -200,6 +199,14 @@ function ResumenComiteDistrital({ icon: Icon, titulo, infoTitulo, descripcion, d
 }
 
 export default function PastoralDistrital() {
+  const { t } = useTranslation()
+  const CARGO_LABELS = t('pastoralDistrital.cargoLabels', { returnObjects: true })
+  const LICENCIA_LABELS = t('pastoralDistrital.licencias', { returnObjects: true })
+  const TIPO_FORMACION_LABELS = t('pastoralDistrital.tiposFormacion', { returnObjects: true })
+  const MADUREZ_LABELS = t('pastoralDistrital.madurez', { returnObjects: true })
+  const TIPO_CENTRO_LABELS = t('pastoralDistrital.tiposCentro', { returnObjects: true })
+  const ESTADO_REINSERCION_LABELS = t('pastoralDistrital.estadosReinsercion', { returnObjects: true })
+  const INFORME_SORT_LABELS = t('pastoralDistrital.informeSort', { returnObjects: true })
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const distritoId = rolPrincipal?.distrito_id
   const isDistrictLeader = rolPrincipal?.nivel === 'distrital'
@@ -293,22 +300,22 @@ export default function PastoralDistrital() {
   async function descargarInformeTrimestralDistrital() {
     if (!filasInformeOrdenadas.length) return
     const etiqueta = `${ETIQUETA_TRIMESTRE[informeTrimestre]} ${informeAnio}`
-    const distritoLabel = rolPrincipal?.distritos?.numero ? `Distrito ${rolPrincipal.distritos.numero}` : 'Distrito'
+    const distritoLabel = rolPrincipal?.distritos?.numero ? `${t('pastoralDistrital.distritoGenerico')} ${rolPrincipal.distritos.numero}` : t('pastoralDistrital.distritoGenerico')
     const sumar = (campo) => filasInformeOrdenadas.reduce((total, item) => total + Number(item[campo] || 0), 0)
     await descargarPdf({
       filename: `informe-trimestral-distrital-${informeAnio}-t${informeTrimestre}.pdf`,
-      titulo: `Informe trimestral por congregación · ${etiqueta}`,
+      titulo: `${t('pastoralDistrital.informeTitulo')} · ${etiqueta}`,
       orientacion: 'landscape',
-      meta: [distritoLabel, `Trimestre: ${etiqueta}`, `Ordenado por: ${INFORME_SORT_LABELS[informeSortKey]}`],
+      meta: [distritoLabel, t('pastoralDistrital.trimestrePrefix', { etiqueta }), t('pastoralDistrital.ordenadoPorPrefix', { criterio: INFORME_SORT_LABELS[informeSortKey] })],
       resumen: {
         kpis: [
-          { label: 'Bautizados nuevos (distrito)', value: sumar('bautizados_nuevos') },
-          { label: 'Sellados nuevos (distrito)', value: sumar('sellados_nuevos') },
-          { label: 'Reconciliados (distrito)', value: sumar('reconciliados_actual') },
-          { label: 'Entregados nuevos (distrito)', value: sumar('entregados_nuevos') },
+          { label: `${t('pastoralDistrital.thBautizados')} nuevos (distrito)`, value: sumar('bautizados_nuevos') },
+          { label: `${t('pastoralDistrital.thSellados')} nuevos (distrito)`, value: sumar('sellados_nuevos') },
+          { label: `${t('pastoralDistrital.thReconciliados')} (distrito)`, value: sumar('reconciliados_actual') },
+          { label: `${t('pastoralDistrital.thEntregados')} nuevos (distrito)`, value: sumar('entregados_nuevos') },
         ],
       },
-      headers: ['Congregación', 'Bautizados', '+Nuevos', 'Sellados', '+Nuevos', 'Reconciliados', 'Antes', 'Entregados', '+Nuevos'],
+      headers: [t('pastoralDistrital.thCongregacion'), t('pastoralDistrital.thBautizados'), t('pastoralDistrital.colMasNuevos'), t('pastoralDistrital.thSellados'), t('pastoralDistrital.colMasNuevos'), t('pastoralDistrital.thReconciliados'), t('pastoralDistrital.colAntes'), t('pastoralDistrital.thEntregados'), t('pastoralDistrital.colMasNuevos')],
       rows: filasInformeOrdenadas.map((item) => [
         item.nombre,
         item.bautizados_total_actual, item.bautizados_nuevos,
@@ -479,7 +486,7 @@ export default function PastoralDistrital() {
     ])
 
     if (pastorResult.error || congregationResult.error || assignmentResult.error) {
-      setError('No se pudo cargar la gestión pastoral distrital. Intenta nuevamente o contacta al administrador.')
+      setError(t('pastoralDistrital.errores.cargar'))
     }
 
     const freshData = {
@@ -554,7 +561,7 @@ export default function PastoralDistrital() {
     })
     setSavingCargo(false)
     if (result.error) {
-      setError(result.error.code === '23505' ? 'Ya hay una persona vigente en ese cargo. Termina su periodo antes de asignar uno nuevo.' : 'No se pudo asignar el cargo.')
+      setError(result.error.code === '23505' ? t('pastoralDistrital.errores.cargoOcupado') : t('pastoralDistrital.errores.asignarCargo'))
       return
     }
     setCargoForm({ persona_id: '', cargo: 'supervisor', fecha_inicio: hoyBogota() })
@@ -566,15 +573,15 @@ export default function PastoralDistrital() {
     setError(null)
     const result = await supabase.from('cargos_distritales').update({ fecha_fin: hoyBogota() }).eq('id', item.id)
     setSavingCargo(false)
-    if (result.error) { setError('No se pudo terminar el cargo.'); return }
+    if (result.error) { setError(t('pastoralDistrital.errores.terminarCargo')); return }
     load()
   }
 
   async function resolverSepri(item, estado) {
     setError(null)
     const result = await supabase.from('sepri_solicitudes_evento').update({ estado, notas_distrital: sepriNotas[item.id]?.trim() || null }).eq('id', item.id)
-    if (result.error) { setError(`No se pudo actualizar la solicitud: ${result.error.message}`); return }
-    setNotice(`Solicitud ${estado === 'aprobado' ? 'aprobada' : 'rechazada'}.`)
+    if (result.error) { setError(t('pastoralDistrital.errores.actualizarSolicitud', { mensaje: result.error.message })); return }
+    setNotice(estado === 'aprobado' ? t('pastoralDistrital.notices.solicitudAprobada') : t('pastoralDistrital.notices.solicitudRechazada'))
     load()
   }
 
@@ -586,7 +593,7 @@ export default function PastoralDistrital() {
 
   async function saveCentro(event) {
     event.preventDefault()
-    if (!distritoId || !centroForm.nombre.trim()) { setError('El nombre del centro es obligatorio.'); return }
+    if (!distritoId || !centroForm.nombre.trim()) { setError(t('pastoralDistrital.errores.nombreCentroObligatorio')); return }
     setSavingCentro(true)
     setError(null)
     setNotice(null)
@@ -595,15 +602,15 @@ export default function PastoralDistrital() {
       ? await supabase.from('centros_reclusion').update(payload).eq('id', editingCentroId)
       : await supabase.from('centros_reclusion').insert({ ...payload, distrito_id: distritoId })
     setSavingCentro(false)
-    if (result.error) { setError(`No se pudo guardar el centro de reclusión: ${result.error.message}`); return }
-    setNotice(editingCentroId ? 'Centro de reclusión actualizado.' : 'Centro de reclusión creado.')
+    if (result.error) { setError(t('pastoralDistrital.errores.guardarCentro', { mensaje: result.error.message })); return }
+    setNotice(editingCentroId ? t('pastoralDistrital.notices.centroActualizado') : t('pastoralDistrital.notices.centroCreado'))
     resetCentroForm()
     await load()
   }
 
   async function asignarReinsercion(event) {
     event.preventDefault()
-    if (!reinsercionForm.interno_id || !reinsercionForm.congregacion_destino) { setError('Selecciona el interno liberado y la congregación destino.'); return }
+    if (!reinsercionForm.interno_id || !reinsercionForm.congregacion_destino) { setError(t('pastoralDistrital.errores.seleccionaInternoCongregacion')); return }
     setSavingReinsercion(true)
     setError(null)
     setNotice(null)
@@ -612,8 +619,8 @@ export default function PastoralDistrital() {
       p_congregacion_destino: reinsercionForm.congregacion_destino,
     })
     setSavingReinsercion(false)
-    if (asignarError) { setError(`No se pudo asignar la reinserción: ${asignarError.message}`); return }
-    setNotice('Reinserción asignada correctamente. La congregación destino podrá reportar el seguimiento.')
+    if (asignarError) { setError(t('pastoralDistrital.errores.asignarReinsercion', { mensaje: asignarError.message })); return }
+    setNotice(t('pastoralDistrital.notices.reinsercionAsignada'))
     setReinsercionForm({ interno_id: '', congregacion_destino: '' })
     await load()
   }
@@ -621,11 +628,11 @@ export default function PastoralDistrital() {
   async function createCongregation(event) {
     event.preventDefault()
     if (!distritoId) {
-      setError('No se pudo determinar tu distrito. Recarga la página o cambia de rol desde el Sidebar e intenta de nuevo; si el problema sigue, contacta a soporte.')
+      setError(t('pastoralDistrital.errores.sinDistrito'))
       return
     }
     if (!newCongregation.nombre.trim() || !newCongregation.pastor_nombres.trim() || !newCongregation.pastor_apellidos.trim() || !newCongregation.pastor_email.trim()) {
-      setError('Completa el nombre de la congregación, el nombre del pastor y su correo.')
+      setError(t('pastoralDistrital.errores.completaCongregacionPastorCorreo'))
       return
     }
     setCreatingCongregation(true)
@@ -641,18 +648,18 @@ export default function PastoralDistrital() {
         p_ciudad: newCongregation.ciudad.trim() || null,
         p_catalogo_id: catalogoSeleccionadoId || null,
       })
-      if (createError) throw new Error(`No se pudo crear la congregación: ${createError.message}`)
+      if (createError) throw new Error(t('pastoralDistrital.errores.crearCongregacion', { mensaje: createError.message }))
       const [{ congregacion_id: newCongregationId, persona_id: newPersonId }] = created
 
       const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invitar-usuario', {
         body: { personId: newPersonId, profileId: pastorProfileId, congregacionId: newCongregationId, email: newCongregation.pastor_email.trim() },
       })
       if (inviteError) {
-        setNotice('La congregación y el pastor quedaron registrados, pero la invitación de acceso no se pudo enviar. Puedes reintentarla luego desde Equipo de trabajo una vez la congregación esté activa.')
+        setNotice(t('pastoralDistrital.notices.invitacionNoEnviadaCongregacion'))
       } else if (!inviteData?.ok) {
-        setNotice('La congregación y el pastor quedaron registrados, pero la invitación no se confirmó. Revísala desde Equipo de trabajo.')
+        setNotice(t('pastoralDistrital.notices.invitacionNoConfirmadaCongregacion'))
       } else {
-        setNotice(inviteData.invitationSent ? 'Congregación creada. Se envió la invitación de acceso al pastor.' : 'Congregación creada. La cuenta existente del pastor quedó vinculada.')
+        setNotice(inviteData.invitationSent ? t('pastoralDistrital.notices.congregacionCreadaInvitacionEnviada') : t('pastoralDistrital.notices.congregacionCreadaCuentaVinculada'))
       }
       setNewCongregation(EMPTY_NEW_CONGREGATION)
       setCatalogoSearchTerm('')
@@ -690,7 +697,7 @@ export default function PastoralDistrital() {
       .rpc('resumen_informe_trimestral_distrital', { p_distrito_id: distritoId, ...limitesInformeTrimestral(informeAnio, informeTrimestre) })
       .then(({ data, error }) => {
         setLoadingInformeTrimestral(false)
-        if (error) { setError('No se pudo cargar el informe trimestral. Intenta nuevamente o contacta al administrador.'); setResumenInformeTrimestral([]); return }
+        if (error) { setError(t('pastoralDistrital.errores.cargarInformeTrimestral')); setResumenInformeTrimestral([]); return }
         setResumenInformeTrimestral(data ?? [])
       })
   }, [distritoId, isDistrictLeader, informeAnio, informeTrimestre])
@@ -772,12 +779,12 @@ export default function PastoralDistrital() {
     event.preventDefault()
 
     if (!distritoId) {
-      setError('No se pudo determinar el distrito del usuario activo.')
+      setError(t('pastoralDistrital.errores.sinDistritoUsuario'))
       return
     }
 
     if (!form.nombres.trim() || !form.apellidos.trim() || !form.congregacion_id) {
-      setError('Completa nombres, apellidos y congregación.')
+      setError(t('pastoralDistrital.errores.completaNombresApellidosCongregacion'))
       return
     }
 
@@ -800,7 +807,7 @@ export default function PastoralDistrital() {
           .eq('id', editingPastorId)
 
         if (pastorError) {
-          throw new Error(`No se pudo actualizar al pastor: ${pastorError.message}`)
+          throw new Error(t('pastoralDistrital.errores.actualizarPastor', { mensaje: pastorError.message }))
         }
 
         if (form.licencia !== licenciaOriginalRef.current) {
@@ -809,7 +816,7 @@ export default function PastoralDistrital() {
             p_licencia: form.licencia,
           })
           if (licenciaError) {
-            throw new Error(`El pastor se actualizó, pero la licencia no se pudo corregir: ${licenciaError.message}`)
+            throw new Error(t('pastoralDistrital.errores.corregirLicencia', { mensaje: licenciaError.message }))
           }
         }
 
@@ -819,7 +826,7 @@ export default function PastoralDistrital() {
             p_catalogo_id: congregacionCorreccionCatalogoId,
           })
           if (nombreError) {
-            throw new Error(`El pastor se actualizó, pero el nombre de la congregación no se pudo corregir: ${nombreError.message}`)
+            throw new Error(t('pastoralDistrital.errores.corregirNombreCongregacion', { mensaje: nombreError.message }))
           }
         }
 
@@ -833,7 +840,7 @@ export default function PastoralDistrital() {
           .is('fecha_fin', null)
 
         if (assignmentError) {
-          throw new Error(`El pastor se actualizó, pero la asignación vigente no pudo guardarse: ${assignmentError.message}`)
+          throw new Error(t('pastoralDistrital.errores.guardarAsignacionVigente', { mensaje: assignmentError.message }))
         }
 
         const nombreCompleto = `${form.nombres.trim()} ${form.apellidos.trim()}`
@@ -847,7 +854,7 @@ export default function PastoralDistrital() {
           })
 
           if (transferError) {
-            throw new Error(`No se pudo mover la asignación del pastor: ${transferError.message}`)
+            throw new Error(t('pastoralDistrital.errores.moverAsignacion', { mensaje: transferError.message }))
           }
         }
 
@@ -856,10 +863,10 @@ export default function PastoralDistrital() {
           .update({ pastor_id: editingPastorId, pastor_nombre: nombreCompleto })
           .eq('id', form.congregacion_id)
 
-        setNotice('Pastor actualizado correctamente.')
+        setNotice(t('pastoralDistrital.notices.pastorActualizado'))
       } else {
         if (!form.email.trim()) {
-          throw new Error('El correo del pastor es obligatorio para darle acceso al sistema.')
+          throw new Error(t('pastoralDistrital.errores.correoObligatorio'))
         }
 
         const { data: created, error: registerError } = await supabase.rpc('registrar_pastor_con_acceso', {
@@ -869,18 +876,18 @@ export default function PastoralDistrital() {
           p_pastor_telefono: form.telefono.trim() || null,
           p_cargo: form.cargo,
         })
-        if (registerError) throw new Error(`No se pudo registrar el pastor: ${registerError.message}`)
+        if (registerError) throw new Error(t('pastoralDistrital.errores.registrarPastor', { mensaje: registerError.message }))
         const [{ persona_id: newPersonId }] = created
 
         const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invitar-usuario', {
           body: { personId: newPersonId, profileId: pastorProfileId, congregacionId: form.congregacion_id, email: form.email.trim() },
         })
         if (inviteError) {
-          setNotice('El pastor quedó registrado y asignado, pero la invitación de acceso no se pudo enviar. Puedes reintentarla desde Equipo de trabajo.')
+          setNotice(t('pastoralDistrital.notices.invitacionNoEnviadaPastor'))
         } else if (!inviteData?.ok) {
-          setNotice('El pastor quedó registrado y asignado, pero la invitación no se confirmó. Revísala desde Equipo de trabajo.')
+          setNotice(t('pastoralDistrital.notices.invitacionNoConfirmadaPastor'))
         } else {
-          setNotice(inviteData.invitationSent ? 'Pastor registrado, asignado y con invitación de acceso enviada.' : 'Pastor registrado y asignado. La cuenta existente quedó vinculada.')
+          setNotice(inviteData.invitationSent ? t('pastoralDistrital.notices.pastorRegistradoInvitacionEnviada') : t('pastoralDistrital.notices.pastorRegistradoCuentaVinculada'))
         }
       }
 
@@ -897,12 +904,12 @@ export default function PastoralDistrital() {
     event.preventDefault()
 
     if (!transferForm.pastor_id || !transferForm.congregacion_id) {
-      setError('Selecciona el pastor y la congregación de destino.')
+      setError(t('pastoralDistrital.errores.seleccionaPastorCongregacion'))
       return
     }
 
     if (transferForm.congregacion_id === activeByPastor.get(transferForm.pastor_id)?.congregacion_id) {
-      setError('El pastor ya está asignado a la congregación elegida.')
+      setError(t('pastoralDistrital.errores.yaAsignado'))
       return
     }
 
@@ -928,7 +935,7 @@ export default function PastoralDistrital() {
         fecha: TODAY,
         observaciones: '',
       })
-      setNotice('Traslado registrado correctamente.')
+      setNotice(t('pastoralDistrital.notices.trasladoRegistrado'))
       await load()
     } catch (err) {
       setError(err.message)
@@ -941,7 +948,7 @@ export default function PastoralDistrital() {
     event.preventDefault()
 
     if (!finalizarForm.pastor_id) {
-      setError('Selecciona el pastor cuya asignación quieres finalizar.')
+      setError(t('pastoralDistrital.errores.seleccionaPastorFinalizar'))
       return
     }
 
@@ -959,7 +966,7 @@ export default function PastoralDistrital() {
       if (finalizarError) throw new Error(finalizarError.message)
 
       setFinalizarForm({ pastor_id: '', fecha: TODAY, observaciones: '' })
-      setNotice('Asignación finalizada. La congregación quedó vacante para asignar un nuevo pastor.')
+      setNotice(t('pastoralDistrital.notices.asignacionFinalizada'))
       await load()
     } catch (err) {
       setError(err.message)
@@ -972,7 +979,7 @@ export default function PastoralDistrital() {
     event.preventDefault()
 
     if (!licenciaForm.pastor_id) {
-      setError('Selecciona el pastor a ascender.')
+      setError(t('pastoralDistrital.errores.seleccionaPastorAscender'))
       return
     }
 
@@ -990,7 +997,7 @@ export default function PastoralDistrital() {
       if (licenciaError) throw new Error(licenciaError.message)
 
       setLicenciaForm({ pastor_id: '', fecha: TODAY, observaciones: '' })
-      setNotice(`Ascenso registrado: ahora tiene ${LICENCIA_LABELS[nuevaLicencia] || nuevaLicencia}.`)
+      setNotice(t('pastoralDistrital.notices.ascensoRegistrado', { licencia: LICENCIA_LABELS[nuevaLicencia] || nuevaLicencia }))
       await load()
     } catch (err) {
       setError(err.message)
@@ -1003,11 +1010,11 @@ export default function PastoralDistrital() {
     event.preventDefault()
 
     if (!formacionForm.pastor_id || !formacionForm.nombre.trim()) {
-      setError('Selecciona el pastor y el nombre de la preparación.')
+      setError(t('pastoralDistrital.errores.seleccionaPastorFormacion'))
       return
     }
     if (formacionForm.tipo === 'otro' && !formacionForm.tipo_otro.trim()) {
-      setError('Especifica el tipo de preparación en "Otro".')
+      setError(t('pastoralDistrital.errores.especificaTipoOtro'))
       return
     }
 
@@ -1029,7 +1036,7 @@ export default function PastoralDistrital() {
       if (formacionError) throw new Error(formacionError.message)
 
       setFormacionForm(EMPTY_FORMACION)
-      setNotice('Preparación registrada correctamente.')
+      setNotice(t('pastoralDistrital.notices.preparacionRegistrada'))
       await load()
     } catch (err) {
       setError(err.message)
@@ -1043,10 +1050,10 @@ export default function PastoralDistrital() {
     setNotice(null)
     const { error: updateError } = await supabase.from('congregaciones').update({ madurez }).eq('id', congregacionId)
     if (updateError) {
-      setError('No se pudo actualizar la madurez de la sede.')
+      setError(t('pastoralDistrital.errores.actualizarMadurez'))
       return
     }
-    setNotice('Madurez de la sede actualizada.')
+    setNotice(t('pastoralDistrital.notices.madurezActualizada'))
     await load()
   }
 
@@ -1055,27 +1062,27 @@ export default function PastoralDistrital() {
     setNotice(null)
     const { error: deleteError } = await supabase.from('formacion_pastoral').delete().eq('id', id)
     if (deleteError) {
-      setError('No se pudo eliminar el registro de preparación.')
+      setError(t('pastoralDistrital.errores.eliminarFormacion'))
       return
     }
-    setNotice('Registro de preparación eliminado.')
+    setNotice(t('pastoralDistrital.notices.preparacionEliminada'))
     await load()
   }
 
   if (roleLoading || loading) {
-    return <div className="module-loading" role="status"><span className="loading-dot" />Cargando gestión pastoral distrital...</div>
+    return <div className="module-loading" role="status"><span className="loading-dot" />{t('pastoralDistrital.cargando')}</div>
   }
 
   if (!isDistrictLeader) {
-    return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">Este módulo es exclusivo del líder distrital.</p>
+    return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('pastoralDistrital.soloDistrital')}</p>
   }
 
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">Administración distrital</p>
-        <h1 className="text-2xl font-semibold">Gestión pastoral</h1>
-        <p className="text-sm text-secondary mt-1">Controla pastores, asignaciones, traslados y trayectoria dentro del distrito.</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-accent mb-2">{t('pastoralDistrital.eyebrow')}</p>
+        <h1 className="text-2xl font-semibold">{t('pastoralDistrital.titulo')}</h1>
+        <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.subtitulo')}</p>
       </header>
 
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
@@ -1084,48 +1091,48 @@ export default function PastoralDistrital() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="stat-tile">
           <div className="flex items-center justify-between text-secondary text-xs uppercase tracking-wide">
-            <span>Total</span>
+            <span>{t('pastoralDistrital.statTotal')}</span>
             <Users className="w-4 h-4" />
           </div>
           <p className="mt-3 text-2xl font-semibold">{stats.totalPastors}</p>
-          <p className="text-sm text-secondary mt-1">Pastores registrados</p>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.statTotalDetalle')}</p>
         </div>
 
         <div className="stat-tile">
           <div className="flex items-center justify-between text-secondary text-xs uppercase tracking-wide">
-            <span>Activos</span>
+            <span>{t('pastoralDistrital.statActivos')}</span>
             <UserRoundCheck className="w-4 h-4" />
           </div>
           <p className="mt-3 text-2xl font-semibold">{stats.activePastorCount}</p>
-          <p className="text-sm text-secondary mt-1">Asignaciones vigentes</p>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.statActivosDetalle')}</p>
         </div>
 
         <div className="stat-tile">
           <div className="flex items-center justify-between text-secondary text-xs uppercase tracking-wide">
-            <span>Congregaciones</span>
+            <span>{t('pastoralDistrital.statCongregaciones')}</span>
             <Building2 className="w-4 h-4" />
           </div>
           <p className="mt-3 text-2xl font-semibold">{stats.congregationsWithPastors}</p>
-          <p className="text-sm text-secondary mt-1">Con pastor asignado</p>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.statCongregacionesDetalle')}</p>
         </div>
 
         <div className="stat-tile">
           <div className="flex items-center justify-between text-secondary text-xs uppercase tracking-wide">
-            <span>Vacantes</span>
+            <span>{t('pastoralDistrital.statVacantes')}</span>
             <CircleDashed className="w-4 h-4" />
           </div>
           <p className={`mt-3 text-2xl font-semibold ${stats.vacantCongregations ? 'text-warning' : ''}`}>{stats.vacantCongregations}</p>
-          <p className="text-sm text-secondary mt-1">Sin pastor actual{stats.vacantCongregations ? ` · ${stats.vacantPercent}% del distrito` : ''}</p>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.statVacantesSinPastor')}{stats.vacantCongregations ? t('pastoralDistrital.statVacantesPorcentaje', { porcentaje: stats.vacantPercent }) : ''}</p>
         </div>
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Congregaciones del distrito</h2>
-          <p className="text-sm text-secondary mt-1">Clasificación de madurez de la sede (Misión Nacional / Lugar de Predicación / Iglesia Local).</p>
+          <h2 className="font-medium">{t('pastoralDistrital.congregacionesTitulo')}</h2>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.congregacionesDescripcion')}</p>
         </div>
         {congregations.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay congregaciones registradas en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.congregacionesSinRegistros')}</p>
         ) : (() => {
           const paged = paginate('congregations', congregations)
           return <>
@@ -1133,9 +1140,9 @@ export default function PastoralDistrital() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="font-normal px-5 py-3">Congregación</th>
-                  <th className="font-normal px-5 py-3">Ciudad</th>
-                  <th className="font-normal px-5 py-3"><span className="flex items-center gap-1.5">Madurez de la sede<InfoTip texto="Etapa de desarrollo de la congregación: Misión Nacional (recién plantada), Lugar de Predicación (en crecimiento) o Iglesia Local Constituida (ya establecida)." /></span></th>
+                  <th className="font-normal px-5 py-3">{t('pastoralDistrital.thCongregacion')}</th>
+                  <th className="font-normal px-5 py-3">{t('pastoralDistrital.thCiudad')}</th>
+                  <th className="font-normal px-5 py-3"><span className="flex items-center gap-1.5">{t('pastoralDistrital.thMadurezSede')}<InfoTip texto={t('pastoralDistrital.infoMadurezSede')} /></span></th>
                 </tr>
               </thead>
               <tbody>
@@ -1155,7 +1162,7 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={congregations.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={congregations.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorCongregaciones')} /></div>
           </>
         })()}
       </section>
@@ -1164,20 +1171,20 @@ export default function PastoralDistrital() {
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Directiva distrital</h2>
-          <p className="text-sm text-secondary mt-1">Censo de quién ejerce cada cargo de la junta distrital (Supervisor, Secretario, Tesorero, Presbíteros, Veedor), separado del acceso al software.</p>
+          <h2 className="font-medium">{t('pastoralDistrital.directivaTitulo')}</h2>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.directivaDescripcion')}</p>
         </div>
         {cargosDistritales.filter((item) => !item.fecha_fin).length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay cargos asignados en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.directivaSinCargos')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted bg-surface-1">
-                  <th className="font-normal px-5 py-3">Cargo</th>
-                  <th className="font-normal px-5 py-3">Persona</th>
-                  <th className="font-normal px-5 py-3">Desde</th>
-                  <th className="font-normal px-5 py-3 text-right">Acciones</th>
+                  <th className="font-normal px-5 py-3">{t('pastoralDistrital.thCargo')}</th>
+                  <th className="font-normal px-5 py-3">{t('pastoralDistrital.thPersona')}</th>
+                  <th className="font-normal px-5 py-3">{t('pastoralDistrital.thDesde')}</th>
+                  <th className="font-normal px-5 py-3 text-right">{t('pastoralDistrital.thAcciones')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1186,7 +1193,7 @@ export default function PastoralDistrital() {
                     <td className="px-5 py-3 font-medium">{CARGO_DISTRITAL_LABELS[item.cargo] || item.cargo}</td>
                     <td className="px-5 py-3">{item.nombres} {item.apellidos}</td>
                     <td className="px-5 py-3 text-secondary">{item.fecha_inicio}</td>
-                    <td className="px-5 py-3 text-right"><button type="button" disabled={savingCargo} className="text-danger text-xs" onClick={() => terminarCargo(item)}>Terminar periodo</button></td>
+                    <td className="px-5 py-3 text-right"><button type="button" disabled={savingCargo} className="text-danger text-xs" onClick={() => terminarCargo(item)}>{t('pastoralDistrital.botonTerminarPeriodo')}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -1195,49 +1202,49 @@ export default function PastoralDistrital() {
         )}
         <form onSubmit={saveCargo} className="p-5 border-t border-border grid sm:grid-cols-4 gap-2 items-end">
           <div className="sm:col-span-4">
-            <p className="text-sm font-medium">Asignar cargo</p>
-            <p className="text-xs text-secondary mt-1">La persona debe estar en el censo activo de alguna congregación de tu distrito.</p>
+            <p className="text-sm font-medium">{t('pastoralDistrital.directivaFormTitulo')}</p>
+            <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.directivaFormDescripcion')}</p>
           </div>
           <select required className="input-field" value={cargoForm.persona_id} onChange={(event) => setCargoForm({ ...cargoForm, persona_id: event.target.value })}>
-            <option value="">Persona...</option>
+            <option value="">{t('pastoralDistrital.opcionPersonaSeleccionar')}</option>
             {personasDistrito.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
           <select className="input-field" value={cargoForm.cargo} onChange={(event) => setCargoForm({ ...cargoForm, cargo: event.target.value })}>
             {Object.entries(CARGO_DISTRITAL_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <input required type="date" className="input-field" value={cargoForm.fecha_inicio} onChange={(event) => setCargoForm({ ...cargoForm, fecha_inicio: event.target.value })} />
-          <button disabled={savingCargo} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{savingCargo ? 'Guardando...' : 'Asignar cargo'}</button>
+          <button disabled={savingCargo} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{savingCargo ? t('pastoralDistrital.botonGuardando') : t('pastoralDistrital.botonAsignarCargo')}</button>
         </form>
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <ResumenComiteDistrital
-          titulo="Escuela Dominical por congregación"
-          descripcion="Comités administrados localmente, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteEscuelaDominicalTitulo')}
+          descripcion={t('pastoralDistrital.comiteDescripcionGenerica')}
           data={resumenEscuelaDominical}
           pageKey="escuelaDominical"
-          emptyMessage="Aún no hay datos de Escuela Dominical en tu distrito."
-          unidadLider="niños activos"
+          emptyMessage={t('pastoralDistrital.comiteEscuelaDominicalEmpty')}
+          unidadLider={t('pastoralDistrital.unidadNinosActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'clases_activas', label: 'Clases', kpi: true },
-            { key: 'ninos_activos', label: 'Niños', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'maestros_activos', label: 'Maestros', kpi: true },
-            { key: 'lecciones_ultimo_mes', label: 'Lecciones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'clases_activas', label: t('pastoralDistrital.metricClases'), kpi: true },
+            { key: 'ninos_activos', label: t('pastoralDistrital.metricNinos'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'maestros_activos', label: t('pastoralDistrital.metricMaestros'), kpi: true },
+            { key: 'lecciones_ultimo_mes', label: t('pastoralDistrital.metricLecciones30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
 
         <ResumenComiteDistrital
-          titulo="Damas Dorcas por congregación"
-          descripcion="Comités administrados localmente, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteDamasTitulo')}
+          descripcion={t('pastoralDistrital.comiteDescripcionGenerica')}
           data={resumenDamas}
           pageKey="damasDorcas"
-          emptyMessage="Aún no hay datos de Damas Dorcas en tu distrito."
-          unidadLider="beneficiarias activas"
+          emptyMessage={t('pastoralDistrital.comiteDamasEmpty')}
+          unidadLider={t('pastoralDistrital.unidadBeneficiariasActivas')}
           paginate={paginate}
           metrics={[
-            { key: 'beneficiarias_activas', label: 'Beneficiarias', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'actividades_ultimo_mes', label: 'Actividades (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'beneficiarias_activas', label: t('pastoralDistrital.metricBeneficiarias'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'actividades_ultimo_mes', label: t('pastoralDistrital.metricActividades30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
       </div>
@@ -1245,22 +1252,22 @@ export default function PastoralDistrital() {
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="card overflow-hidden">
           <div className="p-5 border-b border-border">
-            <h2 className="font-medium flex items-center gap-2"><LockKeyhole className="w-4 h-4 text-accent" />Centros de reclusión</h2>
-            <p className="text-sm text-secondary mt-1">Catálogo de cárceles y centros de reclusión de tu distrito. Las congregaciones locales eligen de esta lista al registrar cultos e internos.</p>
+            <h2 className="font-medium flex items-center gap-2"><LockKeyhole className="w-4 h-4 text-accent" />{t('pastoralDistrital.centrosTitulo')}</h2>
+            <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.centrosDescripcion')}</p>
           </div>
           {centros.length === 0 ? (
-            <p className="p-5 text-sm text-muted">Aún no hay centros de reclusión registrados en tu distrito.</p>
+            <p className="p-5 text-sm text-muted">{t('pastoralDistrital.centrosSinRegistros')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Nombre</th><th className="font-normal px-4 py-2.5">Tipo</th><th className="font-normal px-4 py-2.5">Ciudad</th><th className="font-normal px-4 py-2.5 text-right">Acciones</th></tr></thead>
+                <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thNombre')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thTipo')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thCiudad')}</th><th className="font-normal px-4 py-2.5 text-right">{t('pastoralDistrital.thAcciones')}</th></tr></thead>
                 <tbody>
                   {centros.map((centro) => (
                     <tr key={centro.id} className="border-t border-border">
                       <td className="px-4 py-2.5 font-medium">{centro.nombre}</td>
                       <td className="px-4 py-2.5 text-secondary">{TIPO_CENTRO_LABELS[centro.tipo]}</td>
                       <td className="px-4 py-2.5 text-secondary">{centro.ciudad || '—'}</td>
-                      <td className="px-4 py-2.5 text-right"><button type="button" className="text-accent text-xs" onClick={() => editCentro(centro)}>Editar</button></td>
+                      <td className="px-4 py-2.5 text-right"><button type="button" className="text-accent text-xs" onClick={() => editCentro(centro)}>{t('pastoralDistrital.botonEditar')}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1269,51 +1276,51 @@ export default function PastoralDistrital() {
           )}
           <form onSubmit={saveCentro} className="p-5 border-t border-border grid sm:grid-cols-2 gap-2">
             <div className="sm:col-span-2 flex items-center justify-between">
-              <p className="text-sm font-medium">{editingCentroId ? 'Editar centro' : 'Nuevo centro de reclusión'}</p>
-              {editingCentroId && <button type="button" className="text-xs text-secondary" onClick={resetCentroForm}>Cancelar</button>}
+              <p className="text-sm font-medium">{editingCentroId ? t('pastoralDistrital.centrosFormTituloEditar') : t('pastoralDistrital.centrosFormTituloNuevo')}</p>
+              {editingCentroId && <button type="button" className="text-xs text-secondary" onClick={resetCentroForm}>{t('pastoralDistrital.botonCancelar')}</button>}
             </div>
-            <input required className="input-field" placeholder="Nombre del centro" value={centroForm.nombre} onChange={(event) => setCentroForm({ ...centroForm, nombre: event.target.value })} />
+            <input required className="input-field" placeholder={t('pastoralDistrital.placeholderNombreCentro')} value={centroForm.nombre} onChange={(event) => setCentroForm({ ...centroForm, nombre: event.target.value })} />
             <select className="input-field" value={centroForm.tipo} onChange={(event) => setCentroForm({ ...centroForm, tipo: event.target.value })}>
               {Object.entries(TIPO_CENTRO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-            <input className="input-field" placeholder="Ej: Cali (opcional)" value={centroForm.ciudad} onChange={(event) => setCentroForm({ ...centroForm, ciudad: event.target.value })} />
-            <input className="input-field" placeholder="Ej: Km 5 vía Cali-Jamundí (opcional)" value={centroForm.direccion} onChange={(event) => setCentroForm({ ...centroForm, direccion: event.target.value })} />
-            <button disabled={savingCentro} className="btn-primary justify-center sm:col-span-2"><Plus className="w-4 h-4" /> {editingCentroId ? 'Guardar cambios' : 'Crear centro'}</button>
+            <input className="input-field" placeholder={t('pastoralDistrital.placeholderCiudadOpcional')} value={centroForm.ciudad} onChange={(event) => setCentroForm({ ...centroForm, ciudad: event.target.value })} />
+            <input className="input-field" placeholder={t('pastoralDistrital.placeholderDireccionOpcional')} value={centroForm.direccion} onChange={(event) => setCentroForm({ ...centroForm, direccion: event.target.value })} />
+            <button disabled={savingCentro} className="btn-primary justify-center sm:col-span-2"><Plus className="w-4 h-4" /> {editingCentroId ? t('pastoralDistrital.botonGuardarCambios') : t('pastoralDistrital.botonCrearCentro')}</button>
           </form>
         </section>
 
         <ResumenComiteDistrital
           icon={LockKeyhole}
-          titulo="Obra Carcelaria por congregación"
-          descripcion="Asistencia interna en los centros de reclusión, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteCarcelariaTitulo')}
+          descripcion={t('pastoralDistrital.comiteCarcelariaDescripcion')}
           data={resumenCarcelaria}
           pageKey="carcelaria"
-          emptyMessage="Aún no hay datos de Obra Carcelaria en tu distrito."
-          unidadLider="internos activos"
+          emptyMessage={t('pastoralDistrital.comiteCarcelariaEmpty')}
+          unidadLider={t('pastoralDistrital.unidadInternosActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'internos_activos', label: 'Internos activos', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'bautizados', label: 'Bautizados', kpi: true },
-            { key: 'sellados', label: 'Sellados', kpi: true },
-            { key: 'delegados_habilitados', label: 'Delegados hábiles', tone: (v) => Number(v) === 0 ? 'text-danger' : '', info: 'Voluntarios ya autorizados para entrar a un centro de reclusión, no el total de personas que quisieran servir en Obra Carcelaria.' },
-            { key: 'cultos_ultimo_mes', label: 'Cultos (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'internos_activos', label: t('pastoralDistrital.metricInternosActivos'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'bautizados', label: t('pastoralDistrital.metricBautizados'), kpi: true },
+            { key: 'sellados', label: t('pastoralDistrital.metricSellados'), kpi: true },
+            { key: 'delegados_habilitados', label: t('pastoralDistrital.metricDelegadosHabiles'), tone: (v) => Number(v) === 0 ? 'text-danger' : '', info: t('pastoralDistrital.infoDelegadosHabiles') },
+            { key: 'cultos_ultimo_mes', label: t('pastoralDistrital.metricCultos30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
       </div>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium">Reinserción post-penitenciaria</h2>
-          <p className="text-sm text-secondary mt-1">Al liberarse, un interno se asigna a una congregación cercana a su residencia para discipulado y evitar la reincidencia. La congregación destino reporta después si el liberado se integró.</p>
+          <h2 className="font-medium">{t('pastoralDistrital.reinsercionTitulo')}</h2>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.reinsercionDescripcion')}</p>
         </div>
         {resumenReinsercion.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay casos de reinserción en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.reinsercionSinCasos')}</p>
         ) : (() => {
           const paged = paginate('reinsercion', resumenReinsercion)
           return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Interno</th><th className="font-normal px-4 py-2.5">Origen</th><th className="font-normal px-4 py-2.5">Destino</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Estado</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thInterno')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thOrigen')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thDestino')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thFecha')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thEstado')}</th></tr></thead>
               <tbody>
                 {paged.pageItems.map((item) => (
                   <tr key={item.id} className="border-t border-border">
@@ -1327,143 +1334,143 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenReinsercion.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="casos" /></div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={resumenReinsercion.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorCasos')} /></div>
           </>
         })()}
         {resumenReinsercion.length > 0 && (() => {
           const activos = resumenReinsercion.filter((item) => ['activo', 'inactivo', 'reincidencia'].includes(item.estado))
           const eficacia = activos.length ? Math.round((activos.filter((item) => item.estado === 'activo').length / activos.length) * 100) : null
           return eficacia !== null && (
-            <p className="px-5 pb-4 text-xs text-secondary flex items-center gap-1.5">Eficacia de reinserción eclesial: {eficacia}% de los liberados con seguimiento concluido siguen activos en su congregación destino.<InfoTip texto="Se calcula solo sobre los casos que ya tuvieron seguimiento (activo, inactivo o con reincidencia); no cuenta los que siguen recién asignados y aún sin evaluar." /></p>
+            <p className="px-5 pb-4 text-xs text-secondary flex items-center gap-1.5">{t('pastoralDistrital.reinsercionEficacia', { eficacia })}<InfoTip texto={t('pastoralDistrital.infoReinsercionEficacia')} /></p>
           )
         })()}
         <form onSubmit={asignarReinsercion} className="p-5 border-t border-border grid sm:grid-cols-3 gap-2 items-end">
           <div className="sm:col-span-3">
-            <p className="text-sm font-medium">Asignar reinserción</p>
-            <p className="text-xs text-secondary mt-1">Solo aparecen internos marcados como "liberado" que aún no tienen una reinserción en curso.</p>
+            <p className="text-sm font-medium">{t('pastoralDistrital.reinsercionFormTitulo')}</p>
+            <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.reinsercionFormDescripcion')}</p>
           </div>
           <select required className="input-field" value={reinsercionForm.interno_id} onChange={(event) => setReinsercionForm({ ...reinsercionForm, interno_id: event.target.value })}>
-            <option value="">Interno liberado...</option>
+            <option value="">{t('pastoralDistrital.opcionInternoLiberado')}</option>
             {liberadosSinAsignar.map((interno) => <option key={interno.id} value={interno.id}>{interno.nombres} {interno.apellidos} · {interno.congregacion_origen}</option>)}
           </select>
           <select required className="input-field" value={reinsercionForm.congregacion_destino} onChange={(event) => setReinsercionForm({ ...reinsercionForm, congregacion_destino: event.target.value })}>
-            <option value="">Congregación destino...</option>
+            <option value="">{t('pastoralDistrital.opcionCongregacionDestino')}</option>
             {congregations.map((congregacion) => <option key={congregacion.id} value={congregacion.id}>{congregacion.nombre}</option>)}
           </select>
-          <button disabled={savingReinsercion || liberadosSinAsignar.length === 0} className="btn-primary justify-center"><ArrowRightLeft className="w-4 h-4" /> Asignar</button>
+          <button disabled={savingReinsercion || liberadosSinAsignar.length === 0} className="btn-primary justify-center"><ArrowRightLeft className="w-4 h-4" /> {t('pastoralDistrital.botonAsignar')}</button>
         </form>
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <ResumenComiteDistrital
-          titulo="Música por congregación"
-          descripcion="FECP · Música y Alabanza, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteMusicaTitulo')}
+          descripcion={t('pastoralDistrital.comiteMusicaDescripcion')}
           data={resumenMusica}
           pageKey="musica"
-          emptyMessage="Aún no hay datos de Música en tu distrito."
-          unidadLider="integrantes activos"
+          emptyMessage={t('pastoralDistrital.comiteMusicaEmpty')}
+          unidadLider={t('pastoralDistrital.unidadIntegrantesActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'grupos_activos', label: 'Grupos', kpi: true },
-            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'grupos_activos', label: t('pastoralDistrital.metricGrupos'), kpi: true },
+            { key: 'integrantes_activos', label: t('pastoralDistrital.metricIntegrantes'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'sesiones_ultimo_mes', label: t('pastoralDistrital.metricSesiones30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
 
         <ResumenComiteDistrital
-          titulo="Educación Artística por congregación"
-          descripcion="FECP · Educación Artística, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteArtisticaTitulo')}
+          descripcion={t('pastoralDistrital.comiteArtisticaDescripcion')}
           data={resumenArtistica}
           pageKey="artistica"
-          emptyMessage="Aún no hay datos de Educación Artística en tu distrito."
-          unidadLider="integrantes activos"
+          emptyMessage={t('pastoralDistrital.comiteArtisticaEmpty')}
+          unidadLider={t('pastoralDistrital.unidadIntegrantesActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'grupos_activos', label: 'Grupos', kpi: true },
-            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'grupos_activos', label: t('pastoralDistrital.metricGrupos'), kpi: true },
+            { key: 'integrantes_activos', label: t('pastoralDistrital.metricIntegrantes'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'sesiones_ultimo_mes', label: t('pastoralDistrital.metricSesiones30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <ResumenComiteDistrital
-          titulo="Educación Teológica por congregación"
-          descripcion="FECP · Educación Teológica, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteTeologicaTitulo')}
+          descripcion={t('pastoralDistrital.comiteTeologicaDescripcion')}
           data={resumenTeologica}
           pageKey="teologica"
-          emptyMessage="Aún no hay datos de Educación Teológica en tu distrito."
-          unidadLider="integrantes activos"
+          emptyMessage={t('pastoralDistrital.comiteTeologicaEmpty')}
+          unidadLider={t('pastoralDistrital.unidadIntegrantesActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'grupos_activos', label: 'Grupos', kpi: true },
-            { key: 'integrantes_activos', label: 'Integrantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'certificados', label: 'Certificados', kpi: true },
-            { key: 'sesiones_ultimo_mes', label: 'Sesiones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'grupos_activos', label: t('pastoralDistrital.metricGrupos'), kpi: true },
+            { key: 'integrantes_activos', label: t('pastoralDistrital.metricIntegrantes'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'certificados', label: t('pastoralDistrital.metricCertificados'), kpi: true },
+            { key: 'sesiones_ultimo_mes', label: t('pastoralDistrital.metricSesiones30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
 
         <ResumenComiteDistrital
-          titulo="Conquistadores Pentecostales por congregación"
-          descripcion="Jóvenes adultos de 18 a 40 años, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteConquistadoresTitulo')}
+          descripcion={t('pastoralDistrital.comiteConquistadoresDescripcion')}
           data={resumenConquistadores}
           pageKey="conquistadores"
-          emptyMessage="Aún no hay datos de Conquistadores Pentecostales en tu distrito."
-          unidadLider="miembros activos"
+          emptyMessage={t('pastoralDistrital.comiteConquistadoresEmpty')}
+          unidadLider={t('pastoralDistrital.unidadMiembrosActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'miembros_activos', label: 'Miembros', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'lideres_activos', label: 'Líderes', kpi: true, tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
-            { key: 'actividades_ultimo_mes', label: 'Actividades (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'miembros_activos', label: t('pastoralDistrital.metricMiembros'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'lideres_activos', label: t('pastoralDistrital.metricLideres'), kpi: true, tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'actividades_ultimo_mes', label: t('pastoralDistrital.metricActividades30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
       </div>
 
       <ResumenComiteDistrital
-        titulo="Obra Social por congregación"
-        descripcion="Asistencia socioeconómica a familias del censo, conectada con Red de Familias, consolidado a nivel distrital."
+        titulo={t('pastoralDistrital.comiteObraSocialTitulo')}
+        descripcion={t('pastoralDistrital.comiteObraSocialDescripcion')}
         data={resumenObraSocial}
         pageKey="obraSocial"
-        emptyMessage="Aún no hay datos de Obra Social en tu distrito."
-        unidadLider="casos abiertos"
+        emptyMessage={t('pastoralDistrital.comiteObraSocialEmpty')}
+        unidadLider={t('pastoralDistrital.unidadCasosAbiertos')}
         paginate={paginate}
         metrics={[
-          { key: 'casos_abiertos', label: 'Casos abiertos', kpi: true, primary: true },
-          { key: 'casos_resueltos', label: 'Casos resueltos', kpi: true },
-          { key: 'ayudas_ultimo_mes', label: 'Ayudas (30d)' },
+          { key: 'casos_abiertos', label: t('pastoralDistrital.metricCasosAbiertos'), kpi: true, primary: true },
+          { key: 'casos_resueltos', label: t('pastoralDistrital.metricCasosResueltos'), kpi: true },
+          { key: 'ayudas_ultimo_mes', label: t('pastoralDistrital.metricAyudas30d') },
         ]}
       />
 
       <div className="grid lg:grid-cols-2 gap-4">
         <ResumenComiteDistrital
-          titulo="Misión Juvenil por congregación"
-          descripcion="Colegios y universidades, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteMisionJuvenilTitulo')}
+          descripcion={t('pastoralDistrital.comiteMisionJuvenilDescripcion')}
           data={resumenMisionJuvenil}
           pageKey="misionJuvenil"
-          emptyMessage="Aún no hay datos de Misión Juvenil en tu distrito."
-          unidadLider="estudiantes activos"
+          emptyMessage={t('pastoralDistrital.comiteMisionJuvenilEmpty')}
+          unidadLider={t('pastoralDistrital.unidadEstudiantesActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'estudiantes_activos', label: 'Estudiantes', kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
-            { key: 'bautizados', label: 'Bautizados', kpi: true },
-            { key: 'instituciones_impactadas', label: 'Instituciones', kpi: true },
-            { key: 'lecciones_ultimo_mes', label: 'Lecciones (30d)', tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
+            { key: 'estudiantes_activos', label: t('pastoralDistrital.metricEstudiantes'), kpi: true, primary: true, tone: (v) => Number(v) === 0 ? 'text-danger' : '' },
+            { key: 'bautizados', label: t('pastoralDistrital.metricBautizados'), kpi: true },
+            { key: 'instituciones_impactadas', label: t('pastoralDistrital.metricInstituciones'), kpi: true },
+            { key: 'lecciones_ultimo_mes', label: t('pastoralDistrital.metricLecciones30d'), tone: (v) => Number(v) === 0 ? 'text-warning' : '' },
           ]}
         />
 
         <ResumenComiteDistrital
-          titulo="Red de Familias por congregación"
-          descripcion="Acompañamiento familiar y visitas domiciliarias, consolidado a nivel distrital."
+          titulo={t('pastoralDistrital.comiteRedFamiliasTitulo')}
+          descripcion={t('pastoralDistrital.comiteRedFamiliasDescripcion')}
           data={resumenRedFamilias}
           pageKey="redFamilias"
-          emptyMessage="Aún no hay datos de Red de Familias en tu distrito."
-          unidadLider="casos activos"
+          emptyMessage={t('pastoralDistrital.comiteRedFamiliasEmpty')}
+          unidadLider={t('pastoralDistrital.unidadCasosActivos')}
           paginate={paginate}
           metrics={[
-            { key: 'casos_activos', label: 'Casos activos', kpi: true, primary: true },
-            { key: 'casos_alta_prioridad', label: 'Prioridad alta', tone: (v) => Number(v) > 0 ? 'text-danger' : '' },
-            { key: 'casos_cerrados_3m', label: 'Cerrados (3m)', kpi: true },
-            { key: 'visitas_pendientes', label: 'Visitas pendientes', tone: (v) => Number(v) > 0 ? 'text-warning' : '' },
+            { key: 'casos_activos', label: t('pastoralDistrital.metricCasosActivos'), kpi: true, primary: true },
+            { key: 'casos_alta_prioridad', label: t('pastoralDistrital.metricPrioridadAlta'), tone: (v) => Number(v) > 0 ? 'text-danger' : '' },
+            { key: 'casos_cerrados_3m', label: t('pastoralDistrital.metricCerrados3m'), kpi: true },
+            { key: 'visitas_pendientes', label: t('pastoralDistrital.metricVisitasPendientes'), tone: (v) => Number(v) > 0 ? 'text-warning' : '' },
           ]}
         />
       </div>
@@ -1471,82 +1478,82 @@ export default function PastoralDistrital() {
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="font-medium flex items-center gap-1.5">Informe trimestral por congregación<InfoTip texto="Bautizados, sellados, reconciliados y entregados de cada congregación del distrito, para el trimestre elegido. Reemplaza el reporte manual por WhatsApp/correo -- se calcula solo a partir de lo que cada congregación ya registra en SIGAP." /></h2>
-            <p className="text-sm text-secondary mt-1">Ordena por indicador para ver qué congregación está en mayor crecimiento.</p>
+            <h2 className="font-medium flex items-center gap-1.5">{t('pastoralDistrital.informeTitulo')}<InfoTip texto={t('pastoralDistrital.infoInformeTitulo')} /></h2>
+            <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.informeDescripcion')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select className="input-field" value={informeAnio} onChange={(event) => setInformeAnio(Number(event.target.value))}>{[informeTrimestralCerrado.anio, informeTrimestralCerrado.anio - 1, informeTrimestralCerrado.anio - 2].map((value) => <option key={value} value={value}>{value}</option>)}</select>
             <select className="input-field" value={informeTrimestre} onChange={(event) => setInformeTrimestre(Number(event.target.value))}>{Object.entries(ETIQUETA_TRIMESTRE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             <select className="input-field" value={informeSortKey} onChange={(event) => setInformeSortKey(event.target.value)}>
-              <option value="bautizados_nuevos">Ordenar por Bautizados</option>
-              <option value="sellados_nuevos">Ordenar por Sellados</option>
-              <option value="reconciliados_actual">Ordenar por Reconciliados</option>
-              <option value="entregados_nuevos">Ordenar por Entregados nuevos</option>
+              <option value="bautizados_nuevos">{t('pastoralDistrital.ordenarPorBautizados')}</option>
+              <option value="sellados_nuevos">{t('pastoralDistrital.ordenarPorSellados')}</option>
+              <option value="reconciliados_actual">{t('pastoralDistrital.ordenarPorReconciliados')}</option>
+              <option value="entregados_nuevos">{t('pastoralDistrital.ordenarPorEntregadosNuevos')}</option>
             </select>
-            <button type="button" onClick={descargarInformeTrimestralDistrital} disabled={!filasInformeOrdenadas.length} className="btn-secondary"><Download className="w-4 h-4" /> Descargar PDF</button>
+            <button type="button" onClick={descargarInformeTrimestralDistrital} disabled={!filasInformeOrdenadas.length} className="btn-secondary"><Download className="w-4 h-4" /> {t('pastoralDistrital.botonDescargarPdf')}</button>
           </div>
         </div>
         {loadingInformeTrimestral ? (
-          <p className="p-5 text-sm text-muted">Cargando informe trimestral...</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.informeCargando')}</p>
         ) : resumenInformeTrimestral.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay datos del informe trimestral en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.informeSinDatos')}</p>
         ) : (() => {
           const filasOrdenadas = filasInformeOrdenadas
           const paged = paginate('informe', filasOrdenadas)
           return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Bautizados</th><th className="font-normal px-4 py-2.5">Sellados</th><th className="font-normal px-4 py-2.5">Reconciliados</th><th className="font-normal px-4 py-2.5">Entregados</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thCongregacion')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thBautizados')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thSellados')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thReconciliados')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thEntregados')}</th></tr></thead>
               <tbody>
                 {paged.pageItems.map((item, index) => (
                   <tr key={item.congregacion_id} className="border-t border-border">
                     <td className="px-4 py-2.5 font-medium">{paged.page === 0 && index === 0 && <span className="text-[10px] uppercase tracking-wide text-success mr-1.5">●</span>}{item.nombre}</td>
-                    <td className="px-4 py-2.5">{item.bautizados_total_actual} <span className="text-xs text-success">(+{item.bautizados_nuevos})</span></td>
-                    <td className="px-4 py-2.5">{item.sellados_total_actual} <span className="text-xs text-success">(+{item.sellados_nuevos})</span></td>
-                    <td className="px-4 py-2.5">{item.reconciliados_actual} <span className="text-xs text-muted">({item.reconciliados_anterior} antes)</span></td>
-                    <td className="px-4 py-2.5">{item.entregados_total_actual} <span className="text-xs text-success">(+{item.entregados_nuevos} nuevos)</span></td>
+                    <td className="px-4 py-2.5">{item.bautizados_total_actual} <span className="text-xs text-success">{t('pastoralDistrital.nuevosTexto', { count: item.bautizados_nuevos })}</span></td>
+                    <td className="px-4 py-2.5">{item.sellados_total_actual} <span className="text-xs text-success">{t('pastoralDistrital.nuevosTexto', { count: item.sellados_nuevos })}</span></td>
+                    <td className="px-4 py-2.5">{item.reconciliados_actual} <span className="text-xs text-muted">{t('pastoralDistrital.antesTexto', { count: item.reconciliados_anterior })}</span></td>
+                    <td className="px-4 py-2.5">{item.entregados_total_actual} <span className="text-xs text-success">{t('pastoralDistrital.nuevosPluralTexto', { count: item.entregados_nuevos })}</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={filasOrdenadas.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={filasOrdenadas.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorCongregaciones')} /></div>
           </>
         })()}
       </section>
 
       <ResumenComiteDistrital
-        titulo="Ruta Evangelística por congregación"
-        infoTitulo="Estaciones en orden: Uno Más (contacto inicial) → BIS → REFAM → ESFOB → Discipulado. Cada columna muestra cuántas personas están activas en esa etapa; el bautismo es el resultado final de la ruta."
-        descripcion="Personas activas en cada estación, consolidado a nivel distrital."
+        titulo={t('pastoralDistrital.comiteRutaTitulo')}
+        infoTitulo={t('pastoralDistrital.infoComiteRutaTitulo')}
+        descripcion={t('pastoralDistrital.comiteRutaDescripcion')}
         data={resumenRuta}
         pageKey="ruta"
-        emptyMessage="Aún no hay datos de la Ruta Evangelística en tu distrito."
-        unidadLider="bautismos en los últimos 3 meses"
+        emptyMessage={t('pastoralDistrital.comiteRutaEmpty')}
+        unidadLider={t('pastoralDistrital.unidadBautismos3m')}
         paginate={paginate}
         metrics={[
-          { key: 'uno_mas', label: 'Uno Más', kpi: true },
-          { key: 'bis', label: 'BIS', kpi: true },
-          { key: 'refam', label: 'REFAM', kpi: true },
-          { key: 'esfob', label: 'ESFOB' },
-          { key: 'discipulado', label: 'Discipulado' },
-          { key: 'bautismos_3m', label: 'Bautismos (3m)', kpi: true, primary: true, tone: (v) => Number(v) > 0 ? 'text-success font-medium' : '', info: 'Personas que completaron la Ruta Evangelística y se bautizaron en los últimos 3 meses. Es el número que mide si la ruta realmente está dando fruto.' },
+          { key: 'uno_mas', label: t('pastoralDistrital.metricUnoMas'), kpi: true },
+          { key: 'bis', label: t('pastoralDistrital.metricBis'), kpi: true },
+          { key: 'refam', label: t('pastoralDistrital.metricRefam'), kpi: true },
+          { key: 'esfob', label: t('pastoralDistrital.metricEsfob') },
+          { key: 'discipulado', label: t('pastoralDistrital.metricDiscipulado') },
+          { key: 'bautismos_3m', label: t('pastoralDistrital.metricBautismos3m'), kpi: true, primary: true, tone: (v) => Number(v) > 0 ? 'text-success font-medium' : '', info: t('pastoralDistrital.infoBautismos3m') },
         ]}
       />
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium flex items-center gap-1.5">SEPRI — Solicitudes de eventos<InfoTip texto="Toda actividad fuera del templo debe presentarse con 30 días de anticipación para tu aprobación. La columna 'Anticipación' te muestra de un vistazo si la congregación cumplió ese plazo." /></h2>
-          <p className="text-sm text-secondary mt-1">Aprobación de eventos de las congregaciones de tu distrito.</p>
+          <h2 className="font-medium flex items-center gap-1.5">{t('pastoralDistrital.sepriSolicitudesTitulo')}<InfoTip texto={t('pastoralDistrital.infoSepriSolicitudesTitulo')} /></h2>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.sepriSolicitudesDescripcion')}</p>
         </div>
         {sepriSolicitudes.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay solicitudes SEPRI en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.sepriSolicitudesSinDatos')}</p>
         ) : (() => {
           const paged = paginate('sepriSolicitudes', sepriSolicitudes)
           return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Evento</th><th className="font-normal px-4 py-2.5">Fecha</th><th className="font-normal px-4 py-2.5">Anticipación</th><th className="font-normal px-4 py-2.5">Estado</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thCongregacion')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thEvento')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thFecha')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thAnticipacion')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thEstado')}</th><th className="font-normal px-4 py-2.5"></th></tr></thead>
               <tbody>
                 {paged.pageItems.map((item) => {
                   const evento = new Date(`${item.fecha_evento}T00:00:00Z`)
@@ -1555,17 +1562,17 @@ export default function PastoralDistrital() {
                   return (
                     <tr key={item.id} className="border-t border-border align-top">
                       <td className="px-4 py-2.5 font-medium">{item.congregaciones?.nombre}</td>
-                      <td className="px-4 py-2.5">{item.nombre_evento}<p className="text-xs text-secondary">{item.ubicacion === 'dentro_templo' ? 'Dentro del templo' : 'Fuera del templo'}{item.lugar ? ` · ${item.lugar}` : ''}{item.poliza_contratada ? ' · Con póliza' : ''}</p></td>
+                      <td className="px-4 py-2.5">{item.nombre_evento}<p className="text-xs text-secondary">{item.ubicacion === 'dentro_templo' ? t('pastoralDistrital.dentroTemplo') : t('pastoralDistrital.fueraTemplo')}{item.lugar ? ` · ${item.lugar}` : ''}{item.poliza_contratada ? t('pastoralDistrital.conPoliza') : ''}</p></td>
                       <td className="px-4 py-2.5 text-secondary">{item.fecha_evento}</td>
-                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${dias >= 30 ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{dias} días</span></td>
-                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${item.estado === 'pendiente' ? 'bg-warning-bg text-warning' : item.estado === 'aprobado' ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{item.estado === 'pendiente' ? 'Pendiente' : item.estado === 'aprobado' ? 'Aprobado' : 'Rechazado'}</span></td>
+                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${dias >= 30 ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{t('pastoralDistrital.diasTexto', { count: dias })}</span></td>
+                      <td className="px-4 py-2.5"><span className={`text-xs px-2 py-1 rounded ${item.estado === 'pendiente' ? 'bg-warning-bg text-warning' : item.estado === 'aprobado' ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'}`}>{item.estado === 'pendiente' ? t('pastoralDistrital.estadoPendiente') : item.estado === 'aprobado' ? t('pastoralDistrital.estadoAprobado') : t('pastoralDistrital.estadoRechazado')}</span></td>
                       <td className="px-4 py-2.5">
                         {item.estado === 'pendiente' ? (
                           <div className="flex flex-col gap-1.5 min-w-[180px]">
-                            <input className="input-field text-xs py-1" placeholder="Notas (opcional)" value={sepriNotas[item.id] ?? ''} onChange={(event) => setSepriNotas({ ...sepriNotas, [item.id]: event.target.value })} />
+                            <input className="input-field text-xs py-1" placeholder={t('pastoralDistrital.placeholderNotasOpcional')} value={sepriNotas[item.id] ?? ''} onChange={(event) => setSepriNotas({ ...sepriNotas, [item.id]: event.target.value })} />
                             <div className="flex gap-1.5">
-                              <button type="button" className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'aprobado')}>Aprobar</button>
-                              <button type="button" className="btn-secondary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'rechazado')}>Rechazar</button>
+                              <button type="button" className="btn-primary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'aprobado')}>{t('pastoralDistrital.botonAprobar')}</button>
+                              <button type="button" className="btn-secondary text-xs py-1 px-2 flex-1" onClick={() => resolverSepri(item, 'rechazado')}>{t('pastoralDistrital.botonRechazar')}</button>
                             </div>
                           </div>
                         ) : item.notas_distrital ? <p className="text-xs text-secondary max-w-[180px]">{item.notas_distrital}</p> : null}
@@ -1576,24 +1583,24 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriSolicitudes.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="solicitudes" /></div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriSolicitudes.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorSolicitudes')} /></div>
           </>
         })()}
       </section>
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border">
-          <h2 className="font-medium flex items-center gap-1.5">SEPRI por congregación<InfoTip texto="Cumplimiento del plazo de 30 días medido sobre las solicitudes de los últimos 12 meses en cada congregación. Un número bajo frente al total de solicitudes es una señal para reforzar la planeación con anticipación." /></h2>
-          <p className="text-sm text-secondary mt-1">Consolidado de gestión de riesgo por congregación de tu distrito.</p>
+          <h2 className="font-medium flex items-center gap-1.5">{t('pastoralDistrital.sepriResumenTitulo')}<InfoTip texto={t('pastoralDistrital.infoSepriResumenTitulo')} /></h2>
+          <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.sepriResumenDescripcion')}</p>
         </div>
         {sepriResumen.length === 0 ? (
-          <p className="p-5 text-sm text-muted">Aún no hay datos de SEPRI en tu distrito.</p>
+          <p className="p-5 text-sm text-muted">{t('pastoralDistrital.sepriResumenSinDatos')}</p>
         ) : (() => {
           const paged = paginate('sepri', sepriResumen)
           return <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">Congregación</th><th className="font-normal px-4 py-2.5">Pendientes</th><th className="font-normal px-4 py-2.5">Aprobadas (12m)</th><th className="font-normal px-4 py-2.5">A tiempo (12m)</th><th className="font-normal px-4 py-2.5">Delegados activos</th></tr></thead>
+              <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thCongregacion')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thPendientes')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thAprobadas12m')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thATiempo12m')}</th><th className="font-normal px-4 py-2.5">{t('pastoralDistrital.thDelegadosActivos')}</th></tr></thead>
               <tbody>
                 {paged.pageItems.map((item) => (
                   <tr key={item.congregacion_id} className="border-t border-border">
@@ -1607,25 +1614,25 @@ export default function PastoralDistrital() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriResumen.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label="congregaciones" /></div>
+          <div className="p-3 border-t border-border"><Pager page={paged.page} totalPages={paged.totalPages} total={sepriResumen.length} onPrev={() => paged.setPage((p) => p - 1)} onNext={() => paged.setPage((p) => p + 1)} label={t('pastoralDistrital.etiquetaPaginadorCongregaciones')} /></div>
           </>
         })()}
       </section>
 
       <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>
         <div className="sm:col-span-2 lg:col-span-5">
-          <h2 className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-accent" />Registrar nueva congregación</h2>
-          <p className="text-xs text-secondary mt-1">Crea la congregación en tu distrito y da acceso a su primer pastor local. Queda pendiente de aprobación hasta que la actives desde Aprobaciones.</p>
+          <h2 className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-accent" />{t('pastoralDistrital.nuevaCongregacionTitulo')}</h2>
+          <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.nuevaCongregacionDescripcion')}</p>
           {catalogoCongregaciones.length > 0 && (
-            <p className="text-xs text-accent mt-1">Te faltan {catalogoPendientes.length} de {catalogoCongregaciones.length} congregaciones reales de tu distrito por registrar en SIGAP.</p>
+            <p className="text-xs text-accent mt-1">{t('pastoralDistrital.nuevaCongregacionAvisoFaltan', { pendientes: catalogoPendientes.length, total: catalogoCongregaciones.length })}</p>
           )}
         </div>
         <div className="text-sm relative sm:col-span-2 lg:col-span-5" ref={catalogoFieldRef}>
-          Nombre de la congregación
+          {t('pastoralDistrital.labelNombreCongregacion')}
           <input
             required
             className="input-field mt-1.5"
-            placeholder="Escribe o elige de la lista oficial..."
+            placeholder={t('pastoralDistrital.placeholderNombreCongregacion')}
             value={newCongregation.nombre}
             onChange={(event) => {
               setNewCongregation({ ...newCongregation, nombre: event.target.value })
@@ -1638,7 +1645,7 @@ export default function PastoralDistrital() {
           {catalogoDropdownOpen && catalogoPendientes.length > 0 && (
             <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
               {catalogoSugerencias.length === 0 ? (
-                <p className="p-3 text-xs text-muted">Sin coincidencias en la lista oficial — puedes registrarla igual con el nombre que escribiste.</p>
+                <p className="p-3 text-xs text-muted">{t('pastoralDistrital.sinCoincidenciasOficial')}</p>
               ) : catalogoSugerencias.slice(0, 30).map((item) => (
                 <button
                   type="button"
@@ -1657,27 +1664,27 @@ export default function PastoralDistrital() {
             </div>
           )}
         </div>
-        <label className="text-sm">Ciudad/Municipio<input className="input-field mt-1.5" value={newCongregation.ciudad} onChange={(event) => setNewCongregation({ ...newCongregation, ciudad: event.target.value })} /></label>
-        <label className="text-sm">Nombres del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_nombres} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_nombres: event.target.value })} /></label>
-        <label className="text-sm">Apellidos del pastor<input required className="input-field mt-1.5" value={newCongregation.pastor_apellidos} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_apellidos: event.target.value })} /></label>
-        <label className="text-sm">Teléfono del pastor<input className="input-field mt-1.5" value={newCongregation.pastor_telefono} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_telefono: event.target.value })} /></label>
-        <label className="text-sm">Correo del pastor<input required type="email" className="input-field mt-1.5" value={newCongregation.pastor_email} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_email: event.target.value })} /></label>
-        <button disabled={creatingCongregation} className="btn-primary lg:col-span-5"><Plus className="w-4 h-4" />{creatingCongregation ? 'Creando...' : 'Crear congregación e invitar pastor'}</button>
+        <label className="text-sm">{t('pastoralDistrital.labelCiudadMunicipio')}<input className="input-field mt-1.5" value={newCongregation.ciudad} onChange={(event) => setNewCongregation({ ...newCongregation, ciudad: event.target.value })} /></label>
+        <label className="text-sm">{t('pastoralDistrital.labelNombresPastor')}<input required className="input-field mt-1.5" value={newCongregation.pastor_nombres} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_nombres: event.target.value })} /></label>
+        <label className="text-sm">{t('pastoralDistrital.labelApellidosPastor')}<input required className="input-field mt-1.5" value={newCongregation.pastor_apellidos} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_apellidos: event.target.value })} /></label>
+        <label className="text-sm">{t('pastoralDistrital.labelTelefonoPastor')}<input className="input-field mt-1.5" value={newCongregation.pastor_telefono} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_telefono: event.target.value })} /></label>
+        <label className="text-sm">{t('pastoralDistrital.labelCorreoPastor')}<input required type="email" className="input-field mt-1.5" value={newCongregation.pastor_email} onChange={(event) => setNewCongregation({ ...newCongregation, pastor_email: event.target.value })} /></label>
+        <button disabled={creatingCongregation} className="btn-primary lg:col-span-5"><Plus className="w-4 h-4" />{creatingCongregation ? t('pastoralDistrital.botonCreando') : t('pastoralDistrital.botonCrearCongregacionInvitarPastor')}</button>
       </form>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <form ref={pastorFormRef} onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end" style={{ backdropFilter: 'none' }}>
           <div className="sm:col-span-2 flex items-center justify-between gap-3">
-            <h2 className="font-medium">{editingPastorId ? 'Editar pastor' : 'Registrar pastor'}</h2>
+            <h2 className="font-medium">{editingPastorId ? t('pastoralDistrital.pastorFormTituloEditar') : t('pastoralDistrital.pastorFormTituloRegistrar')}</h2>
             {editingPastorId && (
               <button type="button" className="btn-secondary" onClick={resetForm}>
-                Cancelar edición
+                {t('pastoralDistrital.botonCancelarEdicion')}
               </button>
             )}
           </div>
 
           <label className="text-sm">
-            Nombres
+            {t('pastoralDistrital.labelNombres')}
             <input
               required
               className="input-field mt-1.5"
@@ -1687,7 +1694,7 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Apellidos
+            {t('pastoralDistrital.labelApellidos')}
             <input
               required
               className="input-field mt-1.5"
@@ -1697,7 +1704,7 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Teléfono
+            {t('pastoralDistrital.labelTelefono')}
             <input
               className="input-field mt-1.5"
               value={form.telefono}
@@ -1706,10 +1713,10 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Familia pastoral
+            {t('pastoralDistrital.labelFamiliaPastoral')}
             <input
               className="input-field mt-1.5"
-              placeholder="Cónyuge e hijos"
+              placeholder={t('pastoralDistrital.placeholderFamiliaPastoral')}
               value={form.familia_pastoral}
               onChange={(event) => setForm({ ...form, familia_pastoral: event.target.value })}
             />
@@ -1717,7 +1724,7 @@ export default function PastoralDistrital() {
 
           {!editingPastorId && (
             <label className="text-sm">
-              Correo (para invitar acceso)
+              {t('pastoralDistrital.labelCorreoInvitarAcceso')}
               <input
                 required
                 type="email"
@@ -1730,7 +1737,7 @@ export default function PastoralDistrital() {
 
           {editingPastorId && (
             <label className="text-sm">
-              Licencia ministerial
+              {t('pastoralDistrital.labelLicenciaMinisterial')}
               <select
                 className="input-field mt-1.5"
                 value={form.licencia}
@@ -1740,13 +1747,13 @@ export default function PastoralDistrital() {
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
-              <span className="block text-xs text-muted mt-1">Corrige la licencia directamente (ej. un error de captura). Para un ascenso real, usa "Ascender licencia ministerial" más abajo.</span>
+              <span className="block text-xs text-muted mt-1">{t('pastoralDistrital.infoLicenciaCorreccion')}</span>
             </label>
           )}
 
           {editingPastorId && (
             <label className="text-sm">
-              <span className="flex items-center gap-1">Tarjeta de predicador (obreros sin licencia)<InfoTip texto="Fecha de expedición de la credencial que autoriza a predicar a un obrero que todavía no tiene licencia ministerial." /></span>
+              <span className="flex items-center gap-1">{t('pastoralDistrital.labelTarjetaPredicador')}<InfoTip texto={t('pastoralDistrital.infoTarjetaPredicador')} /></span>
               <input
                 type="date"
                 className="input-field mt-1.5"
@@ -1757,11 +1764,11 @@ export default function PastoralDistrital() {
           )}
 
           <div className="text-sm relative" ref={congregacionFieldRef}>
-            Congregación
+            {t('pastoralDistrital.labelCongregacion')}
             <input
               required
               className="input-field mt-1.5"
-              placeholder="Escribe para buscar en la lista oficial..."
+              placeholder={t('pastoralDistrital.placeholderCongregacionBuscarOficial')}
               value={congregacionSearchTerm}
               onChange={(event) => {
                 setCongregacionSearchTerm(event.target.value)
@@ -1772,13 +1779,13 @@ export default function PastoralDistrital() {
               onFocus={() => setCongregacionDropdownOpen(true)}
             />
             {editingPastorId && (
-              <span className="block text-xs text-muted mt-1">Busca por el nombre oficial. Si eliges una que ya existe en SIGAP, se traslada; si eliges una oficial que aún no está registrada, se corrige el nombre de la congregación actual.</span>
+              <span className="block text-xs text-muted mt-1">{t('pastoralDistrital.infoCongregacionEditar')}</span>
             )}
             {congregacionDropdownOpen && (() => {
               const opciones = editingPastorId ? opcionesCongregacionEditar : congregacionesParaAsignar
               return (
                 <div className="absolute z-30 mt-1 w-full bg-surface-2 border border-border rounded-card shadow-lg max-h-48 overflow-y-auto">
-                  {opciones.length === 0 ? <p className="p-3 text-xs text-muted">Sin resultados.</p> : opciones.map((item) => (
+                  {opciones.length === 0 ? <p className="p-3 text-xs text-muted">{t('pastoralDistrital.sinResultados')}</p> : opciones.map((item) => (
                     <button
                       type="button"
                       key={`${item.tipo || 'real'}-${item.id}`}
@@ -1795,19 +1802,19 @@ export default function PastoralDistrital() {
                       className="w-full text-left px-3 py-2 text-sm hover:bg-surface-1 border-b border-border last:border-0"
                     >
                       {item.nombre}
-                      {item.tipo === 'oficial' && <span className="ml-2 text-[10px] uppercase tracking-wide text-accent">Oficial · sin registrar</span>}
+                      {item.tipo === 'oficial' && <span className="ml-2 text-[10px] uppercase tracking-wide text-accent">{t('pastoralDistrital.etiquetaOficialSinRegistrar')}</span>}
                     </button>
                   ))}
                 </div>
               )
             })()}
             {!editingPastorId && (
-              <span className="block text-xs text-muted mt-1">Solo se muestran congregaciones sin pastor asignado.</span>
+              <span className="block text-xs text-muted mt-1">{t('pastoralDistrital.infoSoloSinPastor')}</span>
             )}
           </div>
 
           <label className="text-sm">
-            Cargo
+            {t('pastoralDistrital.labelCargo')}
             <select
               className="input-field mt-1.5"
               value={form.cargo}
@@ -1815,14 +1822,14 @@ export default function PastoralDistrital() {
             >
               {CARGO_OPTIONS.map((cargo) => (
                 <option key={cargo} value={cargo}>
-                  {cargo}
+                  {CARGO_LABELS[cargo] || cargo}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="text-sm">
-            Desde
+            {t('pastoralDistrital.labelDesde')}
             <input
               required
               type="date"
@@ -1834,11 +1841,11 @@ export default function PastoralDistrital() {
 
           <button disabled={saving} className="btn-primary sm:col-span-2">
             {editingPastorId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {saving ? 'Guardando...' : editingPastorId ? 'Guardar cambios' : 'Registrar pastor'}
+            {saving ? t('pastoralDistrital.botonGuardandoPastor') : editingPastorId ? t('pastoralDistrital.botonGuardarCambiosPastor') : t('pastoralDistrital.botonRegistrarPastor')}
           </button>
 
           <label className="text-sm sm:col-span-2">
-            Observaciones
+            {t('pastoralDistrital.labelObservaciones')}
             <textarea
               className="input-field mt-1.5"
               value={form.observaciones}
@@ -1848,10 +1855,10 @@ export default function PastoralDistrital() {
         </form>
 
         <form ref={transferFormRef} onSubmit={handleTransfer} className="card p-5 grid gap-3 items-end">
-          <h2 className="font-medium flex items-center gap-1.5">Trasladar pastor<InfoTip texto="Mueve al pastor a la nueva congregación de inmediato: la congregación anterior queda vacante y el pastor pasa a figurar en la nueva." /></h2>
+          <h2 className="font-medium flex items-center gap-1.5">{t('pastoralDistrital.transferFormTitulo')}<InfoTip texto={t('pastoralDistrital.infoTransferFormTitulo')} /></h2>
 
           <label className="text-sm">
-            Pastor
+            {t('pastoralDistrital.labelPastor')}
             <select
               required
               className="input-field mt-1.5"
@@ -1864,7 +1871,7 @@ export default function PastoralDistrital() {
                 })
               }
             >
-              <option value="">Seleccionar...</option>
+              <option value="">{t('pastoralDistrital.opcionSeleccionar')}</option>
               {pastors.map((pastor) => (
                 <option key={pastor.id} value={pastor.id}>
                   {pastor.nombres} {pastor.apellidos}
@@ -1874,14 +1881,14 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Nueva congregación
+            {t('pastoralDistrital.labelNuevaCongregacion')}
             <select
               required
               className="input-field mt-1.5"
               value={transferForm.congregacion_id}
               onChange={(event) => setTransferForm({ ...transferForm, congregacion_id: event.target.value })}
             >
-              <option value="">Seleccionar...</option>
+              <option value="">{t('pastoralDistrital.opcionSeleccionar')}</option>
               {congregations
                 .filter((congregation) => !congregation.pastor_id || congregation.pastor_id === transferForm.pastor_id)
                 .map((congregation) => (
@@ -1893,7 +1900,7 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Fecha del traslado
+            {t('pastoralDistrital.labelFechaTraslado')}
             <input
               required
               type="date"
@@ -1904,7 +1911,7 @@ export default function PastoralDistrital() {
           </label>
 
           <label className="text-sm">
-            Observaciones
+            {t('pastoralDistrital.labelObservaciones')}
             <textarea
               className="input-field mt-1.5"
               value={transferForm.observaciones}
@@ -1914,52 +1921,52 @@ export default function PastoralDistrital() {
 
           <button disabled={saving} className="btn-secondary">
             <ArrowRightLeft className="w-4 h-4" />
-            {saving ? 'Trasladando...' : 'Confirmar traslado'}
+            {saving ? t('pastoralDistrital.botonTrasladando') : t('pastoralDistrital.botonConfirmarTraslado')}
           </button>
         </form>
       </div>
 
       <form onSubmit={handleFinalizarAsignacion} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
         <div className="sm:col-span-2 lg:col-span-4">
-          <h2 className="font-medium">Finalizar asignación pastoral</h2>
-          <p className="text-xs text-secondary mt-1">Cuando un pastor se retira o renuncia sin ir a otra congregación conocida en SIGAP: deja la congregación vacante y revoca su acceso, lista para asignar un nuevo pastor.</p>
+          <h2 className="font-medium">{t('pastoralDistrital.finalizarFormTitulo')}</h2>
+          <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.finalizarFormDescripcion')}</p>
         </div>
         <label className="text-sm">
-          Pastor
+          {t('pastoralDistrital.labelPastor')}
           <select required className="input-field mt-1.5" value={finalizarForm.pastor_id} onChange={(event) => setFinalizarForm({ ...finalizarForm, pastor_id: event.target.value })}>
-            <option value="">Seleccionar...</option>
+            <option value="">{t('pastoralDistrital.opcionSeleccionar')}</option>
             {pastors.filter((pastor) => activeByPastor.has(pastor.id)).map((pastor) => (
               <option key={pastor.id} value={pastor.id}>{pastor.nombres} {pastor.apellidos}</option>
             ))}
           </select>
         </label>
         <label className="text-sm">
-          Fecha
+          {t('pastoralDistrital.labelFecha')}
           <input required type="date" className="input-field mt-1.5" value={finalizarForm.fecha} onChange={(event) => setFinalizarForm({ ...finalizarForm, fecha: event.target.value })} />
         </label>
         <label className="text-sm sm:col-span-2">
-          Observaciones
-          <input className="input-field mt-1.5" placeholder="Motivo (opcional)" value={finalizarForm.observaciones} onChange={(event) => setFinalizarForm({ ...finalizarForm, observaciones: event.target.value })} />
+          {t('pastoralDistrital.labelObservaciones')}
+          <input className="input-field mt-1.5" placeholder={t('pastoralDistrital.placeholderMotivoOpcional')} value={finalizarForm.observaciones} onChange={(event) => setFinalizarForm({ ...finalizarForm, observaciones: event.target.value })} />
         </label>
         <button disabled={finalizando} className="btn-secondary sm:col-span-2 lg:col-span-4">
-          {finalizando ? 'Finalizando...' : 'Finalizar asignación'}
+          {finalizando ? t('pastoralDistrital.botonFinalizando') : t('pastoralDistrital.botonFinalizarAsignacion')}
         </button>
       </form>
 
       <form onSubmit={ascenderLicencia} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
         <div className="sm:col-span-2 lg:col-span-4">
-          <h2 className="font-medium flex items-center gap-2"><GraduationCap className="w-4 h-4 text-accent" />Ascender licencia ministerial</h2>
-          <p className="text-xs text-secondary mt-1">Escalafón de la IPUC: Obrero → Licencia Local → Licencia General → Ordenación Ministerial. Un nivel a la vez.</p>
+          <h2 className="font-medium flex items-center gap-2"><GraduationCap className="w-4 h-4 text-accent" />{t('pastoralDistrital.ascenderFormTitulo')}</h2>
+          <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.ascenderFormDescripcion')}</p>
         </div>
         <label className="text-sm lg:col-span-2">
-          Pastor
+          {t('pastoralDistrital.labelPastor')}
           <select
             required
             className="input-field mt-1.5"
             value={licenciaForm.pastor_id}
             onChange={(event) => setLicenciaForm({ ...licenciaForm, pastor_id: event.target.value })}
           >
-            <option value="">Seleccionar...</option>
+            <option value="">{t('pastoralDistrital.opcionSeleccionar')}</option>
             {pastors.filter((pastor) => LICENCIA_SIGUIENTE[pastor.licencia]).map((pastor) => (
               <option key={pastor.id} value={pastor.id}>
                 {pastor.nombres} {pastor.apellidos} — {LICENCIA_LABELS[pastor.licencia]} → {LICENCIA_LABELS[LICENCIA_SIGUIENTE[pastor.licencia]]}
@@ -1968,7 +1975,7 @@ export default function PastoralDistrital() {
           </select>
         </label>
         <label className="text-sm">
-          Fecha
+          {t('pastoralDistrital.labelFecha')}
           <input
             required
             type="date"
@@ -1978,41 +1985,41 @@ export default function PastoralDistrital() {
           />
         </label>
         <label className="text-sm">
-          Observaciones
+          {t('pastoralDistrital.labelObservaciones')}
           <input
             className="input-field mt-1.5"
-            placeholder="Evaluación, Consistorio de Ancianos..."
+            placeholder={t('pastoralDistrital.placeholderObservacionesConsistorio')}
             value={licenciaForm.observaciones}
             onChange={(event) => setLicenciaForm({ ...licenciaForm, observaciones: event.target.value })}
           />
         </label>
         <button disabled={ascendiendoLicencia} className="btn-primary lg:col-span-4">
           <GraduationCap className="w-4 h-4" />
-          {ascendiendoLicencia ? 'Registrando...' : 'Registrar ascenso'}
+          {ascendiendoLicencia ? t('pastoralDistrital.botonRegistrandoAscenso') : t('pastoralDistrital.botonRegistrarAscenso')}
         </button>
       </form>
 
       <form onSubmit={addFormacion} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
         <div className="sm:col-span-2 lg:col-span-6">
-          <h2 className="font-medium flex items-center gap-2"><BookOpen className="w-4 h-4 text-accent" />Preparación académica y ministerial</h2>
-          <p className="text-xs text-secondary mt-1">Títulos, cursos, diplomados y demás formación de cada pastor del distrito.</p>
+          <h2 className="font-medium flex items-center gap-2"><BookOpen className="w-4 h-4 text-accent" />{t('pastoralDistrital.formacionFormTitulo')}</h2>
+          <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.formacionFormDescripcion')}</p>
         </div>
         <label className="text-sm lg:col-span-2">
-          Pastor
+          {t('pastoralDistrital.labelPastor')}
           <select
             required
             className="input-field mt-1.5"
             value={formacionForm.pastor_id}
             onChange={(event) => setFormacionForm({ ...formacionForm, pastor_id: event.target.value })}
           >
-            <option value="">Seleccionar...</option>
+            <option value="">{t('pastoralDistrital.opcionSeleccionar')}</option>
             {pastors.map((pastor) => (
               <option key={pastor.id} value={pastor.id}>{pastor.nombres} {pastor.apellidos}</option>
             ))}
           </select>
         </label>
         <label className="text-sm">
-          Tipo
+          {t('pastoralDistrital.labelTipo')}
           <select
             className="input-field mt-1.5"
             value={formacionForm.tipo}
@@ -2025,25 +2032,25 @@ export default function PastoralDistrital() {
         </label>
         {formacionForm.tipo === 'otro' && (
           <label className="text-sm">
-            Especifica el tipo
+            {t('pastoralDistrital.labelEspecificaTipo')}
             <input required className="input-field mt-1.5" value={formacionForm.tipo_otro} onChange={(event) => setFormacionForm({ ...formacionForm, tipo_otro: event.target.value })} />
           </label>
         )}
         <label className="text-sm">
-          Nombre
-          <input required placeholder="Ej: Teología Pastoral" className="input-field mt-1.5" value={formacionForm.nombre} onChange={(event) => setFormacionForm({ ...formacionForm, nombre: event.target.value })} />
+          {t('pastoralDistrital.labelNombres')}
+          <input required placeholder={t('pastoralDistrital.placeholderNombreFormacion')} className="input-field mt-1.5" value={formacionForm.nombre} onChange={(event) => setFormacionForm({ ...formacionForm, nombre: event.target.value })} />
         </label>
         <label className="text-sm">
-          Institución
+          {t('pastoralDistrital.labelInstitucion')}
           <input className="input-field mt-1.5" value={formacionForm.institucion} onChange={(event) => setFormacionForm({ ...formacionForm, institucion: event.target.value })} />
         </label>
         <label className="text-sm">
-          Fecha
+          {t('pastoralDistrital.labelFecha')}
           <input type="date" className="input-field mt-1.5" value={formacionForm.fecha} onChange={(event) => setFormacionForm({ ...formacionForm, fecha: event.target.value })} />
         </label>
         <button disabled={savingFormacion} className="btn-primary lg:col-span-6">
           <Plus className="w-4 h-4" />
-          {savingFormacion ? 'Guardando...' : 'Agregar preparación'}
+          {savingFormacion ? t('pastoralDistrital.botonGuardando') : t('pastoralDistrital.botonAgregarPreparacion')}
         </button>
       </form>
 
@@ -2051,8 +2058,8 @@ export default function PastoralDistrital() {
         <div className="p-5 border-b border-border">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="font-medium">Pastores y trayectoria</h2>
-              <p className="text-sm text-secondary mt-1">Asignaciones vigentes e históricas del distrito.</p>
+              <h2 className="font-medium">{t('pastoralDistrital.pastoresTrayectoriaTitulo')}</h2>
+              <p className="text-sm text-secondary mt-1">{t('pastoralDistrital.pastoresTrayectoriaDescripcion')}</p>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -2062,18 +2069,18 @@ export default function PastoralDistrital() {
                   className="input-field pl-9 min-w-[220px]"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar pastor o congregación"
+                  placeholder={t('pastoralDistrital.placeholderBuscarPastorCongregacion')}
                 />
               </div>
 
               <select className="input-field min-w-[180px]" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                <option value="all">Todos los estados</option>
-                <option value="active">Activos</option>
-                <option value="vacant">Históricos / sin asignación</option>
+                <option value="all">{t('pastoralDistrital.opcionTodosEstados')}</option>
+                <option value="active">{t('pastoralDistrital.opcionActivos')}</option>
+                <option value="vacant">{t('pastoralDistrital.opcionHistoricosSinAsignacion')}</option>
               </select>
 
               <select className="input-field min-w-[180px]" value={congregationFilter} onChange={(event) => setCongregationFilter(event.target.value)}>
-                <option value="all">Todas las congregaciones</option>
+                <option value="all">{t('pastoralDistrital.opcionTodasCongregaciones')}</option>
                 {congregations.map((congregation) => (
                   <option key={congregation.id} value={congregation.id}>
                     {congregation.nombre}
@@ -2097,35 +2104,35 @@ export default function PastoralDistrital() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-medium text-ink">{pastor.nombres} {pastor.apellidos}</h3>
-                      <p className="text-xs text-secondary mt-1">{congregation?.nombre || 'Sin congregación asignada'}{congregation?.ciudad ? ` · ${congregation.ciudad}` : ''}</p>
-                      <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{LICENCIA_LABELS[pastor.licencia] || 'Obrero'}</span>
+                      <p className="text-xs text-secondary mt-1">{congregation?.nombre || t('pastoralDistrital.sinCongregacionAsignada')}{congregation?.ciudad ? ` · ${congregation.ciudad}` : ''}</p>
+                      <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{LICENCIA_LABELS[pastor.licencia] || LICENCIA_LABELS.obrero}</span>
                       {pastor.licencia === 'obrero' && pastor.fecha_tarjeta_predicador && (
-                        <span className="inline-block mt-1 ml-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-surface-2 text-secondary">Tarjeta de predicador: {formatDate(pastor.fecha_tarjeta_predicador)}</span>
+                        <span className="inline-block mt-1 ml-1.5 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-surface-2 text-secondary">{t('pastoralDistrital.badgeTarjetaPredicador')}: {formatDate(pastor.fecha_tarjeta_predicador)}</span>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isAssigned ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'}`}>
-                        {isAssigned ? 'Activo' : 'Sin asignación'}
+                        {isAssigned ? t('pastoralDistrital.badgeActivo') : t('pastoralDistrital.badgeSinAsignacion')}
                       </span>
                       {!pastor.persona_id && (
-                        <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-danger-bg text-danger">Sin acceso vinculado</span>
+                        <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-danger-bg text-danger">{t('pastoralDistrital.badgeSinAccesoVinculado')}</span>
                       )}
                     </div>
                   </div>
 
                   <div className="mt-3 space-y-1 text-xs text-secondary">
-                    {pastor.telefono && <p>Tel: {pastor.telefono}</p>}
-                    {pastor.familia_pastoral && <p>Familia: {pastor.familia_pastoral}</p>}
-                    {activeAssignment && <p>Cargo: {activeAssignment.cargo}</p>}
+                    {pastor.telefono && <p>{t('pastoralDistrital.tarjetaTel', { telefono: pastor.telefono })}</p>}
+                    {pastor.familia_pastoral && <p>{t('pastoralDistrital.tarjetaFamilia', { familia: pastor.familia_pastoral })}</p>}
+                    {activeAssignment && <p>{t('pastoralDistrital.tarjetaCargo', { cargo: CARGO_LABELS[activeAssignment.cargo] || activeAssignment.cargo })}</p>}
                     {resumenCongregacion && (
-                      <p>{resumenCongregacion.personas_activas} personas activas · {resumenCongregacion.personas_nuevas_3m} nuevas (3 meses)</p>
+                      <p>{t('pastoralDistrital.tarjetaResumenCongregacion', { activas: resumenCongregacion.personas_activas, nuevas: resumenCongregacion.personas_nuevas_3m })}</p>
                     )}
                   </div>
 
                   <div className="mt-4 flex gap-2">
                     <button type="button" className="btn-secondary flex-1" onClick={() => openPastorEditor(pastor)}>
                       <PencilLine className="w-4 h-4" />
-                      Editar
+                      {t('pastoralDistrital.botonEditar')}
                     </button>
                     <button
                       type="button"
@@ -2136,7 +2143,7 @@ export default function PastoralDistrital() {
                       }}
                     >
                       <ArrowRightLeft className="w-4 h-4" />
-                      Trasladar
+                      {t('pastoralDistrital.botonTrasladar')}
                     </button>
                   </div>
                 </article>
@@ -2145,7 +2152,7 @@ export default function PastoralDistrital() {
           </div>
 
           {filteredPastors.length === 0 && (
-            <p className="mt-4 text-sm text-muted">No hay pastores que coincidan con los filtros actuales.</p>
+            <p className="mt-4 text-sm text-muted">{t('pastoralDistrital.sinPastoresCoincidentes')}</p>
           )}
         </div>
 
@@ -2153,7 +2160,7 @@ export default function PastoralDistrital() {
           <div className="p-5">
             <div className="flex items-center gap-2 text-sm font-medium mb-3">
               <MapPinned className="w-4 h-4 text-accent" />
-              Historial de asignaciones
+              {t('pastoralDistrital.historialAsignacionesTitulo')}
             </div>
 
             {filteredAssignments.length ? (
@@ -2169,21 +2176,21 @@ export default function PastoralDistrital() {
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-medium">
-                            {pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}
+                            {pastor ? `${pastor.nombres} ${pastor.apellidos}` : t('pastoralDistrital.fallbackPastor')}
                           </p>
                           <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${isActive ? 'bg-success-bg text-success' : 'bg-surface-2 text-secondary'}`}>
-                            {isActive ? 'Actual' : 'Histórico'}
+                            {isActive ? t('pastoralDistrital.badgeActual') : t('pastoralDistrital.badgeHistorico')}
                           </span>
                         </div>
                         <p className="text-xs text-secondary mt-1">
-                          {assignment.cargo} · {congregation?.nombre || 'Congregación'}
+                          {t('pastoralDistrital.textoCargoCongregacion', { cargo: CARGO_LABELS[assignment.cargo] || assignment.cargo, congregacion: congregation?.nombre || t('pastoralDistrital.fallbackCongregacion') })}
                         </p>
                         <p className="text-xs text-secondary mt-1">
-                          Desde {formatDate(assignment.fecha_inicio)}
-                          {assignment.fecha_fin ? ` · Hasta ${formatDate(assignment.fecha_fin)}` : ' · Vigente'}
+                          {t('pastoralDistrital.textoDesde', { fecha: formatDate(assignment.fecha_inicio) })}
+                          {assignment.fecha_fin ? t('pastoralDistrital.textoHasta', { fecha: formatDate(assignment.fecha_fin) }) : t('pastoralDistrital.textoVigente')}
                         </p>
                         {assignment.observaciones && (
-                          <p className="text-xs text-muted mt-1">Obs: {assignment.observaciones}</p>
+                          <p className="text-xs text-muted mt-1">{t('pastoralDistrital.textoObs', { observaciones: assignment.observaciones })}</p>
                         )}
                       </div>
                     </div>
@@ -2191,7 +2198,7 @@ export default function PastoralDistrital() {
                 })}
               </div>
             ) : (
-              <p className="p-4 text-sm text-muted">Aún no hay trayectoria pastoral registrada con los filtros actuales.</p>
+              <p className="p-4 text-sm text-muted">{t('pastoralDistrital.historialAsignacionesSinRegistros')}</p>
             )}
           </div>
         </div>
@@ -2200,7 +2207,7 @@ export default function PastoralDistrital() {
           <div className="p-5">
             <div className="flex items-center gap-2 text-sm font-medium mb-3">
               <GraduationCap className="w-4 h-4 text-accent" />
-              Historial de licencias ministeriales
+              {t('pastoralDistrital.historialLicenciasTitulo')}
             </div>
 
             {licenciaHistorial.length ? (
@@ -2212,19 +2219,19 @@ export default function PastoralDistrital() {
                       <GraduationCap className="w-4 h-4 text-accent mt-1" />
                       <div className="flex-1">
                         <p className="text-sm font-medium flex items-center gap-2">
-                          {pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}
-                          {item.tipo === 'correccion' && <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-warning-bg text-warning">Corrección</span>}
+                          {pastor ? `${pastor.nombres} ${pastor.apellidos}` : t('pastoralDistrital.fallbackPastor')}
+                          {item.tipo === 'correccion' && <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-warning-bg text-warning">{t('pastoralDistrital.badgeCorreccion')}</span>}
                         </p>
                         <p className="text-xs text-secondary mt-1">{LICENCIA_LABELS[item.licencia_anterior] || item.licencia_anterior} → {LICENCIA_LABELS[item.licencia_nueva] || item.licencia_nueva}</p>
                         <p className="text-xs text-secondary mt-1">{formatDate(item.fecha)}</p>
-                        {item.observaciones && <p className="text-xs text-muted mt-1">Obs: {item.observaciones}</p>}
+                        {item.observaciones && <p className="text-xs text-muted mt-1">{t('pastoralDistrital.textoObs', { observaciones: item.observaciones })}</p>}
                       </div>
                     </div>
                   )
                 })}
               </div>
             ) : (
-              <p className="p-4 text-sm text-muted">Aún no hay ascensos de licencia registrados.</p>
+              <p className="p-4 text-sm text-muted">{t('pastoralDistrital.historialLicenciasSinRegistros')}</p>
             )}
           </div>
         </div>
@@ -2233,27 +2240,27 @@ export default function PastoralDistrital() {
           <div className="p-5">
             <div className="flex items-center gap-2 text-sm font-medium mb-3">
               <BookOpen className="w-4 h-4 text-accent" />
-              Preparación académica y ministerial
+              {t('pastoralDistrital.historialFormacionTitulo')}
             </div>
 
             {formaciones.length ? (
               <div className="space-y-3">
                 {formaciones.map((item) => {
                   const pastor = pastors.find((entry) => entry.id === item.pastor_id)
-                  const tipoLabel = item.tipo === 'otro' ? (item.tipo_otro || 'Otro') : TIPO_FORMACION_LABELS[item.tipo] || item.tipo
+                  const tipoLabel = item.tipo === 'otro' ? (item.tipo_otro || TIPO_FORMACION_LABELS.otro) : TIPO_FORMACION_LABELS[item.tipo] || item.tipo
                   return (
                     <div key={item.id} className="flex items-start gap-3 border border-border rounded-lg bg-surface-1 p-3">
                       <BookOpen className="w-4 h-4 text-accent mt-1" />
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-medium">{pastor ? `${pastor.nombres} ${pastor.apellidos}` : 'Pastor'}</p>
+                          <p className="text-sm font-medium">{pastor ? `${pastor.nombres} ${pastor.apellidos}` : t('pastoralDistrital.fallbackPastor')}</p>
                           <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-accent-bg text-accent">{tipoLabel}</span>
                         </div>
                         <p className="text-xs text-secondary mt-1">{item.nombre}{item.institucion ? ` · ${item.institucion}` : ''}</p>
                         {item.fecha && <p className="text-xs text-secondary mt-1">{formatDate(item.fecha)}</p>}
-                        {item.observaciones && <p className="text-xs text-muted mt-1">Obs: {item.observaciones}</p>}
+                        {item.observaciones && <p className="text-xs text-muted mt-1">{t('pastoralDistrital.textoObs', { observaciones: item.observaciones })}</p>}
                       </div>
-                      <button type="button" onClick={() => deleteFormacion(item.id)} className="text-muted hover:text-danger" aria-label="Eliminar registro de preparación">
+                      <button type="button" onClick={() => deleteFormacion(item.id)} className="text-muted hover:text-danger" aria-label={t('pastoralDistrital.ariaEliminarFormacion')}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -2261,7 +2268,7 @@ export default function PastoralDistrital() {
                 })}
               </div>
             ) : (
-              <p className="p-4 text-sm text-muted">Aún no hay preparación académica registrada.</p>
+              <p className="p-4 text-sm text-muted">{t('pastoralDistrital.historialFormacionSinRegistros')}</p>
             )}
           </div>
         </div>
