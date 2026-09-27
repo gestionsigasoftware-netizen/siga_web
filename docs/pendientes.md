@@ -122,8 +122,13 @@
 	  `Musica.jsx` (429 lineas -- comite de servicio FECP, coro/
 	  orquesta/alabanza). 37 pantallas en total verificadas con
 	  Playwright real (login + EN/PT, cero errores de consola).
-	- **Falta**: el contenido propio de las ~8 pantallas restantes
-	  (EducacionArtistica, DamasDorcas,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 7)**:
+	  `EducacionArtistica.jsx` (426 lineas -- comite de servicio FECP,
+	  danza/teatro/artes visuales, mismo patron que Musica). 38
+	  pantallas en total verificadas con Playwright real (login +
+	  EN/PT, cero errores de consola).
+	- **Falta**: el contenido propio de las ~7 pantallas restantes
+	  (DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
