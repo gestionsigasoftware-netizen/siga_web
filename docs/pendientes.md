@@ -149,8 +149,16 @@
 	  llamada recursiva del drill-down). 41 pantallas en total
 	  verificadas con Playwright real (login + EN/PT, cero errores de
 	  consola, datos reales con pluralizacion correcta).
-	- **Falta**: el contenido propio de las ~4 pantallas restantes
-	  (Legal, PastoralDistrital, y el resto de
+	- **Mas pantallas traducidas (2026-09-26, continuacion 11)**:
+	  `Legal.jsx` (documento publico de privacidad y condiciones de
+	  uso, 8 secciones legales) -- se tradujo con cuidado extra por
+	  ser texto legal/de negocio, preservando el significado exacto de
+	  cada clausula (retencion de datos, eliminacion, seguridad) en
+	  vez de una traduccion literal palabra por palabra. 42 pantallas
+	  en total verificadas con Playwright real (EN/PT, cero errores de
+	  consola).
+	- **Falta**: el contenido propio de las ~3 pantallas restantes
+	  (PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
 	  (cientos de textos por pantalla en algunos casos, especialmente
