@@ -118,8 +118,12 @@
 	  grupos por nivel academico con certificacion). 36 pantallas en
 	  total verificadas con Playwright real (login + EN/PT, cero
 	  errores de consola).
-	- **Falta**: el contenido propio de las ~9 pantallas restantes
-	  (Musica, EducacionArtistica, DamasDorcas,
+	- **Mas pantallas traducidas (2026-09-26, continuacion 6)**:
+	  `Musica.jsx` (429 lineas -- comite de servicio FECP, coro/
+	  orquesta/alabanza). 37 pantallas en total verificadas con
+	  Playwright real (login + EN/PT, cero errores de consola).
+	- **Falta**: el contenido propio de las ~8 pantallas restantes
+	  (EducacionArtistica, DamasDorcas,
 	  ObraSocial, SaludDatos, Legal, PastoralDistrital, y el resto de
 	  modulos operativos) sigue en espanol fijo -- pendiente por
 	  archivo en proximas sesiones, trabajo de contenido muy grande
