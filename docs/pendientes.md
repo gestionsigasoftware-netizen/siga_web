@@ -171,9 +171,16 @@
 	  traducidas desde sesiones anteriores (53 y 19 llaves, 0
 	  faltantes) -- se quedan asi, con idiomas, decision final del
 	  usuario.
-	- **Falta**: la Fase 3 (mismo tema+idiomas en la PWA,
-	  `SIGA\siga movil\siga-pwa-nacional`, proyecto aparte, todavia sin
-	  tocar).
+	- **Fase 3 completada (2026-09-27)**: la PWA de captura movil
+	  (`SIGA\siga movil\siga-pwa-nacional`, proyecto y repo aparte) ya
+	  quedo tambien 100% trilingue -- ver
+	  `docs/i18n-pwa-2026-09-27.md` en ese mismo repo para el detalle
+	  completo (namespace, decision de UX del selector de idioma,
+	  verificacion). Con esto **todo el proyecto de i18n de SIGAP
+	  (web + PWA) queda cerrado**.
+	- **Falta**: nada pendiente de i18n. El modo oscuro de la PWA sigue
+	  sin implementarse (fuera de alcance de este trabajo, documentado
+	  en el repo de la PWA).
 
 - **Resuelto (2026-09-24)**: Sidebar agrupado por secciones. El rol
 	local tenia 27 items en una sola lista plana; ahora se organizan en
