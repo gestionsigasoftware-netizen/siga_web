@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bar, Line } from "react-chartjs-2";
 import {
   BarElement,
@@ -24,15 +25,7 @@ import { descargarCsv, descargarExcel, descargarPdf } from "../lib/reportExport"
 ChartJS.register(BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip);
 const obraSocialCache = new Map();
 
-const TIPO_NECESIDAD_LABELS = { economica: "Económica", alimentaria: "Alimentaria", salud: "Salud", vivienda: "Vivienda", otra: "Otra" };
-const PRIORIDAD_LABELS = { baja: "Baja", media: "Media", alta: "Alta" };
-// Mismo catalogo que CASE_STATES en RedFamilias.jsx -- se duplica aqui
-// porque este selector trae los casos de Red de Familias por separado,
-// sin importar el archivo.
-const CASO_RED_FAMILIAS_ESTADO_LABELS = { solicitado: "Solicitado", activo: "Activo", pausado: "Pausado", cerrado: "Cerrado" };
-const ESTADO_LABELS = { identificada: "Identificada", en_apoyo: "En apoyo", resuelta: "Resuelta", cerrada: "Cerrada" };
-const TIPO_AYUDA_LABELS = { material: "Material", economica: "Económica", acompanamiento: "Acompañamiento", otra: "Otra" };
-const PERIODOS = [["30", "30 días"], ["180", "6 meses"], ["365", "12 meses"]];
+const PERIODOS = ["30", "180", "365"];
 const DIAS_ALERTA = 30;
 const CHART_OPTIONS = chartOptions();
 
@@ -51,6 +44,15 @@ function Metric({ label, value, detail, insight, progress = 0, tone = "", tip })
 }
 
 export default function ObraSocial() {
+  const { t } = useTranslation();
+  const TIPO_NECESIDAD_LABELS = t("obraSocial.tiposNecesidad", { returnObjects: true });
+  const PRIORIDAD_LABELS = t("obraSocial.prioridades", { returnObjects: true });
+  // Mismo catalogo que CASE_STATES en RedFamilias.jsx -- se duplica aqui
+  // porque este selector trae los casos de Red de Familias por separado,
+  // sin importar el archivo.
+  const CASO_RED_FAMILIAS_ESTADO_LABELS = t("obraSocial.estadosCasoRedFamilias", { returnObjects: true });
+  const ESTADO_LABELS = t("obraSocial.estados", { returnObjects: true });
+  const TIPO_AYUDA_LABELS = t("obraSocial.tiposAyuda", { returnObjects: true });
   const { rolPrincipal, loading: roleLoading } = useMiRol();
   const congregacionId = rolPrincipal?.congregacion_id;
   const [casos, setCasos] = useState([]);
@@ -77,7 +79,7 @@ export default function ObraSocial() {
   async function load() {
     if (!congregacionId) {
       setLoading(false);
-      setError("Tu usuario no tiene una congregación local asignada.");
+      setError(t("obraSocial.errorSinCongregacion"));
       return;
     }
     const cacheKey = `${congregacionId}:${periodo}`;
@@ -103,7 +105,7 @@ export default function ObraSocial() {
       supabase.from("red_familias_casos").select("id, familia_id, tipo_necesidad, estado, familias(nombre_familia)").eq("congregacion_id", congregacionId).order("fecha_apertura", { ascending: false }),
     ]);
     const failed = [c, ay, p, f, rf].find((item) => item.error);
-    if (failed) setError("No se pudo cargar Obra Social. Intenta nuevamente o contacta al administrador.");
+    if (failed) setError(t("obraSocial.errorCargar"));
     const freshCasos = c.data ?? [];
     const freshAyudas = ay.data ?? [];
     const freshPersonas = p.data ?? [];
@@ -132,8 +134,8 @@ export default function ObraSocial() {
       notas: casoForm.notas.trim() || null,
     });
     setSaving(false);
-    if (result.error) { setError(`No se pudo registrar el caso: ${result.error.message}`); return; }
-    setNotice("Caso registrado.");
+    if (result.error) { setError(t("obraSocial.errorRegistrarCaso", { mensaje: result.error.message })); return; }
+    setNotice(t("obraSocial.noticeCasoRegistrado"));
     setCasoForm({ familia_id: "", red_familias_caso_id: "", tipo_necesidad: "economica", prioridad: "media", responsable_persona_id: "", notas: "" });
     load();
   }
@@ -143,8 +145,8 @@ export default function ObraSocial() {
     setSaving(true); setError(null);
     const result = await supabase.from("obra_social_casos").update({ estado }).eq("id", caso.id).eq("congregacion_id", congregacionId);
     setSaving(false);
-    if (result.error) { setError(`No se pudo actualizar el caso: ${result.error.message}`); return; }
-    setNotice(`Caso marcado como ${ESTADO_LABELS[estado].toLowerCase()}.`);
+    if (result.error) { setError(t("obraSocial.errorActualizarCaso", { mensaje: result.error.message })); return; }
+    setNotice(t("obraSocial.noticeCasoMarcado", { estado: ESTADO_LABELS[estado].toLowerCase() }));
     load();
   }
 
@@ -160,8 +162,8 @@ export default function ObraSocial() {
       responsable_persona_id: ayudaForm.responsable_persona_id || null,
     });
     setSaving(false);
-    if (result.error) { setError(`No se pudo registrar la ayuda: ${result.error.message}`); return; }
-    setNotice("Ayuda registrada.");
+    if (result.error) { setError(t("obraSocial.errorRegistrarAyuda", { mensaje: result.error.message })); return; }
+    setNotice(t("obraSocial.noticeAyudaRegistrada"));
     setAyudaForm({ fecha: hoyBogota(), tipo: "material", descripcion: "", responsable_persona_id: "" });
     load();
   }
@@ -173,7 +175,7 @@ export default function ObraSocial() {
     supabase.rpc("tiene_permiso", { p_congregacion_id: congregacionId, p_permiso: "obra_social.editar" }).then(({ data }) => setCanEdit(roleCanEdit || Boolean(data)));
   }, [congregacionId, rolPrincipal]);
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />Cargando Obra Social...</div>;
+  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t("obraSocial.cargando")}</div>;
 
   const casosAbiertos = casos.filter((item) => ["identificada", "en_apoyo"].includes(item.estado));
   const casosResueltos = casos.filter((item) => ["resuelta", "cerrada"].includes(item.estado));
@@ -204,79 +206,85 @@ export default function ObraSocial() {
   });
 
   const insightGeneral = casos.length
-    ? `${casosAbiertos.length} caso(s) abiertos, ${casosAltaPrioridad.length} de prioridad alta. ${casosSinSeguimiento.length > 0 ? `${casosSinSeguimiento.length} sin seguimiento en más de ${DIAS_ALERTA} días.` : "Todos los casos abiertos tienen seguimiento reciente."}`
-    : "Registra un caso para comenzar a medir la asistencia social de la congregación.";
+    ? t("obraSocial.insightGeneralConDatos", {
+        abiertos: casosAbiertos.length,
+        altaPrioridad: casosAltaPrioridad.length,
+        extra: casosSinSeguimiento.length > 0
+          ? t("obraSocial.insightExtraSinSeguimiento", { count: casosSinSeguimiento.length, dias: DIAS_ALERTA })
+          : t("obraSocial.insightExtraAlDia"),
+      })
+    : t("obraSocial.insightVacio");
 
-  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: "Ayudas" });
-  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: "Casos abiertos" });
+  const chartData = trendDataset(trend.map((item) => item.fecha), trend.map((item) => item.total), { label: t("obraSocial.datasetAyudas") });
+  const tiposChartData = distributionDataset(tiposConTotal, { datasetLabel: t("obraSocial.datasetCasosAbiertos") });
 
   function exportResumen() {
     return {
       kpis: [
-        { label: "Casos abiertos", value: casosAbiertos.length },
-        { label: "Casos resueltos", value: casosResueltos.length },
-        { label: "Prioridad alta", value: casosAltaPrioridad.length },
-        { label: "Sin seguimiento reciente", value: casosSinSeguimiento.length },
+        { label: t("obraSocial.exportKpiCasosAbiertos"), value: casosAbiertos.length },
+        { label: t("obraSocial.exportKpiCasosResueltos"), value: casosResueltos.length },
+        { label: t("obraSocial.exportKpiPrioridadAlta"), value: casosAltaPrioridad.length },
+        { label: t("obraSocial.exportKpiSinSeguimiento"), value: casosSinSeguimiento.length },
       ],
-      desgloses: [{ titulo: "Casos abiertos por tipo de necesidad", items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
+      desgloses: [{ titulo: t("obraSocial.exportDesgloseTitulo"), items: tiposConTotal.map((item) => ({ label: item.label, valor: item.total })) }],
     };
   }
   function exportHeaders() {
     return {
-      headers: ["Familia", "Tipo de necesidad", "Prioridad", "Estado", "Responsable", "Fecha de apertura", "Última ayuda"],
+      headers: [t("obraSocial.exportHeaderFamilia"), t("obraSocial.exportHeaderTipoNecesidad"), t("obraSocial.exportHeaderPrioridad"), t("obraSocial.exportHeaderEstado"), t("obraSocial.exportHeaderResponsable"), t("obraSocial.exportHeaderFechaApertura"), t("obraSocial.exportHeaderUltimaAyuda")],
       rows: casos.map((item) => {
         const responsable = personas.find((persona) => persona.id === item.responsable_persona_id);
-        return [item.familias?.nombre_familia || "—", TIPO_NECESIDAD_LABELS[item.tipo_necesidad] || item.tipo_necesidad, PRIORIDAD_LABELS[item.prioridad] || item.prioridad, ESTADO_LABELS[item.estado] || item.estado, responsable ? `${responsable.nombres} ${responsable.apellidos}` : "Sin asignar", item.fecha_apertura || "—", ultimaAyudaPorCaso.get(item.id) || "Sin registro"];
+        return [item.familias?.nombre_familia || "—", TIPO_NECESIDAD_LABELS[item.tipo_necesidad] || item.tipo_necesidad, PRIORIDAD_LABELS[item.prioridad] || item.prioridad, ESTADO_LABELS[item.estado] || item.estado, responsable ? `${responsable.nombres} ${responsable.apellidos}` : t("obraSocial.sinAsignar"), item.fecha_apertura || "—", ultimaAyudaPorCaso.get(item.id) || t("obraSocial.sinRegistro")];
       }),
     };
   }
-  function exportCsv() { descargarCsv({ filename: `obra-social-${hoyBogota()}.csv`, titulo: "Obra Social — Casos", ...exportHeaders() }); }
-  function exportExcel() { descargarExcel({ filename: `obra-social-${hoyBogota()}.xlsx`, hoja: "Casos", titulo: "Obra Social — Casos", resumen: exportResumen(), ...exportHeaders() }); }
-  function exportPdf() { descargarPdf({ filename: `obra-social-${hoyBogota()}.pdf`, titulo: "Obra Social — Casos", orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
+  function exportCsv() { descargarCsv({ filename: `obra-social-${hoyBogota()}.csv`, titulo: t("obraSocial.exportTitulo"), ...exportHeaders() }); }
+  function exportExcel() { descargarExcel({ filename: `obra-social-${hoyBogota()}.xlsx`, hoja: "Casos", titulo: t("obraSocial.exportTitulo"), resumen: exportResumen(), ...exportHeaders() }); }
+  function exportPdf() { descargarPdf({ filename: `obra-social-${hoyBogota()}.pdf`, titulo: t("obraSocial.exportTitulo"), orientacion: "landscape", resumen: exportResumen(), ...exportHeaders() }); }
 
   return (
     <div className="page-shell">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Fundación Obra Social Unida</p>
-          <h1 className="section-title flex items-center gap-2"><HandHeart className="w-6 h-6 text-accent" />Obra Social</h1>
-          <p className="text-sm text-secondary mt-1">Asistencia socioeconómica a hermanos de la congregación que carecen de recursos.</p>
+          <p className="eyebrow">{t("obraSocial.eyebrow")}</p>
+          <h1 className="section-title flex items-center gap-2"><HandHeart className="w-6 h-6 text-accent" />{t("obraSocial.titulo")}</h1>
+          <p className="text-sm text-secondary mt-1">{t("obraSocial.subtitulo")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1.5" role="group" aria-label="Periodo del análisis">
-            {PERIODOS.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{label}</button>
+          <div className="flex gap-1.5" role="group" aria-label={t("obraSocial.ariaPeriodo")}>
+            {PERIODOS.map((value, index) => (
+              <button key={value} type="button" onClick={() => setPeriodo(value)} className={`text-xs px-3 py-2 rounded border ${periodo === value ? "bg-night text-white border-night" : "border-border text-secondary"}`}>{t(`obraSocial.${["periodo30", "periodo6m", "periodo12m"][index]}`)}</button>
             ))}
           </div>
           <ExportButtons onCsv={exportCsv} onExcel={exportExcel} onPdf={exportPdf} />
         </div>
       </header>
       {error && <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{error}</p>}
-      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">Tienes acceso de consulta. Las altas y modificaciones requieren el permiso de edición de Obra Social.</p>}
+      {canEdit === false && <p className="text-sm text-secondary bg-surface-1 rounded p-3">{t("obraSocial.soloConsulta")}</p>}
       <Toast>{notice}</Toast>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric label="Casos abiertos" value={casosAbiertos.length} progress={casos.length ? Math.round((casosAbiertos.length / casos.length) * 100) : 0} detail={`${casos.length} registrados en total`} insight="Necesidades identificadas o en apoyo activo." />
-        <Metric label="Prioridad alta" value={casosAltaPrioridad.length} tone={casosAltaPrioridad.length > 0 ? "text-danger" : "text-success"} progress={casosAbiertos.length ? Math.round((casosAltaPrioridad.length / casosAbiertos.length) * 100) : 0} detail="Casos abiertos urgentes" insight="Prioriza estos casos en la próxima jornada de apoyo." />
-        <Metric label="Casos resueltos" value={casosResueltos.length} tone="text-success" progress={casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0} detail={`${casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0}% del total`} insight="Necesidad resuelta o caso cerrado." tip="Suma los casos marcados como Resuelta y como Cerrada, aunque no sean lo mismo: uno significa que se atendió la necesidad y el otro que el caso ya no sigue abierto." />
-        <Metric label="Ayudas (30 días)" value={ayudasUltimoMes.length} progress={ayudasUltimoMes.length ? 100 : 0} detail={`${ayudas.length} en el periodo seleccionado`} insight="Cada ayuda entregada queda registrada por caso." />
+        <Metric label={t("obraSocial.metricCasosAbiertos")} value={casosAbiertos.length} progress={casos.length ? Math.round((casosAbiertos.length / casos.length) * 100) : 0} detail={t("obraSocial.metricCasosAbiertosDetalle", { count: casos.length })} insight={t("obraSocial.metricCasosAbiertosInsight")} />
+        <Metric label={t("obraSocial.metricPrioridadAlta")} value={casosAltaPrioridad.length} tone={casosAltaPrioridad.length > 0 ? "text-danger" : "text-success"} progress={casosAbiertos.length ? Math.round((casosAltaPrioridad.length / casosAbiertos.length) * 100) : 0} detail={t("obraSocial.metricPrioridadAltaDetalle")} insight={t("obraSocial.metricPrioridadAltaInsight")} />
+        <Metric label={t("obraSocial.metricCasosResueltos")} value={casosResueltos.length} tone="text-success" progress={casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0} detail={t("obraSocial.metricCasosResueltosDetalle", { pct: casos.length ? Math.round((casosResueltos.length / casos.length) * 100) : 0 })} insight={t("obraSocial.metricCasosResueltosInsight")} tip={t("obraSocial.metricCasosResueltosTip")} />
+        <Metric label={t("obraSocial.metricAyudas30")} value={ayudasUltimoMes.length} progress={ayudasUltimoMes.length ? 100 : 0} detail={t("obraSocial.metricAyudas30Detalle", { count: ayudas.length })} insight={t("obraSocial.metricAyudas30Insight")} />
       </section>
 
       <p className="text-sm text-secondary bg-surface-1 rounded p-3">{insightGeneral}</p>
 
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card chart-card p-5">
-          <p className="eyebrow">Apoyo brindado</p>
-          <h2 className="font-medium mt-1">Tendencia de ayudas</h2>
+          <p className="eyebrow">{t("obraSocial.eyebrowApoyoBrindado")}</p>
+          <h2 className="font-medium mt-1">{t("obraSocial.tituloTendenciaAyudas")}</h2>
           <div className="h-56 mt-4">
-            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin ayudas registradas en el periodo." />}
+            {trend.length ? <Line data={chartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("obraSocial.chartEmptySinAyudas")} />}
           </div>
         </div>
         <div className="card chart-card p-5">
-          <p className="eyebrow">Composición</p>
-          <h2 className="font-medium mt-1">Casos abiertos por tipo de necesidad</h2>
+          <p className="eyebrow">{t("obraSocial.eyebrowComposicion")}</p>
+          <h2 className="font-medium mt-1">{t("obraSocial.tituloCasosPorNecesidad")}</h2>
           <div className="h-56 mt-4">
-            {casosAbiertos.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message="Sin casos abiertos todavía." />}
+            {casosAbiertos.length ? <Bar data={tiposChartData} options={CHART_OPTIONS} /> : <ChartEmpty message={t("obraSocial.chartEmptySinCasos")} />}
           </div>
         </div>
       </section>
@@ -286,15 +294,15 @@ export default function ObraSocial() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="font-medium">Casos sin seguimiento reciente</h2>
-              <p className="text-xs text-secondary mt-1">Sin ayuda registrada en más de {DIAS_ALERTA} días.</p>
+              <h2 className="font-medium">{t("obraSocial.tituloCasosSinSeguimiento")}</h2>
+              <p className="text-xs text-secondary mt-1">{t("obraSocial.descripcionSinSeguimiento", { dias: DIAS_ALERTA })}</p>
             </div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
             {casosSinSeguimiento.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
                 <p className="text-sm font-medium">{item.familias?.nombre_familia}</p>
-                <p className="text-xs text-secondary mt-1">{TIPO_NECESIDAD_LABELS[item.tipo_necesidad]} · {ultimaAyudaPorCaso.get(item.id) ? `Última ayuda: ${ultimaAyudaPorCaso.get(item.id)}` : `Abierto: ${item.fecha_apertura}`}</p>
+                <p className="text-xs text-secondary mt-1">{TIPO_NECESIDAD_LABELS[item.tipo_necesidad]} · {ultimaAyudaPorCaso.get(item.id) ? t("obraSocial.ultimaAyudaTexto", { fecha: ultimaAyudaPorCaso.get(item.id) }) : t("obraSocial.abiertoTexto", { fecha: item.fecha_apertura })}</p>
               </div>
             ))}
           </div>
@@ -304,7 +312,7 @@ export default function ObraSocial() {
       <section className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="eyebrow">Casos</p><h2 className="font-medium mt-1">Casos registrados</h2></div>
+            <div><p className="eyebrow">{t("obraSocial.eyebrowCasos")}</p><h2 className="font-medium mt-1">{t("obraSocial.tituloCasosRegistrados")}</h2></div>
             <HandHeart className="w-5 h-5 text-accent" />
           </div>
           <div className="flex flex-col divide-y divide-border mt-4 max-h-96 overflow-y-auto">
@@ -314,10 +322,10 @@ export default function ObraSocial() {
                   <p className="text-sm font-medium">{item.familias?.nombre_familia}</p>
                   <span className={`text-[11px] px-2 py-0.5 rounded ${item.prioridad === "alta" ? "bg-danger-bg text-danger" : "bg-surface-1"}`}>{PRIORIDAD_LABELS[item.prioridad]}</span>
                 </div>
-                <p className="text-xs text-secondary mt-1">{TIPO_NECESIDAD_LABELS[item.tipo_necesidad]} · {ESTADO_LABELS[item.estado]}{item.red_familias_caso_id ? " · Origen: Red de Familias" : ""}</p>
+                <p className="text-xs text-secondary mt-1">{TIPO_NECESIDAD_LABELS[item.tipo_necesidad]} · {ESTADO_LABELS[item.estado]}{item.red_familias_caso_id ? t("obraSocial.origenRedFamilias") : ""}</p>
               </button>
             ))}
-            {!casos.length && <p className="text-sm text-muted py-6">Aún no hay casos registrados.</p>}
+            {!casos.length && <p className="text-sm text-muted py-6">{t("obraSocial.sinCasosRegistrados")}</p>}
           </div>
           {selectedCasoId && (() => {
             const caso = casos.find((item) => item.id === selectedCasoId);
@@ -325,12 +333,12 @@ export default function ObraSocial() {
             if (!caso) return null;
             return <div className="border-t border-border mt-4 pt-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">Ayudas para la familia {caso.familias?.nombre_familia}</p>
+                <p className="text-sm font-medium">{t("obraSocial.ayudasParaFamilia", { nombre: caso.familias?.nombre_familia })}</p>
                 {canEdit && <span className="flex items-center gap-1.5">
                   <select className="input-field text-xs py-1 w-auto" value={caso.estado} onChange={(event) => actualizarEstado(caso, event.target.value)}>
                     {Object.entries(ESTADO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
-                  <InfoTip texto="Resuelta: la necesidad ya se atendió. Cerrada: el caso se cierra aunque no se haya resuelto, por ejemplo si la familia ya no requiere seguimiento." />
+                  <InfoTip texto={t("obraSocial.infoEstadoCaso")} />
                 </span>}
               </div>
               {caso.notas && <p className="text-xs text-secondary mt-2">{caso.notas}</p>}
@@ -341,30 +349,30 @@ export default function ObraSocial() {
                     {Object.entries(TIPO_AYUDA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
-                <textarea className="input-field min-h-14" placeholder="Descripción de la ayuda" value={ayudaForm.descripcion} onChange={(event) => setAyudaForm({ ...ayudaForm, descripcion: event.target.value })} />
+                <textarea className="input-field min-h-14" placeholder={t("obraSocial.placeholderDescripcionAyuda")} value={ayudaForm.descripcion} onChange={(event) => setAyudaForm({ ...ayudaForm, descripcion: event.target.value })} />
                 <select className="input-field" value={ayudaForm.responsable_persona_id} onChange={(event) => setAyudaForm({ ...ayudaForm, responsable_persona_id: event.target.value })}>
-                  <option value="">Responsable</option>
+                  <option value="">{t("obraSocial.opcionResponsableSimple")}</option>
                   {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
                 </select>
-                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />Registrar ayuda</button>
+                <button disabled={saving} className="btn-secondary justify-center"><Plus className="w-4 h-4" />{t("obraSocial.botonRegistrarAyuda")}</button>
               </form>}
-              {ayudasCaso.length ? <div className="divide-y divide-border mt-3">{ayudasCaso.map((ayuda) => <div key={ayuda.id} className="py-2"><div className="flex justify-between gap-3"><p className="text-sm">{TIPO_AYUDA_LABELS[ayuda.tipo]}</p><span className="text-xs text-secondary">{ayuda.fecha}</span></div>{ayuda.descripcion && <p className="text-xs text-secondary mt-1">{ayuda.descripcion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">Aún no hay ayudas registradas para este caso.</p>}
+              {ayudasCaso.length ? <div className="divide-y divide-border mt-3">{ayudasCaso.map((ayuda) => <div key={ayuda.id} className="py-2"><div className="flex justify-between gap-3"><p className="text-sm">{TIPO_AYUDA_LABELS[ayuda.tipo]}</p><span className="text-xs text-secondary">{ayuda.fecha}</span></div>{ayuda.descripcion && <p className="text-xs text-secondary mt-1">{ayuda.descripcion}</p>}</div>)}</div> : <p className="text-xs text-muted mt-3">{t("obraSocial.sinAyudasCaso")}</p>}
             </div>;
           })()}
         </div>
 
         <form onSubmit={createCaso} className={`card p-5 flex flex-col gap-2 h-fit ${canEdit ? '' : 'hidden'}`}>
-          <h2 className="font-medium">Nuevo caso</h2>
-          <p className="text-xs text-secondary">El censo de familias es el mismo que administra Red de Familias. Si la necesidad ya se identificó allá, vincula ese caso para no perder el origen.</p>
+          <h2 className="font-medium">{t("obraSocial.tituloNuevoCaso")}</h2>
+          <p className="text-xs text-secondary">{t("obraSocial.descripcionNuevoCaso")}</p>
           <select className="input-field" value={casoForm.red_familias_caso_id} onChange={(event) => {
             const casoOrigen = casosRedFamilias.find((item) => item.id === event.target.value);
             setCasoForm({ ...casoForm, red_familias_caso_id: event.target.value, familia_id: casoOrigen?.familia_id || casoForm.familia_id });
           }}>
-            <option value="">Vincular caso de Red de Familias (opcional)</option>
+            <option value="">{t("obraSocial.opcionVincularCasoRedFamilias")}</option>
             {casosRedFamilias.map((item) => <option key={item.id} value={item.id}>{item.familias?.nombre_familia} · {CASO_RED_FAMILIAS_ESTADO_LABELS[item.estado] || item.estado}</option>)}
           </select>
           <select required className="input-field" value={casoForm.familia_id} onChange={(event) => setCasoForm({ ...casoForm, familia_id: event.target.value })}>
-            <option value="">Familia</option>
+            <option value="">{t("obraSocial.opcionFamilia")}</option>
             {familias.map((familia) => <option key={familia.id} value={familia.id}>{familia.nombre_familia}</option>)}
           </select>
           <div className="grid grid-cols-2 gap-2">
@@ -376,11 +384,11 @@ export default function ObraSocial() {
             </select>
           </div>
           <select className="input-field" value={casoForm.responsable_persona_id} onChange={(event) => setCasoForm({ ...casoForm, responsable_persona_id: event.target.value })}>
-            <option value="">Responsable</option>
+            <option value="">{t("obraSocial.opcionResponsableSimple")}</option>
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombres} {persona.apellidos}</option>)}
           </select>
-          <textarea className="input-field min-h-14" placeholder="Ej: Necesita ayuda con arriendo de este mes, tiene 3 hijos menores" value={casoForm.notas} onChange={(event) => setCasoForm({ ...casoForm, notas: event.target.value })} />
-          <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> Registrar caso</button>
+          <textarea className="input-field min-h-14" placeholder={t("obraSocial.placeholderNotasCaso")} value={casoForm.notas} onChange={(event) => setCasoForm({ ...casoForm, notas: event.target.value })} />
+          <button disabled={saving} className="btn-primary justify-center"><Plus className="w-4 h-4" /> {t("obraSocial.botonRegistrarCaso")}</button>
         </form>
       </section>
     </div>
