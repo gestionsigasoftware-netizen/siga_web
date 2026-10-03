@@ -990,7 +990,7 @@
       },
       "q2": {
         "p": "Encontrei um erro ou algo não funciona, o que faço?",
-        "r": "Assim que tiver acesso, use \"Suporte\" dentro do aplicativo para relatar — fica registrado e chega um aviso direto para a equipe que mantém o SIGAP. Você também pode escrever para soportesiga@sigap.com.co."
+        "r": "Assim que tiver acesso, use \"Suporte\" dentro do aplicativo para relatar — fica registrado e chega um aviso direto para a equipe que mantém o SIGAP. Você também pode escrever para hola_soporte@sigap.com.co."
       },
       "q3": {
         "p": "O que faço se minha congregação aparece \"pendente de aprovação\"?",
@@ -5483,7 +5483,7 @@
             "accion": "Enviar um relatório",
             "pasos": [
               "Escreva o Assunto e a Descrição (o que aconteceu, em qual tela, o que você esperava).",
-              "Clique em \"Enviar relatório\". Se for urgente, você também pode escrever para soportesiga@sigap.com.co."
+              "Clique em \"Enviar relatório\". Se for urgente, você também pode escrever para hola_soporte@sigap.com.co."
             ]
           }
         ]

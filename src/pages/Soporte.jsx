@@ -123,7 +123,7 @@ export default function Soporte() {
           </div>
         </form>
         <div className="flex items-center gap-2 text-xs text-muted mt-5 pt-4 border-t border-border">
-          <Mail className="w-3.5 h-3.5" /> {t('soporte.urgentePre')} <a href="mailto:soportesiga@sigap.com.co" className="text-accent">soportesiga@sigap.com.co</a>
+          <Mail className="w-3.5 h-3.5" /> {t('soporte.urgentePre')} <a href="mailto:hola_soporte@sigap.com.co" className="text-accent">hola_soporte@sigap.com.co</a>
         </div>
       </section>
 
