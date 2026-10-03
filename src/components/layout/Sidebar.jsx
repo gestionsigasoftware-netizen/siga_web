@@ -90,6 +90,17 @@ export default function Sidebar() {
   const [organization, setOrganization] = useState(null);
   const navigate = useNavigate();
   const { signOut } = useAuth();
+
+  // Navegar ANTES de signOut(): si la sesión se cierra primero,
+  // ProtectedRoute reacciona al instante (vía onAuthStateChange) y
+  // redirige a /login con su propio motivo genérico ("session_expired"),
+  // ganándole la carrera a este cierre manual -- mismo patrón que
+  // useIdleLogout.js para "idle_timeout". Sin esto, un clic normal en
+  // "Cerrar sesión" mostraba el aviso de sesión expirada por error.
+  function handleSignOut() {
+    navigate("/login", { replace: true });
+    signOut();
+  }
   const { roles, rolPrincipal, loading: rolLoading, elegirRol } = useMiRol();
   const nivel = rolPrincipal?.nivel;
   const rolLocal = rolPrincipal?.rol_local || "pastor";
@@ -468,7 +479,7 @@ export default function Sidebar() {
         </nav>
 
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="navbtn sidebar-signout md:mt-auto mt-4"
         >
           <LogOut className="w-[17px] h-[17px]" />
