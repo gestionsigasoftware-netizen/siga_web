@@ -990,7 +990,7 @@
       },
       "q2": {
         "p": "I found a bug or something isn't working, what do I do?",
-        "r": "Once you have access, use \"Support\" inside the app to report it — it gets logged and a direct alert reaches the team that maintains SIGAP. You can also write to soportesigasoftware@gmail.com."
+        "r": "Once you have access, use \"Support\" inside the app to report it — it gets logged and a direct alert reaches the team that maintains SIGAP. You can also write to soportesiga@sigap.com.co."
       },
       "q3": {
         "p": "What do I do if my congregation shows as \"pending approval\"?",
@@ -5483,7 +5483,7 @@
             "accion": "Send a report",
             "pasos": [
               "Write the Subject and the Description (what happened, on which screen, what you expected).",
-              "Click \"Send report\". If it's urgent, you can also write to soportesigasoftware@gmail.com."
+              "Click \"Send report\". If it's urgent, you can also write to soportesiga@sigap.com.co."
             ]
           }
         ]
