@@ -310,7 +310,7 @@ export default function InicioPublico() {
       <footer className={`max-w-6xl mx-auto px-5 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${esOscuro ? 'border-t border-white/10' : ''}`}>
         <div className={esOscuro ? 'text-white/45' : 'text-muted'}>
           <p className={esOscuro ? 'text-white/70' : 'text-secondary'}>SIGAP — {t('common.footer.line')}</p>
-          <p className="mt-1">© {new Date().getFullYear()} {t('common.footer.rights')} · {t('common.footer.by')}</p>
+          <p className="mt-1">© {new Date().getFullYear()} {t('common.footer.rights')} · {t('common.footer.by')} <a href="https://jormeliasoft.com" target="_blank" rel="noopener noreferrer" className={esOscuro ? 'hover:text-white' : 'hover:text-ink'}>Jormelia Soft</a></p>
         </div>
         <span className={`flex gap-4 flex-shrink-0 ${esOscuro ? 'text-white/45' : 'text-muted'}`}>
           <Link to="/legal" className={esOscuro ? 'hover:text-white' : 'hover:text-ink'}>{t('common.footer.privacy')}</Link>
