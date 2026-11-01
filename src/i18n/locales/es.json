@@ -6281,8 +6281,7 @@
     "s7Texto4": "Al recibir una solicitud de eliminación válida, SIGAP elimina la información personal del titular de los sistemas activos en un plazo máximo de 30 días hábiles, salvo que deba conservarse por una obligación legal. Si para ese momento ya hay copias de seguridad periódicas activas, las que aún contengan esa información se eliminan en su siguiente ciclo de rotación.",
     "s8Titulo": "8. Contacto y cambios",
     "s8TextoPre": "Las solicitudes y reclamos deben dirigirse a",
-    "s8TextoPost": ". Esta política puede actualizarse cuando cambien el sistema, las finalidades o las obligaciones legales; la fecha de arriba refleja la última actualización.",
-    "avisoRevision": "Este documento describe cómo opera SIGAP hoy. Se recomienda una revisión jurídica periódica, especialmente por manejar información religiosa y de menores."
+    "s8TextoPost": ". Esta política puede actualizarse cuando cambien el sistema, las finalidades o las obligaciones legales; la fecha de arriba refleja la última actualización."
   },
   "pastoralDistrital": {
     "cargando": "Cargando gestión pastoral distrital...",

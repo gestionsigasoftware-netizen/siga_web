@@ -6281,8 +6281,7 @@
     "s7Texto4": "Upon receiving a valid deletion request, SIGAP deletes the data subject's personal information from active systems within a maximum of 30 business days, unless it must be retained due to a legal obligation. If periodic backups are active by that time, any that still contain that information will be deleted in their next rotation cycle.",
     "s8Titulo": "8. Contact and changes",
     "s8TextoPre": "Requests and complaints should be directed to",
-    "s8TextoPost": ". This policy may be updated when the system, purposes, or legal obligations change; the date above reflects the last update.",
-    "avisoRevision": "This document describes how SIGAP operates today. A periodic legal review is recommended, especially given that it handles religious information and information about minors."
+    "s8TextoPost": ". This policy may be updated when the system, purposes, or legal obligations change; the date above reflects the last update."
   },
   "pastoralDistrital": {
     "cargando": "Loading district pastoral management...",
