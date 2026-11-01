@@ -37,9 +37,15 @@ begin;
 -- Blindaje: si algun registro de prueba del directorio distrital
 -- (tabla `pastores`, que se revisa aparte en el paso 2) quedo
 -- enlazado a una persona de censo que se va a borrar, se desvincula
--- primero para que el DELETE final no falle.
+-- primero para que el DELETE final no falle. Se excluye a Damil Lerma
+-- (ver mas abajo) para no desvincular su registro real sin necesidad,
+-- aunque tampoco pasaria nada grave si se desvinculara por error.
 update pastores set persona_id = null
-where persona_id in (select id from personas where auth_user_id is null);
+where persona_id in (
+  select id from personas
+  where auth_user_id is null
+    and id <> '454d7953-fc79-44da-99eb-b88dd3d3896b'
+);
 
 -- Toda la actividad de prueba, en una sola sentencia.
 -- NOTA: `familias` NO va aqui a proposito. TRUNCATE rechaza una tabla
@@ -155,7 +161,16 @@ delete from familias;
 -- super_admin y cualquier otra cuenta con acceso real) se preservan
 -- intactas junto con su rol (roles_sistema) y accesos de equipo
 -- (asignaciones_acceso) -- ninguna de esas dos tablas se toca aqui.
-delete from personas where auth_user_id is null;
+--
+-- Excepcion confirmada por el usuario via el diagnostico de roles
+-- huerfanos: el pastor Damil Lerma (persona 454d7953-fc79-44da-99eb-
+-- b88dd3d3896b, PUERTO TEJADA CAUCA CENTRAL) es real y ya tiene un rol
+-- 'local' activo en roles_sistema, pero todavia no completo su cuenta
+-- de acceso (por eso auth_user_id es null) -- se excluye explicitamente
+-- para no borrar al pastor real ni su rol.
+delete from personas
+where auth_user_id is null
+  and id <> '454d7953-fc79-44da-99eb-b88dd3d3896b';
 
 commit;
 

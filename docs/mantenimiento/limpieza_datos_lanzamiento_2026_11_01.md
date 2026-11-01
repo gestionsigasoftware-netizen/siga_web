@@ -137,6 +137,30 @@ que todo lo demás que referencia a `familias` (`familia_miembros`,
 `red_familias_visitas`) ya está vacío por el `TRUNCATE` antes de
 llegar a ese `DELETE`, así que no hay nada que cascadear.
 
+## Tercer hallazgo: Damil Lerma no tiene `auth_user_id` todavía
+
+El script corrigió el `TRUNCATE`, pero al correr `DELETE FROM personas
+WHERE auth_user_id IS NULL` Postgres lo rechazó por una violación real
+de foreign key: `roles_sistema` todavía referencia una de esas
+personas. Como ambas sentencias van dentro del mismo `BEGIN`/`COMMIT`,
+**la transacción completa se revirtió sola** — no se borró nada, ni lo
+que parecía haber funcionado antes.
+
+Se escribió `reset_lanzamiento_diagnostico_roles_huerfanos.sql`
+(solo lectura) para identificar el registro exacto antes de asumir
+nada. Resultado: es el pastor **Damil Lerma** (persona real, ya
+confirmada por el usuario en una pregunta anterior) — tiene un rol
+`local` activo en `roles_sistema` para PUERTO TEJADA CAUCA CENTRAL
+desde 2026-09-01, pero **todavía no completó su cuenta de acceso**, así
+que su `auth_user_id` sigue en `null`. La regla automática
+(`auth_user_id IS NULL` = seguro de borrar) asumía que nadie real
+estaría en esa situación, y en este caso sí lo estaba.
+
+Se corrigió el `DELETE FROM personas` para excluir explícitamente ese
+`id` (`454d7953-fc79-44da-99eb-b88dd3d3896b`), con el mismo ajuste en
+el blindaje de `pastores`. Verificado que el diagnóstico solo devolvió
+esa una fila (no hay más casos iguales).
+
 ## Pendiente (acción del usuario, fuera de este commit)
 
 1. Respaldo manual antes de correr nada.
