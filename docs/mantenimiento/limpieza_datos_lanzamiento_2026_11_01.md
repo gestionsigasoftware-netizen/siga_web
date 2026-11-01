@@ -161,15 +161,92 @@ Se corrigió el `DELETE FROM personas` para excluir explícitamente ese
 el blindaje de `pastores`. Verificado que el diagnóstico solo devolvió
 esa una fila (no hay más casos iguales).
 
-## Pendiente (acción del usuario, fuera de este commit)
+## Paso 1: EJECUTADO CON ÉXITO (2026-11-01)
 
-1. Respaldo manual antes de correr nada.
-2. Correr `reset_lanzamiento_paso1_actividad.sql` en el SQL Editor de
-   Supabase.
-3. Correr `reset_lanzamiento_paso2_ver_pastores.sql` (solo lectura) y
-   decir cuáles filas de `pastores` son reales.
-4. Con esa respuesta, se arma el DELETE dirigido del paso 3
-   (`pastores`, `asignaciones_pastorales`,
-   `historial_licencias_pastorales`, `formacion_pastoral`).
-5. Verificar: login con cuenta de prueba sigue funcionando, conteos en
-   cero, congregaciones intactas.
+El usuario corrió `reset_lanzamiento_paso1_actividad.sql` (con las 3
+correcciones ya documentadas arriba) y terminó sin errores. Confirmó
+login funcionando con cuenta real.
+
+## Paso 2: directorio de pastores revisado
+
+El usuario corrió `reset_lanzamiento_paso2_ver_pastores.sql` (solo
+lectura). Resultado: 3 filas en `pastores`.
+
+- **Damil Lerma** (PUERTO TEJADA CAUCA CENTRAL) — real.
+- **Carlos Alberto Diaz Gonzalez** (SUCRE CAUCA) — real.
+- **Carlos Andres Sanchez Mina** (AGUA BONITA SUAREZ CAUCA) — de
+  prueba. El usuario aclaró que **la congregación completa** (no solo
+  el pastor) es de prueba ("todo es prueba desde su perfil hasta su
+  pastor") -- esto amplió el alcance del paso 3 más allá de solo
+  limpiar el directorio distrital.
+
+## Cuarto y quinto hallazgo: borrar una congregación entera no es trivial
+
+Al investigar qué hacía falta para borrar "AGUA BONITA SUAREZ CAUCA"
+completa (no solo su fila en `pastores`), se encontraron 2 problemas
+más del mismo patrón que `familias`/Damil Lerma -- `congregaciones` es
+referenciada por **17 tablas que se preservaron deliberadamente**
+(estructura/catálogos/acceso), y varias de ellas tienen relación
+`RESTRICT` (sin `ON DELETE`), no `CASCADE`:
+
+- Diagnóstico (`reset_lanzamiento_diagnostico_agua_bonita.sql`, solo
+  lectura) mostró que esa congregación todavía tenía: 4 `modulos`, 9
+  `categorias_demograficas`, 1 fila en `catalogo_congregaciones_ipuc`,
+  **1 `personas` y 1 `roles_sistema`** -- esta última pareja fue la
+  sorpresa real.
+- Esa persona **sobrevivió al `DELETE` del paso 1** (que solo borra
+  personas sin `auth_user_id`), lo que significaba que tenía cuenta de
+  login real. Un segundo diagnóstico
+  (`reset_lanzamiento_diagnostico_agua_bonita_persona.sql`) confirmó
+  que es la misma persona del `pastores` de prueba: **Carlos Andres
+  Sanchez Mina, andresanchezw916@gmail.com**, con sesión real (último
+  login 2026-09-16).
+
+Se verificó exhaustivamente (mismo método del mapeo de 264 FKs) cuáles
+de las 17 tablas son `RESTRICT` vs `CASCADE` antes de escribir nada:
+`modulos`, `categorias_demograficas`, `roles_sistema`, `personas`
+(`congregacion_id`) son `RESTRICT` -- se borran explícitamente para
+esta congregación en el paso 3. `zonas` y `etapas_seguimiento` ya
+estaban en 0. `catalogo_congregaciones_ipuc` es nullable sin cascada
+-- se desvincula (`UPDATE ... SET congregacion_id = null`) en vez de
+borrarse, porque es el catálogo nacional oficial IPUC, no datos de
+prueba. El resto (`suscripciones`, `configuracion_congregacion`,
+`asignaciones_acceso`, `caracteres_culto`, `tipos_comite`,
+`discipulado_lecciones`, `refam_lecciones`, `esfob_lecciones`,
+`asignaciones_pastorales`, `personas.congregacion_bautismo_id`) es
+`CASCADE` o `SET NULL` -- se resuelve solo al borrar la congregación.
+
+## Paso 3: PENDIENTE DE EJECUTAR (`reset_lanzamiento_paso3_agua_bonita_y_pastor_prueba.sql`)
+
+Orden exacto del script: (1) borra el `pastores` de prueba -- cascada
+a `asignaciones_pastorales`/`historial_licencias_pastorales`/
+`formacion_pastoral`; (2) borra su `roles_sistema`; (3) borra su
+`personas`; (4) borra `modulos` y `categorias_demograficas` de esa
+congregación; (5) desvincula (no borra) el catálogo IPUC; (6) borra la
+congregación misma, que arrastra en cascada todo lo demás.
+
+**IDs confirmados** (ya en el script, no hace falta volver a
+buscarlos): congregación `edbe675d-fbd4-4ad0-a8b6-534994aa5e3f`,
+persona `aaae26e0-d554-4e6d-a6e9-adafeeb7a241`, pastor
+`a3e518b9-c785-4815-82af-44a3e5a962e2`.
+
+**Importante**: el script NO puede borrar la cuenta de Supabase
+Authentication de `andresanchezw916@gmail.com` (`auth_user_id`
+`bbc08d2f-f9d0-48f8-818a-3f75cbf1ecb8`) -- eso requiere el panel de
+Supabase (Authentication → Users → buscar el correo → Delete user),
+paso manual aparte, después de correr el SQL.
+
+## Pendiente real al pausar la sesión (2026-11-01)
+
+1. Correr `reset_lanzamiento_paso3_agua_bonita_y_pastor_prueba.sql`.
+2. Borrar manualmente la cuenta `andresanchezw916@gmail.com` desde
+   Authentication → Users en el panel de Supabase.
+3. Verificación final: `select count(*) from congregaciones` (una
+   menos que antes), `select count(*) from personas` (debe ser
+   exactamente 2: super_admin + Damil Lerma),
+   `select count(*) from pastores` (debe ser 2: Damil Lerma y Carlos
+   Alberto Diaz Gonzalez), y confirmar login normal con una cuenta
+   real.
+4. Borrar del repo (o dejar como historial, no afecta nada) los
+   scripts de diagnóstico temporales una vez confirmado todo -- no es
+   obligatorio, son solo lectura y no hacen daño si quedan.
