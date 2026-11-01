@@ -109,8 +109,33 @@ misma sentencia sin importar el orden en que se listen.
 
 Verificado de nuevo con el mapeo completo de FKs tras la corrección:
 116 tablas, 28 preservadas + 88 borradas = cobertura 100%, cero
-referencias peligrosas restantes (la única real,
-`personas.familia_id`, queda blindada explícitamente).
+referencias peligrosas restantes.
+
+## Segunda corrección (el `UPDATE` previo no alcanzaba)
+
+El usuario corrió el script corregido y volvió a fallar con el
+**mismo error exacto** (`personas` references `familias`), a pesar de
+haber agregado `UPDATE personas SET familia_id = null ...` antes del
+`TRUNCATE`. Causa real: `TRUNCATE` en Postgres rechaza una tabla si
+**existe el constraint** de foreign key apuntando a ella desde una
+tabla que no se está truncando -- **sin importar si hay datos que lo
+violen**. Poner la columna en `null` no cambia nada porque el
+constraint sigue existiendo; `TRUNCATE` no hace el chequeo fila por
+fila como sí hace un `DELETE` normal con `ON DELETE SET NULL`.
+
+**Solución correcta**: sacar `familias` de la lista del `TRUNCATE` y
+borrarla aparte con un `DELETE FROM familias;` normal, después del
+`TRUNCATE` (cuando `familia_miembros` y las demás tablas que
+referencian `familias` ya están vacías) y antes del
+`DELETE FROM personas ...` final. Un `DELETE` sí respeta
+`ON DELETE SET NULL` fila por fila sin la restricción estructural de
+`TRUNCATE`. Se verificó con el mismo mapeo de FKs que ninguna otra
+tabla del `TRUNCATE` tiene este problema (solo `familias` lo tenía) y
+que todo lo demás que referencia a `familias` (`familia_miembros`,
+`familia_amigos`, `obra_social_casos`,
+`obra_carcelaria_seguimiento_familiar`, `red_familias_casos`,
+`red_familias_visitas`) ya está vacío por el `TRUNCATE` antes de
+llegar a ese `DELETE`, así que no hay nada que cascadear.
 
 ## Pendiente (acción del usuario, fuera de este commit)
 

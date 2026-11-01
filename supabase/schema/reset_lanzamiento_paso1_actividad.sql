@@ -18,7 +18,8 @@
 -- (mapeadas con un script, no a ojo) antes de dar el script por bueno:
 -- cobertura 100% de las 116 tablas, cero referencias de una tabla que
 -- se preserva hacia una que se borra, salvo una (personas.familia_id
--- -> familias) que se blinda explicitamente abajo antes del TRUNCATE.
+-- -> familias) que se resuelve sacando `familias` del TRUNCATE y
+-- borrandola aparte con un DELETE normal (ver nota mas abajo).
 -- Nota: rangos_edad_comite, escuela_dominical_lecciones y
 -- mision_lecciones NO son catalogos globales -- son hijas directas
 -- (CASCADE) de comites/escuela_dominical_clases/mision_grupos, asi
@@ -33,13 +34,7 @@
 
 begin;
 
--- Blindaje 1: personas.familia_id apunta a `familias`, que se borra
--- mas abajo. `personas` no esta en el TRUNCATE (solo se borran los
--- registros de prueba al final), asi que hay que desvincular primero
--- o el TRUNCATE de `familias` fallara.
-update personas set familia_id = null where familia_id is not null;
-
--- Blindaje 2: si algun registro de prueba del directorio distrital
+-- Blindaje: si algun registro de prueba del directorio distrital
 -- (tabla `pastores`, que se revisa aparte en el paso 2) quedo
 -- enlazado a una persona de censo que se va a borrar, se desvincula
 -- primero para que el DELETE final no falle.
@@ -47,9 +42,15 @@ update pastores set persona_id = null
 where persona_id in (select id from personas where auth_user_id is null);
 
 -- Toda la actividad de prueba, en una sola sentencia.
+-- NOTA: `familias` NO va aqui a proposito. TRUNCATE rechaza una tabla
+-- si CUALQUIER OTRA tabla tiene un constraint que la referencia --
+-- `personas.familia_id -> familias` existe aunque esa columna este en
+-- null, y `personas` no se trunca (solo se borra selectivo), asi que
+-- Postgres bloquea el TRUNCATE sin importar los datos. `familias` se
+-- borra aparte mas abajo con un DELETE normal, que si respeta el
+-- ON DELETE SET NULL fila por fila sin esa restriccion estructural.
 truncate table
   -- Censo: actividad y vinculos directos de las personas de prueba
-  familias,
   familia_miembros,
   relaciones_familiares,
   cargos_distritales,
@@ -142,6 +143,12 @@ truncate table
   errores_frontend,
   negocio_snapshots_diarios
 restart identity;
+
+-- `familias` aparte, con DELETE normal (ver nota arriba) -- a esta
+-- altura `familia_miembros` ya esta vacia (truncada arriba), asi que
+-- no hay nada que cascadear. Cualquier persona (real o de prueba) que
+-- tuviera familia_id apuntando aqui queda automaticamente en null.
+delete from familias;
 
 -- Censo de prueba: se borran todas las personas SIN cuenta de login
 -- real (auth_user_id). Las que si tienen login (incluido el
