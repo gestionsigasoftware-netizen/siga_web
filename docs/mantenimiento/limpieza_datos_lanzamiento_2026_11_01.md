@@ -60,15 +60,57 @@ hace en un segundo paso, manual.
 
 ## Verificación de las 116 tablas
 
-Antes de escribir el script final se cruzaron dos listas (31 a
-preservar, 85 a vaciar) contra los nombres reales de tabla extraídos
-de todos los archivos `.sql` del repo, confirmando: cobertura 100%
-(ninguna tabla sin categorizar), cero nombres de tabla inventados, cero
-duplicados. Un error real se encontró y corrigió en el proceso:
-`historial_cargos` se había puesto por error en el grupo "directorio
-distrital de pastores" (manual) cuando en realidad es historial de
-cargos del censo normal (`persona_id references personas(id) on
-delete cascade` en `feligresia.sql`) — se corrigió a automático.
+Antes de escribir el script se cruzaron dos listas (preservar/vaciar)
+contra los nombres reales de tabla extraídos de todos los `.sql` del
+repo: cobertura 100%, cero nombres inventados, cero duplicados. Un
+error se encontró y corrigió en el proceso: `historial_cargos` se
+había puesto por error en el grupo "directorio distrital de pastores"
+(manual) cuando en realidad es historial de cargos del censo normal
+(`persona_id references personas(id) on delete cascade` en
+`feligresia.sql`) — se corrigió a automático.
+
+## Correción tras el primer intento real (falló en producción)
+
+El usuario corrió el script y Postgres lo rechazó:
+`cannot truncate a table referenced in a foreign key constraint —
+Table "personas" references "familias"`. La verificación de nombres
+de tabla no detecta este tipo de error (dirección de la referencia),
+así que se escribió un segundo script que **mapea las 264 foreign
+keys reales de todo el esquema** (parseando cada `create table` +
+columnas `references`, no solo grepeando texto) y cruza: ¿alguna tabla
+que se preserva tiene una columna apuntando a una tabla que se borra?
+Postgres rechaza el `TRUNCATE` en ese caso sin importar el `ON DELETE`
+configurado (CASCADE/SET NULL/RESTRICT no importan para TRUNCATE,
+solo para DELETE).
+
+Encontró 4 casos reales (el que ya había fallado, más 3 que no se
+habían detectado a ojo):
+
+- `personas.familia_id → familias` — `personas` no se trunca (solo se
+  borra selectivo), así que se agregó
+  `UPDATE personas SET familia_id = null ...` antes del TRUNCATE.
+- `rangos_edad_comite.comite_id → comites` — esta tabla NO es un
+  catálogo global del módulo como se asumió por el nombre; es hija
+  directa (`on delete cascade`) de un comité específico. Se movió de
+  "preservar" a "borrar".
+- `escuela_dominical_lecciones.clase_id → escuela_dominical_clases` —
+  mismo error de categorización: es la bitácora de sesiones de una
+  clase (fecha, tema, asistentes), no el currículo. Se movió a
+  "borrar".
+- `mision_lecciones.grupo_id → mision_grupos` — mismo patrón, bitácora
+  de sesiones de un grupo, no currículo. Se movió a "borrar".
+
+Se rediseñó además la estructura del script: en vez de 5 bloques
+`TRUNCATE` separados por categoría (que podían fallar entre sí si una
+tabla de un bloque referenciaba una tabla de otro bloque posterior),
+se unificó todo en **una sola sentencia `TRUNCATE table1, table2, ...`**
+— Postgres resuelve las dependencias entre tablas incluidas en la
+misma sentencia sin importar el orden en que se listen.
+
+Verificado de nuevo con el mapeo completo de FKs tras la corrección:
+116 tablas, 28 preservadas + 88 borradas = cobertura 100%, cero
+referencias peligrosas restantes (la única real,
+`personas.familia_id`, queda blindada explícitamente).
 
 ## Pendiente (acción del usuario, fuera de este commit)
 

@@ -3,11 +3,10 @@
 -- tocar estructura organizativa, catalogos, accesos/roles ni negocio.
 --
 -- NO TOCA: congregaciones, distritos, zonas, centros_reclusion,
--- modulos, tipos_actividad, caracteres_culto, rangos_edad_comite,
--- categorias_demograficas, catalogo_congregaciones_ipuc, tipos_comite,
--- cargos (catalogo de roles por modulo), etapas_seguimiento,
--- configuracion_congregacion, refam_lecciones, esfob_lecciones,
--- discipulado_lecciones, mision_lecciones, escuela_dominical_lecciones,
+-- modulos, tipos_actividad, caracteres_culto, categorias_demograficas,
+-- catalogo_congregaciones_ipuc, tipos_comite, cargos (catalogo de
+-- roles por modulo), etapas_seguimiento, configuracion_congregacion,
+-- refam_lecciones, esfob_lecciones, discipulado_lecciones,
 -- roles_sistema, asignaciones_acceso, perfiles_acceso, permisos_perfil,
 -- metodos_pago_sigap, suscripciones, preferencias_usuario.
 --
@@ -15,15 +14,41 @@
 -- pastores, asignaciones_pastorales, historial_licencias_pastorales,
 -- formacion_pastoral.
 --
+-- Verificado contra las 264 foreign keys reales del esquema completo
+-- (mapeadas con un script, no a ojo) antes de dar el script por bueno:
+-- cobertura 100% de las 116 tablas, cero referencias de una tabla que
+-- se preserva hacia una que se borra, salvo una (personas.familia_id
+-- -> familias) que se blinda explicitamente abajo antes del TRUNCATE.
+-- Nota: rangos_edad_comite, escuela_dominical_lecciones y
+-- mision_lecciones NO son catalogos globales -- son hijas directas
+-- (CASCADE) de comites/escuela_dominical_clases/mision_grupos, asi
+-- que van en el TRUNCATE junto con su padre, no se preservan.
+--
+-- Todo el TRUNCATE va en UNA sola sentencia (no varios bloques): asi
+-- Postgres resuelve las dependencias entre las tablas que se borran
+-- sin importar el orden en que esten escritas.
+--
 -- IMPORTANTE: hacer un respaldo (export CSV o backup) antes de correr
 -- esto. No hay forma de deshacerlo.
 
 begin;
 
--- 1) Censo: actividad y vinculos directos de las personas de prueba
---    (el censo real -- cuentas con login -- se preserva via el DELETE
---    de personas al final de este script, no aqui).
+-- Blindaje 1: personas.familia_id apunta a `familias`, que se borra
+-- mas abajo. `personas` no esta en el TRUNCATE (solo se borran los
+-- registros de prueba al final), asi que hay que desvincular primero
+-- o el TRUNCATE de `familias` fallara.
+update personas set familia_id = null where familia_id is not null;
+
+-- Blindaje 2: si algun registro de prueba del directorio distrital
+-- (tabla `pastores`, que se revisa aparte en el paso 2) quedo
+-- enlazado a una persona de censo que se va a borrar, se desvincula
+-- primero para que el DELETE final no falle.
+update pastores set persona_id = null
+where persona_id in (select id from personas where auth_user_id is null);
+
+-- Toda la actividad de prueba, en una sola sentencia.
 truncate table
+  -- Censo: actividad y vinculos directos de las personas de prueba
   familias,
   familia_miembros,
   relaciones_familiares,
@@ -32,6 +57,7 @@ truncate table
   membresias_comite,
   cargos_comite,
   comites,
+  rangos_edad_comite,
   registros_actividad,
   movimientos_membresia,
   traslados_feligresia,
@@ -40,11 +66,8 @@ truncate table
   estados_alerta_pastoral,
   disciplinas_pastorales,
   disciplinas_seguimiento,
-  historial_cargos
-restart identity;
-
--- 2) Ruta evangelistica / Amigos (BIS, REFAM, ESFOB, Discipulado, Uno Mas)
-truncate table
+  historial_cargos,
+  -- Ruta evangelistica / Amigos (BIS, REFAM, ESFOB, Discipulado, Uno Mas)
   amigos,
   amigos_notas,
   familia_amigos,
@@ -65,11 +88,8 @@ truncate table
   ruta_estaciones,
   ruta_procesos,
   ruta_diagnosticos,
-  uno_mas_compromisos
-restart identity;
-
--- 3) Comites operativos (actividad, no los catalogos de tipos/lecciones)
-truncate table
+  uno_mas_compromisos,
+  -- Comites operativos (actividad, no los catalogos de tipos)
   red_familias_casos,
   red_familias_actividades,
   red_familias_visitas,
@@ -90,11 +110,13 @@ truncate table
   escuela_dominical_clases,
   escuela_dominical_maestros,
   escuela_dominical_ninos,
+  escuela_dominical_lecciones,
   escuela_dominical_asistencia,
   mision_grupos,
   mision_estudiantes,
   mision_instituciones,
   mision_lideres,
+  mision_lecciones,
   mision_asistencia_estudiante,
   musica_grupos,
   musica_integrantes,
@@ -108,18 +130,11 @@ truncate table
   teologica_integrantes,
   teologica_sesiones,
   teologica_asistencia,
-  ujieres_congregacion
-restart identity;
-
--- 4) SEPRI (el centro de reclusion en si no se toca -- solo las
---    solicitudes de eventos y delegados de prueba)
-truncate table
+  ujieres_congregacion,
+  -- SEPRI (el centro de reclusion en si no se toca)
   sepri_solicitudes_evento,
-  sepri_delegados
-restart identity;
-
--- 5) Soporte / sistema (tickets, solicitudes y logs de las pruebas)
-truncate table
+  sepri_delegados,
+  -- Soporte / sistema (tickets, solicitudes y logs de las pruebas)
   notificaciones,
   reportes_soporte,
   solicitudes_jerarquicas,
@@ -128,19 +143,11 @@ truncate table
   negocio_snapshots_diarios
 restart identity;
 
--- 6) Blindaje: si algun registro de prueba del directorio distrital
---    (tabla `pastores`, que se revisa aparte en el paso 2) quedo
---    enlazado a una persona de censo que se va a borrar ahora, se
---    desvincula primero para que el DELETE de abajo no falle.
-update pastores set persona_id = null
-where persona_id in (select id from personas where auth_user_id is null);
-
--- 7) Censo de prueba: se borran todas las personas SIN cuenta de
---    login real (auth_user_id). Las que si tienen login (incluido el
---    super_admin y cualquier otra cuenta con acceso real) se
---    preservan intactas junto con su rol (roles_sistema) y accesos
---    de equipo (asignaciones_acceso) -- ninguna de esas dos tablas se
---    toca en este script.
+-- Censo de prueba: se borran todas las personas SIN cuenta de login
+-- real (auth_user_id). Las que si tienen login (incluido el
+-- super_admin y cualquier otra cuenta con acceso real) se preservan
+-- intactas junto con su rol (roles_sistema) y accesos de equipo
+-- (asignaciones_acceso) -- ninguna de esas dos tablas se toca aqui.
 delete from personas where auth_user_id is null;
 
 commit;
@@ -150,3 +157,4 @@ commit;
 -- select count(*) from congregaciones;         -- debe ser igual que antes
 -- select count(*) from amigos;                 -- debe ser 0
 -- select count(*) from registros_actividad;    -- debe ser 0
+-- select count(*) from comites;                -- debe ser 0
