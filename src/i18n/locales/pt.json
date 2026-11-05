@@ -1340,7 +1340,19 @@
     "confirmarAnular": "Anular? Não pode ser desfeito.",
     "siAnular": "Sim, anular",
     "cancelar": "Cancelar",
-    "reactivar": "Reativar"
+    "reactivar": "Reativar",
+    "solicitarEliminacion": "Solicitar exclusão",
+    "confirmarSolicitarEliminacion": "Programar exclusão em 30 dias? Pode ser cancelada a qualquer momento antes do prazo.",
+    "placeholderMotivoEliminacion": "Motivo (opcional)",
+    "siSolicitar": "Sim, programar",
+    "errorSolicitarEliminacion": "Não foi possível programar a exclusão: {{mensaje}}",
+    "eliminacionSolicitada": "Exclusão programada em 30 dias -- a congregação fica bloqueada nesse meio tempo.",
+    "cancelarEliminacion": "Cancelar exclusão",
+    "errorCancelarEliminacion": "Não foi possível cancelar a exclusão: {{mensaje}}",
+    "eliminacionCancelada": "Exclusão cancelada -- o acesso volta ao normal.",
+    "eliminacionProgramadaBadge_one": "Exclui em {{count}} dia",
+    "eliminacionProgramadaBadge_other": "Exclui em {{count}} dias",
+    "eliminacionProgramadaTip": "Esta congregação foi programada para exclusão em {{fecha}}. Seus dados permanecem intactos até lá -- a solicitação pode ser cancelada a qualquer momento antes do prazo."
   },
   "suscripciones": {
     "planLabels": {

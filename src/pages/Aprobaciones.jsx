@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, Trash2, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useMiRol } from '../hooks/useMiRol'
@@ -20,6 +20,10 @@ const ESTADO_TONO = {
   suspendida: 'bg-danger-bg text-danger',
 }
 
+function diasRestantes(fechaIso) {
+  return Math.max(0, Math.ceil((new Date(fechaIso).getTime() - Date.now()) / 86400000))
+}
+
 export default function Aprobaciones() {
   const { t } = useTranslation()
   const ESTADO_LABEL = t('aprobaciones.estadoLabel', { returnObjects: true })
@@ -32,6 +36,8 @@ export default function Aprobaciones() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [anulandoId, setAnulandoId] = useState(null)
+  const [eliminandoId, setEliminandoId] = useState(null)
+  const [motivoEliminacion, setMotivoEliminacion] = useState('')
 
   async function load() {
     // Igual que en Auditoria de Feligresia y Reportes: la lista debe
@@ -50,7 +56,7 @@ export default function Aprobaciones() {
     setError(null)
     let query = supabase
       .from('congregaciones')
-      .select('id, nombre, pastor_nombre, estado, madurez, distritos(numero), created_at')
+      .select('id, nombre, pastor_nombre, estado, madurez, eliminacion_programada_para, distritos(numero), created_at')
       .order('created_at', { ascending: false })
     if (rolPrincipal.nivel === 'distrital') query = query.eq('distrito_id', rolPrincipal.distrito_id)
     const { data, error: loadError } = await query
@@ -98,6 +104,30 @@ export default function Aprobaciones() {
     load()
   }
 
+  async function solicitarEliminacion(id) {
+    setBusy(id)
+    setError(null)
+    setNotice(null)
+    const { error: solicitarError } = await supabase.rpc('solicitar_eliminacion_congregacion', { p_congregacion_id: id, p_motivo: motivoEliminacion.trim() || null })
+    setBusy(null)
+    setEliminandoId(null)
+    setMotivoEliminacion('')
+    if (solicitarError) { setError(t('aprobaciones.errorSolicitarEliminacion', { mensaje: solicitarError.message })); return }
+    setNotice(t('aprobaciones.eliminacionSolicitada'))
+    load()
+  }
+
+  async function cancelarEliminacion(id) {
+    setBusy(id)
+    setError(null)
+    setNotice(null)
+    const { error: cancelarError } = await supabase.rpc('cancelar_eliminacion_congregacion', { p_congregacion_id: id })
+    setBusy(null)
+    if (cancelarError) { setError(t('aprobaciones.errorCancelarEliminacion', { mensaje: cancelarError.message })); return }
+    setNotice(t('aprobaciones.eliminacionCancelada'))
+    load()
+  }
+
   if (roleLoading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('aprobaciones.cargando')}</div>
   if (!ALLOWED_LEVELS.includes(rolPrincipal?.nivel)) return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('aprobaciones.sinPermisos')}</p>
 
@@ -137,6 +167,13 @@ export default function Aprobaciones() {
                 </td>
                 <td className="py-2.5 px-4">
                   <span className={`text-xs px-2 py-1 rounded ${ESTADO_TONO[c.estado]}`}>{ESTADO_LABEL[c.estado] || c.estado}</span>
+                  {c.eliminacion_programada_para && (
+                    <span className="flex items-center gap-1 text-[11px] text-danger mt-1">
+                      <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                      {t('aprobaciones.eliminacionProgramadaBadge', { count: diasRestantes(c.eliminacion_programada_para) })}
+                      <InfoTip texto={t('aprobaciones.eliminacionProgramadaTip', { fecha: new Date(c.eliminacion_programada_para).toLocaleDateString() })} />
+                    </span>
+                  )}
                 </td>
                 <td className="py-2.5 px-4 text-right">
                   {c.estado === 'pendiente_aprobacion' && anulandoId !== c.id && (
@@ -159,15 +196,43 @@ export default function Aprobaciones() {
                       <button disabled={busy === c.id} onClick={() => setAnulandoId(null)} className="text-xs text-secondary hover:underline">{t('aprobaciones.cancelar')}</button>
                     </div>
                   )}
-                  {c.estado === 'activa' && (
-                    <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-xs text-danger hover:underline">
-                      {t('aprobaciones.suspender')}
+                  {c.eliminacion_programada_para ? (
+                    <button disabled={busy === c.id} onClick={() => cancelarEliminacion(c.id)} className="text-xs text-success hover:underline">
+                      {t('aprobaciones.cancelarEliminacion')}
                     </button>
-                  )}
-                  {c.estado === 'suspendida' && (
-                    <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-xs text-success hover:underline">
-                      {t('aprobaciones.reactivar')}
-                    </button>
+                  ) : c.estado === 'activa' && eliminandoId !== c.id ? (
+                    <div className="flex justify-end gap-3">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'suspendida')} className="text-xs text-danger hover:underline">
+                        {t('aprobaciones.suspender')}
+                      </button>
+                      <button disabled={busy === c.id} onClick={() => setEliminandoId(c.id)} className="text-xs text-muted hover:underline">
+                        {t('aprobaciones.solicitarEliminacion')}
+                      </button>
+                    </div>
+                  ) : c.estado === 'suspendida' && eliminandoId !== c.id ? (
+                    <div className="flex justify-end gap-3">
+                      <button disabled={busy === c.id} onClick={() => actualizarEstado(c.id, 'activa')} className="text-xs text-success hover:underline">
+                        {t('aprobaciones.reactivar')}
+                      </button>
+                      <button disabled={busy === c.id} onClick={() => setEliminandoId(c.id)} className="text-xs text-muted hover:underline">
+                        {t('aprobaciones.solicitarEliminacion')}
+                      </button>
+                    </div>
+                  ) : null}
+                  {eliminandoId === c.id && (
+                    <div className="flex flex-col items-end gap-1.5 mt-1.5">
+                      <span className="text-xs text-secondary">{t('aprobaciones.confirmarSolicitarEliminacion')}</span>
+                      <input
+                        value={motivoEliminacion}
+                        onChange={(event) => setMotivoEliminacion(event.target.value)}
+                        placeholder={t('aprobaciones.placeholderMotivoEliminacion')}
+                        className="input-field text-xs py-1 w-48"
+                      />
+                      <div className="flex gap-2">
+                        <button disabled={busy === c.id} onClick={() => solicitarEliminacion(c.id)} className="text-xs text-danger hover:underline">{t('aprobaciones.siSolicitar')}</button>
+                        <button disabled={busy === c.id} onClick={() => { setEliminandoId(null); setMotivoEliminacion('') }} className="text-xs text-secondary hover:underline">{t('aprobaciones.cancelar')}</button>
+                      </div>
+                    </div>
                   )}
                 </td>
               </tr>

@@ -1340,7 +1340,19 @@
     "confirmarAnular": "¿Anular? No se puede deshacer.",
     "siAnular": "Sí, anular",
     "cancelar": "Cancelar",
-    "reactivar": "Reactivar"
+    "reactivar": "Reactivar",
+    "solicitarEliminacion": "Solicitar eliminación",
+    "confirmarSolicitarEliminacion": "¿Programar eliminación en 30 días? Se puede cancelar en cualquier momento antes del plazo.",
+    "placeholderMotivoEliminacion": "Motivo (opcional)",
+    "siSolicitar": "Sí, programar",
+    "errorSolicitarEliminacion": "No se pudo programar la eliminación: {{mensaje}}",
+    "eliminacionSolicitada": "Eliminación programada en 30 días -- la congregación queda bloqueada mientras tanto.",
+    "cancelarEliminacion": "Cancelar eliminación",
+    "errorCancelarEliminacion": "No se pudo cancelar la eliminación: {{mensaje}}",
+    "eliminacionCancelada": "Eliminación cancelada -- el acceso vuelve a la normalidad.",
+    "eliminacionProgramadaBadge_one": "Se elimina en {{count}} día",
+    "eliminacionProgramadaBadge_other": "Se elimina en {{count}} días",
+    "eliminacionProgramadaTip": "Esta congregación fue programada para eliminación el {{fecha}}. Sus datos siguen intactos hasta entonces -- se puede cancelar la solicitud en cualquier momento antes del plazo."
   },
   "suscripciones": {
     "planLabels": {

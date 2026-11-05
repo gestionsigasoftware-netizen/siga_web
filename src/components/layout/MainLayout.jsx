@@ -136,6 +136,7 @@ export default function MainLayout() {
   // solo trae el embed de `congregaciones` para el rol activo local (los
   // demas niveles no tienen congregacion_id propia).
   const estadoCongregacion = rolPrincipal?.nivel === 'local' ? rolPrincipal?.congregaciones?.estado : 'activa'
+  const eliminacionProgramadaPara = rolPrincipal?.nivel === 'local' ? rolPrincipal?.congregaciones?.eliminacion_programada_para : null
   const bloqueadoPorEstado = Boolean(estadoCongregacion) && estadoCongregacion !== 'activa' && !rutaPermitidaBloqueado
 
   return (
@@ -199,10 +200,12 @@ export default function MainLayout() {
             <div className="flex flex-col items-center justify-center text-center gap-3 py-20">
               <Lock className="w-10 h-10 text-warning" />
               <h1 className="text-lg font-semibold">
-                {estadoCongregacion === 'suspendida' ? 'Congregación suspendida' : 'Congregación pendiente de aprobación'}
+                {eliminacionProgramadaPara ? 'Eliminación de la congregación programada' : estadoCongregacion === 'suspendida' ? 'Congregación suspendida' : 'Congregación pendiente de aprobación'}
               </h1>
               <p className="text-sm text-secondary max-w-md">
-                {estadoCongregacion === 'suspendida'
+                {eliminacionProgramadaPara
+                  ? `Tu congregación será eliminada el ${formatFecha(eliminacionProgramadaPara, { formato: formato_fecha })}. Si esto es un error, contacta a tu líder distrital o a soporte urgentemente antes de esa fecha.`
+                  : estadoCongregacion === 'suspendida'
                   ? 'Tu congregación fue suspendida. Contacta a tu líder distrital o a soporte para más información.'
                   : 'Tu congregación todavía no ha sido aprobada por tu líder distrital. En cuanto la activen, podrás usar SIGAP con normalidad.'}
               </p>

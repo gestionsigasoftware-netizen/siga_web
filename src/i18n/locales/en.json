@@ -1340,7 +1340,19 @@
     "confirmarAnular": "Void it? This cannot be undone.",
     "siAnular": "Yes, void it",
     "cancelar": "Cancel",
-    "reactivar": "Reactivate"
+    "reactivar": "Reactivate",
+    "solicitarEliminacion": "Request deletion",
+    "confirmarSolicitarEliminacion": "Schedule deletion in 30 days? It can be cancelled at any time before then.",
+    "placeholderMotivoEliminacion": "Reason (optional)",
+    "siSolicitar": "Yes, schedule it",
+    "errorSolicitarEliminacion": "Couldn't schedule the deletion: {{mensaje}}",
+    "eliminacionSolicitada": "Deletion scheduled in 30 days -- the congregation is locked in the meantime.",
+    "cancelarEliminacion": "Cancel deletion",
+    "errorCancelarEliminacion": "Couldn't cancel the deletion: {{mensaje}}",
+    "eliminacionCancelada": "Deletion cancelled -- access is back to normal.",
+    "eliminacionProgramadaBadge_one": "Deletes in {{count}} day",
+    "eliminacionProgramadaBadge_other": "Deletes in {{count}} days",
+    "eliminacionProgramadaTip": "This congregation was scheduled for deletion on {{fecha}}. Its data stays intact until then -- the request can be cancelled at any time before the deadline."
   },
   "suscripciones": {
     "planLabels": {
