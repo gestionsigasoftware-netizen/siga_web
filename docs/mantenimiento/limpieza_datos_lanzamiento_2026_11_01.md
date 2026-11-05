@@ -236,17 +236,24 @@ Authentication de `andresanchezw916@gmail.com` (`auth_user_id`
 Supabase (Authentication → Users → buscar el correo → Delete user),
 paso manual aparte, después de correr el SQL.
 
-## Pendiente real al pausar la sesión (2026-11-01)
+## CERRADO (2026-11-05)
 
-1. Correr `reset_lanzamiento_paso3_agua_bonita_y_pastor_prueba.sql`.
-2. Borrar manualmente la cuenta `andresanchezw916@gmail.com` desde
-   Authentication → Users en el panel de Supabase.
-3. Verificación final: `select count(*) from congregaciones` (una
-   menos que antes), `select count(*) from personas` (debe ser
-   exactamente 2: super_admin + Damil Lerma),
-   `select count(*) from pastores` (debe ser 2: Damil Lerma y Carlos
-   Alberto Diaz Gonzalez), y confirmar login normal con una cuenta
-   real.
-4. Borrar del repo (o dejar como historial, no afecta nada) los
-   scripts de diagnóstico temporales una vez confirmado todo -- no es
-   obligatorio, son solo lectura y no hacen daño si quedan.
+El usuario confirmó que `reset_lanzamiento_paso3_agua_bonita_y_pastor_prueba.sql`
+corrió sin errores. La congregación de prueba "AGUA BONITA SUAREZ
+CAUCA" y su pastor de prueba (Carlos Andres Sanchez Mina) quedaron
+eliminados por completo. Las dos congregaciones reales (PUERTO TEJADA
+CAUCA CENTRAL con el pastor Damil Lerma, y SUCRE CAUCA con el pastor
+Carlos Alberto Diaz Gonzalez) prevalecen intactas, igual que el censo
+real (super_admin + Damil Lerma).
+
+**Pendiente, sin bloquear nada**: borrar manualmente la cuenta
+`andresanchezw916@gmail.com` desde Authentication → Users en el panel
+de Supabase (el script no puede tocar `auth.users` directamente) --
+queda como tarea suelta del usuario, no afecta el resto del sistema
+mientras tanto.
+
+Con esto, el lanzamiento queda con los datos reales únicamente. El
+patrón de "mapear las FKs reales antes de borrar, nunca a ojo" que
+salió de este ejercicio motivó directamente el diseño de la política
+de eliminación de congregaciones con periodo de gracia -- ver
+`docs/funcionalidades/eliminacion_congregacion_periodo_gracia.md`.
