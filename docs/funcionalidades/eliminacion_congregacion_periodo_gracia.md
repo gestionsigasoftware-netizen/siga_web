@@ -81,6 +81,15 @@ verdad -- mismo patrón que "eliminar cuenta" en software serio.
   suspendida" cuando aplica, reutilizando el banner de bloqueo que ya
   existía.
 
+## Estado: DESPLEGADO (2026-11-05)
+
+El usuario corrió el SQL en producción (confirmado por el resultado
+`cron.schedule()` devolviendo el jobid nuevo). Se verificó de nuevo
+con Playwright, login real: cero errores HTTP, el Sidebar carga el
+menú completo del rol local (antes degradado por la columna
+faltante). Push hecho a `main` inmediatamente después de esa
+confirmación, nunca antes.
+
 ## ⚠️ Orden de despliegue obligatorio (encontrado verificando, no a priori)
 
 Al verificar con Playwright se encontró que **el frontend se puso a
@@ -100,19 +109,14 @@ el SQL Editor de Supabase.
 
 ## Pendiente
 
-1. Usuario: correr `eliminacion_congregacion_periodo_gracia.sql` en
-   el SQL Editor de Supabase.
-2. Confirmar que no rompe nada (pg_cron ya estaba habilitado, no
-   debería pedir nada nuevo en el panel).
-3. Solo entonces: push de los cambios de frontend.
-4. Verificación real (no se pudo hacer clic real en "Solicitar
-   eliminación" porque no hay cuenta de prueba distrital/super_admin
-   -- limitación ya conocida y documentada en otras piezas de esta
-   sesión): revisar por código + probar el RPC directamente contra una
-   congregación de prueba efímera (nunca contra Puerto Tejada ni Sucre
-   Cauca, que son reales), confirmando que el pastor local queda
-   bloqueado con el mensaje nuevo y que "Cancelar eliminación" restaura
-   el acceso.
-5. Fuera de alcance a propósito (no se pidió): aviso por correo
+1. Verificación real con clic real en "Solicitar eliminación": no se
+   pudo hacer todavía porque no hay cuenta de prueba
+   distrital/super_admin (limitación ya conocida y documentada en
+   otras piezas de esta sesión). Queda pendiente probar el flujo
+   completo contra una congregación de prueba efímera creada y
+   destruida en el momento (nunca contra Puerto Tejada ni Sucre
+   Cauca, que son las 2 reales) la próxima vez que haya acceso a una
+   cuenta de ese nivel.
+2. Fuera de alcance a propósito (no se pidió): aviso por correo
    electrónico (hoy es solo notificación in-app, suficiente porque el
    login sigue funcionando durante el bloqueo).
