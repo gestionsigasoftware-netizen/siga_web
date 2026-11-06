@@ -22,8 +22,22 @@ export function usePreferencias() {
 
     let request = preferenciasRequests.get(user.id)
     if (!request) {
-      request = supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas, formato_fecha').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
-        const loaded = data ?? DEFAULT_PREFERENCIAS
+      // getSession() primero (igual que getMisRoles() en lib/supabase.js):
+      // justo despues de iniciar sesion, el cliente de Supabase a veces no
+      // ha terminado de propagar el token nuevo a sus llamadas internas y
+      // esta consulta sale con un 401 intermitente. Eso reduce el problema
+      // pero no lo elimina (confirmado con 5 logins seguidos, 1 todavia
+      // fallo) -- es una carrera real dentro de supabase-js, no solo orden
+      // de llamadas en este archivo. Como esta consulta no es critica
+      // (siempre hay un valor por defecto razonable), un reintento corto
+      // es mas robusto que perseguir la causa exacta dentro de la libreria.
+      const consultar = () => supabase.from('preferencias_usuario').select('recibir_notificaciones, recibir_alertas, formato_fecha').eq('usuario_id', user.id).maybeSingle()
+      request = supabase.auth.getSession().then(consultar).then(async (result) => {
+        if (result.error) {
+          await new Promise((resolve) => setTimeout(resolve, 400))
+          result = await consultar()
+        }
+        const loaded = result.data ?? DEFAULT_PREFERENCIAS
         preferenciasCache.set(user.id, loaded)
         return loaded
       }).finally(() => preferenciasRequests.delete(user.id))
