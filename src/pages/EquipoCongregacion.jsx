@@ -222,7 +222,13 @@ export default function EquipoCongregacion() {
         <div className="stat-tile"><div className="flex items-center gap-2 text-secondary"><ShieldCheck className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.14em]">{t('equipoCongregacion.perfilesActivos')}</span></div><p className="text-2xl font-semibold mt-3">{assignments.length}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('equipoCongregacion.personasDisponibles')}</p><p className="text-2xl font-semibold mt-3">{people.length - peopleWithProfiles}</p></div>
       </section>
-      <section className="card p-5"><h2 className="font-medium">{t('equipoCongregacion.agregarActualizar')}</h2><p className="text-sm text-secondary mt-1 mb-4">{t('equipoCongregacion.agregarActualizarSubtitulo')}</p>
+      {/* backdropFilter: 'none' -- el efecto de vidrio de .card crea su propia
+          burbuja de apilamiento (stacking context); sin esto, el menu
+          desplegable de "Persona" queda atrapado dentro de esta tarjeta y la
+          tarjeta "Perfiles activos" (que viene despues en el HTML) se pinta
+          encima sin importar el z-index del menu. Mismo arreglo ya usado en
+          PastoralDistrital.jsx para el mismo problema. */}
+      <section className="card p-5" style={{ backdropFilter: 'none' }}><h2 className="font-medium">{t('equipoCongregacion.agregarActualizar')}</h2><p className="text-sm text-secondary mt-1 mb-4">{t('equipoCongregacion.agregarActualizarSubtitulo')}</p>
       <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
         <div className="text-sm relative" ref={personFieldRef}>
           {t('equipoCongregacion.persona')}
