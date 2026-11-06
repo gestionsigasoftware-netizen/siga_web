@@ -228,7 +228,7 @@ export default function EquipoCongregacion() {
           tarjeta "Perfiles activos" (que viene despues en el HTML) se pinta
           encima sin importar el z-index del menu. Mismo arreglo ya usado en
           PastoralDistrital.jsx para el mismo problema. */}
-      <section className="card p-5" style={{ backdropFilter: 'none' }}><h2 className="font-medium">{t('equipoCongregacion.agregarActualizar')}</h2><p className="text-sm text-secondary mt-1 mb-4">{t('equipoCongregacion.agregarActualizarSubtitulo')}</p>
+      <section className="card card-menu-flotante p-5" style={{ backdropFilter: 'none' }}><h2 className="font-medium">{t('equipoCongregacion.agregarActualizar')}</h2><p className="text-sm text-secondary mt-1 mb-4">{t('equipoCongregacion.agregarActualizarSubtitulo')}</p>
       <form onSubmit={inviteUser} className="grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end">
         <div className="text-sm relative" ref={personFieldRef}>
           {t('equipoCongregacion.persona')}

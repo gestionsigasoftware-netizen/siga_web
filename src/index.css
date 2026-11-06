@@ -195,6 +195,20 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
+  /* Para una .card que contiene un menu desplegable (autocompletar) que
+     necesita quedar por encima de la tarjeta siguiente de la pagina:
+     el "levantamiento" de 2px al pasar el mouse (.card:hover arriba)
+     tambien crea su propia burbuja de apilamiento en CSS (cualquier
+     transform distinto de "none" la crea), igual que el efecto de
+     vidrio -- pero esta SOLO aparece mientras el mouse esta encima, asi
+     que al mover el mouse por la lista el menu queda atrapado y se
+     libera una y otra vez, parpadeando y fallando los clics. Se anula
+     solo el transform (el resto del efecto hover -- borde, sombra --
+     se queda igual, esos no afectan el apilamiento). */
+  .card-menu-flotante:hover {
+    transform: none;
+  }
+
   .surface-panel {
     @apply bg-surface-1 border border-border rounded-card shadow-[0_8px_22px_rgba(21,27,34,0.045)];
   }

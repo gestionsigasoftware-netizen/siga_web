@@ -1619,7 +1619,7 @@ export default function PastoralDistrital() {
         })()}
       </section>
 
-      <form onSubmit={createCongregation} className="card p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>
+      <form onSubmit={createCongregation} className="card card-menu-flotante p-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end border-2 border-accent/30" style={{ backdropFilter: 'none' }}>
         <div className="sm:col-span-2 lg:col-span-5">
           <h2 className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-accent" />{t('pastoralDistrital.nuevaCongregacionTitulo')}</h2>
           <p className="text-xs text-secondary mt-1">{t('pastoralDistrital.nuevaCongregacionDescripcion')}</p>
@@ -1673,7 +1673,7 @@ export default function PastoralDistrital() {
       </form>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <form ref={pastorFormRef} onSubmit={savePastor} className="card p-5 grid sm:grid-cols-2 gap-3 items-end" style={{ backdropFilter: 'none' }}>
+        <form ref={pastorFormRef} onSubmit={savePastor} className="card card-menu-flotante p-5 grid sm:grid-cols-2 gap-3 items-end" style={{ backdropFilter: 'none' }}>
           <div className="sm:col-span-2 flex items-center justify-between gap-3">
             <h2 className="font-medium">{editingPastorId ? t('pastoralDistrital.pastorFormTituloEditar') : t('pastoralDistrital.pastorFormTituloRegistrar')}</h2>
             {editingPastorId && (

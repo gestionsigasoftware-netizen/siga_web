@@ -106,7 +106,7 @@ function OtorgarAccesoJerarquico({ esSuperAdmin, distritos }) {
     // (por el efecto de vidrio) y la tarjeta siguiente de la pagina se
     // pinta encima sin importar el z-index del menu. Mismo arreglo ya
     // usado en PastoralDistrital.jsx / EquipoCongregacion.jsx.
-    <section className="card p-5" style={{ backdropFilter: 'none' }}>
+    <section className="card card-menu-flotante p-5" style={{ backdropFilter: 'none' }}>
       <div className="flex items-center gap-3 mb-1"><UserPlus className="w-5 h-5 text-accent" /><h2 className="font-medium">{t('gestionPastoralNacional.otorgar.titulo')}</h2></div>
       <p className="text-sm text-secondary mb-4">{t('gestionPastoralNacional.otorgar.subtitulo', { oNacional: esSuperAdmin ? t('gestionPastoralNacional.otorgar.oNacional') : '' })}</p>
       <form onSubmit={otorgar} className="grid sm:grid-cols-2 gap-3">
