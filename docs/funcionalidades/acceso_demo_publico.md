@@ -83,26 +83,32 @@ funcionalidad completa esa pieza, no la reemplaza.
 
 ## Qué falta (SQL, requiere pasos manuales del usuario)
 
-1. **Ejecutado por el usuario**:
-   `supabase/schema/demo_publico_paso1_congregacion.sql` -- crea la
-   congregación demo (reutiliza `crear_congregacion_demo()`). Guardar
-   el `congregacion_demo_id` que devuelve.
-2. **Ejecutado por el usuario**: crear la cuenta de login en
-   Supabase > Authentication > Users (ej. `demo@sigap.com.co`, con
-   una contraseña que el usuario elija) -- no hay forma de crear un
-   usuario de Auth por SQL. Guardar el `auth_user_id` generado.
-3. **Pendiente de mí**, una vez el usuario me pase esos dos IDs:
-   - `supabase/schema/demo_publico_paso2_persona_y_seed.sql` -- crea
-     la `personas`/`roles_sistema` de la cuenta demo y siembra
-     contenido de ejemplo (censo, un par de comités, actividad
-     reciente) para que la demo no se vea vacía.
+1. **Hecho**: `supabase/schema/demo_publico_paso1_congregacion.sql`
+   corrido -- `congregacion_demo_id = 9ec5c3d8-41f4-4af0-b9d7-a0019b99c27b`.
+2. **Hecho**: cuenta de login creada en Supabase Authentication --
+   `auth_user_id = a2866ced-0d3d-4771-9b42-b415a9a19427`.
+3. **Listo, pendiente de que el usuario lo corra**:
+   - `supabase/schema/demo_publico_paso2_persona_y_seed.sql` -- ya
+     tiene los 2 IDs de arriba hardcodeados. Crea la
+     `personas`/`roles_sistema` de la cuenta demo y siembra 24
+     personas de censo + 5 registros de actividad (últimas semanas),
+     con nombres claramente ficticios ("... Ejemplo"). Alcance
+     deliberado: familias y comités quedan fuera de este primer seed.
+     Idempotente -- correrlo dos veces no duplica nada.
    - `supabase/schema/demo_publico_paso3_reinicio_nocturno.sql` --
-     `resetear_congregacion_demo()` + job `pg_cron` diario, mismo
-     patrón exacto de `eliminacion_congregacion_periodo_gracia.sql`.
+     `resetear_congregacion_demo()` + job `pg_cron` diario
+     (`'resetear-demo-sigap'`, 05:25 UTC), mismo patrón exacto de
+     `eliminacion_congregacion_periodo_gracia.sql`. Busca la
+     congregación/cuenta demo por nombre (no depende de que le pasen
+     IDs), borra lo acumulado del día y vuelve a sembrar el mismo
+     censo + actividad del paso 2. Limitación conocida a propósito:
+     todavía no incluye "amigos" (Ruta Evangelística) por las tablas
+     hijas con relación RESTRICT sin mapear -- si un visitante
+     registra un amigo en la demo, hoy sobrevive al reinicio.
 4. **Ejecutado ya, independiente de los IDs anteriores**:
    `supabase/schema/demo_excluir_reportes_nacionales.sql` y
    `supabase/schema/demo_excluir_snapshot_negocio.sql` -- ambos listos
-   para correr en cuanto el usuario quiera, no dependen del paso 1/2.
+   para correr en cuanto el usuario quiera.
 5. **Antes de que el frontend quede expuesto de verdad**: agregar
    `VITE_DEMO_EMAIL`/`VITE_DEMO_PASSWORD` también en el panel de
    Cloudflare Pages del proyecto (no solo en `.env` local), o el build
