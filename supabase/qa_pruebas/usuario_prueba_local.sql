@@ -32,9 +32,13 @@ begin
     returning id into v_distrito_id;
   end if;
 
+  -- Filtra tambien por nombre (no solo es_demo=true): desde que existe
+  -- la congregacion demo publica, puede haber mas de una congregacion
+  -- es_demo=true -- este usuario de pruebas SOLO debe quedar atado a
+  -- su propia congregacion de pruebas, nunca a la publica.
   select id into v_congregacion_id
   from congregaciones
-  where es_demo = true
+  where es_demo = true and nombre = 'Congregación de Pruebas'
   order by created_at
   limit 1;
 

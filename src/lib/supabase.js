@@ -30,7 +30,7 @@ export async function getMisRoles() {
 
   const { data, error } = await supabase
     .from('roles_sistema')
-    .select('id, nivel, rol_local, distrito_id, congregacion_id, personas(nombres, apellidos), distritos(nombre, numero), congregaciones(nombre, ciudad, pastor_nombre, estado, eliminacion_programada_para, distritos(nombre, numero))')
+    .select('id, nivel, rol_local, distrito_id, congregacion_id, personas(nombres, apellidos), distritos(nombre, numero), congregaciones(nombre, ciudad, pastor_nombre, estado, eliminacion_programada_para, es_demo, distritos(nombre, numero))')
     .is('fecha_fin', null)
 
   return { data: data ?? [], error }

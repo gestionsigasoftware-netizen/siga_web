@@ -4,6 +4,7 @@ import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 
 const Login = lazy(() => import("./pages/Login"));
+const DemoAcceso = lazy(() => import("./pages/DemoAcceso"));
 const InicioPublico = lazy(() => import("./pages/InicioPublico"));
 const Ayuda = lazy(() => import("./pages/Ayuda"));
 const Legal = lazy(() => import("./pages/Legal"));
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/" element={<InicioPublico />} />
         <Route path="/ayuda" element={<Ayuda />} />
         <Route path="/legal" element={<Legal />} />
+        <Route path="/demo" element={<DemoAcceso />} />
         <Route
           path="/login"
           element={

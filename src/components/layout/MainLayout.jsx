@@ -8,7 +8,7 @@ import GlobalSearch from './GlobalSearch'
 import Footer from '../Footer'
 import ThemeToggle from '../ThemeToggle'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Bell, Clock, Lock, UserRound } from 'lucide-react'
+import { AlertTriangle, Bell, Clock, Lock, ShieldCheck, UserRound } from 'lucide-react'
 import { useMiRol } from '../../hooks/useMiRol'
 import { useAuth } from '../../hooks/useAuth'
 import { useIdleLogout } from '../../hooks/useIdleLogout'
@@ -138,6 +138,10 @@ export default function MainLayout() {
   const estadoCongregacion = rolPrincipal?.nivel === 'local' ? rolPrincipal?.congregaciones?.estado : 'activa'
   const eliminacionProgramadaPara = rolPrincipal?.nivel === 'local' ? rolPrincipal?.congregaciones?.eliminacion_programada_para : null
   const bloqueadoPorEstado = Boolean(estadoCongregacion) && estadoCongregacion !== 'activa' && !rutaPermitidaBloqueado
+  // Franja informativa, no bloqueante -- a diferencia de bloqueadoPorEstado,
+  // la congregación demo SÍ puede operar con normalidad, solo se avisa que
+  // es de ejemplo (ver supabase/schema/demo_publico_paso1_congregacion.sql).
+  const esDemo = rolPrincipal?.nivel === 'local' && Boolean(rolPrincipal?.congregaciones?.es_demo)
 
   return (
     <div className="min-h-screen bg-surface">
@@ -169,6 +173,14 @@ export default function MainLayout() {
             </div>
           </div>
         </header>
+
+        {esDemo && (
+          <div className="mx-auto max-w-[1220px] w-full mb-4 flex flex-wrap items-center gap-2 rounded-card border border-accent/30 bg-accent-bg px-4 py-2.5 text-sm text-accent-dark" role="status">
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span>Estás viendo SIGAP en modo demostración — los datos de esta congregación se reinician cada noche.</span>
+            <a href="https://wa.me/573005772967?text=Hola%2C%20quiero%20acceso%20real%20a%20SIGAP%20para%20mi%20congregaci%C3%B3n." target="_blank" rel="noopener noreferrer" className="underline font-medium ml-auto whitespace-nowrap">Solicitar acceso real</a>
+          </div>
+        )}
 
         {estadoSuscripcion === 'en_gracia' && (
           <div className="mx-auto max-w-[1220px] w-full mb-4 flex flex-col gap-1.5 rounded-card border border-warning/30 bg-warning-bg px-4 py-2.5 text-sm text-warning" role="alert">

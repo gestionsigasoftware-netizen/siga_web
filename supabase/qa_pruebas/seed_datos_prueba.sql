@@ -89,9 +89,14 @@ declare
   v_base_2025 date := '2025-01-01'::date;
   v_dias_totales integer;
 begin
-  select id into v_congregacion_id from congregaciones where es_demo = true order by created_at limit 1;
+  -- Filtra tambien por nombre (no solo es_demo=true): desde que existe
+  -- la congregacion demo publica (ver
+  -- supabase/schema/demo_publico_paso1_congregacion.sql), puede haber
+  -- mas de una congregacion marcada es_demo=true -- este seed de carga
+  -- SOLO debe tocar la de QA, nunca la publica.
+  select id into v_congregacion_id from congregaciones where es_demo = true and nombre = 'QA - Prueba SIGAP' order by created_at limit 1;
   if v_congregacion_id is null then
-    raise exception 'No existe una congregacion demo. Ejecuta primero crear_congregacion_demo() y usuario_prueba_local.sql.';
+    raise exception 'No existe la congregacion QA - Prueba SIGAP. Ejecuta primero qa_entorno_pruebas_2026-09-04.sql y usuario_prueba_local.sql.';
   end if;
   select distrito_id into v_distrito_id from congregaciones where id = v_congregacion_id;
   v_dias_totales := greatest(current_date - v_base_2025, 1);

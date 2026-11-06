@@ -129,6 +129,14 @@ export default function InicioPublico() {
                 <span>{t('inicio.hero.cta')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
+              <Link
+                to="/demo"
+                className={esOscuro
+                  ? 'inline-flex items-center justify-center gap-2 border border-white/25 text-white px-5 py-3 rounded-lg font-medium hover:border-white/50 transition-all'
+                  : 'btn-secondary py-3'}
+              >
+                <span>{t('inicio.hero.ctaDemo')}</span>
+              </Link>
             </div>
             <p className={`text-xs mt-5 flex items-center gap-2 ${esOscuro ? 'text-white/45' : 'text-muted'}`}>
               <ShieldCheck className={`w-4 h-4 ${esOscuro ? 'text-[#8FC8FF]' : 'text-success'}`} /> {t('inicio.hero.trust')}

@@ -35,6 +35,7 @@
       "titlePost": " it needs to decide.",
       "subhead": "SIGAP turns your census, attendance and committees into population pyramids, spiritual life-cycle tracking and growth projections — with the same clarity for the local pastor, the district leader and national leadership.",
       "cta": "Enter SIGAP",
+      "ctaDemo": "See live demo",
       "trust": "Private access by invitation and authorized profile."
     },
     "dashboardMock": {
@@ -1033,6 +1034,7 @@
     "rolesActivos": "Active roles on this account.",
     "sinRoles": "No active roles.",
     "cambiarContrasena": "Change password",
+    "sinEdicionDemo": "This is a shared demo account -- the name and password can't be edited here.",
     "requisitosContrasenaTip": "Must have at least 8 characters, with one uppercase letter, one number, and one symbol.",
     "placeholderNuevaContrasena": "New secure password",
     "actualizar": "Update"
@@ -1786,6 +1788,12 @@
     "volverPaginaPrincipal": "Back to the home page",
     "infoProtegida": "Your information stays protected.",
     "footerMarca": "SIGAP · Pastoral management"
+  },
+  "demo": {
+    "entrando": "Entering the demo congregation...",
+    "avisoDatosEjemplo": "Sample congregation — data resets every night.",
+    "errorNoConfigurado": "Demo access isn't available right now.",
+    "errorEntrar": "Couldn't enter the demo. Try again in a few minutes."
   },
   "estacionUnoMas": {
     "compromisoEstados": {

@@ -21,14 +21,17 @@ declare
   v_congregacion_id uuid;
   v_distrito_id uuid;
 begin
+  -- Filtra tambien por nombre (no solo es_demo=true): desde que existe
+  -- la congregacion demo publica, puede haber mas de una congregacion
+  -- es_demo=true -- este script SOLO debe tocar la de QA.
   select id into v_congregacion_id
   from congregaciones
-  where es_demo = true
+  where es_demo = true and nombre = 'QA - Prueba SIGAP'
   order by created_at
   limit 1;
 
   if v_congregacion_id is null then
-    raise exception 'No existe una congregacion demo.';
+    raise exception 'No existe la congregacion QA - Prueba SIGAP.';
   end if;
   select distrito_id into v_distrito_id from congregaciones where id = v_congregacion_id;
 

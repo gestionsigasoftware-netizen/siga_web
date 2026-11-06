@@ -35,6 +35,7 @@
       "titlePost": " que necesita para decidir.",
       "subhead": "SIGAP convierte el censo, la asistencia y los comités en pirámide poblacional, ciclo de vida espiritual y proyección de crecimiento — con la misma claridad para el pastor local, el distrital y la dirección nacional.",
       "cta": "Entrar a SIGAP",
+      "ctaDemo": "Ver demo en vivo",
       "trust": "Acceso privado por invitación y perfil autorizado."
     },
     "dashboardMock": {
@@ -1033,6 +1034,7 @@
     "rolesActivos": "Roles activos de esta cuenta.",
     "sinRoles": "No hay roles activos.",
     "cambiarContrasena": "Cambiar contraseña",
+    "sinEdicionDemo": "Esta es una cuenta de demostración compartida -- el nombre y la contraseña no se pueden editar aquí.",
     "requisitosContrasenaTip": "Debe tener al menos 8 caracteres, con una mayúscula, un número y un símbolo.",
     "placeholderNuevaContrasena": "Nueva contraseña segura",
     "actualizar": "Actualizar"
@@ -1786,6 +1788,12 @@
     "volverPaginaPrincipal": "Volver a la página principal",
     "infoProtegida": "Tu información se mantiene protegida.",
     "footerMarca": "SIGAP · Gestión pastoral"
+  },
+  "demo": {
+    "entrando": "Entrando a la congregación demo...",
+    "avisoDatosEjemplo": "Congregación de ejemplo — los datos se reinician cada noche.",
+    "errorNoConfigurado": "El acceso demo no está disponible en este momento.",
+    "errorEntrar": "No se pudo entrar a la demo. Intenta de nuevo en unos minutos."
   },
   "estacionUnoMas": {
     "compromisoEstados": {
