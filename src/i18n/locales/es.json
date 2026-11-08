@@ -4321,6 +4321,8 @@
       "crearLeccion": "No se pudo crear la lección: {{mensaje}}",
       "actualizarLeccion": "No se pudo actualizar la lección: {{mensaje}}",
       "cambiarEstadoLeccion": "No se pudo cambiar el estado de la lección: {{mensaje}}",
+      "eliminarLeccion": "No se pudo eliminar la lección: {{mensaje}}",
+      "eliminarLeccionHistorial": "Esta lección ya tiene progreso o notas registradas con personas reales y no se puede eliminar. Desactívala en su lugar.",
       "crearRango": "No se pudo crear el rango de edad: {{mensaje}}",
       "actualizarRango": "No se pudo actualizar el rango de edad: {{mensaje}}",
       "cambiarEstadoRango": "No se pudo cambiar el estado del rango: {{mensaje}}"
@@ -4372,6 +4374,8 @@
     "botonAgregarLista": "Agregar lista",
     "ariaEliminarUjier": "Eliminar {{nombre}}",
     "tituloEliminarUjier": "Eliminar (usa esto para corregir un error al escribirlo, no para alguien que ya no presta el servicio -- para eso, desactívalo)",
+    "ariaEliminarLeccion": "Eliminar lección {{titulo}}",
+    "tituloEliminarLeccion": "Eliminar (usa esto para corregir una lección creada por error, no para una que ya no se enseña -- para eso, desactívala)",
     "sinUjieres": "Aún no hay ujieres registrados.",
     "refamTitulo": "Lecciones REFAM",
     "refamDescripcion": "Currículo compartido de la congregación. Cada persona en REFAM avanza lección por lección, sin saltarse ninguna, hasta completarlo.",

@@ -301,6 +301,13 @@ export default function Modulos() {
     else load()
   }
 
+  async function quitarLeccionRefam(item) {
+    const { error: deleteError } = await supabase.from('refam_lecciones').delete().eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (deleteError) { setError(deleteError.code === '23503' ? t('modulos.errores.eliminarLeccionHistorial') : t('modulos.errores.eliminarLeccion', { mensaje: deleteError.message })); return }
+    registerDelete('refam_lecciones', { ...item, congregacion_id: congregacionId }, item.titulo)
+    load()
+  }
+
   async function agregarLeccionEsfob(event) {
     event.preventDefault()
     const titulo = nuevaLeccionEsfobTitulo.trim()
@@ -329,6 +336,13 @@ export default function Modulos() {
     else load()
   }
 
+  async function quitarLeccionEsfob(item) {
+    const { error: deleteError } = await supabase.from('esfob_lecciones').delete().eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (deleteError) { setError(deleteError.code === '23503' ? t('modulos.errores.eliminarLeccionHistorial') : t('modulos.errores.eliminarLeccion', { mensaje: deleteError.message })); return }
+    registerDelete('esfob_lecciones', { ...item, congregacion_id: congregacionId }, item.titulo)
+    load()
+  }
+
   async function agregarLeccionDiscipulado(event) {
     event.preventDefault()
     const titulo = nuevaLeccionDiscipuladoTitulo.trim()
@@ -355,6 +369,13 @@ export default function Modulos() {
     const { error: updateError } = await supabase.from('discipulado_lecciones').update({ activo: item.activo === false }).eq('id', item.id).eq('congregacion_id', congregacionId)
     if (updateError) setError(t('modulos.errores.cambiarEstadoLeccion', { mensaje: updateError.message }))
     else load()
+  }
+
+  async function quitarLeccionDiscipulado(item) {
+    const { error: deleteError } = await supabase.from('discipulado_lecciones').delete().eq('id', item.id).eq('congregacion_id', congregacionId)
+    if (deleteError) { setError(deleteError.code === '23503' ? t('modulos.errores.eliminarLeccionHistorial') : t('modulos.errores.eliminarLeccion', { mensaje: deleteError.message })); return }
+    registerDelete('discipulado_lecciones', { ...item, congregacion_id: congregacionId }, item.titulo)
+    load()
   }
 
   async function agregarRangoEdad(event) {
@@ -452,7 +473,7 @@ export default function Modulos() {
       </form>
       <div className="flex flex-col gap-2">{refamLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionRefamId(item.id); setEditingLeccionRefamTitulo(item.titulo); setEditingLeccionRefamDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionRefam(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionRefamId(item.id); setEditingLeccionRefamTitulo(item.titulo); setEditingLeccionRefamDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionRefam(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaEliminarLeccion', { titulo: item.titulo })} title={t('modulos.tituloEliminarLeccion')} onClick={() => quitarLeccionRefam(item)} className="text-muted hover:text-danger"><Trash2 className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
       {refamLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesRefam')}</p>}
     </section>
@@ -468,7 +489,7 @@ export default function Modulos() {
       </form>
       <div className="flex flex-col gap-2">{esfobLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionEsfobId(item.id); setEditingLeccionEsfobTitulo(item.titulo); setEditingLeccionEsfobDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionEsfob(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionEsfobId(item.id); setEditingLeccionEsfobTitulo(item.titulo); setEditingLeccionEsfobDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionEsfob(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaEliminarLeccion', { titulo: item.titulo })} title={t('modulos.tituloEliminarLeccion')} onClick={() => quitarLeccionEsfob(item)} className="text-muted hover:text-danger"><Trash2 className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
       {esfobLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesEsfob')}</p>}
     </section>
@@ -484,7 +505,7 @@ export default function Modulos() {
       </form>
       <div className="flex flex-col gap-2">{discipuladoLecciones.map((item) => <div key={item.id} className={`border border-border rounded-card p-3 flex items-start justify-between gap-3 ${item.activo === false ? 'opacity-50' : ''}`}>
         <div className="min-w-0"><p className="text-sm font-medium">#{item.numero} — {item.titulo}</p>{item.descripcion && <p className="text-xs text-secondary mt-1">{item.descripcion}</p>}</div>
-        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionDiscipuladoId(item.id); setEditingLeccionDiscipuladoTitulo(item.titulo); setEditingLeccionDiscipuladoDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionDiscipulado(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button></div>
+        <div className="flex items-center gap-2 flex-shrink-0"><button type="button" aria-label={t('modulos.ariaEditarLeccionNumero', { numero: item.numero })} title={t('modulos.editarGenerico')} onClick={() => { setEditingLeccionDiscipuladoId(item.id); setEditingLeccionDiscipuladoTitulo(item.titulo); setEditingLeccionDiscipuladoDescripcion(item.descripcion || '') }} className="text-muted hover:text-accent"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaCambiarEstado')} title={item.activo === false ? t('modulos.reactivar') : t('modulos.desactivar')} onClick={() => toggleLeccionDiscipulado(item)} className={item.activo === false ? 'text-success' : 'text-muted hover:text-danger'}><Power className="w-3.5 h-3.5" /></button><button type="button" aria-label={t('modulos.ariaEliminarLeccion', { titulo: item.titulo })} title={t('modulos.tituloEliminarLeccion')} onClick={() => quitarLeccionDiscipulado(item)} className="text-muted hover:text-danger"><Trash2 className="w-3.5 h-3.5" /></button></div>
       </div>)}</div>
       {discipuladoLecciones.length === 0 && <p className="text-sm text-muted text-center py-4">{t('modulos.sinLeccionesDiscipulado')}</p>}
     </section>

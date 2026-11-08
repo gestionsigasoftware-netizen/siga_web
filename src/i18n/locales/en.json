@@ -4321,6 +4321,8 @@
       "crearLeccion": "Could not create the lesson: {{mensaje}}",
       "actualizarLeccion": "Could not update the lesson: {{mensaje}}",
       "cambiarEstadoLeccion": "Could not change the lesson's status: {{mensaje}}",
+      "eliminarLeccion": "Could not delete the lesson: {{mensaje}}",
+      "eliminarLeccionHistorial": "This lesson already has progress or notes recorded with real people and cannot be deleted. Deactivate it instead.",
       "crearRango": "Could not create the age range: {{mensaje}}",
       "actualizarRango": "Could not update the age range: {{mensaje}}",
       "cambiarEstadoRango": "Could not change the range's status: {{mensaje}}"
@@ -4372,6 +4374,8 @@
     "botonAgregarLista": "Add list",
     "ariaEliminarUjier": "Delete {{nombre}}",
     "tituloEliminarUjier": "Delete (use this to fix a typing mistake, not for someone who no longer serves -- for that, deactivate them instead)",
+    "ariaEliminarLeccion": "Delete lesson {{titulo}}",
+    "tituloEliminarLeccion": "Delete (use this to fix a lesson created by mistake, not one that's no longer taught -- for that, deactivate it instead)",
     "sinUjieres": "No ushers registered yet.",
     "refamTitulo": "REFAM lessons",
     "refamDescripcion": "The congregation's shared curriculum. Each person in REFAM advances lesson by lesson, without skipping any, until completing it.",

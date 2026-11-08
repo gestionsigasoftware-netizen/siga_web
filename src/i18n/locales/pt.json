@@ -4321,6 +4321,8 @@
       "crearLeccion": "Não foi possível criar a lição: {{mensaje}}",
       "actualizarLeccion": "Não foi possível atualizar a lição: {{mensaje}}",
       "cambiarEstadoLeccion": "Não foi possível alterar o status da lição: {{mensaje}}",
+      "eliminarLeccion": "Não foi possível excluir a lição: {{mensaje}}",
+      "eliminarLeccionHistorial": "Esta lição já tem progresso ou notas registradas com pessoas reais e não pode ser excluída. Desative-a em vez disso.",
       "crearRango": "Não foi possível criar a faixa etária: {{mensaje}}",
       "actualizarRango": "Não foi possível atualizar a faixa etária: {{mensaje}}",
       "cambiarEstadoRango": "Não foi possível alterar o status da faixa: {{mensaje}}"
@@ -4372,6 +4374,8 @@
     "botonAgregarLista": "Adicionar lista",
     "ariaEliminarUjier": "Excluir {{nombre}}",
     "tituloEliminarUjier": "Excluir (use isto para corrigir um erro de digitação, não para alguém que já não presta o serviço -- para isso, desative-o)",
+    "ariaEliminarLeccion": "Excluir lição {{titulo}}",
+    "tituloEliminarLeccion": "Excluir (use isto para corrigir uma lição criada por engano, não uma que já não se ensina -- para isso, desative-a)",
     "sinUjieres": "Ainda não há porteiros registrados.",
     "refamTitulo": "Lições REFAM",
     "refamDescripcion": "Currículo compartilhado da congregação. Cada pessoa em REFAM avança lição por lição, sem pular nenhuma, até completá-lo.",
