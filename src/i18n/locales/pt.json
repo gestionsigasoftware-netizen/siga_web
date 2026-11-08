@@ -1200,7 +1200,7 @@
     "confirmarEliminar": "Excluir este registro de erro? Não pode ser desfeito.",
     "errorEliminar": "Não foi possível excluir o registro.",
     "eliminado": "Registro excluído.",
-    "total200": "Total (últimos 200)",
+    "totalErrores": "Total",
     "sinRevisar": "Não revisados",
     "mostrarSoloSinRevisar": "Mostrar somente não revisados",
     "ningunoSinRevisar": "Não há erros não revisados.",
@@ -1208,7 +1208,10 @@
     "marcarSinRevisar": "Marcar como não revisado",
     "marcarRevisado": "Marcar como revisado",
     "eliminarAria": "Excluir",
-    "verStack": "Ver stack"
+    "verStack": "Ver stack",
+    "anterior": "Anterior",
+    "siguiente": "Próxima",
+    "paginaDe": "Página {{actual}} de {{total}}"
   },
   "soporte": {
     "estados": {
@@ -1233,6 +1236,9 @@
     "enviarReporte": "Enviar relatório",
     "urgentePre": "Algo urgente? Escreva diretamente para",
     "todosReportes": "Todos os relatórios",
+    "anterior": "Anterior",
+    "siguiente": "Próxima",
+    "paginaDe": "Página {{actual}} de {{total}}",
     "soloSuperAdmin": "Visível apenas para super_admin.",
     "sinReportes": "Ainda não há relatórios.",
     "colFecha": "Data",
@@ -1653,6 +1659,9 @@
     "enviando": "Enviando...",
     "enviarSolicitud": "Enviar solicitação",
     "solicitudesCantidad": "Solicitações ({{cantidad}})",
+    "anterior": "Anterior",
+    "siguiente": "Próxima",
+    "paginaDe": "Página {{actual}} de {{total}}",
     "todosEstados": "Todos os status",
     "sinSolicitudes": "Não há solicitações.",
     "prioridadAlta": "Prioridade alta",
@@ -2966,7 +2975,6 @@
       "comitesCount_one": "{{count}} comitê",
       "comitesCount_other": "{{count}} comitês",
       "historialTitulo": "Histórico recente",
-      "historialParcial": "12 de {{total}} alterações",
       "historialCambios_one": "{{count}} alteração",
       "historialCambios_other": "{{count}} alterações",
       "colFecha": "Data",

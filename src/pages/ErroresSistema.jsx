@@ -7,11 +7,16 @@ import { formatFecha } from '../lib/dateFormat'
 import { usePreferencias } from '../hooks/usePreferencias'
 import Toast from '../components/Toast'
 
+const PAGE_SIZE = 20
+
 export default function ErroresSistema() {
   const { t } = useTranslation()
   const { rolPrincipal, loading: roleLoading } = useMiRol()
   const { formato_fecha } = usePreferencias()
   const [errores, setErrores] = useState([])
+  const [total, setTotal] = useState(0)
+  const [sinRevisarCount, setSinRevisarCount] = useState(0)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -32,39 +37,50 @@ export default function ErroresSistema() {
     if (roleLoading) return
     if (rolPrincipal?.nivel === 'super_admin') cargar()
     else setLoading(false)
-  }, [roleLoading, rolPrincipal?.nivel])
+  }, [roleLoading, rolPrincipal?.nivel, soloSinRevisar, page])
 
   async function cargar() {
     setLoading(true)
-    const { data, error: loadError } = await supabase
+    let query = supabase
       .from('errores_frontend')
-      .select('id, mensaje, stack, contexto, url, user_agent, usuario_id, revisado, created_at')
+      .select('id, mensaje, stack, contexto, url, user_agent, usuario_id, revisado, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(200)
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+    if (soloSinRevisar) query = query.eq('revisado', false)
+    const [{ data, error: loadError, count }, { count: sinRevisar }] = await Promise.all([
+      query,
+      supabase.from('errores_frontend').select('id', { count: 'exact', head: true }).eq('revisado', false),
+    ])
     if (loadError) setError(t('erroresSistema.errorCargar'))
     setErrores(data ?? [])
+    setTotal(count ?? 0)
+    setSinRevisarCount(sinRevisar ?? 0)
     setLoading(false)
+  }
+
+  function cambiarFiltro(checked) {
+    setSoloSinRevisar(checked)
+    setPage(0)
   }
 
   async function marcarRevisado(id, revisado) {
     const { error: updateError } = await supabase.from('errores_frontend').update({ revisado }).eq('id', id)
     if (updateError) { setError(t('erroresSistema.errorActualizar')); return }
-    setErrores((current) => current.map((item) => (item.id === id ? { ...item, revisado } : item)))
+    cargar()
   }
 
   async function eliminar(id) {
     if (!window.confirm(t('erroresSistema.confirmarEliminar'))) return
     const { error: deleteError } = await supabase.from('errores_frontend').delete().eq('id', id)
     if (deleteError) { setError(t('erroresSistema.errorEliminar')); return }
-    setErrores((current) => current.filter((item) => item.id !== id))
     setNotice(t('erroresSistema.eliminado'))
+    cargar()
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('erroresSistema.cargando')}</div>
+  if (roleLoading || (loading && !errores.length)) return <div className="module-loading" role="status"><span className="loading-dot" />{t('erroresSistema.cargando')}</div>
   if (rolPrincipal?.nivel !== 'super_admin') return <p role="alert" className="text-sm text-danger bg-danger-bg rounded p-3">{t('erroresSistema.soloSuperAdmin')}</p>
 
-  const visibles = errores.filter((item) => !soloSinRevisar || !item.revisado)
-  const sinRevisarCount = errores.filter((item) => !item.revisado).length
+  const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div className="page-shell">
@@ -78,7 +94,7 @@ export default function ErroresSistema() {
       <Toast>{notice}</Toast>
 
       <section className="grid sm:grid-cols-2 gap-3">
-        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('erroresSistema.total200')}</p><p className="text-2xl font-semibold mt-3">{errores.length}</p></div>
+        <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('erroresSistema.totalErrores')}</p><p className="text-2xl font-semibold mt-3">{total}</p></div>
         <div className="stat-tile"><p className="text-[10px] uppercase tracking-[0.14em] text-secondary">{t('erroresSistema.sinRevisar')}</p><p className={`text-2xl font-semibold mt-3 ${sinRevisarCount ? 'text-danger' : ''}`}>{sinRevisarCount}</p></div>
       </section>
 
@@ -86,15 +102,15 @@ export default function ErroresSistema() {
         <div className="p-5 border-b border-border flex items-center gap-2">
           <Bug className="w-4 h-4 text-muted" />
           <label className="text-sm flex items-center gap-2">
-            <input type="checkbox" checked={soloSinRevisar} onChange={(event) => setSoloSinRevisar(event.target.checked)} />
+            <input type="checkbox" checked={soloSinRevisar} onChange={(event) => cambiarFiltro(event.target.checked)} />
             {t('erroresSistema.mostrarSoloSinRevisar')}
           </label>
         </div>
-        {!visibles.length ? (
+        {!errores.length ? (
           <p className="text-sm text-secondary p-5">{soloSinRevisar ? t('erroresSistema.ningunoSinRevisar') : t('erroresSistema.ningunoRegistrado')}</p>
         ) : (
           <div className="divide-y divide-border">
-            {visibles.map((item) => (
+            {errores.map((item) => (
               <div key={item.id} className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -120,6 +136,11 @@ export default function ErroresSistema() {
             ))}
           </div>
         )}
+        {total > 0 && <div className="flex items-center justify-between gap-3 p-4 border-t border-border text-xs text-secondary">
+          <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="btn-secondary px-3">{t('erroresSistema.anterior')}</button>
+          <span>{t('erroresSistema.paginaDe', { actual: page + 1, total: totalPaginas })}</span>
+          <button type="button" disabled={page + 1 >= totalPaginas} onClick={() => setPage((p) => p + 1)} className="btn-secondary px-3">{t('erroresSistema.siguiente')}</button>
+        </div>}
       </section>
     </div>
   )

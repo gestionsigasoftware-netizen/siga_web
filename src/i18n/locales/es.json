@@ -1200,7 +1200,7 @@
     "confirmarEliminar": "¿Eliminar este registro de error? No se puede deshacer.",
     "errorEliminar": "No se pudo eliminar el registro.",
     "eliminado": "Registro eliminado.",
-    "total200": "Total (últimos 200)",
+    "totalErrores": "Total",
     "sinRevisar": "Sin revisar",
     "mostrarSoloSinRevisar": "Mostrar solo sin revisar",
     "ningunoSinRevisar": "No hay errores sin revisar.",
@@ -1208,7 +1208,10 @@
     "marcarSinRevisar": "Marcar sin revisar",
     "marcarRevisado": "Marcar revisado",
     "eliminarAria": "Eliminar",
-    "verStack": "Ver stack"
+    "verStack": "Ver stack",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
+    "paginaDe": "Página {{actual}} de {{total}}"
   },
   "soporte": {
     "estados": {
@@ -1233,6 +1236,9 @@
     "enviarReporte": "Enviar reporte",
     "urgentePre": "¿Algo urgente? Escríbenos directo a",
     "todosReportes": "Todos los reportes",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
+    "paginaDe": "Página {{actual}} de {{total}}",
     "soloSuperAdmin": "Visible solo para super_admin.",
     "sinReportes": "No hay reportes todavía.",
     "colFecha": "Fecha",
@@ -1653,6 +1659,9 @@
     "enviando": "Enviando...",
     "enviarSolicitud": "Enviar solicitud",
     "solicitudesCantidad": "Solicitudes ({{cantidad}})",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
+    "paginaDe": "Página {{actual}} de {{total}}",
     "todosEstados": "Todos los estados",
     "sinSolicitudes": "No hay solicitudes.",
     "prioridadAlta": "Prioridad alta",
@@ -2966,7 +2975,6 @@
       "comitesCount_one": "{{count}} comité",
       "comitesCount_other": "{{count}} comités",
       "historialTitulo": "Historial reciente",
-      "historialParcial": "12 de {{total}} cambios",
       "historialCambios_one": "{{count}} cambio",
       "historialCambios_other": "{{count}} cambios",
       "colFecha": "Fecha",

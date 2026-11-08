@@ -10,6 +10,7 @@ import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
 
 const solicitudesCache = new Map()
+const SOLICITUDES_PAGE_SIZE = 20
 
 const ESTADO_TONE = { pendiente: 'text-warning', en_proceso: 'text-accent', resuelto: 'text-success', cerrado: 'text-muted' }
 
@@ -27,10 +28,17 @@ export default function Solicitudes() {
   const nivel = rolPrincipal?.nivel
 
   const [solicitudes, setSolicitudes] = useState([])
+  const [totalSolicitudes, setTotalSolicitudes] = useState(0)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('todos')
+
+  function cambiarFiltroEstado(value) {
+    setFiltroEstado(value)
+    setPage(0)
+  }
 
   const [tipo, setTipo] = useState('administrativa')
   const [asunto, setAsunto] = useState('')
@@ -50,11 +58,13 @@ export default function Solicitudes() {
   const [respuestaTexto, setRespuestaTexto] = useState('')
   const [savingRespuesta, setSavingRespuesta] = useState(false)
 
-  async function cargarSolicitudes() {
-    const cacheKey = `${nivel}:${rolPrincipal?.congregacion_id || ''}:${rolPrincipal?.distrito_id || ''}`
+  async function cargarSolicitudes(paginaOverride) {
+    const paginaActual = paginaOverride ?? page
+    const cacheKey = `${nivel}:${rolPrincipal?.congregacion_id || ''}:${rolPrincipal?.distrito_id || ''}:${filtroEstado}:${paginaActual}`
     const cached = solicitudesCache.get(cacheKey)
     if (cached) {
       setSolicitudes(cached.solicitudes)
+      setTotalSolicitudes(cached.total)
       setLoading(false)
     } else {
       setLoading(true)
@@ -64,20 +74,22 @@ export default function Solicitudes() {
     // seguiria viendo solicitudes de todo el pais si esto confiara solo
     // en mis_distritos()/es_nacional(). Se espeja la misma logica OR de
     // la politica RLS (solicitudes_select) pero fijada al rol activo.
-    let query = supabase.from('solicitudes_jerarquicas').select('*').order('actualizado_en', { ascending: false }).limit(200)
+    let query = supabase.from('solicitudes_jerarquicas').select('*', { count: 'exact' }).order('actualizado_en', { ascending: false }).range(paginaActual * SOLICITUDES_PAGE_SIZE, paginaActual * SOLICITUDES_PAGE_SIZE + SOLICITUDES_PAGE_SIZE - 1)
     if (nivel === 'local') query = query.or(`creado_por.eq.${user.id},congregacion_id.eq.${rolPrincipal.congregacion_id}`)
     else if (nivel === 'distrital') query = query.or(`creado_por.eq.${user.id},distrito_id.eq.${rolPrincipal.distrito_id}`)
-    const { data, error: loadError } = await query
+    if (filtroEstado !== 'todos') query = query.eq('estado', filtroEstado)
+    const { data, error: loadError, count } = await query
     if (loadError) setError(t('solicitudes.errorCargar'))
     const solicitudesFrescas = data ?? []
     setSolicitudes(solicitudesFrescas)
+    setTotalSolicitudes(count ?? 0)
     setLoading(false)
-    solicitudesCache.set(cacheKey, { solicitudes: solicitudesFrescas })
+    solicitudesCache.set(cacheKey, { solicitudes: solicitudesFrescas, total: count ?? 0 })
   }
 
   useEffect(() => {
     if (!roleLoading && rolPrincipal) cargarSolicitudes()
-  }, [roleLoading, rolPrincipal])
+  }, [roleLoading, rolPrincipal, filtroEstado, page])
 
   useEffect(() => {
     if (!notice) return undefined
@@ -123,7 +135,8 @@ export default function Solicitudes() {
     if (insertError) { setError(t('solicitudes.errorEnviar')); return }
     setAsunto(''); setDescripcion(''); setCongregacionDestinoId(''); setDistritoDestinoId('')
     setNotice(t('solicitudes.enviada'))
-    cargarSolicitudes()
+    setPage(0)
+    cargarSolicitudes(0)
   }
 
   async function abrirSolicitud(solicitud) {
@@ -151,10 +164,10 @@ export default function Solicitudes() {
     cargarSolicitudes()
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('solicitudes.cargando')}</div>
+  if (roleLoading || (loading && !solicitudes.length)) return <div className="module-loading" role="status"><span className="loading-dot" />{t('solicitudes.cargando')}</div>
   if (!['local', 'distrital', 'nacional', 'super_admin'].includes(nivel)) return <p className="card p-8 text-center text-sm text-secondary">{t('solicitudes.sinNivelValido')}</p>
 
-  const solicitudesFiltradas = solicitudes.filter((solicitud) => filtroEstado === 'todos' || solicitud.estado === filtroEstado)
+  const totalPaginasSolicitudes = Math.max(1, Math.ceil(totalSolicitudes / SOLICITUDES_PAGE_SIZE))
 
   return (
     <div className="page-shell">
@@ -196,15 +209,15 @@ export default function Solicitudes() {
 
       <section className="card overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="font-medium">{t('solicitudes.solicitudesCantidad', { cantidad: solicitudesFiltradas.length })}</h2>
-          <select className="input-field w-auto text-xs" value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}>
+          <h2 className="font-medium">{t('solicitudes.solicitudesCantidad', { cantidad: totalSolicitudes })}</h2>
+          <select className="input-field w-auto text-xs" value={filtroEstado} onChange={(event) => cambiarFiltroEstado(event.target.value)}>
             <option value="todos">{t('solicitudes.todosEstados')}</option>
             {Object.entries(ESTADO_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </div>
-        {solicitudesFiltradas.length === 0 ? <p className="p-6 text-sm text-muted">{t('solicitudes.sinSolicitudes')}</p> : (
+        {solicitudes.length === 0 ? <p className="p-6 text-sm text-muted">{t('solicitudes.sinSolicitudes')}</p> : (
           <div className="divide-y divide-border">
-            {solicitudesFiltradas.map((solicitud) => (
+            {solicitudes.map((solicitud) => (
               <button type="button" key={solicitud.id} onClick={() => abrirSolicitud(solicitud)} className="w-full text-left p-4 hover:bg-surface-1 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap"><span className="audit-badge">{TIPO_LABELS[solicitud.tipo]}</span><span className="text-xs text-muted">{solicitud.nivel_origen} → {solicitud.nivel_destino}</span>{solicitud.prioridad === 'alta' && <span className="text-xs text-danger font-medium">{t('solicitudes.prioridadAlta')}</span>}</div>
@@ -216,6 +229,11 @@ export default function Solicitudes() {
             ))}
           </div>
         )}
+        {totalSolicitudes > 0 && <div className="flex items-center justify-between gap-3 p-4 border-t border-border text-xs text-secondary">
+          <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="btn-secondary px-3">{t('solicitudes.anterior')}</button>
+          <span>{t('solicitudes.paginaDe', { actual: page + 1, total: totalPaginasSolicitudes })}</span>
+          <button type="button" disabled={page + 1 >= totalPaginasSolicitudes} onClick={() => setPage((p) => p + 1)} className="btn-secondary px-3">{t('solicitudes.siguiente')}</button>
+        </div>}
       </section>
 
       {seleccionada && (

@@ -1200,7 +1200,7 @@
     "confirmarEliminar": "Delete this error record? This cannot be undone.",
     "errorEliminar": "Could not delete the record.",
     "eliminado": "Record deleted.",
-    "total200": "Total (last 200)",
+    "totalErrores": "Total",
     "sinRevisar": "Unreviewed",
     "mostrarSoloSinRevisar": "Show only unreviewed",
     "ningunoSinRevisar": "No unreviewed errors.",
@@ -1208,7 +1208,10 @@
     "marcarSinRevisar": "Mark unreviewed",
     "marcarRevisado": "Mark reviewed",
     "eliminarAria": "Delete",
-    "verStack": "View stack"
+    "verStack": "View stack",
+    "anterior": "Previous",
+    "siguiente": "Next",
+    "paginaDe": "Page {{actual}} of {{total}}"
   },
   "soporte": {
     "estados": {
@@ -1233,6 +1236,9 @@
     "enviarReporte": "Send report",
     "urgentePre": "Something urgent? Write to us directly at",
     "todosReportes": "All reports",
+    "anterior": "Previous",
+    "siguiente": "Next",
+    "paginaDe": "Page {{actual}} of {{total}}",
     "soloSuperAdmin": "Visible only to super_admin.",
     "sinReportes": "No reports yet.",
     "colFecha": "Date",
@@ -1653,6 +1659,9 @@
     "enviando": "Sending...",
     "enviarSolicitud": "Send request",
     "solicitudesCantidad": "Requests ({{cantidad}})",
+    "anterior": "Previous",
+    "siguiente": "Next",
+    "paginaDe": "Page {{actual}} of {{total}}",
     "todosEstados": "All statuses",
     "sinSolicitudes": "No requests.",
     "prioridadAlta": "High priority",
@@ -2966,7 +2975,6 @@
       "comitesCount_one": "{{count}} committee",
       "comitesCount_other": "{{count}} committees",
       "historialTitulo": "Recent history",
-      "historialParcial": "12 of {{total}} changes",
       "historialCambios_one": "{{count}} change",
       "historialCambios_other": "{{count}} changes",
       "colFecha": "Date",

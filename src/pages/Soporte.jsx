@@ -11,6 +11,7 @@ import InfoTip from '../components/InfoTip'
 import Toast from '../components/Toast'
 
 const soporteCache = new Map()
+const REPORTES_PAGE_SIZE = 20
 
 const ADMIN_LEVELS = ['super_admin']
 
@@ -28,39 +29,44 @@ export default function Soporte() {
   const [error, setError] = useState(null)
   const [misReportes, setMisReportes] = useState([])
   const [todosReportes, setTodosReportes] = useState([])
+  const [totalReportes, setTotalReportes] = useState(0)
+  const [reportesPage, setReportesPage] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const esAdmin = ADMIN_LEVELS.includes(rolPrincipal?.nivel)
 
-  async function cargar() {
+  async function cargar(paginaOverride) {
     if (!user) return
-    const cacheKey = `${user.id}:${esAdmin ? 'admin' : 'propio'}`
+    const paginaActual = paginaOverride ?? reportesPage
+    const cacheKey = `${user.id}:${esAdmin ? 'admin' : 'propio'}:${paginaActual}`
     const cached = soporteCache.get(cacheKey)
     if (cached) {
       setTodosReportes(cached.todosReportes)
+      setTotalReportes(cached.total)
       setMisReportes(cached.misReportes)
       setLoading(false)
     } else {
       setLoading(true)
     }
     if (esAdmin) {
-      const { data, error: fetchError } = await supabase.from('reportes_soporte').select('*').order('created_at', { ascending: false }).limit(100)
+      const { data, error: fetchError, count } = await supabase.from('reportes_soporte').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(paginaActual * REPORTES_PAGE_SIZE, paginaActual * REPORTES_PAGE_SIZE + REPORTES_PAGE_SIZE - 1)
       setLoading(false)
       if (fetchError) { setError(t('soporte.errorCargarAdmin')); return }
       const nuevosTodosReportes = data ?? []
       setTodosReportes(nuevosTodosReportes)
-      soporteCache.set(cacheKey, { todosReportes: nuevosTodosReportes, misReportes: [] })
+      setTotalReportes(count ?? 0)
+      soporteCache.set(cacheKey, { todosReportes: nuevosTodosReportes, total: count ?? 0, misReportes: [] })
     } else {
       const { data, error: fetchError } = await supabase.from('reportes_soporte').select('*').eq('usuario_id', user.id).order('created_at', { ascending: false })
       setLoading(false)
       if (fetchError) { setError(t('soporte.errorCargarPropio')); return }
       const nuevosMisReportes = data ?? []
       setMisReportes(nuevosMisReportes)
-      soporteCache.set(cacheKey, { todosReportes: [], misReportes: nuevosMisReportes })
+      soporteCache.set(cacheKey, { todosReportes: [], total: 0, misReportes: nuevosMisReportes })
     }
   }
 
-  useEffect(() => { if (!roleLoading) cargar() }, [user, roleLoading, esAdmin])
+  useEffect(() => { if (!roleLoading) cargar() }, [user, roleLoading, esAdmin, reportesPage])
 
   useEffect(() => {
     if (!notice) return undefined
@@ -100,7 +106,7 @@ export default function Soporte() {
     cargar()
   }
 
-  if (roleLoading || loading) return <div className="module-loading" role="status"><span className="loading-dot" />{t('soporte.cargando')}</div>
+  if (roleLoading || (loading && !todosReportes.length && !misReportes.length)) return <div className="module-loading" role="status"><span className="loading-dot" />{t('soporte.cargando')}</div>
 
   return (
     <div className="page-shell">
@@ -129,8 +135,9 @@ export default function Soporte() {
 
       {esAdmin ? (
         <section className="card overflow-hidden">
-          <div className="p-5 border-b border-border"><h2 className="font-medium">{t('soporte.todosReportes')}</h2><p className="text-sm text-secondary mt-1">{t('soporte.soloSuperAdmin')}</p></div>
+          <div className="p-5 border-b border-border"><h2 className="font-medium">{t('soporte.todosReportes')}{totalReportes > 0 ? ` (${totalReportes})` : ''}</h2><p className="text-sm text-secondary mt-1">{t('soporte.soloSuperAdmin')}</p></div>
           {todosReportes.length === 0 ? <p className="p-6 text-sm text-muted">{t('soporte.sinReportes')}</p> : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-muted bg-surface-1"><th className="font-normal px-5 py-3">{t('soporte.colFecha')}</th><th className="font-normal px-5 py-3">{t('soporte.colAsunto')}</th><th className="font-normal px-5 py-3">{t('soporte.colDe')}</th><th className="font-normal px-5 py-3">{t('soporte.colEstado')}</th><th className="font-normal px-5 py-3"></th></tr></thead>
@@ -147,6 +154,12 @@ export default function Soporte() {
                 </tbody>
               </table>
             </div>
+            {totalReportes > REPORTES_PAGE_SIZE && <div className="flex items-center justify-between gap-3 p-4 border-t border-border text-xs text-secondary">
+              <button type="button" disabled={reportesPage === 0} onClick={() => setReportesPage((p) => p - 1)} className="btn-secondary px-3">{t('soporte.anterior')}</button>
+              <span>{t('soporte.paginaDe', { actual: reportesPage + 1, total: Math.ceil(totalReportes / REPORTES_PAGE_SIZE) })}</span>
+              <button type="button" disabled={(reportesPage + 1) * REPORTES_PAGE_SIZE >= totalReportes} onClick={() => setReportesPage((p) => p + 1)} className="btn-secondary px-3">{t('soporte.siguiente')}</button>
+            </div>}
+            </>
           )}
         </section>
       ) : (
