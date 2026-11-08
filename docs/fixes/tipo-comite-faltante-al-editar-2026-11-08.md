@@ -63,3 +63,20 @@ hipótesis ("este comité nunca tuvo tipo asignado") sonaba razonable
 pero no se verificó contra el código real antes de darla por buena —
 el usuario tuvo que probarlo tres veces para demostrar que sí era un
 bug.
+
+## Mismo día, mismo hueco: el responsable tampoco se podía editar
+
+El usuario pidió, en la misma pantalla, poder cambiar el responsable
+del comité (y su fecha) al editarlo — mismo problema exacto que el
+tipo: `renameCommittee()` nunca tenía campo para `responsable_id`,
+solo se podía elegir al crear. Las fechas de inicio/fin del comité ya
+eran editables desde antes (no hacía falta tocar nada ahí).
+
+Se agregó el mismo selector que ya usa `CommitteeCreateForm`
+(`analyticsPeople` filtrado a personas activas), reutilizando sus
+llaves i18n. Esta vez, antes de dar el cambio por terminado, se
+verificó explícitamente que `responsable_id` sí estuviera en el
+`select()` de `comites` (ya lo estaba) — para no repetir el mismo
+error que con `tipo_id`.
+
+Commit `0a753bf`, pusheado.
