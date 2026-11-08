@@ -6,6 +6,7 @@ import { useMiRol } from '../hooks/useMiRol'
 import InfoTip from '../components/InfoTip'
 
 const registrarAsistenciaCache = new Map()
+const REGISTROS_PAGE_SIZE = 10
 
 export default function RegistrarAsistencia() {
   const { t } = useTranslation()
@@ -34,6 +35,8 @@ export default function RegistrarAsistencia() {
   const [loadingPermission, setLoadingPermission] = useState(true)
   const [loadingData, setLoadingData] = useState(true)
   const [registros, setRegistros] = useState([])
+  const [registrosPagina, setRegistrosPagina] = useState(0)
+  const [totalRegistros, setTotalRegistros] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [ok, setOk] = useState(false)
@@ -48,7 +51,6 @@ export default function RegistrarAsistencia() {
       setResponsables(cached.responsables)
       setUjieresCongregacion(cached.ujieresCongregacion ?? [])
       if (cached.captureRules) setCaptureRules(cached.captureRules)
-      setRegistros(cached.registros)
       setCanCapture(cached.canCapture)
       setLoadingPermission(false)
       setLoadingData(false)
@@ -64,23 +66,20 @@ export default function RegistrarAsistencia() {
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
       supabase.from('configuracion_congregacion').select('exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle(),
-      supabase.from('registros_actividad').select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)').eq('congregacion_id', congregacionId).order('fecha', { ascending: false }).limit(10),
-    ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult]) => {
-      const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, registrosResult].find((result) => result.error)
+    ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult]) => {
+      const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult].find((result) => result.error)
       if (failed) setError(t('registrarAsistencia.errorCargarTodo'))
       const newModulos = modulosResult.data ?? []
       const newCategorias = categoriasResult.data ?? []
       const newResponsables = responsablesResult.data ?? []
       const newUjieres = ujieresResult.data ?? []
       const newCaptureRules = configResult.data || null
-      const newRegistros = registrosResult.data ?? []
       const newCanCapture = Boolean(capture.data || admin.data)
       setModulos(newModulos)
       setCategorias(newCategorias)
       setResponsables(newResponsables)
       setUjieresCongregacion(newUjieres)
       if (newCaptureRules) setCaptureRules(newCaptureRules)
-      setRegistros(newRegistros)
       setCanCapture(newCanCapture)
       setLoadingPermission(false)
       setLoadingData(false)
@@ -90,7 +89,6 @@ export default function RegistrarAsistencia() {
         responsables: newResponsables,
         ujieresCongregacion: newUjieres,
         captureRules: newCaptureRules,
-        registros: newRegistros,
         canCapture: newCanCapture,
       })
     }).catch(() => {
@@ -98,6 +96,13 @@ export default function RegistrarAsistencia() {
       setLoadingPermission(false)
       setLoadingData(false)
     })
+  }, [congregacionId])
+
+  // Tabla de abajo, aparte del resto (modulos/categorias/etc) -- asi
+  // paginar no vuelve a pedir todo lo demas, solo esta consulta.
+  useEffect(() => {
+    if (!congregacionId) return
+    loadRegistros(0)
   }, [congregacionId])
 
   useEffect(() => {
@@ -114,15 +119,20 @@ export default function RegistrarAsistencia() {
   const moduloSeleccionado = modulos.find((item) => item.id === moduloId)
   const esModuloUjieres = moduloSeleccionado?.nombre_modulo?.trim().toLowerCase() === 'ujieres'
 
-  async function loadRegistros() {
-    const { data } = await supabase
+  async function loadRegistros(pagina = registrosPagina) {
+    const { data, count } = await supabase
       .from('registros_actividad')
-      .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)')
+      .select('id, fecha, modulo_id, tipo_actividad_id, zona_id, total_asistentes, tipos_actividad(nombre), personas:responsable_persona_id(nombres, apellidos), ujieres_congregacion:ujier_responsable_id(nombre)', { count: 'exact' })
       .eq('congregacion_id', congregacionId)
       .order('fecha', { ascending: false })
-      .limit(10)
+      .order('id', { ascending: false })
+      .range(pagina * REGISTROS_PAGE_SIZE, pagina * REGISTROS_PAGE_SIZE + REGISTROS_PAGE_SIZE - 1)
     setRegistros(data ?? [])
+    setTotalRegistros(count ?? 0)
+    setRegistrosPagina(pagina)
   }
+
+  const totalPaginasRegistros = Math.max(1, Math.ceil(totalRegistros / REGISTROS_PAGE_SIZE))
 
   function actualizarConteo(catId, valor) {
     setConteos((prev) => ({ ...prev, [catId]: parseInt(valor, 10) || 0 }))
@@ -169,7 +179,7 @@ export default function RegistrarAsistencia() {
     setConteos({})
     setNovedades('')
     setMotivoCaptura('')
-    loadRegistros()
+    loadRegistros(0)
     setTimeout(() => setOk(false), 3000)
   }
 
@@ -283,6 +293,13 @@ export default function RegistrarAsistencia() {
           </tbody>
         </table>
         </div>
+        {totalRegistros > 0 && <div className="flex items-center justify-between gap-3 text-xs text-secondary mt-3">
+          <span>{t('registrarAsistencia.pagina', { actual: registrosPagina + 1, total: totalPaginasRegistros, cantidad: totalRegistros })}</span>
+          <div className="flex gap-2">
+            <button type="button" disabled={registrosPagina === 0} onClick={() => loadRegistros(registrosPagina - 1)} className="btn-secondary px-3">{t('registrarAsistencia.anterior')}</button>
+            <button type="button" disabled={registrosPagina >= totalPaginasRegistros - 1} onClick={() => loadRegistros(registrosPagina + 1)} className="btn-secondary px-3">{t('registrarAsistencia.siguiente')}</button>
+          </div>
+        </div>}
       </div>
     </div>
   )

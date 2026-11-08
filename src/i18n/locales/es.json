@@ -1997,11 +1997,14 @@
     "sumaCategorias": "Suma de las categorías ingresadas",
     "guardando": "Guardando...",
     "guardarCorreccion": "Guardar corrección",
-    "registrosRecientes": "Registros recientes",
+    "registrosRecientes": "Historial de registros",
     "colFecha": "Fecha",
     "colActividad": "Actividad",
     "colResponsable": "Responsable",
-    "colTotal": "Total"
+    "colTotal": "Total",
+    "pagina": "Página {{actual}} de {{total}} · {{cantidad}} registros",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente"
   },
   "misionesEvangelismo": {
     "submodulos": {
