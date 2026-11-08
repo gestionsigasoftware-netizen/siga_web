@@ -24,3 +24,23 @@ antes de "descripción"), reutilizando el catálogo ya cargado
 creación — no hizo falta ninguna llave nueva.
 
 Commit `6751116`, pusheado.
+
+## Seguimiento el mismo día: cargo del integrante no se mostraba
+
+El usuario mandó una captura real de la tarjeta de "Junta Local"
+confirmando que, en efecto, el tipo no aparecía (ese comité en
+particular nunca tuvo uno asignado — comportamiento esperado, no
+bug). Pero de paso notó un problema real: en el grupo "Otro" de
+integrantes, cada fila solo mostraba el nombre de la persona, sin
+ningún indicio de qué cargo desempeñaba.
+
+`membresias_comite.cargo` (texto libre, se llena siempre que se
+asigna un integrante — sea del catálogo `cargos_comite` o escrito a
+mano) nunca se mostraba en la fila del integrante, solo el nombre.
+Era más grave justo en el grupo "Otro" (quienes no calzan con el
+catálogo activo de cargos), donde no había ninguna otra pista.
+
+Corrección: se agrega `{member.cargo && <span> · {member.cargo}</span>}`
+junto al nombre, reutilizando el mismo formato " · {cargo}" que ya se
+usaba en otra parte de este mismo archivo (la ficha de la persona,
+línea 119). Commit `24b23ff`, pusheado.
