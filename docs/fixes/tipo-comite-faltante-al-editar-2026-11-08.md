@@ -27,12 +27,13 @@ Commit `6751116`, pusheado.
 
 ## Seguimiento el mismo día: cargo del integrante no se mostraba
 
-El usuario mandó una captura real de la tarjeta de "Junta Local"
-confirmando que, en efecto, el tipo no aparecía (ese comité en
-particular nunca tuvo uno asignado — comportamiento esperado, no
-bug). Pero de paso notó un problema real: en el grupo "Otro" de
-integrantes, cada fila solo mostraba el nombre de la persona, sin
-ningún indicio de qué cargo desempeñaba.
+El usuario mandó una captura real de la tarjeta de "Junta Local". En
+ese momento se asumió que el tipo simplemente no estaba asignado
+(comportamiento esperado) — **resultó ser una suposición incorrecta,
+ver la corrección de abajo**. De paso, en esa misma captura se notó un
+problema real: en el grupo "Otro" de integrantes, cada fila solo
+mostraba el nombre de la persona, sin ningún indicio de qué cargo
+desempeñaba.
 
 `membresias_comite.cargo` (texto libre, se llena siempre que se
 asigna un integrante — sea del catálogo `cargos_comite` o escrito a
@@ -44,3 +45,21 @@ Corrección: se agrega `{member.cargo && <span> · {member.cargo}</span>}`
 junto al nombre, reutilizando el mismo formato " · {cargo}" que ya se
 usaba en otra parte de este mismo archivo (la ficha de la persona,
 línea 119). Commit `24b23ff`, pusheado.
+
+## Corrección real: la suposición de "comportamiento esperado" era falsa
+
+El usuario probó de verdad: editó "Junta Local", eligió un tipo,
+guardó — y nunca apareció. Lo repitió 3 veces con el mismo resultado
+y lo reportó. Causa real: el `select()` de `comites` en `load()`
+**nunca pedía la columna `tipo_id`** a Supabase. El `UPDATE` sí
+guardaba el valor correctamente en la base de datos, pero la pantalla
+jamás lo volvía a traer — ni en la tarjeta ni al reabrir "Editar"
+(que por eso siempre mostraba "Sin tipo" de nuevo, dando la impresión
+de que cada intento se perdía).
+
+Corrección: se agregó `tipo_id` a la lista de columnas de ese
+`select()`. Commit `328bbaf`, pusheado. **Lección**: la primera
+hipótesis ("este comité nunca tuvo tipo asignado") sonaba razonable
+pero no se verificó contra el código real antes de darla por buena —
+el usuario tuvo que probarlo tres veces para demostrar que sí era un
+bug.
