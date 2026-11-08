@@ -2827,7 +2827,7 @@
       "comiteEllipsis": "Comitê...",
       "integranteEllipsis": "Integrante...",
       "cargoEllipsis": "Cargo...",
-      "placeholderCargoSinCatalogo": "Cargo (configure-os em Configuração)",
+      "placeholderCargoSinCatalogo": "Cargo (defina-os em Configuração)",
       "desactivar": "Desativar",
       "reactivar": "Reativar",
       "integrantesActivosCount_one": "{{count}} integrante ativo",
