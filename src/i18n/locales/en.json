@@ -3097,6 +3097,7 @@
       "guardaFichaPrimero": "Save the record first to be able to link a spouse.",
       "generoLabel": "Gender",
       "fechaIngreso": "Admission date",
+      "fechaIngresoTip": "The date this person started attending this congregation, not the date this record was created in the system.",
       "ultimaAsistencia": "Last attendance",
       "familia": "Family",
       "sinFamilia": "No family",

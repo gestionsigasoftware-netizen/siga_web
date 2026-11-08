@@ -3097,6 +3097,7 @@
       "guardaFichaPrimero": "Guarda la ficha primero para poder vincular cónyuge.",
       "generoLabel": "Género",
       "fechaIngreso": "Fecha de ingreso",
+      "fechaIngresoTip": "Fecha en que esta persona empezó a congregarse aquí, no la fecha en que se creó este registro en el sistema.",
       "ultimaAsistencia": "Última asistencia",
       "familia": "Familia",
       "sinFamilia": "Sin familia",
