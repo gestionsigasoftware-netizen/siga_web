@@ -114,7 +114,7 @@ export default function RegistrarAsistencia() {
 
   useEffect(() => {
     if (!moduloId) { setTipos([]); return }
-    supabase.from('tipos_actividad').select('id, nombre, caracter').eq('modulo_id', moduloId).eq('activo', true)
+    supabase.from('tipos_actividad').select('id, nombre').eq('modulo_id', moduloId).eq('activo', true)
       .then(({ data }) => setTipos(data ?? []))
       supabase.from('zonas').select('id, nombre').eq('modulo_id', moduloId).order('nombre')
         .then(({ data }) => setZonas(data ?? []))
@@ -222,7 +222,7 @@ export default function RegistrarAsistencia() {
           <label className="text-sm text-secondary block mb-1">{t('registrarAsistencia.tipoActividad')}</label>
           <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="input-field" required disabled={!moduloId}>
             <option value="">{t('registrarAsistencia.seleccionaActividad')}</option>
-            {tipos.map((t2) => <option key={t2.id} value={t2.id}>{t2.nombre}{t2.caracter ? ` — ${t2.caracter}` : ''}</option>)}
+            {tipos.map((t2) => <option key={t2.id} value={t2.id}>{t2.nombre}</option>)}
           </select>
         </div>
 
