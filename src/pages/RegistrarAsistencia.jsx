@@ -22,6 +22,8 @@ export default function RegistrarAsistencia() {
   const [tipoId, setTipoId] = useState('')
   const [zonas, setZonas] = useState([])
   const [zonaId, setZonaId] = useState('')
+  const [caracteres, setCaracteres] = useState([])
+  const [caracterId, setCaracterId] = useState('')
   const [categorias, setCategorias] = useState([])
   const [conteos, setConteos] = useState({})
   const [responsables, setResponsables] = useState([])
@@ -50,6 +52,7 @@ export default function RegistrarAsistencia() {
       setCategorias(cached.categorias)
       setResponsables(cached.responsables)
       setUjieresCongregacion(cached.ujieresCongregacion ?? [])
+      setCaracteres(cached.caracteres ?? [])
       if (cached.captureRules) setCaptureRules(cached.captureRules)
       setCanCapture(cached.canCapture)
       setLoadingPermission(false)
@@ -66,8 +69,9 @@ export default function RegistrarAsistencia() {
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'estadisticas.registrar' }),
       supabase.rpc('tiene_permiso', { p_congregacion_id: congregacionId, p_permiso: 'feligresia.editar' }),
       supabase.from('configuracion_congregacion').select('exigir_responsable, exigir_novedades').eq('congregacion_id', congregacionId).maybeSingle(),
-    ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult]) => {
-      const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult].find((result) => result.error)
+      supabase.from('caracteres_culto').select('id, nombre').eq('congregacion_id', congregacionId).eq('activo', true).order('nombre'),
+    ]).then(([modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, caracteresResult]) => {
+      const failed = [modulosResult, categoriasResult, responsablesResult, ujieresResult, capture, admin, configResult, caracteresResult].find((result) => result.error)
       if (failed) setError(t('registrarAsistencia.errorCargarTodo'))
       const newModulos = modulosResult.data ?? []
       const newCategorias = categoriasResult.data ?? []
@@ -75,10 +79,12 @@ export default function RegistrarAsistencia() {
       const newUjieres = ujieresResult.data ?? []
       const newCaptureRules = configResult.data || null
       const newCanCapture = Boolean(capture.data || admin.data)
+      const newCaracteres = caracteresResult.data ?? []
       setModulos(newModulos)
       setCategorias(newCategorias)
       setResponsables(newResponsables)
       setUjieresCongregacion(newUjieres)
+      setCaracteres(newCaracteres)
       if (newCaptureRules) setCaptureRules(newCaptureRules)
       setCanCapture(newCanCapture)
       setLoadingPermission(false)
@@ -88,6 +94,7 @@ export default function RegistrarAsistencia() {
         categorias: newCategorias,
         responsables: newResponsables,
         ujieresCongregacion: newUjieres,
+        caracteres: newCaracteres,
         captureRules: newCaptureRules,
         canCapture: newCanCapture,
       })
@@ -165,6 +172,7 @@ export default function RegistrarAsistencia() {
         zona_id: zonaId || null,
         responsable_persona_id: esModuloUjieres ? null : (responsableId || null),
         ujier_responsable_id: esModuloUjieres ? (responsableId || null) : null,
+        caracter_id: caracterId || null,
         fecha,
         novedades,
         origen_captura: 'web',
@@ -179,6 +187,7 @@ export default function RegistrarAsistencia() {
     setConteos({})
     setNovedades('')
     setMotivoCaptura('')
+    setCaracterId('')
     loadRegistros(0)
     setTimeout(() => setOk(false), 3000)
   }
@@ -216,6 +225,17 @@ export default function RegistrarAsistencia() {
             {tipos.map((t2) => <option key={t2.id} value={t2.id}>{t2.nombre}{t2.caracter ? ` — ${t2.caracter}` : ''}</option>)}
           </select>
         </div>
+
+        {caracteres.length > 0 && <div>
+          <label className="text-sm text-secondary mb-1 flex items-center gap-1">
+            {t('registrarAsistencia.caracterCulto')} {t('registrarAsistencia.opcional')}
+            <InfoTip texto={t('registrarAsistencia.caracterCultoTip')} />
+          </label>
+          <select value={caracterId} onChange={(e) => setCaracterId(e.target.value)} className="input-field">
+            <option value="">{t('registrarAsistencia.sinEspecificar')}</option>
+            {caracteres.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+        </div>}
 
         <div>
           <label className="text-sm text-secondary mb-1 flex items-center gap-1">
